@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { sculptLoader, sculptModelUrl } from './sculptLoader';
 import { limitTextureSize, textureLimit } from './textureQuality';
 import { clone as cloneSkeleton } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { ActorStyle } from './actors';
@@ -16,7 +17,6 @@ import { characterSupports, characterFloor, type GroundSupport } from './charact
 import type { VehicleId } from '../sim/types';
 import { createSculptVehicle, SCULPT_VEHICLE_KINDS } from './sculptVehicles';
 
-const BASE = `${import.meta.env.BASE_URL}art/city/sculpt`;
 const STYLES = DETAILED_CHARACTER_STYLES;
 const EQUIPMENT_KINDS = GENERATED_EQUIPMENT_KINDS;
 const ACTOR_HEIGHT = DETAILED_CHARACTER_HEIGHTS;
@@ -67,11 +67,11 @@ export class SculptReviewLayer {
 
   async load(): Promise<void> {
     try {
-      const loader = new GLTFLoader();
+      const loader = await sculptLoader();
       const [results,[weaponResult,combatResult]] = await Promise.all([Promise.allSettled([
-        ...SCULPT_VEHICLE_KINDS.map(kind => loader.loadAsync(`${BASE}/${kind}.glb`)),
-        ...STYLES.map(style => loader.loadAsync(`${BASE}/${style}.glb`)),
-        ...EQUIPMENT_KINDS.map(kind => loader.loadAsync(`${BASE}/weapons/${GENERATED_EQUIPMENT[kind].file}.glb`)),
+        ...SCULPT_VEHICLE_KINDS.map(kind => loader.loadAsync(sculptModelUrl(`${kind}.glb`))),
+        ...STYLES.map(style => loader.loadAsync(sculptModelUrl(`${style}.glb`))),
+        ...EQUIPMENT_KINDS.map(kind => loader.loadAsync(sculptModelUrl(`weapons/${GENERATED_EQUIPMENT[kind].file}.glb`))),
       ]),Promise.allSettled([loadWeaponMotions(),loadCombatMotions()] as const)]);
       const loaded = results.filter((result): result is PromiseFulfilledResult<GLTF> => result.status === 'fulfilled').map(result => result.value);
       // Navigation can finish while GLBs are still loading. Release every fulfilled

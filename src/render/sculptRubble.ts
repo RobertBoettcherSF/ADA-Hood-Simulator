@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
+import {sculptLoader,sculptModelUrl} from './sculptLoader';
 import {limitTextureSize,textureLimit} from './textureQuality';
 import {r01,KERB_H} from './util';
 
@@ -41,8 +41,8 @@ export class SculptRubble {
   private geometries=new Set<THREE.BufferGeometry>();private materials=new Set<THREE.Material>();private textures=new Set<THREE.Texture>();
   constructor(){this.group.name='sculpt-building-rubble';}
   async load():Promise<void>{
-    const kinds:RubbleKind[]=['brick','stone'],loader=new GLTFLoader();
-    const results=await Promise.allSettled(kinds.map(kind=>loader.loadAsync(`${import.meta.env.BASE_URL}art/city/sculpt/rubble/${kind}.glb`)));
+    const kinds:RubbleKind[]=['brick','stone'],loader=await sculptLoader();
+    const results=await Promise.allSettled(kinds.map(kind=>loader.loadAsync(sculptModelUrl(`rubble/${kind}.glb`))));
     for(const result of results)if(result.status==='fulfilled')result.value.scene.traverse(o=>{if(o instanceof THREE.Mesh){
       this.geometries.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material]){this.materials.add(m);
         for(const v of Object.values(m))if(v instanceof THREE.Texture)this.textures.add(v);}}});

@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is New Temperance in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.1.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.2.
 
 ## Decisions
 
@@ -46,6 +46,13 @@ The owner answered the open questions in §8. These decisions override anything 
 19. A story gets a photograph only when it names that kind of event. The fire picture is used only for a building whose fire was this week. A quiet week uses the docks photograph; there is no separate empty-street plate. A fire week does not also run the quiet headline. A burned building is damaged, so it does not trade, until the repairs finish. Injured and dead are counted as people escape.
 20. The "report written" line clears itself after 3 seconds. An error stays until Dismiss.
 21. Clicking the same lieutenant portrait, or the same empty slot, closes the pool and the city plan comes back. A drop on that slot does not also count as the click. Under 900 px the portrait column is hidden, so the large portrait on the crew page opens the pool the same way.
+
+## v1.2.2 decisions (made while Robert was away)
+
+2. Headless End Week on seed 1934, 40×32, measured 17.0 s in week 1 and 20.3 s in week 2. Saving that world stringified in 126 ms. Walking is checked against traffic every minute; skipping those steps changes who arrives when, and that changes the random stream, so the Friday would change. A worker would move the same work off the UI thread and would not make it shorter. Waypoints are now dropped once per minute instead of one shift at a time. The two-week world hash is unchanged (`cf5f6b54…`). Under 5 seconds was not reached.
+5. The nationality portraits and the general pool were looked at. They are already period studio photographs, twelve men and six women for each of the ten origins, 180 files, all present. No cartoon file is still shown. They were not redrawn.
+12. The folder copy is everything under `public/art` plus the Basis transcoder, listed in `public/asset-manifest.json` with a sha256. `art/city/sculpt/` is the desktop tier. `art/city/sculpt-phone/` is the phone tier. Everything else is shared. A phone copies only the phone tier and shared files. There are no font files in the repo; the type comes from the stylesheet already in the page. Desktop turns the copied bytes into blob URLs before the menu. A phone keeps the files in the folder and holds at most 48 MB in memory, first the menu art, then city art when the streets open. Phone models are the desktop GLBs simplified to about 35% of the vertices, Meshopt compressed, with KTX2 textures at 512 px. Phone streets draw two lamps per block instead of four, no lamp glow, no hydrants, and one tree where the desktop may draw several. The desktop GLBs and the desktop prop loop are unchanged.
+
 
 
 ## 1. Current state

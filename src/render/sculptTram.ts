@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { sculptLoader, sculptModelUrl } from './sculptLoader';
 import { limitTextureSize, textureLimit } from './textureQuality';
 
 /** The Sculpt street tram (the original's vehicle model 7); see docs/audit/2026-10-29/trams/sculpt. */
-export const TRAM_MODEL_URL = `${import.meta.env.BASE_URL}art/city/sculpt/tram.glb`;
+export const TRAM_MODEL_URL = sculptModelUrl('tram.glb');
 /** Overall size the model is drawn at: rails to roof, body width, coupler to coupler (metres). */
 export const TRAM_MODEL_SIZE = { length: 11, width: 2.4, height: 3.2 };
 
@@ -121,7 +121,7 @@ function liveryLuminance(map: THREE.Texture | null): number {
 /** Load and normalise the tram, or null when it cannot be had (the procedural car stays). */
 export async function loadTramModel(): Promise<TramModel | null> {
   try {
-    const gltf = await new GLTFLoader().loadAsync(TRAM_MODEL_URL);
+    const gltf = await (await sculptLoader()).loadAsync(sculptModelUrl('tram.glb'));
     return prepareTramModel(gltf.scene);
   } catch { return null; }
 }

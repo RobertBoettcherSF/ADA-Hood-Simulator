@@ -1,4 +1,5 @@
 import type { Person } from '../sim/types';
+import { assetUrl } from '../app/assetCache';
 import { noteAssetLoad } from '../app/assetTiming';
 import thickenedIcons from '../../public/art/icons-small/index.json';
 
@@ -11,7 +12,7 @@ import thickenedIcons from '../../public/art/icons-small/index.json';
 export const ART_ROOT = `${import.meta.env.BASE_URL}art`;
 
 export function art(path: string): string {
-  return `${ART_ROOT}/${path}`;
+  return assetUrl(`art/${path}`);
 }
 
 const THICKENED = new Set<string>(thickenedIcons);
