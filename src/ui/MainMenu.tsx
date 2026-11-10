@@ -1,9 +1,8 @@
-import { ArtImage } from './ArtImage';
 import { useEffect, useState } from 'react';
+import { readLocalData } from '../app/localData';
 import { useGame } from '../app/store';
 import { deleteSave, loadHallOfFame, slotLoadable, type HallEntry, type SaveSlot } from '../app/save';
 import { gangManpower, money, territoryCount } from '../sim/world';
-import { art } from './art';
 import { CityPlan } from './desk/CityPlan';
 import { ConfirmDialog, Modal } from './common';
 import { Plaque } from './Plaque';
@@ -62,7 +61,7 @@ export function MainMenu() {
     const arm = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        if (!document.hidden && !document.querySelector('[aria-modal="true"]')) useGame.getState().startAttract();
+        if (readLocalData().cityDemo && !document.hidden && !document.querySelector('[aria-modal="true"]')) useGame.getState().startAttract();
       }, ATTRACT_IDLE_MS);
     };
     arm();
@@ -131,9 +130,7 @@ export function MainMenu() {
     <div className="scene scene-casino">
       <div className="scene-light" aria-hidden="true" />
       <div className="scene-version" aria-label={`Version ${__APP_VERSION__}`}>v{__APP_VERSION__}</div>
-      <h1 className="scene-title">
-        <ArtImage src={art('brand/wordmark.png')} alt="Original Gangster" draggable={false} />
-      </h1>
+      <h1 className="scene-title scene-wordmark">Hood Simulator</h1>
 
       <nav className="plaque-stack" aria-label="Main menu">
         {plaques.map((p, i) => (

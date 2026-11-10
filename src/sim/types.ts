@@ -370,6 +370,9 @@ export interface Building {
   repairCost: number;
   /** Saved fire damage: smoke lasts through this week, scorch persists until repaired. */
   fireWeek?: number;
+  /** People hurt or killed in this week's fire, for the morning paper. */
+  fireInjured?: number;
+  fireDead?: number;
   /** Paid fire repairs finish at the start of this week. */
   repairCompleteWeek?: number;
   /** How well hidden from the FBI: 0 (obvious) .. 1 (perfect front). */
@@ -383,11 +386,12 @@ export interface Building {
   fbiSearchedWeek?: number;
   /** Last week illicit goods were passed through this legal business. */
   launderingWeek?: number;
-  /** Rented rooms: floors in use (1–4), one tenant each, and the last day already billed (`week * 10 + day`). */
+  /** Rented rooms: floors in use (1–4), one apartment each, and the last day already billed (`week * 10 + day`). */
   roomsFloors?: number;
-  /** Older saves named a staff count. New cities keep a tenant purse per floor. */
+  /** Older saves named a staff count. New cities keep a tenant purse per apartment. */
   roomsStaff?: number;
-  roomsTenants?: { budget: number | null; vacantDays: number }[];
+  /** Up to two tenants share an apartment and its purse. `occupants` defaults to 1. */
+  roomsTenants?: { budget: number | null; vacantDays: number; occupants?: 1 | 2 }[];
   roomsChargedDay?: number;
   /** Net rent booked this week, before Friday copies it onto `lastProfit`. */
   roomsWeekNet?: number;
@@ -810,6 +814,8 @@ export interface NewsItem {
   headline: string;
   body: string;
   gangId: ID | null;
+  /** Which press photograph belongs to this story. Absent means no picture. */
+  photo?: 'fire' | 'wreck' | 'raid' | 'funeral' | 'courthouse' | 'rally' | 'charity' | 'bank' | 'docks' | 'calm';
 }
 
 export type MessageCategory = 'combat' | 'police' | 'failed' | 'waiting';

@@ -126,11 +126,16 @@ export function RightSheet() {
       body = <OrderListSheet group={sheet.group} teamId={team?.id ?? null} />;
       break;
     }
-    case 'hoods':
+    case 'hoods': {
+      const poolTeam = sheet.teamId ?? (sheet.slot != null ? undefined : team?.id);
+      const crew = poolTeam != null ? w.teams[poolTeam] : undefined;
       title = 'The Pool';
-      kicker = 'Resource details · hoods';
-      body = <PoolSheet teamId={team?.id} />;
+      kicker = sheet.slot != null && sheet.teamId == null
+        ? 'Choose a new lieutenant'
+        : crew ? `Hoods for ${crew.name}` : 'Resource details · hoods';
+      body = <PoolSheet teamId={poolTeam} newLieutenant={sheet.slot != null && sheet.teamId == null} />;
       break;
+    }
     case 'weapons':
       title = 'Weapons';
       kicker = 'Resource details · black market';
@@ -214,7 +219,7 @@ function OrderListSheet({ group, teamId }: { group: OrderDef['group']; teamId: I
   );
 }
 
-function PoolSheet({ teamId }: { teamId?: ID }) {
+function PoolSheet({ teamId, newLieutenant = false }: { teamId?: ID; newLieutenant?: boolean }) {
   const sim = useGame((s) => s.sim)!;
   const notify = useGame((s) => s.notify);
   const setSheet = useGame((s) => s.setSheet);
@@ -229,6 +234,13 @@ function PoolSheet({ teamId }: { teamId?: ID }) {
 
   return (
     <div {...dropProps} className={`resource-drop${dropOver ? ' drop-over' : ''}`} aria-label="The pool: drag a crew member here to stand him down">
+      <Hint>
+        {newLieutenant
+          ? 'Promote a hood and he becomes lieutenant of a new crew. You can also drag him onto the empty slot.'
+          : teamId != null
+            ? 'Drag a hood onto that lieutenant, or use → Team to add him to the crew. Click the same portrait again for the city plan.'
+            : 'Drag a hood onto a lieutenant to add him to that crew, or onto an empty slot to promote him.'}
+      </Hint>
       <div className="row wrap tiny" style={{ gap: 3, marginBottom: 8 }}>
         <span className="muted">Sort:</span>
         {(['intelligence', 'organization', 'business', 'firearms', 'intimidation', 'stealth'] as const).map((k) => (
@@ -241,7 +253,7 @@ function PoolSheet({ teamId }: { teamId?: ID }) {
         <Empty>Nobody is sitting idle.</Empty>
       ) : (
         pool.map((p) => (
-          <div key={p.id} className="person-row" {...resourceDragProps({ kind: 'hood', id: p.id })} title="Drag onto a lieutenant to give him this hood">
+          <div key={p.id} className="person-row" {...resourceDragProps({ kind: 'hood', id: p.id })} title="Drag onto a crew to add him, or onto an empty lieutenant tab to make him a lieutenant of a new crew">
             <div className="avatar">
               <Portrait person={p} gang={gang} size={34} />
             </div>
@@ -249,7 +261,7 @@ function PoolSheet({ teamId }: { teamId?: ID }) {
               {p.name}
             </button>
             <Stars value={p.skills[sortBy]} />
-            {teamId != null && (
+            {teamId != null && !newLieutenant && (
               <button className="btn sm" onClick={() => notify(act((s) => moveToTeam(s.world, gang.id, p.id, teamId))!)}>
                 → Team
               </button>

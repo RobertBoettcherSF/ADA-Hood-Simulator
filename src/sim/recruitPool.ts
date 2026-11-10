@@ -24,6 +24,8 @@
  * so the top-up only creates. Compact cities keep their per-block pool.
  */
 import { createPerson, hoodPayDemand } from './citygen';
+import { BUILDING_BY_ID } from './data/buildings';
+import { heritageOfSurname, type Heritage } from './heritage';
 import type { Rng } from './rng';
 import type { Building, PersonRole, WorldState } from './types';
 import { peopleList, buildingList } from './entityLists';
@@ -44,9 +46,19 @@ export function recruitQuota(b: Building): Quota | undefined {
 
 const serving = (b: Building) => b.state === 'trading' || b.cls === 'municipal' && b.state !== 'destroyed';
 
-/** Top every original recruitment site up to its quota. Returns people added. */
+function preferHeritage(w: WorldState): Heritage {
+  const surname = w.options.playerName.trim().split(/\s+/).pop() ?? '';
+  return w.options.playerHeritage ?? heritageOfSurname(surname) ?? 'italian';
+}
+
+/**
+ * Top every recruitment site up to its quota. The original city uses the
+ * visitor quotas; every other city keeps two hoods (one specialist) standing
+ * at each place that hires them, so the street supply comes back after a crew
+ * takes people on. Returns people added.
+ */
 export function replenishOriginalRecruits(w: WorldState, rng: Rng): number {
-  if (!w.cityLayout?.original) return 0;
+  if (!w.cityLayout?.original) return replenishStreetRecruits(w, rng);
   const present = new Map<string, number>();
   for (const p of peopleList(w)) {
     if (p.gangId != null || p.status !== 'active' || p.employedBy != null || p.buildingId == null) continue;
@@ -59,8 +71,32 @@ export function replenishOriginalRecruits(w: WorldState, rng: Rng): number {
     if (!quota || !serving(b)) continue;
     for (let n = present.get(`${b.id}:${quota.role}`) ?? 0; n < quota.count; n++, added++) {
       const p = createPerson(w, rng, quota.role, w.lots[b.lotId].center, {
-        quality: quota.role === 'hood' ? (rng.chance(0.16) ? 1.35 : 1) : 1.1, buildingId: b.id });
+        quality: quota.role === 'hood' ? (rng.chance(0.16) ? 1.35 : 1) : 1.1, buildingId: b.id, prefer: preferHeritage(w) });
       p.payDemand = hoodPayDemand(p, quota.role);
+    }
+  }
+  return added;
+}
+
+/** Compact and varied cities: the same idea, from the building's recruit kind. */
+function replenishStreetRecruits(w: WorldState, rng: Rng): number {
+  const present = new Map<string, number>();
+  for (const p of peopleList(w)) {
+    if (p.gangId != null || p.status !== 'active' || p.buildingId == null) continue;
+    const key = `${p.buildingId}:${p.role}`;
+    present.set(key, (present.get(key) ?? 0) + 1);
+  }
+  const prefer = preferHeritage(w);
+  let added = 0;
+  for (const b of buildingList(w)) {
+    if (b.state === 'destroyed') continue;
+    const role = BUILDING_BY_ID[b.typeId]?.recruit;
+    if (!role) continue;
+    const want = role === 'hood' ? 2 : 1;
+    for (let n = present.get(`${b.id}:${role}`) ?? 0; n < want; n++, added++) {
+      const p = createPerson(w, rng, role, w.lots[b.lotId].center, {
+        quality: role === 'hood' ? (rng.chance(0.16) ? 1.35 : 1) : 1.1, buildingId: b.id, prefer });
+      p.payDemand = hoodPayDemand(p, role);
     }
   }
   return added;

@@ -11,6 +11,7 @@
  */
 
 import * as THREE from 'three';
+import { noteAssetLoad } from '../app/assetTiming';
 import { BUILDING_TYPES } from '../sim/data/buildings';
 import { TILE_BAYS, TILE_STOREYS, mulberry32 } from './util';
 
@@ -804,23 +805,26 @@ const FACADE_FILES: Record<string, string> = {
 const SIGN_FILES = ['sign-green', 'sign-oxblood', 'sign-navy', 'sign-walnut', 'sign-olive', 'sign-plum'];
 
 function loadTexture(file: string, repeat = true): Promise<THREE.Texture | null> {
+  const started = performance.now();
   return new THREE.TextureLoader()
     .loadAsync(ART_CITY + file)
     .then((t) => {
+      noteAssetLoad(file, performance.now() - started, true);
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = 8;
       t.wrapS = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
       t.wrapT = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
       return t;
     })
-    .catch(() => null);
+    .catch(() => { noteAssetLoad(file, performance.now() - started, false); return null; });
 }
 
 function loadImageFile(file: string): Promise<HTMLImageElement | null> {
+  const started = performance.now();
   return new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
+    img.onload = () => { noteAssetLoad(file, performance.now() - started, true); resolve(img); };
+    img.onerror = () => { noteAssetLoad(file, performance.now() - started, false); resolve(null); };
     img.src = ART_CITY + file;
   });
 }

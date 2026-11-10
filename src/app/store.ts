@@ -10,6 +10,9 @@ import { fitAreaToWeek, type ApiResult } from '../sim/api';
 import { Sim } from '../sim/sim';
 import { planGang } from '../sim/ai';
 import { markTiming, noteAutoplay, noteError } from './debugReport';
+import { recordAction } from './actionLog';
+import { resetSystemTimings } from '../sim/simTimings';
+import type { GraphicsChoice } from './localData';
 import { patchLocalData, readLocalData } from './localData';
 import { activeWorldStore, livingCityOnFile } from './worldFolder';
 import type { GameOptions, ID, MessageCategory, OrderOptions, OrderType, SpecialistJob, Vec2 } from '../sim/types';
@@ -59,7 +62,7 @@ export interface JobCard {
 export type OrganizerSheet =
   | null
   | { kind: 'orders'; group: 'business' | 'personnel' | 'minor' | 'violent' }
-  | { kind: 'hoods' }
+  | { kind: 'hoods'; teamId?: ID; slot?: number }
   | { kind: 'weapons' }
   | { kind: 'vehicles' }
   | { kind: 'recruits' }
@@ -155,6 +158,10 @@ interface GameState {
   finishWeek: () => Promise<void>;
   /** The week is resolving without the 3D city mounted. */
   resolvingHeadless: boolean;
+  /** 0–1 while End Week is running, from the minute clock. */
+  weekProgress: number;
+  graphics: GraphicsChoice;
+  cityDemo: boolean;
   /** Run the week to Friday on the sim, then return to the desk. */
   endWeekNow: () => Promise<void>;
   /** Issue the rival planner's orders for the player, then resolve that many weeks. */
@@ -181,6 +188,8 @@ interface GameState {
   setRoadNames: (on: boolean) => void;
   setMouseReversal: (on: boolean) => void;
   setTextureQuality: (quality: TextureQuality) => void;
+  setGraphics: (choice: GraphicsChoice) => void;
+  setCityDemo: (on: boolean) => void;
   setUiScale: (scale: number) => void;
   togglePoliceAreaBlock: (id: ID) => void;
   clearPoliceArea: () => void;
@@ -292,6 +301,8 @@ export const useGame = create<GameState>((set, get) => ({
   roadNames: readRoadNames(),
   mouseReversal: readMouseReversal(),
   textureQuality: readTextureQuality(),
+  graphics: readLocalData().graphics,
+  cityDemo: readLocalData().cityDemo,
   uiScale: readUiScale(),
   quitPrompt: false,
   jobCard: null,
@@ -306,6 +317,7 @@ export const useGame = create<GameState>((set, get) => ({
   paused: false,
   finishingWeek: false,
   resolvingHeadless: false,
+  weekProgress: 0,
   savingToQuit: false,
   attract: false,
   savingSnapshot: false,
@@ -323,6 +335,7 @@ export const useGame = create<GameState>((set, get) => ({
   savesError: null,
 
   setScreen: (screen) => {
+    recordAction('screen', screen);
     get().cancelLoad();
     // New Game after a lesson or scenario starts an ordinary campaign: the
     // lesson's hidden id (and its fixed city and easy settings) came along
@@ -528,9 +541,12 @@ export const useGame = create<GameState>((set, get) => ({
 
   // Opening the page already shown (C/H/V/W, or a crew number) keeps a job
   // card in progress; only leaving the page puts it away.
-  setTab: (organizerTab) => set(s => s.organizerTab === organizerTab
+  setTab: (organizerTab) => {
+    recordAction('screen', organizerTab);
+    set(s => s.organizerTab === organizerTab
     ? { organizerCollapsed: false, sheet: null }
-    : { organizerTab, jobCard: null, specialistCard: null, pickMode: null, organizerCollapsed: false, sheet: null }),
+    : { organizerTab, jobCard: null, specialistCard: null, pickMode: null, organizerCollapsed: false, sheet: null });
+  },
   recordTutorialVisit: (view) => {
     const w = get().sim?.world;
     if (!w || w.options.tutorialId !== 1 || w.phase !== 'planning') return;
@@ -570,6 +586,14 @@ export const useGame = create<GameState>((set, get) => ({
   setTextureQuality: (textureQuality) => {
     writeTextureQuality(textureQuality);
     set({ textureQuality });
+  },
+  setGraphics: (graphics) => {
+    patchLocalData({ graphics });
+    set({ graphics });
+  },
+  setCityDemo: (cityDemo) => {
+    patchLocalData({ cityDemo });
+    set({ cityDemo });
   },
   setUiScale: (uiScale) => {
     writeUiScale(uiScale);
@@ -623,6 +647,7 @@ export const useGame = create<GameState>((set, get) => ({
   setPlanningView: (planningView) => set({ planningView }),
 
   beginOrder: (type, teamId) => {
+    recordAction('order', type);
     set({ specialistCard: null });
     const sim = get().sim;
     const allocated = sim && (type === 'patrol' || type === 'collectProtection')
@@ -779,24 +804,28 @@ export const useGame = create<GameState>((set, get) => ({
   endWeekNow: async () => {
     const sim = get().sim;
     if (!sim || sim.world.phase !== 'planning' || get().resolvingHeadless || get().savingSnapshot || get().loadingSave != null) return;
-    set({ resolvingHeadless: true, paused: true });
+    set({ resolvingHeadless: true, weekProgress: 0, paused: true });
     const started = performance.now();
     try {
       await yieldForPaint();
       await get().autosave(true);
       if (get().sim !== sim) return;
+      resetSystemTimings();
       sim.launchWeek();
       const phase = (): Sim['world']['phase'] => sim.world.phase;
       while (phase() === 'week') {
         await yieldForInput();
         if (get().sim !== sim) return;
-        sim.finishWeekSlice(14);
+        sim.finishWeekSlice(80);
+        const progress = phase() === 'week' ? Math.min(1, sim.world.minute / 2400) : 1;
+        set({ weekProgress: progress });
       }
       markTiming('end-week', performance.now() - started);
       get().bump();
       if (phase() === 'planning') get().setTab('newspaper');
       set({
         resolvingHeadless: false,
+        weekProgress: 1,
         paused: false,
         screen: phase() === 'gameOver' ? 'gameOver' : 'game',
       });

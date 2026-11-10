@@ -1,6 +1,7 @@
 import { MapAccess } from './MapAccess';
 import { useEffect, useRef, useState } from 'react';
 import { act, useGame } from '../app/store';
+import { recordAction } from '../app/actionLog';
 import { defaultOptions, issueOrder, previewOrder, replaceOrder, validBuildingTarget } from '../sim/api';
 import { selectableOrderPerson, selectableOrderSite } from '../app/orderSelection';
 import { MINUTES_PER_WEEK, ORDERS, ORDER_GROUPS } from '../sim/constants';
@@ -8,6 +9,7 @@ import { BUILDING_BY_ID, ILLEGAL_TYPES, ESTABLISHABLE_TYPES, coverQuality } from
 import { expandTargets } from '../sim/execution';
 import { donationAmount } from '../sim/charity';
 import { crewPeople, orderStaffing, readyForPlanning } from '../sim/orderStaffing';
+import { orderCashCost, spendableCash } from '../sim/orderCost';
 import { buildingName, buildingsOfBlock, money } from '../sim/world';
 import { Icon, Kicker, Rivets, Stars } from './common';
 
@@ -70,8 +72,14 @@ export function JobCardPanel() {
   const chosenType = jc.opts.businessTypeId ? BUILDING_BY_ID[jc.opts.businessTypeId] : null;
   const chosenFront = jc.opts.frontBuildingId != null ? w.buildings[jc.opts.frontBuildingId] : null;
 
+  const orderPrice = orderCashCost(w, jc.type, jc.opts, jc.buildingIds);
+  const cashLeft = spendableCash(w, gang.id, jc.editingOrderId ?? undefined);
+  const priced = orderPrice != null && orderPrice > 0;
+  const unaffordable = priced && orderPrice > cashLeft;
+  const awaitingPrice = (jc.type === 'buyPremises' || jc.type === 'setUpBusiness') && orderPrice == null;
+
   const canConfirm = (() => {
-    if (!team || staffing?.reason) return false;
+    if (!team || staffing?.reason || unaffordable) return false;
     if(jc.type==='export'&&!team?.vehicles.truck)return false;
     if (def.target === 'person') return person != null && selectableOrderPerson(w, gang.id, jc.type, person);
     if (def.target === 'building') return !!land && selectableOrderSite(w, gang.id, jc, land) &&
@@ -105,6 +113,7 @@ export function JobCardPanel() {
         pos: jc.pos,
         opts,
       };
+      recordAction('order', `${input.type} confirmed`);
       return jc.editingOrderId != null ? replaceOrder(s.world, s.playerGang.id, jc.editingOrderId, input)
         : issueOrder(s.world, s.playerGang.id, input);
     });
@@ -332,6 +341,13 @@ export function JobCardPanel() {
           )}
 
           {dispatchIssue && <p className="tiny" role="status">{dispatchIssue}</p>}
+          {(priced || awaitingPrice) && (
+            <p className="tiny" role="status">
+              Available {money(cashLeft)}
+              {priced ? ` · this order ${money(orderPrice)}` : ' · pick a target to see the price'}
+              {unaffordable ? ' · not enough cash, so Confirm stays off' : ''}
+            </p>
+          )}
 
           {team && (
             <div>
@@ -350,7 +366,8 @@ export function JobCardPanel() {
         </div>
 
         <div className="foot">
-          <button className="btn brass lg" style={{ flex: 1 }} disabled={!canConfirm} onClick={confirm}>
+          <button className="btn brass lg" style={{ flex: 1 }} disabled={!canConfirm} onClick={confirm}
+            title={unaffordable ? `This costs ${money(orderPrice ?? 0)} and ${money(cashLeft)} is available` : undefined}>
             Confirm order
           </button>
           <button className="btn lg" onClick={cancel}>

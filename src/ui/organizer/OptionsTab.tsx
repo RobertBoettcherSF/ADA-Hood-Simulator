@@ -55,6 +55,8 @@ export function OptionsTab() {
   const roadNames = useGame((s) => s.roadNames);
   const mouseReversal = useGame((s) => s.mouseReversal);
   const textureQuality = useGame((s) => s.textureQuality);
+  const graphics = useGame((s) => s.graphics);
+  const cityDemo = useGame((s) => s.cityDemo);
   const setRoadNames = useGame((s) => s.setRoadNames);
   const setAutoLowerRoofs = useGame((s) => s.setAutoLowerRoofs);
   const startGame = useGame((s) => s.startGame);
@@ -179,6 +181,24 @@ export function OptionsTab() {
           onClick={() => useGame.getState().setTextureQuality(textureQuality === 'high' ? 'standard' : 'high')}>
           {textureQuality === 'high' ? 'Textures: High (2048)' : 'Textures: Standard (1024)'}
         </button>
+        <div className="row" style={{ marginTop: 8, gap: 6, flexWrap: 'wrap' }}>
+          {(['auto', 'phone', 'desktop'] as const).map((choice) => (
+            <button key={choice} type="button" aria-pressed={graphics === choice} className={`btn sm${graphics === choice ? ' on' : ''}`}
+              onClick={() => useGame.getState().setGraphics(choice)}>
+              Graphics: {choice === 'auto' ? 'Auto' : choice === 'phone' ? 'Phone' : 'Desktop'}
+            </button>
+          ))}
+        </div>
+        <div className="muted tiny" style={{ marginTop: 6 }}>
+          Phone uses fewer shadows, a shorter view and smaller textures. Auto follows this screen. It applies when the city next loads.
+        </div>
+        <button aria-pressed={cityDemo} className={`btn sm${cityDemo ? ' on' : ''}`} style={{ marginTop: 8 }}
+          onClick={() => useGame.getState().setCityDemo(!cityDemo)}>
+          {cityDemo ? 'City demo: on' : 'City demo: off'}
+        </button>
+        <div className="muted tiny" style={{ marginTop: 6 }}>
+          Left alone, the menu can show a street preview. Any click or key returns. Turn this off to stay on the menu.
+        </div>
         <div className="muted tiny" style={{ marginTop: 6 }}>
           Standard uses a quarter of the graphics memory for people, cars and trees, for older graphics cards. It applies when the city next loads.
         </div>

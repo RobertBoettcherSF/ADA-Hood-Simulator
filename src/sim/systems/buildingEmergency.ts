@@ -89,6 +89,11 @@ function finishEscape(w:WorldState,rng:Rng,p:Person):void{
   const escape=p.burningEscape;
   if(!escape)return;
   p.buildingId=null;
+  const site = w.buildings[escape.buildingId];
+  if (site && site.fireWeek === w.week) {
+    if (escape.fatal) site.fireDead = (site.fireDead ?? 0) + 1;
+    else site.fireInjured = (site.fireInjured ?? 0) + 1;
+  }
   if(escape.fatal){
     // The body keeps the record: it is drawn charred where it fell.
     killPerson(w,p,'died from burns after escaping into the street');

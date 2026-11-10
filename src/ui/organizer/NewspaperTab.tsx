@@ -39,7 +39,7 @@ export function NewspaperContent({ sim }: { sim: Sim }) {
   const shown = lead ? all.filter((n) => n !== lead) : all;
   const paperIndex = paper ? newspaperNameIndex(w, paper) : 0;
   const paperName = NEWSPAPER_NAMES[paperIndex];
-  const photo = lead ? pressPhoto(lead.section === 'front' ? 'front' : lead.section, lastWeek * 7 + paperIndex) : null;
+  const photo = lead ? pressPhoto(lead.photo) : null;
 
   const available = SECTIONS.filter((s) => items.some((n) => n.section === s.id) || s.id === 'front' && newspaperLead(items) != null);
 
@@ -83,6 +83,11 @@ export function NewspaperContent({ sim }: { sim: Sim }) {
             {shown.map((n, i) => (
               <article key={i}>
                 <h3>{n.headline}</h3>
+                {n.photo && pressPhoto(n.photo) && (
+                  <figure className="press-photo">
+                    <img src={pressPhoto(n.photo)!} alt="" />
+                  </figure>
+                )}
                 <p>{n.body}</p>
               </article>
             ))}

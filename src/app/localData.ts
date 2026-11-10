@@ -13,10 +13,15 @@ export interface AudioPrefs {
   gameMusic: boolean;
 }
 
+export type GraphicsChoice = 'auto' | 'phone' | 'desktop';
+
 export interface LocalData {
   audio: AudioPrefs;
   uiScale: number;
   textureQuality: 'high' | 'standard';
+  graphics: GraphicsChoice;
+  /** Idle street demonstration on the main menu. */
+  cityDemo: boolean;
   mouseReversal: boolean;
   roadNames: boolean;
   autoLowerRoofs: boolean;
@@ -31,6 +36,8 @@ function defaults(): LocalData {
     audio: { music: 0.35, sfx: 0.5, menuMusic: true, gameMusic: true },
     uiScale: 1,
     textureQuality: 'high',
+    graphics: 'auto',
+    cityDemo: true,
     mouseReversal: false,
     roadNames: false,
     autoLowerRoofs: true,
@@ -68,6 +75,8 @@ function sanitize(value: unknown): LocalData {
     audio: audioPrefs(raw.audio, base.audio),
     uiScale: scale,
     textureQuality: raw.textureQuality === 'standard' ? 'standard' : 'high',
+    graphics: raw.graphics === 'phone' || raw.graphics === 'desktop' ? raw.graphics : 'auto',
+    cityDemo: raw.cityDemo !== false,
     mouseReversal: raw.mouseReversal === true,
     roadNames: raw.roadNames === true,
     autoLowerRoofs: raw.autoLowerRoofs !== false,

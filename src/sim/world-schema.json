@@ -1703,6 +1703,26 @@
             ]
           }
         },
+        "fireInjured": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "fireDead": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
         "repairCompleteWeek": {
           "optional": true,
           "shape": {
@@ -1993,6 +2013,19 @@
           "optional": false,
           "shape": {
             "type": "number"
+          }
+        },
+        "occupants": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "literal": 1
+              },
+              {
+                "literal": 2
+              }
+            ]
           }
         }
       }
@@ -5154,6 +5187,43 @@
               },
               {
                 "type": "number"
+              }
+            ]
+          }
+        },
+        "photo": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "literal": "charity"
+              },
+              {
+                "literal": "raid"
+              },
+              {
+                "literal": "fire"
+              },
+              {
+                "literal": "wreck"
+              },
+              {
+                "literal": "funeral"
+              },
+              {
+                "literal": "courthouse"
+              },
+              {
+                "literal": "rally"
+              },
+              {
+                "literal": "bank"
+              },
+              {
+                "literal": "docks"
+              },
+              {
+                "literal": "calm"
               }
             ]
           }

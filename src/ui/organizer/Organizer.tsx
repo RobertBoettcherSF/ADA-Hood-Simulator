@@ -5,6 +5,7 @@ import { useGame, type OrganizerTab } from '../../app/store';
 import type { OverlayKind } from '../../render/scene';
 import { MINUTES_PER_WEEK, ORDERS } from '../../sim/constants';
 import { gangAssets, territoryCount, gangManpower, money } from '../../sim/world';
+import { spendableCash } from '../../sim/orderCost';
 import { cameraApi } from '../CityView';
 import { VIEW_ZOOM } from '../../render/viewModes';
 import { Icon, Kicker, Rivets } from '../common';
@@ -223,7 +224,7 @@ export function Organizer() {
                 {gang.teamIds.map(id => <option key={id} value={id}>{w.teams[id]?.name}</option>)}
               </select></label>}
               <details className="gang-summary">
-                <summary><span>Cash <b><MoneyRoll value={gang.cash} /></b></span><span>Gang details</span></summary>
+                <summary><span>Cash <b><MoneyRoll value={spendableCash(w, gang.id)} /></b></span><span>Gang details</span></summary>
                 <div className="gang-summary-body">
                   <b>{boss?.name ?? 'The Boss'}</b>
                   <span>Assets {money(gangAssets(w, gang))}</span>
