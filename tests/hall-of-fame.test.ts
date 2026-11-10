@@ -2,17 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
 import { defaultGameOptions } from '../src/app/newGame';
 import { addHallOfFame, clearHallOfFame, HALL_LEGENDS, hallOfFameTable, cloneSavedWorld, cloneSavedWorldResponsive, decodeSlot, loadGame, loadHallOfFame, recordHallOfFame, saveGame } from '../src/app/save';
+import { clearHallEntries, failNextHallWrite } from '../src/app/localData';
+import { attachWorldStore } from '../src/app/worldFolder';
 import { Sim } from '../src/sim/sim';
 import { hallPages, NEXT_BEST_PAGE, TOP_GANGSTERS } from '../src/ui/HallOfFame';
 
 beforeEach(() => {
-  const values = new Map<string, string>();
   vi.stubGlobal('indexedDB', new IDBFactory());
-  vi.stubGlobal('localStorage', {
-    getItem: (key: string) => values.get(key) ?? null,
-    setItem: (key: string, value: string) => { values.set(key, value); },
-    removeItem: (key: string) => { values.delete(key); },
-  });
+  attachWorldStore(null);
+  clearHallEntries();
 });
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
@@ -88,9 +86,8 @@ describe('Hall of Fame terminal reloads', () => {
 
   it('retries after rejected storage and repeated reloads do not displace other retained scores', () => {
     const world = finished();
-    const rejected = vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw Error('Quota'); });
+    failNextHallWrite();
     expect(() => recordHallOfFame(world)).not.toThrow();
-    rejected.mockRestore();
     recordHallOfFame(world);
     for (let i = 0; i < 23; i++) addHallOfFame({ resultId: `other-${i}`, name: `Other ${i}`, score: 20, weeks: 10, reason: 'Other campaign', won: false, at: i });
     const retained = loadHallOfFame();

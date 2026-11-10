@@ -7,6 +7,8 @@ import { NewGameScreen } from './NewGameScreen';
 import { Toast } from './Toast';
 import { DialogFrame } from './DialogFrame';
 import { TitleSequence } from './TitleSequence';
+import { AlwaysChrome } from './AlwaysChrome';
+import { FolderGate } from './FolderGate';
 import { useState } from 'react';
 
 /** The title plays once a session, and not under automated checks (?audit). */
@@ -20,8 +22,14 @@ installDeskTextures();
 
 export function App() {
   const [title, setTitle] = useState(titleWanted);
+  const [storageReady, setStorageReady] = useState(false);
   const done = () => { try { sessionStorage.setItem('og.titleSeen', '1'); } catch { /* session only */ } setTitle(false); };
-  return <><ScreenContent />{title && <TitleSequence onDone={done} />}<Toast /><LoadingSave /></>;
+  return <>
+    <AlwaysChrome />
+    {storageReady
+      ? <><ScreenContent />{title && <TitleSequence onDone={done} />}<Toast /><LoadingSave /></>
+      : <FolderGate onReady={() => setStorageReady(true)} />}
+  </>;
 }
 
 function LoadingSave() {

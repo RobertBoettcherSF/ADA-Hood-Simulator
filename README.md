@@ -37,7 +37,6 @@ src/
   render/   the Three.js city, characters, vehicles and effects
   ui/       React interface: desk, menus, city view
   audio/    music and street sound
-electron/   desktop shell and on-disk save store
 public/     art, models and audio
 scripts/    build, packaging and asset tools
 tests/      Vitest suites

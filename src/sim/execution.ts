@@ -1076,6 +1076,13 @@ function resolveTarget(
         building.cover = coverQuality(t.id, front.typeId);
       }
       assignManager(w, team, building, actors);
+      if (t.id === 'rentedRooms') {
+        const floors = Math.max(1, Math.min(4, Math.round(order.opts.roomsFloors ?? 2)));
+        building.roomsFloors = floors;
+        building.roomsTenants = Array.from({ length: floors }, () => ({ budget: 0, vacantDays: 0 }));
+        building.roomsChargedDay = 0;
+        building.roomsWeekNet = 0;
+      }
       say(`Opened a ${t.name}.`);
       reportBusinessMove(w, gang.id, building, 'established');
       report(w, gang.id, 'waiting', `Opened a ${t.name}.`, here, lead.id);

@@ -202,6 +202,24 @@ export function JobCardPanel() {
                   </option>
                 ))}
               </select>
+              {chosenType?.id === 'rentedRooms' && (
+                <div style={{ marginTop: 8 }}>
+                  <label className="muted tiny" htmlFor="rented-floors">
+                    Floors, one apartment each. The tenant pays that day's rent from their own earnings. If they cannot pay, the apartment stays empty until someone new moves in.
+                  </label>
+                  <select
+                    id="rented-floors"
+                    className="text-input"
+                    aria-label="Floors"
+                    value={jc.opts.roomsFloors ?? 2}
+                    onChange={(e) => updateOpts({ roomsFloors: Number(e.target.value) })}
+                  >
+                    {[1, 2, 3, 4].map((floors) => (
+                      <option key={floors} value={floors}>{floors} floor{floors === 1 ? '' : 's'}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {isCentreLot && (
                 <div style={{ marginTop: 8 }}>
                   <div className="muted tiny" style={{ marginBottom: 4 }}>

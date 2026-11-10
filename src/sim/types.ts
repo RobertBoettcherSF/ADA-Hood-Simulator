@@ -383,6 +383,14 @@ export interface Building {
   fbiSearchedWeek?: number;
   /** Last week illicit goods were passed through this legal business. */
   launderingWeek?: number;
+  /** Rented rooms: floors in use (1–4), one tenant each, and the last day already billed (`week * 10 + day`). */
+  roomsFloors?: number;
+  /** Older saves named a staff count. New cities keep a tenant purse per floor. */
+  roomsStaff?: number;
+  roomsTenants?: { budget: number | null; vacantDays: number }[];
+  roomsChargedDay?: number;
+  /** Net rent booked this week, before Friday copies it onto `lastProfit`. */
+  roomsWeekNet?: number;
   /** Per-gang knowledge: 0 none, 1 type only, 2 extorted, 3 explored, 4 owned. */
   knowledge: Record<ID, number>;
   /** Gangs whose extortion the owner turned down; Intimidate can still bring him round. */
@@ -465,6 +473,8 @@ export interface OrderOptions {
   frontBuildingId?: ID;
   /** donate / bribe: money committed. */
   amount?: number;
+  /** setUpBusiness, rented rooms: how many floors to open, 1–4. */
+  roomsFloors?: number;
 }
 
 export type OrderState =
@@ -846,6 +856,11 @@ export interface GameOptions {
   /** A hand-crafted scenario, or one of the four lessons, if the game is one. */
   scenarioId?: string;
   tutorialId?: number;
+  /**
+   * `1932` is the only era with content. `2032` is stored so a later merge can
+   * read it. Nothing in the sim branches on it.
+   */
+  era?: '1932' | '2032';
 }
 
 export interface WorldState {

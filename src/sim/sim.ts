@@ -29,6 +29,7 @@ import { sightingCells, tickSightings } from './systems/sightings';
 import { blockClaimants } from './territory';
 import { weeklyEconomy } from './systems/economy';
 import { tickGoods } from './goodsDelivery';
+import { chargeRentedRooms } from './rentedRooms';
 import { dispatchFbi, normalizeFbiInvestigations, tickFbi, weeklyFbi } from './systems/fbi';
 import { weeklyLaw } from './systems/law';
 import { weeklyNews } from './systems/news';
@@ -101,6 +102,13 @@ export class Sim {
       court: Math.max(old?.court ?? 1, maximum(Object.values(state.cases).map(x => x.id))),
     };
     state.schemaVersion = 2;
+    state.options.era ??= '1932';
+    for (const building of buildingList(state)) {
+      if (building.typeId !== 'whorehouse') continue;
+      building.typeId = 'rentedRooms';
+      building.roomsFloors ??= 2;
+      building.roomsTenants ??= Array.from({ length: building.roomsFloors }, () => ({ budget: 0, vacantDays: 0 }));
+    }
     repairLegacyStreetSpawns(state);
     repairVehicleRoutes(state);
     restoreLegacyTransport(state);
@@ -269,6 +277,7 @@ export class Sim {
     // drivers left over from those that ran ahead (already built by them).
     const closingTraffic = trafficContext(w);
     w.minute++;
+    chargeRentedRooms(w);
     // The drivers of the slices that ran ahead (they left their cars for the tick).
     for (let index = 0; index < (w.ambientSlicesDone ?? 0); index++)
       tickAmbient(w, this.rng, 1, { index, count: AMBIENT_SLICES, early: false, traffic: closingTraffic, vehicles: 'only' });

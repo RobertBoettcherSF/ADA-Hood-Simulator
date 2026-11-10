@@ -1,35 +1,36 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyUiScale, fittedUiScale, readUiScale, uiScaleAvailable, writeUiScale } from '../src/app/uiScale';
+import { flushLocalData, loadLocalData } from '../src/app/localData';
+import { attachWorldStore, type WorldStore } from '../src/app/worldFolder';
 
-function storage(initial: Record<string, string> = {}) {
-  const values = new Map(Object.entries(initial));
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => values.get(k) ?? null,
-    setItem: (k: string, v: string) => { values.set(k, v); },
-  });
-  return values;
+function memoryStore(): WorldStore {
+  const files = new Map<string, string>();
+  return {
+    kind: 'indexeddb',
+    label: 'test',
+    read: async (name) => files.get(name) ?? null,
+    write: async (name, body) => { files.set(name, body); },
+    writeReport: async () => {},
+    exists: async (name) => files.has(name),
+  };
 }
 
-/** A desktop window of this unzoomed size, with the preload's zoom bridge. */
-function desktop(width: number, height: number) {
-  let zoom = 1;
-  const setZoom = vi.fn((f: number) => { zoom = f; });
-  vi.stubGlobal('ogDesktop', { view: { zoom: () => zoom, setZoom } });
-  vi.stubGlobal('window', { get innerWidth() { return width / zoom; }, get innerHeight() { return height / zoom; } });
-  return setZoom;
-}
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => { attachWorldStore(null); vi.unstubAllGlobals(); });
 
 describe('interface scale', () => {
-  it('is kept between sessions, and ignores values it does not offer', () => {
-    const values = storage();
+  it('is kept in the world folder, and ignores values it does not offer', async () => {
+    const store = memoryStore();
+    attachWorldStore(store);
     expect(readUiScale()).toBe(1);
     writeUiScale(1.25);
-    expect(values.get('og.uiScale')).toBe('1.25');
+    await flushLocalData();
+    await loadLocalData();
     expect(readUiScale()).toBe(1.25);
-    storage({ 'og.uiScale': '1.3' });
+    await store.write('prefs.json', JSON.stringify({ uiScale: 1.3 }));
+    await loadLocalData();
     expect(readUiScale()).toBe(1);
-    storage({ 'og.uiScale': 'huge' });
+    await store.write('prefs.json', JSON.stringify({ uiScale: 'huge' }));
+    await loadLocalData();
     expect(readUiScale()).toBe(1);
   });
 
@@ -41,17 +42,14 @@ describe('interface scale', () => {
     expect(fittedUiScale(0.75, 1024, 640)).toBe(0.75);
   });
 
-  it('zooms the desktop page, and does nothing in a browser', () => {
-    expect(uiScaleAvailable()).toBe(false);
-    expect(applyUiScale(1.5)).toBe(1);
-    const setZoom = desktop(1920, 1080);
+  it('applies the scale on the page', () => {
+    const style = { zoom: '' };
+    vi.stubGlobal('document', { documentElement: { style } });
+    vi.stubGlobal('window', { innerWidth: 1920, innerHeight: 1080 });
     expect(uiScaleAvailable()).toBe(true);
     expect(applyUiScale(1.5)).toBe(1.5);
-    expect(setZoom).toHaveBeenLastCalledWith(1.5);
-    // Measured in unzoomed pixels, so applying it again changes nothing.
-    expect(applyUiScale(1.5)).toBe(1.5);
-    expect(setZoom).toHaveBeenCalledTimes(1);
-    expect(applyUiScale(2)).toBe(1.65);
+    expect(style.zoom).toBe('1.5');
     expect(applyUiScale(0.9)).toBe(0.9);
+    expect(style.zoom).toBe('0.9');
   });
 });

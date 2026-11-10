@@ -165,49 +165,49 @@
         "people": {
           "optional": false,
           "shape": {
-            "ref": "T35"
+            "ref": "T37"
           }
         },
         "gangs": {
           "optional": false,
           "shape": {
-            "ref": "T48"
+            "ref": "T50"
           }
         },
         "teams": {
           "optional": false,
           "shape": {
-            "ref": "T62"
+            "ref": "T64"
           }
         },
         "orders": {
           "optional": false,
           "shape": {
-            "ref": "T64"
+            "ref": "T66"
           }
         },
         "lastWeekOrders": {
           "optional": false,
           "shape": {
-            "ref": "T72"
+            "ref": "T74"
           }
         },
         "crimes": {
           "optional": false,
           "shape": {
-            "ref": "T73"
+            "ref": "T75"
           }
         },
         "cases": {
           "optional": false,
           "shape": {
-            "ref": "T75"
+            "ref": "T77"
           }
         },
         "election": {
           "optional": false,
           "shape": {
-            "ref": "T77"
+            "ref": "T79"
           }
         },
         "electionWinnerGangId": {
@@ -226,13 +226,13 @@
         "news": {
           "optional": false,
           "shape": {
-            "ref": "T84"
+            "ref": "T86"
           }
         },
         "messages": {
           "optional": false,
           "shape": {
-            "ref": "T86"
+            "ref": "T88"
           }
         },
         "traffic": {
@@ -240,7 +240,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T88"
+                "ref": "T90"
               }
             ]
           }
@@ -250,7 +250,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T90"
+                "ref": "T92"
               }
             ]
           }
@@ -347,20 +347,10 @@
         "auditTargets": {
           "optional": false,
           "shape": {
-            "ref": "T34"
+            "ref": "T36"
           }
         },
         "specialistJobs": {
-          "optional": true,
-          "shape": {
-            "union": [
-              {
-                "ref": "T91"
-              }
-            ]
-          }
-        },
-        "vehicleFleet": {
           "optional": true,
           "shape": {
             "union": [
@@ -370,17 +360,17 @@
             ]
           }
         },
-        "goodsDeliveries": {
+        "vehicleFleet": {
           "optional": true,
           "shape": {
             "union": [
               {
-                "ref": "T97"
+                "ref": "T95"
               }
             ]
           }
         },
-        "personTakings": {
+        "goodsDeliveries": {
           "optional": true,
           "shape": {
             "union": [
@@ -390,10 +380,20 @@
             ]
           }
         },
+        "personTakings": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "ref": "T101"
+              }
+            ]
+          }
+        },
         "auditResults": {
           "optional": false,
           "shape": {
-            "ref": "T101"
+            "ref": "T103"
           }
         },
         "weekLog": {
@@ -684,6 +684,19 @@
             "union": [
               {
                 "type": "number"
+              }
+            ]
+          }
+        },
+        "era": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "literal": "1932"
+              },
+              {
+                "literal": "2032"
               }
             ]
           }
@@ -1768,10 +1781,60 @@
             ]
           }
         },
+        "roomsFloors": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "roomsStaff": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "roomsTenants": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "ref": "T34"
+              }
+            ]
+          }
+        },
+        "roomsChargedDay": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "roomsWeekNet": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
         "knowledge": {
           "optional": false,
           "shape": {
-            "ref": "T34"
+            "ref": "T36"
           }
         },
         "extortRefusedBy": {
@@ -1789,7 +1852,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T34"
+                "ref": "T36"
               }
             ]
           }
@@ -1907,18 +1970,46 @@
       }
     },
     "T34": {
+      "array": {
+        "ref": "T35"
+      }
+    },
+    "T35": {
+      "object": {
+        "budget": {
+          "optional": false,
+          "shape": {
+            "union": [
+              {
+                "literal": null
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "vacantDays": {
+          "optional": false,
+          "shape": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "T36": {
       "object": {},
       "values": {
         "type": "number"
       }
     },
-    "T35": {
+    "T37": {
       "object": {},
       "values": {
-        "ref": "T36"
+        "ref": "T38"
       }
     },
-    "T36": {
+    "T38": {
       "object": {
         "id": {
           "optional": false,
@@ -2018,7 +2109,7 @@
         "skills": {
           "optional": false,
           "shape": {
-            "ref": "T37"
+            "ref": "T39"
           }
         },
         "gangId": {
@@ -2081,7 +2172,7 @@
         "opinion": {
           "optional": false,
           "shape": {
-            "ref": "T34"
+            "ref": "T36"
           }
         },
         "hostility": {
@@ -2089,7 +2180,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T34"
+                "ref": "T36"
               }
             ]
           }
@@ -2099,7 +2190,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T34"
+                "ref": "T36"
               }
             ]
           }
@@ -2170,7 +2261,7 @@
         "path": {
           "optional": false,
           "shape": {
-            "ref": "T38"
+            "ref": "T40"
           }
         },
         "halted": {
@@ -2281,7 +2372,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T34"
+                "ref": "T36"
               }
             ]
           }
@@ -2334,7 +2425,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T40"
+                "ref": "T42"
               }
             ]
           }
@@ -2356,7 +2447,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T41"
+                "ref": "T43"
               }
             ]
           }
@@ -2372,7 +2463,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T43"
+                "ref": "T45"
               }
             ]
           }
@@ -2382,7 +2473,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T44"
+                "ref": "T46"
               }
             ]
           }
@@ -2392,7 +2483,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T45"
+                "ref": "T47"
               }
             ]
           }
@@ -2424,7 +2515,7 @@
                 "literal": null
               },
               {
-                "ref": "T46"
+                "ref": "T48"
               }
             ]
           }
@@ -2464,14 +2555,14 @@
           "shape": {
             "union": [
               {
-                "ref": "T47"
+                "ref": "T49"
               }
             ]
           }
         }
       }
     },
-    "T37": {
+    "T39": {
       "object": {
         "intelligence": {
           "optional": false,
@@ -2541,12 +2632,12 @@
         }
       }
     },
-    "T38": {
+    "T40": {
       "array": {
-        "ref": "T39"
+        "ref": "T41"
       }
     },
-    "T39": {
+    "T41": {
       "object": {
         "cross": {
           "optional": true,
@@ -2572,7 +2663,7 @@
         }
       }
     },
-    "T40": {
+    "T42": {
       "object": {
         "buildingId": {
           "optional": false,
@@ -2629,7 +2720,7 @@
         }
       }
     },
-    "T41": {
+    "T43": {
       "object": {
         "posture": {
           "optional": false,
@@ -2668,14 +2759,14 @@
           "shape": {
             "union": [
               {
-                "ref": "T42"
+                "ref": "T44"
               }
             ]
           }
         }
       }
     },
-    "T42": {
+    "T44": {
       "object": {
         "attack": {
           "optional": false,
@@ -2709,7 +2800,7 @@
         }
       }
     },
-    "T43": {
+    "T45": {
       "object": {
         "week": {
           "optional": false,
@@ -2781,7 +2872,7 @@
         }
       }
     },
-    "T44": {
+    "T46": {
       "object": {
         "week": {
           "optional": false,
@@ -2869,7 +2960,7 @@
         }
       }
     },
-    "T45": {
+    "T47": {
       "object": {
         "week": {
           "optional": false,
@@ -2922,7 +3013,7 @@
         }
       }
     },
-    "T46": {
+    "T48": {
       "object": {
         "type": {
           "optional": false,
@@ -2984,7 +3075,7 @@
         }
       }
     },
-    "T47": {
+    "T49": {
       "object": {
         "tram": {
           "optional": false,
@@ -3031,13 +3122,13 @@
         }
       }
     },
-    "T48": {
+    "T50": {
       "object": {},
       "values": {
-        "ref": "T49"
+        "ref": "T51"
       }
     },
-    "T49": {
+    "T51": {
       "object": {
         "id": {
           "optional": false,
@@ -3070,7 +3161,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T34"
+                "ref": "T36"
               }
             ]
           }
@@ -3080,7 +3171,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T34"
+                "ref": "T36"
               }
             ]
           }
@@ -3185,13 +3276,13 @@
         "weapons": {
           "optional": false,
           "shape": {
-            "ref": "T50"
+            "ref": "T52"
           }
         },
         "vehicles": {
           "optional": false,
           "shape": {
-            "ref": "T51"
+            "ref": "T53"
           }
         },
         "staffVehicles": {
@@ -3199,7 +3290,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T52"
+                "ref": "T54"
               }
             ]
           }
@@ -3207,13 +3298,13 @@
         "offered": {
           "optional": false,
           "shape": {
-            "ref": "T53"
+            "ref": "T55"
           }
         },
         "known": {
           "optional": false,
           "shape": {
-            "ref": "T53"
+            "ref": "T55"
           }
         },
         "evadingTax": {
@@ -3371,7 +3462,7 @@
         "history": {
           "optional": false,
           "shape": {
-            "ref": "T54"
+            "ref": "T56"
           }
         },
         "scorePeaks": {
@@ -3379,7 +3470,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T56"
+                "ref": "T58"
               }
             ]
           }
@@ -3387,13 +3478,13 @@
         "lastWeekIncome": {
           "optional": false,
           "shape": {
-            "ref": "T57"
+            "ref": "T59"
           }
         },
         "lastWeekCosts": {
           "optional": false,
           "shape": {
-            "ref": "T58"
+            "ref": "T60"
           }
         },
         "finances": {
@@ -3401,7 +3492,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T59"
+                "ref": "T61"
               }
             ]
           }
@@ -3411,14 +3502,14 @@
           "shape": {
             "union": [
               {
-                "ref": "T59"
+                "ref": "T61"
               }
             ]
           }
         }
       }
     },
-    "T50": {
+    "T52": {
       "object": {
         "explosives": {
           "optional": false,
@@ -3458,7 +3549,7 @@
         }
       }
     },
-    "T51": {
+    "T53": {
       "object": {
         "coupe": {
           "optional": false,
@@ -3480,7 +3571,7 @@
         }
       }
     },
-    "T52": {
+    "T54": {
       "object": {
         "accountant": {
           "optional": false,
@@ -3522,7 +3613,7 @@
         }
       }
     },
-    "T53": {
+    "T55": {
       "object": {},
       "values": {
         "union": [
@@ -3544,12 +3635,12 @@
         ]
       }
     },
-    "T54": {
+    "T56": {
       "array": {
-        "ref": "T55"
+        "ref": "T57"
       }
     },
-    "T55": {
+    "T57": {
       "object": {
         "week": {
           "optional": false,
@@ -3611,7 +3702,7 @@
         }
       }
     },
-    "T56": {
+    "T58": {
       "object": {
         "cash": {
           "optional": false,
@@ -3633,7 +3724,7 @@
         }
       }
     },
-    "T57": {
+    "T59": {
       "object": {
         "legal": {
           "optional": false,
@@ -3661,7 +3752,7 @@
         }
       }
     },
-    "T58": {
+    "T60": {
       "object": {
         "wages": {
           "optional": false,
@@ -3683,7 +3774,7 @@
         }
       }
     },
-    "T59": {
+    "T61": {
       "object": {
         "week": {
           "optional": false,
@@ -3706,13 +3797,13 @@
         "income": {
           "optional": false,
           "shape": {
-            "ref": "T60"
+            "ref": "T62"
           }
         },
         "costs": {
           "optional": false,
           "shape": {
-            "ref": "T61"
+            "ref": "T63"
           }
         },
         "partial": {
@@ -3763,7 +3854,7 @@
         }
       }
     },
-    "T60": {
+    "T62": {
       "object": {
         "legal": {
           "optional": false,
@@ -3791,7 +3882,7 @@
         }
       }
     },
-    "T61": {
+    "T63": {
       "object": {
         "wages": {
           "optional": false,
@@ -3819,13 +3910,13 @@
         }
       }
     },
-    "T62": {
+    "T64": {
       "object": {},
       "values": {
-        "ref": "T63"
+        "ref": "T65"
       }
     },
-    "T63": {
+    "T65": {
       "object": {
         "id": {
           "optional": false,
@@ -3860,13 +3951,13 @@
         "weapons": {
           "optional": false,
           "shape": {
-            "ref": "T50"
+            "ref": "T52"
           }
         },
         "vehicles": {
           "optional": false,
           "shape": {
-            "ref": "T51"
+            "ref": "T53"
           }
         },
         "allocatedBlockIds": {
@@ -3889,13 +3980,13 @@
         }
       }
     },
-    "T64": {
+    "T66": {
       "object": {},
       "values": {
-        "ref": "T65"
+        "ref": "T67"
       }
     },
-    "T65": {
+    "T67": {
       "object": {
         "id": {
           "optional": false,
@@ -4032,7 +4123,7 @@
         "opts": {
           "optional": false,
           "shape": {
-            "ref": "T66"
+            "ref": "T68"
           }
         },
         "assignedIds": {
@@ -4098,7 +4189,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T67"
+                "ref": "T69"
               }
             ]
           }
@@ -4199,7 +4290,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T69"
+                "ref": "T71"
               }
             ]
           }
@@ -4209,7 +4300,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T70"
+                "ref": "T72"
               }
             ]
           }
@@ -4219,7 +4310,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T71"
+                "ref": "T73"
               }
             ]
           }
@@ -4341,7 +4432,7 @@
         }
       }
     },
-    "T66": {
+    "T68": {
       "object": {
         "repeat": {
           "optional": false,
@@ -4425,15 +4516,25 @@
               }
             ]
           }
+        },
+        "roomsFloors": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "type": "number"
+              }
+            ]
+          }
         }
       }
     },
-    "T67": {
+    "T69": {
       "array": {
-        "ref": "T68"
+        "ref": "T70"
       }
     },
-    "T68": {
+    "T70": {
       "object": {
         "line": {
           "optional": false,
@@ -4449,7 +4550,7 @@
         }
       }
     },
-    "T69": {
+    "T71": {
       "object": {
         "warehouseId": {
           "optional": false,
@@ -4487,7 +4588,7 @@
         }
       }
     },
-    "T70": {
+    "T72": {
       "object": {
         "warehouseId": {
           "optional": false,
@@ -4497,7 +4598,7 @@
         }
       }
     },
-    "T71": {
+    "T73": {
       "object": {
         "warehouseId": {
           "optional": false,
@@ -4513,17 +4614,17 @@
         }
       }
     },
-    "T72": {
-      "array": {
-        "ref": "T65"
-      }
-    },
-    "T73": {
-      "array": {
-        "ref": "T74"
-      }
-    },
     "T74": {
+      "array": {
+        "ref": "T67"
+      }
+    },
+    "T75": {
+      "array": {
+        "ref": "T76"
+      }
+    },
+    "T76": {
       "object": {
         "id": {
           "optional": false,
@@ -4611,13 +4712,13 @@
         }
       }
     },
-    "T75": {
+    "T77": {
       "object": {},
       "values": {
-        "ref": "T76"
+        "ref": "T78"
       }
     },
-    "T76": {
+    "T78": {
       "object": {
         "id": {
           "optional": false,
@@ -4721,7 +4822,7 @@
         }
       }
     },
-    "T77": {
+    "T79": {
       "object": {
         "active": {
           "optional": false,
@@ -4738,7 +4839,7 @@
         "candidates": {
           "optional": false,
           "shape": {
-            "ref": "T78"
+            "ref": "T80"
           }
         },
         "lastResultWeek": {
@@ -4752,7 +4853,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T80"
+                "ref": "T82"
               }
             ]
           }
@@ -4775,19 +4876,19 @@
           "shape": {
             "union": [
               {
-                "ref": "T81"
+                "ref": "T83"
               }
             ]
           }
         }
       }
     },
-    "T78": {
+    "T80": {
       "array": {
-        "ref": "T79"
+        "ref": "T81"
       }
     },
-    "T79": {
+    "T81": {
       "object": {
         "id": {
           "optional": false,
@@ -4832,7 +4933,7 @@
         }
       }
     },
-    "T80": {
+    "T82": {
       "object": {
         "personId": {
           "optional": false,
@@ -4848,7 +4949,7 @@
         }
       }
     },
-    "T81": {
+    "T83": {
       "object": {
         "week": {
           "optional": false,
@@ -4865,17 +4966,17 @@
         "candidates": {
           "optional": false,
           "shape": {
-            "ref": "T82"
+            "ref": "T84"
           }
         }
       }
     },
-    "T82": {
+    "T84": {
       "array": {
-        "ref": "T83"
+        "ref": "T85"
       }
     },
-    "T83": {
+    "T85": {
       "object": {
         "id": {
           "optional": false,
@@ -4920,12 +5021,12 @@
         }
       }
     },
-    "T84": {
+    "T86": {
       "array": {
-        "ref": "T85"
+        "ref": "T87"
       }
     },
-    "T85": {
+    "T87": {
       "object": {
         "week": {
           "optional": false,
@@ -5059,12 +5160,12 @@
         }
       }
     },
-    "T86": {
+    "T88": {
       "array": {
-        "ref": "T87"
+        "ref": "T89"
       }
     },
-    "T87": {
+    "T89": {
       "object": {
         "sound": {
           "optional": true,
@@ -5141,33 +5242,6 @@
         }
       }
     },
-    "T88": {
-      "object": {
-        "delay": {
-          "optional": false,
-          "shape": {
-            "ref": "T3"
-          }
-        },
-        "halted": {
-          "optional": false,
-          "shape": {
-            "ref": "T89"
-          }
-        },
-        "waited": {
-          "optional": false,
-          "shape": {
-            "ref": "T3"
-          }
-        }
-      }
-    },
-    "T89": {
-      "array": {
-        "type": "boolean"
-      }
-    },
     "T90": {
       "object": {
         "delay": {
@@ -5179,18 +5253,45 @@
         "halted": {
           "optional": false,
           "shape": {
-            "ref": "T89"
+            "ref": "T91"
+          }
+        },
+        "waited": {
+          "optional": false,
+          "shape": {
+            "ref": "T3"
           }
         }
       }
     },
     "T91": {
-      "object": {},
-      "values": {
-        "ref": "T92"
+      "array": {
+        "type": "boolean"
       }
     },
     "T92": {
+      "object": {
+        "delay": {
+          "optional": false,
+          "shape": {
+            "ref": "T3"
+          }
+        },
+        "halted": {
+          "optional": false,
+          "shape": {
+            "ref": "T91"
+          }
+        }
+      }
+    },
+    "T93": {
+      "object": {},
+      "values": {
+        "ref": "T94"
+      }
+    },
+    "T94": {
       "object": {
         "id": {
           "optional": false,
@@ -5340,13 +5441,13 @@
         }
       }
     },
-    "T93": {
+    "T95": {
       "object": {},
       "values": {
-        "ref": "T94"
+        "ref": "T96"
       }
     },
-    "T94": {
+    "T96": {
       "object": {
         "kind": {
           "optional": false,
@@ -5480,7 +5581,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T95"
+                "ref": "T97"
               }
             ]
           }
@@ -5490,7 +5591,7 @@
           "shape": {
             "union": [
               {
-                "ref": "T96"
+                "ref": "T98"
               }
             ]
           }
@@ -5507,7 +5608,7 @@
         }
       }
     },
-    "T95": {
+    "T97": {
       "object": {
         "goods": {
           "optional": false,
@@ -5565,7 +5666,7 @@
         }
       }
     },
-    "T96": {
+    "T98": {
       "object": {
         "buildingId": {
           "optional": false,
@@ -5581,13 +5682,13 @@
         }
       }
     },
-    "T97": {
+    "T99": {
       "object": {},
       "values": {
-        "ref": "T98"
+        "ref": "T100"
       }
     },
-    "T98": {
+    "T100": {
       "object": {
         "sourceId": {
           "optional": false,
@@ -5678,13 +5779,13 @@
         }
       }
     },
-    "T99": {
+    "T101": {
       "object": {},
       "values": {
-        "ref": "T100"
+        "ref": "T102"
       }
     },
-    "T100": {
+    "T102": {
       "object": {
         "week": {
           "optional": false,
@@ -5706,7 +5807,7 @@
         }
       }
     },
-    "T101": {
+    "T103": {
       "object": {},
       "values": {
         "union": [
@@ -5714,12 +5815,12 @@
             "literal": null
           },
           {
-            "ref": "T102"
+            "ref": "T104"
           }
         ]
       }
     },
-    "T102": {
+    "T104": {
       "object": {
         "personId": {
           "optional": false,

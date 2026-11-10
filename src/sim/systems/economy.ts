@@ -65,6 +65,13 @@ export function weeklyEconomy(w: WorldState, rng: Rng): void {
     const gang = w.gangs[b.ownerGangId];
     if (!gang) continue;
 
+    // Rent was collected each working day. Friday only records the net.
+    if (b.typeId === 'rentedRooms') {
+      b.lastProfit = b.roomsWeekNet ?? 0;
+      b.roomsWeekNet = 0;
+      continue;
+    }
+
     let profit = businessProfit(w, b, rng);
     let laundered = 0;
 

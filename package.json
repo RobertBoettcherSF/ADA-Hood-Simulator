@@ -1,7 +1,7 @@
 {
   "name": "original-gangster",
   "private": true,
-  "version": "1.0.5",
+  "version": "1.2.0",
   "type": "module",
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
@@ -13,19 +13,13 @@
     "dev": "vite",
     "build": "node scripts/build-save-schema.mjs --check && tsc --noEmit && vite build",
     "preview": "vite preview",
+    "play:build": "vite build --base ./ --outDir play --emptyOutDir",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run",
     "test:acceptance": "vitest run tests/saves.test.ts tests/week-scheduling.test.ts tests/lifecycle.test.ts tests/tutorials.test.ts tests/tutorial-predicates.test.ts tests/lesson-playthroughs.test.ts tests/finances.test.ts tests/opinion-index.test.ts tests/parity.test.ts tests/api-validation.test.ts tests/combat-weapons.test.ts tests/a10-a16.test.ts",
     "test:long": "vitest run tests/playthrough.test.ts tests/integrity.test.ts",
     "test:watch": "vitest",
     "schema:check": "node scripts/build-save-schema.mjs --check",
-    "desktop": "npm run build && electron .",
-    "desktop:dev": "node scripts/desktop-dev.mjs",
-    "package": "npm run build:release && node scripts/package-desktop.mjs",
-    "package:win": "npm run build:release && node scripts/package-desktop.mjs --win",
-    "package:linux": "npm run build:release && node scripts/package-desktop.mjs --linux tar.gz",
-    "package:mac": "npm run build:release && node scripts/package-desktop.mjs --mac --x64 --arm64",
-    "desktop:smoke": "npm run build:release && node scripts/desktop-smoke.mjs",
     "build:release": "npm run build && node scripts/optimize-art.mjs dist/art"
   },
   "dependencies": {
@@ -45,52 +39,10 @@
     "@types/react-dom": "^18.3.1",
     "@types/three": "^0.169.0",
     "@vitejs/plugin-react": "^5.2.0",
-    "electron": "^44.4.5",
-    "electron-builder": "^26.15.3",
     "fake-indexeddb": "^6.2.4",
-    "playwright": "1.62.1",
     "sharp": "^0.35.5",
-    "tar": "^7.5.22",
     "typescript": "^5.6.3",
     "vite": "^7.3.6",
     "vitest": "^4.1.11"
-  },
-  "main": "electron/main.cjs",
-  "build": {
-    "appId": "com.originalgangster.game",
-    "productName": "Original Gangster",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "electron/**/*",
-      "package.json",
-      "!node_modules/**/*"
-    ],
-    "asar": true,
-    "win": {
-      "target": [
-        "nsis",
-        "portable"
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ],
-      "category": "public.app-category.strategy-games"
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ],
-      "category": "Game"
-    },
-    "icon": "public/art/brand/favicon-512.png"
   }
 }

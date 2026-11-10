@@ -3,6 +3,9 @@ import type { GangColorName, WorldState } from '../sim/types';
 import { yieldForInput } from '../yieldForInput';
 import { buildingList } from '../sim/entityLists';
 import { gangManpower, territoryCount } from '../sim/world';
+import { activeWorldStore, parseWorldText, refreshCityOnFile } from './worldFolder';
+import { clearHallEntries, loadHallEntries, saveHallEntries } from './localData';
+import { markTiming } from './debugReport';
 
 export interface SaveSlot {
   id: string;
@@ -26,50 +29,10 @@ export function slotLoadable(slot: SaveSlot): boolean {
   return !slot.error && (!!slot.world || !!slot.lazy);
 }
 
-/** The slot's city, reading it from disk if the list held only its header. */
+/** The slot's city. A listed header with no world cannot be opened. */
 export async function loadSlotWorld(slot: SaveSlot): Promise<SaveSlot> {
   if (slot.world || !slot.lazy) return slot;
-  const disk = desktopSaves();
-  if (!disk?.read) throw Error('This save is unavailable.');
-  return decodeSlot(await disk.read(slot.id), true);
-}
-
-/** The desktop build's save files (electron/preload.cjs); absent in a browser. */
-interface DesktopSaves {
-  list(): Promise<unknown[]>;
-  /** Present since 1.0.3: list() then gives headers only. */
-  read?(id: string): Promise<unknown>;
-  write(meta: Record<string, unknown>, worldJson: string): Promise<void>;
-  remove(id: string): Promise<void>;
-}
-const desktopSaves = (): DesktopSaves | undefined =>
-  (globalThis as { ogDesktop?: { saves?: DesktopSaves } }).ogDesktop?.saves;
-const MIGRATED_KEY = 'og.savesOnDisk';
-
-/** First desktop launch: copy any browser-storage saves to disk, once. */
-async function migrateBrowserSaves(disk: DesktopSaves): Promise<void> {
-  try { if (localStorage.getItem(MIGRATED_KEY)) return; } catch { /* no storage: try anyway */ }
-  let records: unknown[] = [];
-  try {
-    const db = await openDb();
-    try {
-      records = await new Promise<unknown[]>((resolve, reject) => {
-        const req = db.transaction(STORE, 'readonly').objectStore(STORE).getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
-    } finally { db.close(); }
-  } catch { records = []; }
-  const onDisk = new Set((await disk.list()).map(r => (r as { id?: unknown }).id));
-  for (const raw of records) {
-    const { worldJson, world, ...meta } = raw as Record<string, unknown>;
-    if (typeof meta.id !== 'string' || onDisk.has(meta.id)) continue;
-    const json = typeof worldJson === 'string' ? worldJson : world != null ? JSON.stringify(world) : null;
-    // One record the disk refuses (an old, over-long name) must not hide every
-    // other save on every launch.
-    if (json) try { await disk.write(meta, json); } catch (e) { console.warn('A browser save could not be copied to disk:', e); }
-  }
-  try { localStorage.setItem(MIGRATED_KEY, '1'); } catch { /* retried next launch; writes skip existing slots */ }
+  throw Error('This save is unavailable.');
 }
 
 const DB_NAME = 'original-gangster';
@@ -157,14 +120,27 @@ async function stringifyFrozenWorld(world: WorldState, signal?: AbortSignal): Pr
   return parts.join('');
 }
 
-let writeQueue: Promise<unknown> = Promise.resolve();
-function oneWriteAtATime<T>(write: () => Promise<T>): Promise<T> {
-  const run = writeQueue.then(write, write);
-  writeQueue = run.catch(() => {});
-  return run;
-}
-
 export async function saveGame(name: string, world: WorldState, frozen = false): Promise<void> {
+  const living = activeWorldStore();
+  if (living) {
+    const started = performance.now();
+    const worldJson = await stringifyFrozenWorld(world);
+    const boss = Object.values(world.gangs).find((g) => g.isPlayer);
+    await living.write('world.json', worldJson);
+    await living.write('manifest.json', JSON.stringify({
+      format: 1,
+      game: 'ada-hood-simulator',
+      schemaVersion: world.schemaVersion ?? 2,
+      seed: world.options?.seed ?? 0,
+      week: world.week,
+      era: world.options?.era ?? '1932',
+      bossName: boss ? (world.people[boss.bossId]?.name ?? 'Unknown') : 'Unknown',
+      updated: new Date().toISOString(),
+    }));
+    markTiming('save-world', performance.now() - started);
+    await refreshCityOnFile();
+    return;
+  }
   const boss = Object.values(world.gangs).find((g) => g.isPlayer);
   const summary: SaveSummary = {
     cash: Math.round(boss?.cash ?? 0), blocks: boss ? territoryCount(world, boss.id) : 0,
@@ -182,10 +158,6 @@ export async function saveGame(name: string, world: WorldState, frozen = false):
   // Store JSON directly: parsing only to make IndexedDB clone it again used to
   // add two large, synchronous copies. Old object-based slots remain readable.
   const worldJson = frozen ? await stringifyFrozenWorld(world) : JSON.stringify(world);
-  const disk = desktopSaves();
-  // The city is copied above, at the moment of saving; only the writes wait
-  // their turn (two at once raced on one slot).
-  if (disk) return oneWriteAtATime(() => disk.write(metadata, worldJson));
   const slot = { ...metadata, format: 2, worldJson };
   const db = await openDb();
   try {
@@ -202,10 +174,36 @@ export async function saveGame(name: string, world: WorldState, frozen = false):
 }
 
 export async function loadGame(): Promise<SaveSlot[]> {
-  const disk = desktopSaves();
-  if (disk) {
-    await migrateBrowserSaves(disk);
-    return decodeSlots(await disk.list());
+  const living = activeWorldStore();
+  if (living) {
+    const started = performance.now();
+    const text = await living.read('world.json');
+    if (!text) return [];
+    await yieldForInput();
+    const parsed = await parseWorldText(text);
+    await yieldForInput();
+    let world: WorldState | null = null;
+    let readError = 'The city in this folder could not be read.';
+    try { world = await validateSaveWorldResponsive(parsed); }
+    catch (error) { readError = error instanceof Error ? error.message : readError; }
+    markTiming('load-world', performance.now() - started);
+    if (!world) return [{ id: 'world', name: 'This city', savedAt: Date.now(), week: 0, bossName: 'Unknown', world: null, error: readError }];
+    const boss = Object.values(world.gangs).find((g) => g.isPlayer);
+    return [{
+      id: 'world',
+      name: 'This city',
+      savedAt: Date.now(),
+      week: world.week,
+      bossName: boss ? (world.people[boss.bossId]?.name ?? 'Unknown') : 'Unknown',
+      world,
+      summary: {
+        cash: Math.round(boss?.cash ?? 0),
+        blocks: boss ? territoryCount(world, boss.id) : 0,
+        men: boss ? gangManpower(world, boss) : 0,
+        seed: world.options?.seed ?? 0,
+        finished: world.phase === 'gameOver',
+      },
+    }];
   }
   const db = await openDb();
   try {
@@ -274,8 +272,7 @@ export function decodeSlot(raw: unknown, responsive = false): SaveSlot | Promise
 }
 
 export async function deleteSave(id: string): Promise<void> {
-  const disk = desktopSaves();
-  if (disk) return disk.remove(id);
+  if (activeWorldStore()) throw new Error('This folder keeps one city. Start a new game when you want to replace it.');
   const db = await openDb();
   try {
     await new Promise<void>((resolve, reject) => {
@@ -311,8 +308,6 @@ export interface HallEntry {
   legend?: { kills: number };
 }
 
-const HALL_KEY = 'og.hallOfFame';
-
 /**
  * The original's default Hall (Data\DefaultHST.xtx): eleven legends of the
  * era with its scores, territory, manpower, money and kills. They stand in
@@ -347,9 +342,7 @@ export function hallOfFameTable(): HallEntry[] {
 
 export function loadHallOfFame(): HallEntry[] {
   try {
-    const raw = localStorage.getItem(HALL_KEY);
-    if (!raw) return [];
-    return (JSON.parse(raw) as HallEntry[]).sort((a, b) => b.score - a.score);
+    return loadHallEntries();
   } catch {
     return [];
   }
@@ -365,11 +358,11 @@ export function addHallOfFame(entry: HallEntry, adoptLegacy = false): boolean {
       saved.reason === entry.reason && saved.won === entry.won) : -1;
     if (legacy >= 0) {
       existing[legacy] = { ...existing[legacy], resultId: entry.resultId };
-      localStorage.setItem(HALL_KEY, JSON.stringify(existing));
+      saveHallEntries(existing);
       return true;
     }
     const all = [...existing, entry].sort((a, b) => b.score - a.score).slice(0, 24);
-    localStorage.setItem(HALL_KEY, JSON.stringify(all));
+    saveHallEntries(all);
     return all.includes(entry);
   } catch {
     /* storage may be unavailable; the score simply is not kept */
@@ -379,7 +372,7 @@ export function addHallOfFame(entry: HallEntry, adoptLegacy = false): boolean {
 
 export function clearHallOfFame(): void {
   try {
-    localStorage.removeItem(HALL_KEY);
+    clearHallEntries();
   } catch {
     /* ignore */
   }

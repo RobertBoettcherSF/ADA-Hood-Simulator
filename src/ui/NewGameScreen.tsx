@@ -361,13 +361,22 @@ export function NewGameScreen() {
                     {cityDims.w} × {cityDims.h} blocks
                   </span>
                 </label>
-                {seg(originalCity ? 'original' : 'compact', ['original', 'compact'] as const, cap, (v) =>
-                  v === 'original' ? set({ citySize: ORIGINAL_CITY.w, cityHeight: ORIGINAL_CITY.h })
-                    : !originalCity ? undefined : set({ citySize: COMPACT_CITY_SIZES.default, cityHeight: undefined }))}
+                {seg(
+                  originalCity ? 'original' : options.citySize === 8 && options.cityHeight == null ? 'test' : 'compact',
+                  ['original', 'test', 'compact'] as const,
+                  (v) => v === 'original' ? '40×32' : v === 'test' ? 'Small test' : 'Compact',
+                  (v) => {
+                    if (v === 'original') set({ citySize: ORIGINAL_CITY.w, cityHeight: ORIGINAL_CITY.h });
+                    else if (v === 'test') set({ citySize: 8, cityHeight: undefined });
+                    else set({ citySize: COMPACT_CITY_SIZES.default, cityHeight: undefined });
+                  },
+                )}
                 {originalCity
                   ? <div className="scene-small">The original game's 40 × 32 city.</div>
-                  : <input id="NewGameScreen-field-7" className="brass-rail" type="range" min={COMPACT_CITY_SIZES.min} max={COMPACT_CITY_SIZES.max} value={options.citySize}
-                    onChange={(e) => set({ citySize: Number(e.target.value), cityHeight: undefined })} />}
+                  : options.citySize === 8 && options.cityHeight == null
+                    ? <div className="scene-small">An 8 × 8 city for a short test. The same rules as the full map.</div>
+                    : <input id="NewGameScreen-field-7" className="brass-rail" type="range" min={COMPACT_CITY_SIZES.min} max={COMPACT_CITY_SIZES.max} value={options.citySize}
+                      onChange={(e) => set({ citySize: Number(e.target.value), cityHeight: undefined })} />}
               </div>
               <div className="field">
                 <label htmlFor="city-seed">City seed</label>
