@@ -25,7 +25,7 @@ import {
   repairBuilding,
   setTrading,
 } from './api';
-import { MAX_TEAMS, MAX_TEAM_SIZE, MINUTES_PER_WEEK, WEAPONS } from './constants';
+import { MAX_TEAMS, MAX_TEAM_SIZE, MINUTES_PER_WEEK, ORDERS, WEAPONS } from './constants';
 import { BUILDING_BY_ID, ILLEGAL_TYPES, coverQuality } from './data/buildings';
 import { isValidAreaTarget, nearestOffice } from './execution';
 import { purchasablePremisesType } from './premises';
@@ -265,6 +265,59 @@ export function planGang(w: WorldState, rng: Rng, gang: Gang, autopilot = false)
   });
 
   manageProperty(w, rng, gang, teams.map((t) => t.id));
+  if (autopilot) issueRemainingHumanOrders(w, gang);
+}
+
+/** Every order a human can give. Autoplay may issue any of them; rivals keep the planner above. */
+export const AUTOPILOT_ORDER_TYPES = Object.keys(ORDERS) as (keyof typeof ORDERS)[];
+
+function issueRemainingHumanOrders(w: WorldState, gang: Gang): void {
+  const teams = teamsOf(w, gang).filter((team) => {
+    const lieutenant = w.people[team.lieutenantId];
+    return lieutenant && lieutenant.status !== 'dead' && lieutenant.status !== 'jailed' && lieutenant.status !== 'kidnapped';
+  });
+  if (!teams.length) return;
+  const already = new Set(Object.values(w.orders).filter((order) => order.gangId === gang.id).map((order) => order.type));
+  const owned = ownedBuildings(w, gang.id).filter((building) => building.state === 'trading');
+  const office = nearestOffice(w, gang.id, w.blocks[0].center);
+  let teamCursor = 0;
+  const team = () => teams[teamCursor++ % teams.length];
+  const once = (type: keyof typeof ORDERS, input: Parameters<typeof issueOrder>[2]) => {
+    if (already.has(type)) return;
+    if (issueOrder(w, gang.id, input).ok) already.add(type);
+  };
+
+  const managed = owned.find((building) => building.managerId == null && building.cls !== 'empty');
+  if (managed) once('runBusiness', { teamId: team().id, type: 'runBusiness', buildingIds: [managed.id], opts: { manpower: 1 } });
+
+  const racket = protectedBuildings(w, gang.id).find((building) => building.protection && building.protection.weekly < building.protection.base);
+  if (racket) once('adjustProtection', { teamId: team().id, type: 'adjustProtection', buildingIds: [racket.id], opts: { manpower: 1, protectionLevel: 1 } });
+
+  const warehouse = owned.find((building) => building.typeId === 'warehouse' && (building.stock.liquor + building.stock.stolen + building.stock.counterfeit) > 0);
+  if (warehouse) once('export', { teamId: team().id, type: 'export', buildingIds: [warehouse.id], opts: { manpower: 1 } });
+
+  const charity = allBuildings(w).find((building) => building.cls === 'charity' && building.state === 'trading');
+  if (charity && gang.cash > 8000) once('donate', { teamId: team().id, type: 'donate', buildingIds: [charity.id], opts: { manpower: 1 } });
+
+  const unguarded = owned.find((building) => building.cls === 'illegal' && building.typeId !== 'office' && building.guardIds.length === 0);
+  if (unguarded) once('guardBusiness', { teamId: team().id, type: 'guardBusiness', buildingIds: [unguarded.id], opts: { manpower: 1 } });
+
+  if (office) once('goTo', { teamId: team().id, type: 'goTo', pos: { ...w.lots[office.lotId].center }, opts: { manpower: 1 } });
+
+  const official = w.people[w.policeChiefId];
+  if (official && (official.opinion[gang.id] ?? 0) < 15 && gang.cash > 4000) {
+    once('bribe', { teamId: team().id, type: 'bribe', personId: official.id, opts: { manpower: 1, amount: 500 } });
+  }
+
+  const enemy = Object.values(w.gangs).find((other) => other.id !== gang.id && !other.eliminated && gang.offered[other.id] === 'war');
+  if (enemy) {
+    const site = allBuildings(w).find((building) => building.ownerGangId === enemy.id && building.state === 'trading' && !building.isHQ);
+    const person = peopleList(w).find((p) => p.gangId === enemy.id && p.status === 'active');
+    if (person) once('assault', { teamId: team().id, type: 'assault', personId: person.id, opts: { manpower: 2 } });
+    if (site) once('ambush', { teamId: team().id, type: 'ambush', blockIds: [site.blockId], opts: { manpower: 2 } });
+    if (person) once('kidnap', { teamId: team().id, type: 'kidnap', personId: person.id, opts: { manpower: 2 } });
+    if (person) once('kill', { teamId: team().id, type: 'kill', personId: person.id, opts: { manpower: 2 } });
+  }
 }
 
 /**

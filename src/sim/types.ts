@@ -383,9 +383,11 @@ export interface Building {
   fbiSearchedWeek?: number;
   /** Last week illicit goods were passed through this legal business. */
   launderingWeek?: number;
-  /** Rented rooms: floors in use (1–4), staff on the payroll, and the last day already billed (`week * 10 + day`). */
+  /** Rented rooms: floors in use (1–4), one tenant each, and the last day already billed (`week * 10 + day`). */
   roomsFloors?: number;
+  /** Older saves named a staff count. New cities keep a tenant purse per floor. */
   roomsStaff?: number;
+  roomsTenants?: { budget: number | null; vacantDays: number }[];
   roomsChargedDay?: number;
   /** Net rent booked this week, before Friday copies it onto `lastProfit`. */
   roomsWeekNet?: number;

@@ -107,7 +107,7 @@ export class Sim {
       if (building.typeId !== 'whorehouse') continue;
       building.typeId = 'rentedRooms';
       building.roomsFloors ??= 2;
-      building.roomsStaff ??= 4;
+      building.roomsTenants ??= Array.from({ length: building.roomsFloors }, () => ({ budget: 0, vacantDays: 0 }));
     }
     repairLegacyStreetSpawns(state);
     repairVehicleRoutes(state);

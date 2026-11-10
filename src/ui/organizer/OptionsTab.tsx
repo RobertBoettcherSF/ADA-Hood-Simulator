@@ -22,13 +22,7 @@ function InterfaceSize() {
   }, [uiScale]);
   const percent = (scale: number) => `${Math.round(scale * 100)}%`;
 
-  if (!uiScaleAvailable()) {
-    return (
-      <div className="muted tiny" style={{ marginTop: 8 }}>
-        Interface size: use your browser's zoom (Ctrl + and Ctrl −, or ⌘ + and ⌘ − on a Mac).
-      </div>
-    );
-  }
+  if (!uiScaleAvailable()) return null;
   return (
     <>
       <div className="tiny" style={{ marginTop: 10 }}>Interface size</div>

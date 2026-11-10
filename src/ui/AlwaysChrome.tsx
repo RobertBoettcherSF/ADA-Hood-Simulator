@@ -62,9 +62,24 @@ export function AlwaysChrome() {
 function Autoplay() {
   const autoplayWeeks = useGame((s) => s.autoplayWeeks);
   const resolving = useGame((s) => s.resolvingHeadless);
+  const [weeks, setWeeks] = useState(4);
+  const count = Math.max(1, Math.round(weeks) || 1);
   return (
-    <button type="button" className="always-debug" disabled={resolving} onClick={() => void autoplayWeeks(4)} title="Four weeks on the same sim, with simple orders for the player">
-      Autoplay 4
-    </button>
+    <span className="always-autoplay">
+      <label>
+        Weeks
+        <input
+          type="number"
+          min={1}
+          step={1}
+          value={weeks}
+          aria-label="Autoplay weeks"
+          onChange={(event) => setWeeks(Number(event.target.value))}
+        />
+      </label>
+      <button type="button" className="always-debug" disabled={resolving} onClick={() => void autoplayWeeks(count)} title="The same orders and the same week resolver as a turn at the desk">
+        Autoplay
+      </button>
+    </span>
   );
 }

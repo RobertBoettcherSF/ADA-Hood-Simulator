@@ -6,28 +6,20 @@
  * sounds (streetSound.ts) and the interface's cues.
  */
 import { JazzBand } from './jazz';
+import { patchLocalData, readLocalData } from '../app/localData';
 import { loadSamples, playSample, sample, type SampleName } from './samples';
 
 /** Which piece of score is wanted: the menu's ballad, planning's speakeasy band, or the week's tension. */
 export type MusicTrack = 'menu' | 'planning' | 'week';
 const TRACKS: Record<MusicTrack, SampleName> = { menu: 'music-menu', planning: 'music-planning', week: 'music-week' };
 const CROSSFADE = 1.6;
-const PREFS_KEY = 'og.audio';
-
-/** Sound settings kept between sessions, with the original's two music
+/** Sound settings kept in the world folder, with the original's two music
  * switches: music at the menus (InterfaceAmbient) and in the game (GameAmbient). */
 interface AudioPrefs { music: number; sfx: number; menuMusic: boolean; gameMusic: boolean }
 
 function readPrefs(): AudioPrefs {
-  const prefs: AudioPrefs = { music: 0.35, sfx: 0.5, menuMusic: true, gameMusic: true };
-  try {
-    const saved = JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}') as Partial<AudioPrefs>;
-    if (typeof saved.music === 'number' && saved.music >= 0 && saved.music <= 1) prefs.music = saved.music;
-    if (typeof saved.sfx === 'number' && saved.sfx >= 0 && saved.sfx <= 1) prefs.sfx = saved.sfx;
-    if (typeof saved.menuMusic === 'boolean') prefs.menuMusic = saved.menuMusic;
-    if (typeof saved.gameMusic === 'boolean') prefs.gameMusic = saved.gameMusic;
-  } catch { /* defaults */ }
-  return prefs;
+  const saved = readLocalData().audio;
+  return { music: saved.music, sfx: saved.sfx, menuMusic: saved.menuMusic, gameMusic: saved.gameMusic };
 }
 
 class AudioEngine {
@@ -99,9 +91,18 @@ class AudioEngine {
     if (track) { this.track = null; this.music(track); }
   }
 
+  /** Apply prefs loaded from the world folder after this engine was constructed. */
+  loadStored(): void {
+    this.prefs = readPrefs();
+    this.musicVolume = this.prefs.music;
+    this.sfxVolume = this.prefs.sfx;
+    if (this.musicGain) this.musicGain.gain.value = this.musicVolume * 0.5;
+    if (this.sfxGain) this.sfxGain.gain.value = this.sfxVolume;
+  }
+
   private savePrefs(change: Partial<AudioPrefs>): void {
     this.prefs = { ...this.prefs, ...change };
-    try { localStorage.setItem(PREFS_KEY, JSON.stringify(this.prefs)); } catch { /* kept for this session */ }
+    patchLocalData({ audio: this.prefs });
   }
 
   private silenceMusic(): void {

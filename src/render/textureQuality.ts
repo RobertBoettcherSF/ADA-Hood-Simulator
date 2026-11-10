@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { patchLocalData, readLocalData } from '../app/localData';
 
 /**
  * Model texture quality (A20, minimum-spec GPUs). "High" keeps the approved
@@ -7,15 +8,14 @@ import * as THREE from 'three';
  */
 export type TextureQuality = 'high' | 'standard';
 
-const KEY = 'og.textureQuality';
 export const STANDARD_TEXTURE_SIZE = 1024;
 
 export function readTextureQuality(): TextureQuality {
-  try { return localStorage.getItem(KEY) === 'standard' ? 'standard' : 'high'; } catch { return 'high'; }
+  return readLocalData().textureQuality;
 }
 
 export function writeTextureQuality(quality: TextureQuality): void {
-  try { localStorage.setItem(KEY, quality); } catch { /* session only */ }
+  patchLocalData({ textureQuality: quality === 'standard' ? 'standard' : 'high' });
 }
 
 /** The largest side a model texture keeps at this quality, or null for no limit. */

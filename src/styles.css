@@ -3922,6 +3922,58 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .scene-title img { height: clamp(80px, 14vh, 140px); }
 }
 
+/* Phone portrait: the whole main menu, title included, sits in the safe area
+   below the version and Debug badges. Loading and the street demo are unchanged. */
+@media (max-width: 480px) and (orientation: portrait), (max-width: 430px) {
+  .scene-casino {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: safe center;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding:
+      calc(env(safe-area-inset-top, 0px) + 60px)
+      max(16px, env(safe-area-inset-right, 0px))
+      calc(env(safe-area-inset-bottom, 0px) + 20px)
+      max(16px, env(safe-area-inset-left, 0px));
+  }
+  .scene-casino .scene-title {
+    flex: none;
+    width: min(100%, 340px);
+    padding-top: 0;
+  }
+  .scene-casino .scene-title img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 96px;
+    object-fit: contain;
+    object-position: center;
+  }
+  .scene-casino .plaque-stack {
+    flex: none;
+    width: min(100%, 340px);
+    margin-top: 16px;
+    gap: 8px;
+  }
+  .scene-casino .plaque,
+  .scene-casino .plaque-stack .continue-plaque {
+    --plaque-w: 100%;
+    width: 100%;
+    --plaque-h: 46px;
+  }
+  .scene-casino .scene-footnote {
+    position: static !important;
+    margin-top: 14px;
+  }
+  .scene-casino .scene-version {
+    right: max(10px, env(safe-area-inset-right, 0px));
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* ---- Scene type ---- */
 .scene-label,
 .scene .field > label {
@@ -4482,6 +4534,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   touch-action: manipulation;
 }
 .always-debug { cursor: pointer; }
+.always-autoplay { display: inline-flex; align-items: center; gap: 6px; }
+.always-autoplay label { display: inline-flex; align-items: center; gap: 4px; color: #f0d489; font: 600 14px/44px 'Barlow', sans-serif; }
+.always-autoplay input { width: 4.2rem; min-height: 44px; padding: 0 6px; }
 .always-debug:disabled { opacity: 0.6; }
 .always-note, .always-update {
   flex: 1 1 100%;

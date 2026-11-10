@@ -205,7 +205,7 @@ export function JobCardPanel() {
               {chosenType?.id === 'rentedRooms' && (
                 <div style={{ marginTop: 8 }}>
                   <label className="muted tiny" htmlFor="rented-floors">
-                    Floors (one apartment each). Two staff work each floor. Rent is collected every working day.
+                    Floors, one apartment each. The tenant pays that day's rent from their own earnings. If they cannot pay, the apartment stays empty until someone new moves in.
                   </label>
                   <select
                     id="rented-floors"
@@ -215,7 +215,7 @@ export function JobCardPanel() {
                     onChange={(e) => updateOpts({ roomsFloors: Number(e.target.value) })}
                   >
                     {[1, 2, 3, 4].map((floors) => (
-                      <option key={floors} value={floors}>{floors} floor{floors === 1 ? '' : 's'} · {floors * 2} staff</option>
+                      <option key={floors} value={floors}>{floors} floor{floors === 1 ? '' : 's'}</option>
                     ))}
                   </select>
                 </div>

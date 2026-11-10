@@ -3,7 +3,9 @@ import { Sim } from '../src/sim/sim';
 import { planGang } from '../src/sim/ai';
 import { defaultGameOptions } from '../src/app/newGame';
 import { BUILDING_BY_ID } from '../src/sim/data/buildings';
-import { chargeRentedRooms } from '../src/sim/rentedRooms';
+import { chargeRentedRooms, tenantEarnings, RENTED_ROOMS_DAILY_RENT } from '../src/sim/rentedRooms';
+import { AUTOPILOT_ORDER_TYPES } from '../src/sim/ai';
+import { ORDERS } from '../src/sim/constants';
 import { buildDebugReport } from '../src/app/debugReport';
 import { ERA_2032_ENABLED } from '../src/app/era';
 import type { GameOptions, WorldState } from '../src/sim/types';
@@ -43,7 +45,8 @@ describe('1932 playable week', () => {
     expect(ERA_2032_ENABLED).toBe(false);
   });
 
-  it('autoplay issues orders through the same planner and finishes the week', () => {
+  it('autoplay can use every human order and finishes the week on the same resolver', () => {
+    expect(new Set(AUTOPILOT_ORDER_TYPES)).toEqual(new Set(Object.keys(ORDERS)));
     const sim = fresh();
     planGang(sim.world, sim.rng, sim.playerGang, true);
     expect(Object.values(sim.world.orders).some((order) => order.gangId === sim.playerGang.id)).toBe(true);
@@ -60,22 +63,26 @@ describe('1932 playable week', () => {
     expect(building).toBeTruthy();
     building!.typeId = 'rentedRooms';
     building!.cls = 'illegal';
-    building!.roomsFloors = 4;
-    building!.roomsStaff = 8;
+    building!.roomsFloors = 1;
+    building!.roomsTenants = [{ budget: 10_000, vacantDays: 0 }];
     building!.roomsChargedDay = 0;
     building!.roomsWeekNet = 0;
     const before = player.cash;
     sim.world.minute = 1;
     chargeRentedRooms(sim.world);
     expect(player.cash).toBeGreaterThan(before);
+    expect(player.cash - before).toBeLessThan(RENTED_ROOMS_DAILY_RENT * 2);
     const once = player.cash;
     chargeRentedRooms(sim.world);
     expect(player.cash).toBe(once);
-    sim.world.minute = 481;
+    building!.roomsTenants = [{ budget: 0, vacantDays: 0 }];
+    const earned = tenantEarnings(building!.id, 0, sim.world.week, 2, 1);
+    sim.world.week = 2;
+    sim.world.minute = 1;
+    building!.roomsChargedDay = 0;
     chargeRentedRooms(sim.world);
-    expect(player.cash).toBeGreaterThan(once);
-    expect(building!.roomsFloors).toBe(4);
-    expect(building!.roomsStaff).toBe(8);
+    if (earned < 1) expect(building!.roomsTenants?.[0].budget).toBeNull();
+    else expect(player.cash).toBeGreaterThanOrEqual(once);
     expect(BUILDING_BY_ID.rentedRooms.name).toBe('Rented Rooms');
     expect(BUILDING_BY_ID.whorehouse).toBeUndefined();
   });

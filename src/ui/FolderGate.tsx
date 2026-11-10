@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { loadLocalData, readLocalData } from '../app/localData';
+import { applyUiScale } from '../app/uiScale';
+import { useGame } from '../app/store';
+import { audio } from '../audio/audio';
 import {
   directoryPickerAvailable,
   exportWorldFile,
@@ -24,7 +28,7 @@ export function FolderGate({ onReady }: { onReady: () => void }) {
     void resumeWorldStore().then((result) => {
       if (cancel) return;
       if (result && result !== 'needs-gesture') {
-        void refreshCityOnFile().then(() => readyRef.current());
+        void refreshCityOnFile().then(() => applyPrefs()).then(() => readyRef.current());
         return;
       }
       setNeedsGesture(result === 'needs-gesture');
@@ -37,12 +41,27 @@ export function FolderGate({ onReady }: { onReady: () => void }) {
     return () => { cancel = true; };
   }, []);
 
+  const applyPrefs = async () => {
+    await loadLocalData();
+    audio.loadStored();
+    const stored = readLocalData();
+    useGame.setState({
+      uiScale: stored.uiScale,
+      textureQuality: stored.textureQuality,
+      mouseReversal: stored.mouseReversal,
+      roadNames: stored.roadNames,
+      autoLowerRoofs: stored.autoLowerRoofs,
+    });
+    applyUiScale(stored.uiScale);
+  };
+
   const ready = async (run: () => Promise<unknown>) => {
     setError('');
     setBusy(true);
     try {
       await run();
       await refreshCityOnFile();
+      await applyPrefs();
       onReady();
     } catch (reason) {
       if (reason instanceof DOMException && reason.name === 'AbortError') {

@@ -4,13 +4,13 @@ import { applyLiveMovement } from '../sim/movement';
 import { recordScorePeaks } from '../sim/scoring';
 import { observeTargetRace } from '../sim/targetRace';
 import { FLAT_OUT_BUDGET_MS, SPEED_STAGES, isFlatOut, nearestStage, stageIndex } from './speed';
-import { automaticRoofsPreference } from '../render/viewModes';
 import { bossInsideOffice } from '../render/characterPresentation';
 import { create } from 'zustand';
 import { fitAreaToWeek, type ApiResult } from '../sim/api';
 import { Sim } from '../sim/sim';
 import { planGang } from '../sim/ai';
 import { markTiming, noteAutoplay, noteError } from './debugReport';
+import { patchLocalData, readLocalData } from './localData';
 import { activeWorldStore, livingCityOnFile } from './worldFolder';
 import type { GameOptions, ID, MessageCategory, OrderOptions, OrderType, SpecialistJob, Vec2 } from '../sim/types';
 import { specialistTargetEligible } from '../sim/specialistJobs';
@@ -243,19 +243,15 @@ const endingUi = {
 } satisfies Partial<GameState>;
 
 function readMouseReversal(): boolean {
-  try { return localStorage.getItem('og.mouseReversal') === '1'; } catch { return false; }
+  return readLocalData().mouseReversal;
 }
 
 function readRoadNames(): boolean {
-  try { return localStorage.getItem('og.roadNames') === '1'; } catch { return false; }
+  return readLocalData().roadNames;
 }
 
 function readAutoLower(): boolean {
-  try {
-    return automaticRoofsPreference(localStorage.getItem('og.autoLowerRoofs'));
-  } catch {
-    return true;
-  }
+  return readLocalData().autoLowerRoofs;
 }
 
 // A stopped run must stay stopped even if another starts before its timer wakes.
@@ -581,19 +577,15 @@ export const useGame = create<GameState>((set, get) => ({
     applyUiScale(uiScale);
   },
   setMouseReversal: (mouseReversal) => {
-    try { localStorage.setItem('og.mouseReversal', mouseReversal ? '1' : '0'); } catch { /* session only */ }
+    patchLocalData({ mouseReversal });
     set({ mouseReversal });
   },
   setRoadNames: (roadNames) => {
-    try { localStorage.setItem('og.roadNames', roadNames ? '1' : '0'); } catch { /* session only */ }
+    patchLocalData({ roadNames });
     set({ roadNames });
   },
   setAutoLowerRoofs: (autoLowerRoofs) => {
-    try {
-      localStorage.setItem('og.autoLowerRoofs', autoLowerRoofs ? '1' : '0');
-    } catch {
-      /* no storage: the setting lasts the session */
-    }
+    patchLocalData({ autoLowerRoofs });
     set({ autoLowerRoofs });
   },
   togglePoliceAreaBlock: (id) => {
@@ -819,7 +811,8 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   autoplayWeeks: async (weeks) => {
-    const count = Math.max(1, Math.min(20, Math.round(weeks)));
+    const count = Math.max(1, Math.round(weeks));
+    if (!Number.isFinite(count)) return;
     const lines: string[] = [];
     for (let i = 0; i < count; i++) {
       const sim = get().sim;

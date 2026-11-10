@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is New Temperance in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.1.0.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.0.
 
 ## Decisions
 
@@ -12,14 +12,14 @@ The owner answered the open questions in §8. These decisions override anything 
 
 1. **2032** is a pair of inert flags (`era` on the city, `ERA_2032_ENABLED` in `src/app/era.ts`). There is no 2032 content. A later merge can turn the flag on. The game that ships is New Temperance in 1932.
 2. The default map is the original 40×32 grid. New Game also offers a small test map, 8×8.
-3. End Week and autoplay run the existing minute-by-minute sim (`Sim.finishWeekSlice`) and do not mount the 3D city. One rule set.
+3. End Week and autoplay run the existing minute-by-minute sim (`Sim.finishWeekSlice`) and do not mount the 3D city. One rule set. Autoplay may issue every order a person can give, then resolves that turn the same way. The default run is 4 weeks. The box accepts any whole number of weeks from 1 upward.
 4. One living world per folder, in the manner of Dwarf Fortress. The folder holds `world.json` (the city, which is also the current save) and `manifest.json`. The save keeps running in that folder.
-5. The game must run in a desktop or mobile browser. The Electron shell is still in the repository (`electron/`, the `desktop` scripts). It was left untouched: adapting it to the folder would have been a second save path, and deleting it would have broken the existing desktop tests. It is not how this version is played.
+5. The game runs in a desktop or mobile browser. The Electron shell has been removed.
 6. The win and loss checks in `src/sim/sim.ts` stay as they are.
-7. The `whorehouse` business is replaced by **Rented Rooms**: up to four floors, one apartment on each, rent collected each working day, usually two staff per apartment. The copy is not explicit.
+7. **Rented Rooms** has one tenant per floor. The tenant pays the day's rent out of their own earnings. The player does not pay them. If a tenant cannot pay, that apartment stays empty until a new tenant moves in. The copy is not explicit.
 8. Four gangs.
 9. The same folder and the same orders produce the same Friday on any device. The sim’s saved `rngState` is the stream. A 40×32 layout that would have hung is re-rolled, and that re-roll is written into the debug report (`cityLayout.original.notes`).
-10. The world file and debug reports live in the folder, so the heavy JSON is not only in the browser’s memory. Reading and writing are chunked, and parsing runs off the main thread when a worker is available.
+10. The world file, debug reports, audio settings, interface scale, display options, and the hall of fame live in the folder (`world.json`, `prefs.json`, `09 Reports/`). The browser only remembers which folder was picked, or holds the same files in private storage when it cannot pick a folder. Reading and writing the city are chunked, and parsing runs off the main thread when a worker is available.
 11. At startup the game fetches `version.json` (then `package.json`) from `main` on GitHub and, if that version is newer, offers to open it. The version number is on screen the whole time. A built copy lives in `play/` so the branch can be opened on raw.githack without a compile.
 
 §8 records the same answers. The 2032 column in §4 is a rejected proposal, not content in the game.
@@ -28,7 +28,7 @@ The owner answered the open questions in §8. These decisions override anything 
 
 ### How this was surveyed
 
-The survey is a reading of the source on this repository: `README.md`, `package.json`, `src/`, `electron/`, `public/`, `scripts/`, `tests/`, and `.github/workflows/`. About 225 TypeScript files sit under `src/`, and about 185 test files sit under `tests/`.
+The survey below is a reading of the source as it stood before version 1.2.0, including the Electron shell that 1.2.0 removed. The Decisions section is the current game. About 225 TypeScript files sat under `src/`, and about 185 test files under `tests/`.
 
 This pass did not boot the Vite app, did not run Vitest, and did not play a week. Where the text says a system is implemented, that means the code path is present and, in many cases, a test file exists for it. It does not mean this survey watched it run. Places that could not be checked are called out at the end of this section.
 
@@ -459,7 +459,7 @@ Illegal businesses. Fronts stay the fronts already listed on each type.
 | Loan shark (`loanShark`) | Loan shark |
 | Counterfeit press (`counterfeitPress`) | Forgery press. Produces forged cash. |
 | Numbers racket (`numbersRacket`) | Numbers racket |
-| Rented rooms (`rentedRooms`). Replaces the old type. Up to four floors, one apartment each, daily rent, two staff per floor. Fronts are a massage parlor, a dance studio, a hotel, or a clinic. | Not in this version. |
+| Rented rooms (`rentedRooms`). One tenant per floor pays the day's rent from their own earnings. An empty apartment waits for a new tenant. Fronts are a massage parlor, a dance studio, a hotel, or a clinic. | Not in this version. |
 | Teamsters (`teamsters`). A freight racket behind a union, a depot, or a mill. | Freight racket. Same fronts. |
 
 Institutions and roles. These are buildings with `special`, or people with a `PersonRole`. They are not bought on the open market except where the catalogue already sets a price (newspapers, radio, unions, docks, the railroad).
@@ -709,12 +709,12 @@ Answered by the owner. The record is the Decisions section at the top.
 2. Default map: original 40×32. A small test size is also offered.
 3. End Week reuses the minute-by-minute sim, without the 3D view.
 4. One living world per folder.
-5. Browser on desktop and mobile. Electron stays in the tree, unused by this play path.
+5. Browser on desktop and mobile. The Electron shell is gone.
 6. Keep the existing win and loss conditions.
 7. 2032 is not a label-and-art switch in this version. It is an inert flag.
-8. Rented rooms replace the whorehouse. Non-explicit. Daily rent, up to four floors, two staff per apartment.
+8. Rented rooms: one tenant per floor pays daily rent from their own earnings. An apartment they cannot pay for stays empty until a new tenant moves in.
 9. Four gangs.
 10. Yes. Same folder, same orders, same Friday.
-11. Saves and the world file go in the folder. Audio settings and the hall of fame are still small browser preferences.
+11. Audio settings, interface scale, the hall of fame, and the world file go in the folder.
 12. Seed fallback is acceptable, and it is logged in the debug report.
 13. Startup checks GitHub for a newer version and offers to load it. The version number stays on screen.

@@ -1,31 +1,42 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { audio } from '../src/audio/audio';
+import { flushLocalData, loadLocalData, readLocalData } from '../src/app/localData';
+import { attachWorldStore, type WorldStore } from '../src/app/worldFolder';
 
-function storage(initial: Record<string, string> = {}) {
-  const values = new Map(Object.entries(initial));
-  vi.stubGlobal('localStorage', {
-    getItem: (k: string) => values.get(k) ?? null,
-    setItem: (k: string, v: string) => { values.set(k, v); },
-    removeItem: (k: string) => { values.delete(k); },
-  });
-  return values;
+function memoryStore(): WorldStore {
+  const files = new Map<string, string>();
+  return {
+    kind: 'indexeddb',
+    label: 'test',
+    read: async (name) => files.get(name) ?? null,
+    write: async (name, body) => { files.set(name, body); },
+    writeReport: async () => {},
+    exists: async (name) => files.has(name),
+  };
 }
-afterEach(() => { vi.unstubAllGlobals(); vi.resetModules(); });
+
+afterEach(() => { attachWorldStore(null); });
 
 describe('sound settings', () => {
-  it('are kept between sessions, with the music switches', async () => {
-    const values = storage();
-    const first = (await import('../src/audio/audio')).audio;
-    expect([first.musicVolume, first.sfxVolume, first.menuMusic, first.gameMusic]).toEqual([0.35, 0.5, true, true]);
-    first.setMusicVolume(0.8); first.setSfxVolume(0.1); first.setMusicPlaces({ menuMusic: false });
-    vi.resetModules();
-    const next = (await import('../src/audio/audio')).audio;
-    expect([next.musicVolume, next.sfxVolume, next.menuMusic, next.gameMusic]).toEqual([0.8, 0.1, false, true]);
-    expect(values.has('og.audio')).toBe(true);
+  it('are kept in the world folder, with the music switches', async () => {
+    attachWorldStore(memoryStore());
+    expect([audio.musicVolume, audio.sfxVolume, audio.menuMusic, audio.gameMusic]).toEqual([0.35, 0.5, true, true]);
+    audio.setMusicVolume(0.8);
+    audio.setSfxVolume(0.1);
+    audio.setMusicPlaces({ menuMusic: false });
+    await flushLocalData();
+    audio.loadStored();
+    expect([readLocalData().audio.music, readLocalData().audio.sfx, readLocalData().audio.menuMusic, readLocalData().audio.gameMusic]).toEqual([0.8, 0.1, false, true]);
+    await loadLocalData();
+    expect([readLocalData().audio.music, readLocalData().audio.sfx, readLocalData().audio.menuMusic]).toEqual([0.8, 0.1, false]);
   });
 
   it('ignore damaged or out-of-range values', async () => {
-    storage({ 'og.audio': '{"music":7,"sfx":"loud","menuMusic":1}' });
-    const a = (await import('../src/audio/audio')).audio;
-    expect([a.musicVolume, a.sfxVolume, a.menuMusic]).toEqual([0.35, 0.5, true]);
+    const store = memoryStore();
+    attachWorldStore(store);
+    await store.write('prefs.json', '{"audio":{"music":7,"sfx":"loud","menuMusic":1}}');
+    await loadLocalData();
+    const saved = readLocalData().audio;
+    expect([saved.music, saved.sfx, saved.menuMusic]).toEqual([0.35, 0.5, true]);
   });
 });

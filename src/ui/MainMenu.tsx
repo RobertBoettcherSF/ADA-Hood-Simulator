@@ -14,12 +14,6 @@ import { HallOfFame } from './HallOfFame';
 
 type Sheet = null | 'load' | 'tutorials' | 'hall' | 'help' | 'credits';
 
-/** The desktop build can close its window; a browser tab cannot. */
-function desktopQuit(): (() => void) | null {
-  const quit = (globalThis as { ogDesktop?: { app?: { quit?: () => void } } }).ogDesktop?.app?.quit;
-  return quit ?? null;
-}
-
 /** What a saved city looked like when it was put away. */
 function describeSlot(slot: SaveSlot): { cash: number; blocks: number; men: number; seed: number; finished: boolean } {
   if (slot.summary) return slot.summary;
@@ -55,8 +49,6 @@ export function MainMenu() {
   const [hall, setHall] = useState<HallEntry[]>([]);
   const [cursor, setCursor] = useState(0);
   const [lesson, setLesson] = useState(TUTORIALS[0]?.id ?? 1);
-  const quit = desktopQuit();
-
   useEffect(() => {
     void refreshSaves();
     setHall(loadHallOfFame());
@@ -112,7 +104,6 @@ export function MainMenu() {
     },
     { label: 'How to Play', go: () => setSheet('help') },
     { label: 'Credits', go: () => setSheet('credits') },
-    ...(quit ? [{ label: 'Quit', go: quit }] : []),
   ];
   const entries = plaques;
 
