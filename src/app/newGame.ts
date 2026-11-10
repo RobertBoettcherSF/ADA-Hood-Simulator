@@ -22,6 +22,7 @@ export function defaultGameOptions(): GameOptions {
     territoryTarget: 125,
     citySize: COMPACT_CITY_SIZES.default,
     cityLayout: 'varied',
+    era: '1932',
   };
 }
 

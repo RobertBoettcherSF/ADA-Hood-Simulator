@@ -1,7 +1,7 @@
 {
   "name": "original-gangster",
   "private": true,
-  "version": "1.0.5",
+  "version": "1.1.0",
   "type": "module",
   "engines": {
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
@@ -13,6 +13,7 @@
     "dev": "vite",
     "build": "node scripts/build-save-schema.mjs --check && tsc --noEmit && vite build",
     "preview": "vite preview",
+    "play:build": "vite build --base ./ --outDir play --emptyOutDir",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "vitest run",
     "test:acceptance": "vitest run tests/saves.test.ts tests/week-scheduling.test.ts tests/lifecycle.test.ts tests/tutorials.test.ts tests/tutorial-predicates.test.ts tests/lesson-playthroughs.test.ts tests/finances.test.ts tests/opinion-index.test.ts tests/parity.test.ts tests/api-validation.test.ts tests/combat-weapons.test.ts tests/a10-a16.test.ts",

@@ -142,7 +142,7 @@ export const BUILDING_TYPES: BuildingType[] = [
     fronts: ['convenienceStore', 'grocers', 'barbers', 'bakers'],
   },
   {
-    id: 'whorehouse', name: 'Whorehouse', cls: 'illegal', cost: 11000, profit: 2400, storeys: 1, weight: {},
+    id: 'rentedRooms', name: 'Rented Rooms', cls: 'illegal', cost: 11000, profit: 0, storeys: 4, weight: {},
     fronts: ['massageParlor', 'danceStudio', 'hotelSmall', 'hotelLarge', 'healthCenter'],
   },
   {

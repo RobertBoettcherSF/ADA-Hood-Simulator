@@ -1,0 +1,1 @@
+(function(){"use strict";self.onmessage=s=>{try{const e=JSON.parse(s.data.text);self.postMessage({world:e})}catch(e){self.postMessage({error:e instanceof Error?e.message:"The world file could not be read."})}}})();

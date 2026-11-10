@@ -4,7 +4,25 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is New Temperance in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The city still needs a name from the owner.
 
-Package name and version in `package.json`: `original-gangster` 1.0.5, MIT.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.1.0.
+
+## Decisions
+
+The owner answered the open questions in §8. These decisions override anything later in this document that still describes the earlier proposal.
+
+1. **2032** is a pair of inert flags (`era` on the city, `ERA_2032_ENABLED` in `src/app/era.ts`). There is no 2032 content. A later merge can turn the flag on. The game that ships is New Temperance in 1932.
+2. The default map is the original 40×32 grid. New Game also offers a small test map, 8×8.
+3. End Week and autoplay run the existing minute-by-minute sim (`Sim.finishWeekSlice`) and do not mount the 3D city. One rule set.
+4. One living world per folder, in the manner of Dwarf Fortress. The folder holds `world.json` (the city, which is also the current save) and `manifest.json`. The save keeps running in that folder.
+5. The game must run in a desktop or mobile browser. The Electron shell is still in the repository (`electron/`, the `desktop` scripts). It was left untouched: adapting it to the folder would have been a second save path, and deleting it would have broken the existing desktop tests. It is not how this version is played.
+6. The win and loss checks in `src/sim/sim.ts` stay as they are.
+7. The `whorehouse` business is replaced by **Rented Rooms**: up to four floors, one apartment on each, rent collected each working day, usually two staff per apartment. The copy is not explicit.
+8. Four gangs.
+9. The same folder and the same orders produce the same Friday on any device. The sim’s saved `rngState` is the stream. A 40×32 layout that would have hung is re-rolled, and that re-roll is written into the debug report (`cityLayout.original.notes`).
+10. The world file and debug reports live in the folder, so the heavy JSON is not only in the browser’s memory. Reading and writing are chunked, and parsing runs off the main thread when a worker is available.
+11. At startup the game fetches `version.json` (then `package.json`) from `main` on GitHub and, if that version is newer, offers to open it. The version number is on screen the whole time. A built copy lives in `play/` so the branch can be opened on raw.githack without a compile.
+
+§8 records the same answers. The 2032 column in §4 is a rejected proposal, not content in the game.
 
 ## 1. Current state
 
@@ -441,7 +459,7 @@ Illegal businesses. Fronts stay the fronts already listed on each type.
 | Loan shark (`loanShark`) | Loan shark |
 | Counterfeit press (`counterfeitPress`) | Forgery press. Produces forged cash. |
 | Numbers racket (`numbersRacket`) | Numbers racket |
-| Whorehouse (`whorehouse`). Fronts are a massage parlor, a dance studio, a hotel, or a clinic. | Unlicensed brothel. Same fronts. Whether this type ships is an open question. |
+| Rented rooms (`rentedRooms`). Replaces the old type. Up to four floors, one apartment each, daily rent, two staff per floor. Fronts are a massage parlor, a dance studio, a hotel, or a clinic. | Not in this version. |
 | Teamsters (`teamsters`). A freight racket behind a union, a depot, or a mill. | Freight racket. Same fronts. |
 
 Institutions and roles. These are buildings with `special`, or people with a `PersonRole`. They are not bought on the open market except where the catalogue already sets a price (newspapers, radio, unions, docks, the railroad).
@@ -685,16 +703,18 @@ Electron, GitHub Pages, and the test suite stay as developer tools. The player n
 
 ## 8. Open questions
 
-1. What is the 2032 city called, and is it New Temperance a century later or a different place?
-2. Which map is the Alpha default: a compact city (14×14 varied), or the 40×32 original grid?
-3. Should End Week call the existing minute-by-minute `Sim.finishWeek`, or should there be a coarser Friday summary that does not move people?
-4. Is the folder one living world (`world.json`), or a list of named save slots the way the game stores them today?
-5. Should the Electron app stay in the repo?
-6. For Alpha, is "the boss can die or go broke" enough of an ending, or do you want one of the current wins (wipe out rivals, win the election, go straight, wealth, territory, timed power)?
-7. Is 2032 only new labels and art on the same numbers, chosen once when the city is created?
-8. The catalogue includes a whorehouse (`whorehouse` in `src/sim/data/buildings.ts`). Keep it, rename it, or leave it out of the public game?
-9. Alpha crews: keep four gangs, or fewer?
-10. Must a folder copied to another computer produce the same Friday from the same orders?
-11. Should audio settings, interface scale, and the hall of fame move into the folder, or stay in the browser?
-12. The 40×32 generator sometimes builds from the next seed if a layout would hang, and it records that on the city. Is that acceptable?
-13. Should GitHub Pages keep publishing the built game, with this document read separately, until the game entry point changes?
+Answered by the owner. The record is the Decisions section at the top.
+
+1. 2032 waits. Flags only, no content, no city name yet.
+2. Default map: original 40×32. A small test size is also offered.
+3. End Week reuses the minute-by-minute sim, without the 3D view.
+4. One living world per folder.
+5. Browser on desktop and mobile. Electron stays in the tree, unused by this play path.
+6. Keep the existing win and loss conditions.
+7. 2032 is not a label-and-art switch in this version. It is an inert flag.
+8. Rented rooms replace the whorehouse. Non-explicit. Daily rent, up to four floors, two staff per apartment.
+9. Four gangs.
+10. Yes. Same folder, same orders, same Friday.
+11. Saves and the world file go in the folder. Audio settings and the hall of fame are still small browser preferences.
+12. Seed fallback is acceptable, and it is logged in the debug report.
+13. Startup checks GitHub for a newer version and offers to load it. The version number stays on screen.

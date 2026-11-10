@@ -687,6 +687,19 @@
               }
             ]
           }
+        },
+        "era": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "literal": "1932"
+              },
+              {
+                "literal": "2032"
+              }
+            ]
+          }
         }
       }
     },
@@ -1759,6 +1772,46 @@
           }
         },
         "launderingWeek": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "roomsFloors": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "roomsStaff": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "roomsChargedDay": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "roomsWeekNet": {
           "optional": true,
           "shape": {
             "union": [
@@ -4417,6 +4470,16 @@
           }
         },
         "amount": {
+          "optional": true,
+          "shape": {
+            "union": [
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "roomsFloors": {
           "optional": true,
           "shape": {
             "union": [

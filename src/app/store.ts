@@ -10,6 +10,8 @@ import { create } from 'zustand';
 import { fitAreaToWeek, type ApiResult } from '../sim/api';
 import { Sim } from '../sim/sim';
 import { planGang } from '../sim/ai';
+import { markTiming, noteAutoplay, noteError } from './debugReport';
+import { activeWorldStore, livingCityOnFile } from './worldFolder';
 import type { GameOptions, ID, MessageCategory, OrderOptions, OrderType, SpecialistJob, Vec2 } from '../sim/types';
 import { specialistTargetEligible } from '../sim/specialistJobs';
 import type { OverlayKind } from '../render/scene';
@@ -151,6 +153,12 @@ interface GameState {
   launchWeek: () => Promise<void>;
   /** Skip to Friday: finish the week and put the city away for Monday. */
   finishWeek: () => Promise<void>;
+  /** The week is resolving without the 3D city mounted. */
+  resolvingHeadless: boolean;
+  /** Run the week to Friday on the sim, then return to the desk. */
+  endWeekNow: () => Promise<void>;
+  /** Issue the rival planner's orders for the player, then resolve that many weeks. */
+  autoplayWeeks: (weeks: number) => Promise<void>;
   cancelFinishWeek: () => void;
   advance: (seconds: number) => void;
 
@@ -230,7 +238,7 @@ function fitJobCard(sim: Sim | null, jc: JobCard, refit = false): JobCard {
 }
 
 const endingUi = {
-  screen: 'gameOver', streetLoading: false, finishingWeek: false, paused: true,
+  screen: 'gameOver', streetLoading: false, finishingWeek: false, resolvingHeadless: false, paused: true,
   jobCard: null, specialistCard: null, pickMode: null, sheet: null, organizerCollapsed: false,
 } satisfies Partial<GameState>;
 
@@ -264,7 +272,7 @@ function freshWorldUi() {
     helpOpen: false, quitPrompt: false, jobCard: null, specialistCard: null, pickMode: null, messageBox: null,
     overlays: ['territory'] as OverlayKind[], organizerCollapsed: false,
     sheet: null, planningView: 'plan' as const, speed: 1, paused: false,
-    finishingWeek: false, savingToQuit: false, savingSnapshot: false, loadingSave: null, streetLoading: false, messageOverride: false, toast: null, cameraRequest: null,
+    finishingWeek: false, resolvingHeadless: false, savingToQuit: false, savingSnapshot: false, loadingSave: null, streetLoading: false, messageOverride: false, toast: null, cameraRequest: null,
   };
 }
 
@@ -301,6 +309,7 @@ export const useGame = create<GameState>((set, get) => ({
   speed: 1,
   paused: false,
   finishingWeek: false,
+  resolvingHeadless: false,
   savingToQuit: false,
   attract: false,
   savingSnapshot: false,
@@ -336,7 +345,8 @@ export const useGame = create<GameState>((set, get) => ({
 
   startGame: (options) => {
     get().cancelLoad();
-    const sim = new Sim(options);
+    if (livingCityOnFile() && typeof window !== 'undefined' && !window.confirm('Start a new city in this folder? The city already here will be replaced when the new one is saved.')) return;
+    const sim = new Sim({ ...options, era: '1932' });
     const player = sim.playerGang;
     set({
       ...freshWorldUi(),
@@ -350,6 +360,7 @@ export const useGame = create<GameState>((set, get) => ({
       selectedTeamId: player.teamIds[0] ?? null,
       attract: false,
     });
+    if (activeWorldStore()) void get().autosave(true);
   },
 
   // Attract mode (the original's demo, byte_7C0084): left idle on the menu, the
@@ -772,6 +783,59 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   cancelFinishWeek: () => set({ finishingWeek: false, paused: true }),
+
+  endWeekNow: async () => {
+    const sim = get().sim;
+    if (!sim || sim.world.phase !== 'planning' || get().resolvingHeadless || get().savingSnapshot || get().loadingSave != null) return;
+    set({ resolvingHeadless: true, paused: true });
+    const started = performance.now();
+    try {
+      await yieldForPaint();
+      await get().autosave(true);
+      if (get().sim !== sim) return;
+      sim.launchWeek();
+      const phase = (): Sim['world']['phase'] => sim.world.phase;
+      while (phase() === 'week') {
+        await yieldForInput();
+        if (get().sim !== sim) return;
+        sim.finishWeekSlice(14);
+      }
+      markTiming('end-week', performance.now() - started);
+      get().bump();
+      if (phase() === 'planning') get().setTab('newspaper');
+      set({
+        resolvingHeadless: false,
+        paused: false,
+        screen: phase() === 'gameOver' ? 'gameOver' : 'game',
+      });
+      await get().autosave(true);
+    } catch (error) {
+      noteError(error instanceof Error ? error.message : 'The week could not be resolved.', error instanceof Error ? error.stack : undefined);
+      if (get().sim === sim) {
+        set({ resolvingHeadless: false, paused: false });
+        get().notify({ ok: false, error: error instanceof Error ? error.message : 'The week could not be resolved.' });
+      }
+    }
+  },
+
+  autoplayWeeks: async (weeks) => {
+    const count = Math.max(1, Math.min(20, Math.round(weeks)));
+    const lines: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const sim = get().sim;
+      if (!sim || sim.world.phase !== 'planning') break;
+      planGang(sim.world, sim.rng, sim.playerGang, true);
+      const week = sim.world.week;
+      await get().endWeekNow();
+      const after = get().sim;
+      if (!after) break;
+      const gang = after.playerGang;
+      lines.push(`Week ${week}: cash ${Math.round(gang.cash)}, crews ${gang.teamIds.length}, pool ${gang.poolIds.length}, phase ${after.world.phase}${after.world.outcome ? ` — ${after.world.outcome.reason}` : ''}`);
+      if (after.world.phase !== 'planning') break;
+    }
+    noteAutoplay(lines);
+    get().notify(lines.at(-1) ?? 'Autoplay finished.');
+  },
 
   autosave: async (responsive = false) => {
     const sim = get().sim;

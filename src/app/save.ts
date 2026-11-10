@@ -3,6 +3,8 @@ import type { GangColorName, WorldState } from '../sim/types';
 import { yieldForInput } from '../yieldForInput';
 import { buildingList } from '../sim/entityLists';
 import { gangManpower, territoryCount } from '../sim/world';
+import { activeWorldStore, parseWorldText, refreshCityOnFile } from './worldFolder';
+import { markTiming } from './debugReport';
 
 export interface SaveSlot {
   id: string;
@@ -165,6 +167,26 @@ function oneWriteAtATime<T>(write: () => Promise<T>): Promise<T> {
 }
 
 export async function saveGame(name: string, world: WorldState, frozen = false): Promise<void> {
+  const living = activeWorldStore();
+  if (living) {
+    const started = performance.now();
+    const worldJson = await stringifyFrozenWorld(world);
+    const boss = Object.values(world.gangs).find((g) => g.isPlayer);
+    await living.write('world.json', worldJson);
+    await living.write('manifest.json', JSON.stringify({
+      format: 1,
+      game: 'ada-hood-simulator',
+      schemaVersion: world.schemaVersion ?? 2,
+      seed: world.options?.seed ?? 0,
+      week: world.week,
+      era: world.options?.era ?? '1932',
+      bossName: boss ? (world.people[boss.bossId]?.name ?? 'Unknown') : 'Unknown',
+      updated: new Date().toISOString(),
+    }));
+    markTiming('save-world', performance.now() - started);
+    await refreshCityOnFile();
+    return;
+  }
   const boss = Object.values(world.gangs).find((g) => g.isPlayer);
   const summary: SaveSummary = {
     cash: Math.round(boss?.cash ?? 0), blocks: boss ? territoryCount(world, boss.id) : 0,
@@ -202,6 +224,37 @@ export async function saveGame(name: string, world: WorldState, frozen = false):
 }
 
 export async function loadGame(): Promise<SaveSlot[]> {
+  const living = activeWorldStore();
+  if (living) {
+    const started = performance.now();
+    const text = await living.read('world.json');
+    if (!text) return [];
+    await yieldForInput();
+    const parsed = await parseWorldText(text);
+    await yieldForInput();
+    let world: WorldState | null = null;
+    let readError = 'The city in this folder could not be read.';
+    try { world = await validateSaveWorldResponsive(parsed); }
+    catch (error) { readError = error instanceof Error ? error.message : readError; }
+    markTiming('load-world', performance.now() - started);
+    if (!world) return [{ id: 'world', name: 'This city', savedAt: Date.now(), week: 0, bossName: 'Unknown', world: null, error: readError }];
+    const boss = Object.values(world.gangs).find((g) => g.isPlayer);
+    return [{
+      id: 'world',
+      name: 'This city',
+      savedAt: Date.now(),
+      week: world.week,
+      bossName: boss ? (world.people[boss.bossId]?.name ?? 'Unknown') : 'Unknown',
+      world,
+      summary: {
+        cash: Math.round(boss?.cash ?? 0),
+        blocks: boss ? territoryCount(world, boss.id) : 0,
+        men: boss ? gangManpower(world, boss) : 0,
+        seed: world.options?.seed ?? 0,
+        finished: world.phase === 'gameOver',
+      },
+    }];
+  }
   const disk = desktopSaves();
   if (disk) {
     await migrateBrowserSaves(disk);
@@ -274,6 +327,7 @@ export function decodeSlot(raw: unknown, responsive = false): SaveSlot | Promise
 }
 
 export async function deleteSave(id: string): Promise<void> {
+  if (activeWorldStore()) throw new Error('This folder keeps one city. Start a new game when you want to replace it.');
   const disk = desktopSaves();
   if (disk) return disk.remove(id);
   const db = await openDb();

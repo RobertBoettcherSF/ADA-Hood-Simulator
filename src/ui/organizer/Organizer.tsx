@@ -56,6 +56,7 @@ export function Organizer() {
   const tab = useGame((s) => s.organizerTab);
   const setTab = useGame((s) => s.setTab);
   const launchWeek = useGame((s) => s.launchWeek);
+  const endWeekNow = useGame((s) => s.endWeekNow);
   const collapsed = useGame((s) => s.organizerCollapsed);
   const setCollapsed = useGame((s) => s.setOrganizerCollapsed);
   const pickMode = useGame((s) => s.pickMode);
@@ -252,7 +253,10 @@ export function Organizer() {
                     <b>{ordersQueued} order{ordersQueued === 1 ? '' : 's'}</b> · {pct}% of crew time assigned
                   </span>
                 </div>
-                <div className="brass flat">
+                <div className="brass flat week-actions">
+                  <button className="hit-streets" onClick={() => void endWeekNow()} title="Resolve the week minute by minute, without the city view">
+                    End Week
+                  </button>
                   <button className="hit-streets" onClick={launchWeek} title="Save your orders and start the working week">
                     Hit the Streets!
                   </button>

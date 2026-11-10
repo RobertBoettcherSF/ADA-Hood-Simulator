@@ -1,0 +1,309 @@
+{
+  "cell": 224,
+  "directions": [
+    "north",
+    "north-east",
+    "east",
+    "south-east",
+    "south",
+    "south-west",
+    "west",
+    "north-west"
+  ],
+  "vehicles": {
+    "coupe": {
+      "north": {
+        "bbox": [
+          49,
+          49,
+          168,
+          169
+        ],
+        "visible_width": 119,
+        "visible_height": 120,
+        "alpha_pixels": 8770,
+        "touches_canvas_edge": false
+      },
+      "north-east": {
+        "bbox": [
+          24,
+          60,
+          199,
+          163
+        ],
+        "visible_width": 175,
+        "visible_height": 103,
+        "alpha_pixels": 11255,
+        "touches_canvas_edge": false
+      },
+      "east": {
+        "bbox": [
+          22,
+          58,
+          199,
+          163
+        ],
+        "visible_width": 177,
+        "visible_height": 105,
+        "alpha_pixels": 11494,
+        "touches_canvas_edge": false
+      },
+      "south-east": {
+        "bbox": [
+          27,
+          52,
+          196,
+          172
+        ],
+        "visible_width": 169,
+        "visible_height": 120,
+        "alpha_pixels": 11528,
+        "touches_canvas_edge": false
+      },
+      "south": {
+        "bbox": [
+          52,
+          42,
+          171,
+          177
+        ],
+        "visible_width": 119,
+        "visible_height": 135,
+        "alpha_pixels": 13014,
+        "touches_canvas_edge": false
+      },
+      "south-west": {
+        "bbox": [
+          24,
+          56,
+          202,
+          161
+        ],
+        "visible_width": 178,
+        "visible_height": 105,
+        "alpha_pixels": 11295,
+        "touches_canvas_edge": false
+      },
+      "west": {
+        "bbox": [
+          28,
+          59,
+          196,
+          163
+        ],
+        "visible_width": 168,
+        "visible_height": 104,
+        "alpha_pixels": 10782,
+        "touches_canvas_edge": false
+      },
+      "north-west": {
+        "bbox": [
+          54,
+          51,
+          173,
+          167
+        ],
+        "visible_width": 119,
+        "visible_height": 116,
+        "alpha_pixels": 8606,
+        "touches_canvas_edge": false
+      }
+    },
+    "truck": {
+      "north": {
+        "bbox": [
+          55,
+          28,
+          169,
+          189
+        ],
+        "visible_width": 114,
+        "visible_height": 161,
+        "alpha_pixels": 14250,
+        "touches_canvas_edge": false
+      },
+      "north-east": {
+        "bbox": [
+          51,
+          49,
+          172,
+          179
+        ],
+        "visible_width": 121,
+        "visible_height": 130,
+        "alpha_pixels": 10428,
+        "touches_canvas_edge": false
+      },
+      "east": {
+        "bbox": [
+          15,
+          56,
+          209,
+          167
+        ],
+        "visible_width": 194,
+        "visible_height": 111,
+        "alpha_pixels": 14115,
+        "touches_canvas_edge": false
+      },
+      "south-east": {
+        "bbox": [
+          16,
+          57,
+          209,
+          165
+        ],
+        "visible_width": 193,
+        "visible_height": 108,
+        "alpha_pixels": 14722,
+        "touches_canvas_edge": false
+      },
+      "south": {
+        "bbox": [
+          57,
+          33,
+          164,
+          184
+        ],
+        "visible_width": 107,
+        "visible_height": 151,
+        "alpha_pixels": 13122,
+        "touches_canvas_edge": false
+      },
+      "south-west": {
+        "bbox": [
+          64,
+          32,
+          148,
+          179
+        ],
+        "visible_width": 84,
+        "visible_height": 147,
+        "alpha_pixels": 10404,
+        "touches_canvas_edge": false
+      },
+      "west": {
+        "bbox": [
+          14,
+          39,
+          203,
+          170
+        ],
+        "visible_width": 189,
+        "visible_height": 131,
+        "alpha_pixels": 14404,
+        "touches_canvas_edge": false
+      },
+      "north-west": {
+        "bbox": [
+          16,
+          53,
+          206,
+          167
+        ],
+        "visible_width": 190,
+        "visible_height": 114,
+        "alpha_pixels": 14133,
+        "touches_canvas_edge": false
+      }
+    },
+    "speedster": {
+      "north": {
+        "bbox": [
+          70,
+          61,
+          155,
+          160
+        ],
+        "visible_width": 85,
+        "visible_height": 99,
+        "alpha_pixels": 6862,
+        "touches_canvas_edge": false
+      },
+      "north-east": {
+        "bbox": [
+          27,
+          70,
+          197,
+          158
+        ],
+        "visible_width": 170,
+        "visible_height": 88,
+        "alpha_pixels": 8915,
+        "touches_canvas_edge": false
+      },
+      "east": {
+        "bbox": [
+          20,
+          69,
+          202,
+          158
+        ],
+        "visible_width": 182,
+        "visible_height": 89,
+        "alpha_pixels": 9964,
+        "touches_canvas_edge": false
+      },
+      "south-east": {
+        "bbox": [
+          23,
+          64,
+          200,
+          169
+        ],
+        "visible_width": 177,
+        "visible_height": 105,
+        "alpha_pixels": 10358,
+        "touches_canvas_edge": false
+      },
+      "south": {
+        "bbox": [
+          60,
+          53,
+          162,
+          170
+        ],
+        "visible_width": 102,
+        "visible_height": 117,
+        "alpha_pixels": 9595,
+        "touches_canvas_edge": false
+      },
+      "south-west": {
+        "bbox": [
+          24,
+          63,
+          191,
+          163
+        ],
+        "visible_width": 167,
+        "visible_height": 100,
+        "alpha_pixels": 9434,
+        "touches_canvas_edge": false
+      },
+      "west": {
+        "bbox": [
+          24,
+          68,
+          199,
+          147
+        ],
+        "visible_width": 175,
+        "visible_height": 79,
+        "alpha_pixels": 9042,
+        "touches_canvas_edge": false
+      },
+      "north-west": {
+        "bbox": [
+          34,
+          65,
+          194,
+          158
+        ],
+        "visible_width": 160,
+        "visible_height": 93,
+        "alpha_pixels": 8616,
+        "touches_canvas_edge": false
+      }
+    }
+  }
+}

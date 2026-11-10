@@ -29,6 +29,7 @@ export function GameScreen() {
   const saveAndQuit = useGame((s) => s.saveAndQuit);
   useGame((s) => s.version);
   const attract = useGame((s) => s.attract);
+  const resolving = useGame((s) => s.resolvingHeadless);
 
   useEffect(() => {
     audio.startMusic();
@@ -42,6 +43,16 @@ export function GameScreen() {
   useGameKeyboard();
 
   if (!sim) return null;
+  if (resolving) {
+    return (
+      <div className="week-resolve" role="status">
+        <div className="paper sheet">
+          <h2>The week is being settled</h2>
+          <p>Week {sim.world.week}, minute {sim.world.minute}. The city is not on screen. The same clock is running.</p>
+        </div>
+      </div>
+    );
+  }
   const planning = sim.world.phase === 'planning';
   if (attract) return <div className="game-shell working-interface attract-shell"><CityView /><AttractMode /></div>;
 
