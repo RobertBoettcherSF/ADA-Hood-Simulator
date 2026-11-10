@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ADA Hood Simulator — Design</title>
+    <meta
+      name="description"
+      content="Design document for ADA Hood Simulator: the current New Temperance remake, and the browser game to build from it."
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #1c1915;
+        --muted: #5c564c;
+        --line: #d9d2c5;
+        --paper: #f7f4ee;
+        --card: #fffdf8;
+        --accent: #6e2a24;
+        --code: #f0ebe3;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 18px/1.55 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      }
+      header, main {
+        width: min(920px, calc(100% - 2rem));
+        margin: 0 auto;
+      }
+      header {
+        padding: 2.25rem 0 1rem;
+        border-bottom: 1px solid var(--line);
+      }
+      header p { margin: 0.35rem 0; }
+      .kicker {
+        margin: 0;
+        font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      header a, main a { color: var(--accent); }
+      main { padding: 0.5rem 0 4rem; }
+      #status {
+        font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+        color: var(--muted);
+      }
+      main h1, main h2, main h3, main h4 {
+        font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+        line-height: 1.25;
+        scroll-margin-top: 1rem;
+      }
+      main h1 { font-size: 2rem; margin: 1.6rem 0 0.6rem; }
+      main h2 {
+        font-size: 1.45rem;
+        margin: 2.2rem 0 0.6rem;
+        padding-top: 0.8rem;
+        border-top: 1px solid var(--line);
+      }
+      main h3 { font-size: 1.15rem; margin: 1.6rem 0 0.4rem; }
+      main p, main li { max-width: 68ch; }
+      main ul, main ol { padding-left: 1.3rem; }
+      code, pre {
+        font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+        font-size: 0.86em;
+      }
+      code {
+        background: var(--code);
+        padding: 0.08em 0.28em;
+        border-radius: 3px;
+      }
+      pre {
+        background: var(--card);
+        border: 1px solid var(--line);
+        padding: 0.9rem 1rem;
+        overflow: auto;
+        line-height: 1.45;
+      }
+      pre code { background: none; padding: 0; }
+      .table-wrap {
+        overflow-x: auto;
+        margin: 1rem 0 1.4rem;
+        border: 1px solid var(--line);
+        background: var(--card);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+        font-size: 0.92rem;
+        line-height: 1.4;
+      }
+      th, td {
+        text-align: left;
+        vertical-align: top;
+        padding: 0.45rem 0.65rem;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        background: #f3eee6;
+        font-weight: 650;
+      }
+      tr:last-child td { border-bottom: 0; }
+      blockquote {
+        margin: 1rem 0;
+        padding-left: 1rem;
+        border-left: 3px solid var(--accent);
+        color: var(--muted);
+      }
+      #toc {
+        font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+        font-size: 0.95rem;
+        background: var(--card);
+        border: 1px solid var(--line);
+        padding: 0.8rem 1rem 0.9rem;
+        margin: 1.2rem 0 0.4rem;
+      }
+      #toc ol { margin: 0.4rem 0 0; }
+      #toc a { text-decoration: none; }
+      #toc a:hover { text-decoration: underline; }
+      .error { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <p class="kicker">ADA Hood Simulator</p>
+      <p>
+        Design document. This page renders
+        <a href="DESIGN.md">DESIGN.md</a>
+        in the browser, with no build step. Later, this page or the repository
+        root <code>index.html</code> is the game a player opens.
+      </p>
+    </header>
+    <main>
+      <p id="status">Loading the document…</p>
+      <article id="doc" hidden></article>
+    </main>
+    <script type="module">
+      const status = document.getElementById('status');
+      const doc = document.getElementById('doc');
+      const sourceUrl = new URL('DESIGN.md', import.meta.url);
+
+      function fail(message) {
+        status.className = 'error';
+        status.innerHTML =
+          message +
+          ' You can still read <a href="DESIGN.md">DESIGN.md</a> as plain text.';
+      }
+
+      let markedParse;
+      let purify;
+      try {
+        const markedMod = await import('https://cdn.jsdelivr.net/npm/marked@15.0.12/+esm');
+        const purifyMod = await import('https://cdn.jsdelivr.net/npm/dompurify@3.2.6/+esm');
+        markedParse = markedMod.marked.parse.bind(markedMod.marked);
+        purify = purifyMod.default;
+      } catch (error) {
+        fail('The page could not load the markdown renderer from the CDN.');
+        throw error;
+      }
+
+      let markdown;
+      try {
+        const response = await fetch(sourceUrl);
+        if (!response.ok) throw new Error(response.status + ' ' + response.statusText);
+        markdown = await response.text();
+      } catch (error) {
+        fail('The page could not load DESIGN.md from ' + sourceUrl.href + '.');
+        throw error;
+      }
+
+      const rawHtml = markedParse(markdown, { gfm: true });
+      doc.innerHTML = purify.sanitize(rawHtml, { USE_PROFILES: { html: true } });
+
+      const slugCounts = new Map();
+      for (const heading of doc.querySelectorAll('h2, h3')) {
+        const base = heading.textContent
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '') || 'section';
+        const seen = slugCounts.get(base) ?? 0;
+        slugCounts.set(base, seen + 1);
+        heading.id = seen === 0 ? base : base + '-' + (seen + 1);
+      }
+
+      const toc = document.createElement('nav');
+      toc.id = 'toc';
+      toc.innerHTML = '<strong>Contents</strong>';
+      const list = document.createElement('ol');
+      for (const heading of doc.querySelectorAll('h2')) {
+        const item = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = '#' + heading.id;
+        link.textContent = heading.textContent;
+        item.append(link);
+        list.append(item);
+      }
+      toc.append(list);
+      const title = doc.querySelector('h1');
+      if (title) title.after(toc);
+      else doc.prepend(toc);
+
+      for (const table of doc.querySelectorAll('table')) {
+        const wrap = document.createElement('div');
+        wrap.className = 'table-wrap';
+        table.replaceWith(wrap);
+        wrap.append(table);
+      }
+
+      status.hidden = true;
+      doc.hidden = false;
+    </script>
+  </body>
+</html>
