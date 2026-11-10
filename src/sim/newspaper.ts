@@ -68,7 +68,7 @@ export function newspaperEdition(w: WorldState, gangId: ID): { paper: Building |
   const items = paper ? w.news.filter(n => n.week === week &&
     (n.paperOwnerId == null || paper.ownerGangId === n.paperOwnerId)) : [];
   if (paper && week === 0 && !items.some(n => n.section === 'front')) items.unshift({
-    week, section: 'front', headline: 'WELCOME TO NEW TEMPERANCE',
+    week, section: 'front', photo: 'calm', headline: 'WELCOME TO NEW TEMPERANCE',
     body: 'A new week begins in New Temperance. Business owners open their doors as the city prepares for another working week.',
     gangId: null,
   });

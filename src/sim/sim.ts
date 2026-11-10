@@ -30,6 +30,7 @@ import { blockClaimants } from './territory';
 import { weeklyEconomy } from './systems/economy';
 import { tickGoods } from './goodsDelivery';
 import { chargeRentedRooms } from './rentedRooms';
+import { resetSystemTimings, timeSystem } from './simTimings';
 import { dispatchFbi, normalizeFbiInvestigations, tickFbi, weeklyFbi } from './systems/fbi';
 import { weeklyLaw } from './systems/law';
 import { weeklyNews } from './systems/news';
@@ -107,7 +108,7 @@ export class Sim {
       if (building.typeId !== 'whorehouse') continue;
       building.typeId = 'rentedRooms';
       building.roomsFloors ??= 2;
-      building.roomsTenants ??= Array.from({ length: building.roomsFloors }, () => ({ budget: 0, vacantDays: 0 }));
+      building.roomsTenants ??= Array.from({ length: building.roomsFloors }, () => ({ budget: 0, vacantDays: 0, occupants: 1 as const }));
     }
     repairLegacyStreetSpawns(state);
     repairVehicleRoutes(state);
@@ -141,6 +142,7 @@ export class Sim {
     recordScorePeaks(w);
     w.phase = 'week';
     w.minute = 0;
+    resetSystemTimings();
     w.messages = [];
     w.weekLog = [];
     this.accumulator = 0;
@@ -270,23 +272,25 @@ export class Sim {
     // Where the rival men stood before this minute's walking: a protected
     // business sees only a man who walks into its door's cell (sightings.ts).
     // Those the early slices already stepped are taken from where they began.
-    const sightingBefore = sightingCells(w, earlySteps);
+    const sightingBefore = timeSystem('sightingCells', () => sightingCells(w, earlySteps));
     earlySteps.clear();
     driveFrom.clear();
     // The closing minute's traffic, for the slices still to run and for the
     // drivers left over from those that ran ahead (already built by them).
-    const closingTraffic = trafficContext(w);
+    const closingTraffic = timeSystem('trafficContext', () => trafficContext(w));
     w.minute++;
     chargeRentedRooms(w);
     // The drivers of the slices that ran ahead (they left their cars for the tick).
-    for (let index = 0; index < (w.ambientSlicesDone ?? 0); index++)
-      tickAmbient(w, this.rng, 1, { index, count: AMBIENT_SLICES, early: false, traffic: closingTraffic, vehicles: 'only' });
-    // The rest of this minute's ambient walking: the slices the clock had not
-    // reached before the tick (the others ran ahead, on this minute's clock).
-    for (let index = w.ambientSlicesDone ?? 0; index < AMBIENT_SLICES; index++) {
-      tickAmbient(w, this.rng, 1, { index, count: AMBIENT_SLICES, early: false, traffic: closingTraffic });
-      scanStreetSlice(w, index, AMBIENT_SLICES);
-    }
+    timeSystem('ambient', () => {
+      for (let index = 0; index < (w.ambientSlicesDone ?? 0); index++)
+        tickAmbient(w, this.rng, 1, { index, count: AMBIENT_SLICES, early: false, traffic: closingTraffic, vehicles: 'only' });
+      // The rest of this minute's ambient walking: the slices the clock had not
+      // reached before the tick (the others ran ahead, on this minute's clock).
+      for (let index = w.ambientSlicesDone ?? 0; index < AMBIENT_SLICES; index++) {
+        tickAmbient(w, this.rng, 1, { index, count: AMBIENT_SLICES, early: false, traffic: closingTraffic });
+        scanStreetSlice(w, index, AMBIENT_SLICES);
+      }
+    });
     w.ambientSlicesDone = 0;
     // Pedestrians catch, board, ride and leave the street trams. Off, as in the
     // shipped game, where nothing sets the walk order's riding flag.
@@ -294,20 +298,20 @@ export class Sim {
     const loadout = allocateWeapons(w);
     const peaceFireExclusions = capturePeaceFireExclusions(w, loadout);
 
-    tickTraffic(w);
-    tickGoods(w, 1);
-    tickOrders(w, this.rng, 1, loadout);
+    timeSystem('traffic', () => tickTraffic(w));
+    timeSystem('goods', () => tickGoods(w, 1));
+    timeSystem('orders', () => tickOrders(w, this.rng, 1, loadout));
     if (this.resolveImmediateOutcome()) return;
-    tickStreetOrders(w, this.rng, 1, loadout);
+    timeSystem('street', () => tickStreetOrders(w, this.rng, 1, loadout));
     if (this.resolveImmediateOutcome()) return;
-    tickBuildingEmergencies(w, this.rng, 1);
+    timeSystem('emergencies', () => tickBuildingEmergencies(w, this.rng, 1));
     if (this.resolveImmediateOutcome()) return;
-    tickFbi(w, this.rng, 1);
-    tickSpecialistJobs(w, 1);
-    finishMovementTick(w);
-    reconcileTransport(w);
-    tickCombat(w, this.rng, 1, undefined, loadout, peaceFireExclusions);
-    tickSightings(w, this.rng, sightingBefore);
+    timeSystem('fbi', () => tickFbi(w, this.rng, 1));
+    timeSystem('specialists', () => tickSpecialistJobs(w, 1));
+    timeSystem('movement', () => finishMovementTick(w));
+    timeSystem('transport', () => reconcileTransport(w));
+    timeSystem('combat', () => tickCombat(w, this.rng, 1, undefined, loadout, peaceFireExclusions));
+    timeSystem('sightings', () => tickSightings(w, this.rng, sightingBefore));
     // The minute's score peaks read only its closing state, which nothing but
     // the player changes before the next tick: they are taken in the first
     // sub-step after it (settleDeferred), not in this frame.

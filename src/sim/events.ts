@@ -57,6 +57,7 @@ export function reportBusinessMove(w: WorldState, gangId: ID, b: Building, move:
   addNews(w, {
     section: 'business',
     kind: move === 'bought' ? 'purchase' : move === 'sold' ? 'sale' : 'opening', buildingId: b.id,
+    photo: b.typeId === 'docks' ? 'docks' : 'bank',
     headline: move === 'established' ? 'NEW BUSINESS OPENS' : 'MAJOR PREMISES CHANGE HANDS',
     body: `${placeName(w, b)} was ${move} by ${w.gangs[gangId].name}.`,
     gangId,

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useGame } from '../app/store';
 import { DialogFrame } from './DialogFrame';
 import { Rivets } from './common';
 
@@ -24,18 +25,20 @@ export const LOADING_TIPS = [
   'Rival hoods you have not identified dress like ordinary citizens. Explore to learn who they are.',
 ];
 
-export function StreetLoading({ message, failed, onRetry, onExit }: {
-  message: string; failed: boolean; onRetry: () => void; onExit: () => void;
+export function StreetLoading({ message, failed, onRetry, onExit, demo = false }: {
+  message: string; failed: boolean; onRetry: () => void; onExit: () => void; demo?: boolean;
 }) {
   const [tip] = useState(() => LOADING_TIPS[Math.floor(Math.random() * LOADING_TIPS.length)]);
-  return <DialogFrame title={failed ? 'City unavailable' : 'Opening the streets'} onClose={() => {}} width={460} className="street-loading">
-    <div className="paper street-loading-card">
+  const endAttract = useGame((s) => s.endAttract);
+  const title = failed ? 'City unavailable' : demo ? 'Demo: city preview' : 'Opening the streets';
+  return <DialogFrame title={title} onClose={demo ? endAttract : () => {}} width={460} className="street-loading">
+    <div className="paper street-loading-card" onClick={demo ? () => endAttract() : undefined}>
       <Rivets />
-      <div className="kicker">New Temperance · Working week</div>
-      <h2>{failed ? 'The city could not be displayed' : 'Opening the streets'}</h2>
+      <div className="kicker">{demo ? 'Demonstration' : 'New Temperance · Working week'}</div>
+      <h2>{title}</h2>
       {!failed && <div className="street-loading-spinner" aria-hidden="true" />}
-      <p role={failed ? 'alert' : 'status'} aria-live="polite">{failed ? 'Please try loading the street view again.' : message}</p>
-      <p className="street-loading-note">{failed ? 'Your city is still open.' : 'The game clock is paused while the city loads.'}</p>
+      <p role={failed ? 'alert' : 'status'} aria-live="polite">{failed ? 'Please try loading the street view again.' : demo ? 'Demo: city preview, click to return' : message}</p>
+      <p className="street-loading-note">{failed ? 'Your city is still open.' : demo ? 'This is a preview. Any click or key returns to the menu. The clock is not your week.' : 'The game clock is paused while the city loads.'}</p>
       {!failed && <p className="street-loading-tip"><b>Consigliere's advice.</b> {tip}</p>}
       {failed && <div className="row"><button className="btn brass" onClick={onRetry}>Try again</button><button className="btn" onClick={onExit}>Back to menu</button></div>}
     </div>

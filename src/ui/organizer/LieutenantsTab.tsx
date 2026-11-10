@@ -16,7 +16,7 @@ import type { ID, Order, Team, WorldState } from '../../sim/types';
 import { buildingName, money } from '../../sim/world';
 import { ConfirmDialog, Dial, Empty, Hint, Icon, Kicker, Pill, SkillList, Stamp } from '../common';
 import { Portrait } from '../Portrait';
-import { resourceDragProps, useResourceDrop } from '../resourceDrag';
+import { resourceDragProps, resourceJustDropped, useResourceDrop } from '../resourceDrag';
 import { Advisor } from './Advisor';
 import { ABSENT, PayRoll, hours } from './RightSheet';
 
@@ -166,9 +166,18 @@ export function LieutenantsTab() {
         <section className={`team-panel${dropOver ? ' drop-over' : ''}`} aria-label="Selected lieutenant" {...dropProps}>
           <input aria-label="Crew name" className="team-name" value={team.name} onChange={(e) => rename(e.target.value)} title="Click to rename the team" spellCheck={false} />
           <div className="team-head">
-            <div className="avatar">
+            <button
+              type="button"
+              className="avatar"
+              title="Open the pool for this crew. Click again for the city plan."
+              aria-pressed={sheet?.kind === 'hoods' && sheet.teamId === team.id}
+              onClick={() => {
+                if (sheet?.kind === 'hoods' && sheet.teamId === team.id) setSheet(null);
+                else setSheet({ kind: 'hoods', teamId: team.id });
+              }}
+            >
               <Portrait person={lt} gang={gang} size={64} />
-            </div>
+            </button>
             <div style={{ minWidth: 0 }}>
               <div className="row" style={{ gap: 12, alignItems: 'center' }}>
                 <h3 className={lt.pay < lt.payDemand ? 'unhappy' : ''}>{lt.name}</h3>
@@ -392,7 +401,6 @@ export function LieutenantStrip() {
   const sim = useGame((s) => s.sim)!;
   const selectedTeamId = useGame((s) => s.selectedTeamId);
   const selectTeam = useGame((s) => s.selectTeam);
-  const setSheet = useGame((s) => s.setSheet);
   useGame((s) => s.version);
   const w = sim.world;
   const gang = sim.playerGang;
@@ -403,29 +411,56 @@ export function LieutenantStrip() {
   for (let i = 0; i < 8; i++) {
     const t = teams[i];
     if (!t) {
-      slots.push(
-        <button key={`e${i}`} className="lt-tab empty" title="A free tab — promote a hood to fill it" onClick={() => setSheet({ kind: 'hoods' })}>
-          {i + 1}
-        </button>,
-      );
+      slots.push(<EmptyLieutenantSlot key={`e${i}`} index={i} />);
       continue;
     }
-    slots.push(<LieutenantTab key={t.id} team={t} index={i} selected={selected?.id === t.id} onSelect={() => selectTeam(t.id)} />);
+    slots.push(<LieutenantTab key={t.id} team={t} index={i} selected={selected?.id === t.id} onSelect={() => {
+      if (resourceJustDropped()) { selectTeam(t.id); return; }
+      selectTeam(t.id);
+      const sheet = useGame.getState().sheet;
+      if (sheet?.kind === 'hoods' && sheet.teamId === t.id) useGame.getState().setSheet(null);
+      else useGame.getState().setSheet({ kind: 'hoods', teamId: t.id });
+    }} />);
   }
   return <div className="lt-strip">{slots}</div>;
+}
+
+/** An empty tab. Dropping a pool hood here promotes him and starts a crew. */
+function EmptyLieutenantSlot({ index }: { index: number }) {
+  const sheet = useGame((s) => s.sheet);
+  const open = sheet?.kind === 'hoods' && sheet.teamId == null && sheet.slot === index;
+  const [dropProps, dropOver] = useResourceDrop({ kind: 'new-crew' });
+  return (
+    <button
+      className={`lt-tab empty${open ? ' on' : ''}${dropOver ? ' drop-over' : ''}`}
+      aria-pressed={open}
+      title="Empty crew. Open the pool to promote a hood, or drop one here."
+      onClick={() => {
+        if (resourceJustDropped()) return;
+        const current = useGame.getState().sheet;
+        if (current?.kind === 'hoods' && current.teamId == null && current.slot === index) useGame.getState().setSheet(null);
+        else useGame.getState().setSheet({ kind: 'hoods', slot: index });
+      }}
+      {...dropProps}
+    >
+      {index + 1}
+    </button>
+  );
 }
 
 /** One lieutenant's tab; hoods, weapons and vehicles dropped on it join that crew. */
 function LieutenantTab({ team: t, index, selected, onSelect }: { team: Team; index: number; selected: boolean; onSelect: () => void }) {
   const sim = useGame((s) => s.sim)!;
+  const sheet = useGame((s) => s.sheet);
+  const poolOpen = sheet?.kind === 'hoods' && sheet.teamId === t.id;
   const [dropProps, dropOver] = useResourceDrop({ kind: 'team', teamId: t.id });
   const w = sim.world, gang = sim.playerGang;
   const lt = w.people[t.lieutenantId];
   const pct = Math.round((t.timeUsed / MINUTES_PER_WEEK) * 100);
   return (
     <button
-      aria-pressed={selected} className={`lt-tab${selected ? ' on' : ''}${lt && lt.status !== 'active' ? ' absent' : ''}${dropOver ? ' drop-over' : ''}`}
-      title={`${lt?.name ?? 'Vacant'} — ${t.name}${pct ? ` · ${pct}% of the week allocated` : ''}`}
+      aria-pressed={selected || poolOpen} className={`lt-tab${selected ? ' on' : ''}${poolOpen ? ' pool-open' : ''}${lt && lt.status !== 'active' ? ' absent' : ''}${dropOver ? ' drop-over' : ''}`}
+      title={`${lt?.name ?? 'Vacant'} — ${t.name}${pct ? ` · ${pct}% of the week allocated` : ''}. Click the portrait to open the pool for this crew; click again for the city plan.`}
       onClick={onSelect}
       {...dropProps}
     >

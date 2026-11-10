@@ -5,8 +5,9 @@ import { publishBusinessIntelligence } from '../newspaper';
 import { pressStories } from '../pressStories';
 import { describeCrime } from './law';
 import type { Rng } from '../rng';
-import type { WorldState } from '../types';
-import { placeName } from '../world';
+import type { Building, WorldState } from '../types';
+import { streetName } from '../cityLayout';
+import { buildingName, placeName } from '../world';
 import { peopleList, buildingList } from '../entityLists';
 
 /** Turn the week's events into the morning edition. */
@@ -22,31 +23,74 @@ export function weeklyNews(w: WorldState, _rng: Rng): void {
     countedVictims.add(victim.id);
     return true;
   });
-  const fires = thisWeek.filter((c) => c.kind === 'torch' || c.kind === 'bomb');
-  if (murders.length) {
+  for (const crime of murders) {
+    const victim = w.people[crime.victimId!];
+    const place = crime.buildingId != null && w.buildings[crime.buildingId] ? placeName(w, w.buildings[crime.buildingId]) : 'the street';
     addNews(w, {
       section: 'crime',
-      headline: murders.length > 2 ? 'BLOODY WEEK ON CITY STREETS' : 'GANGLAND KILLING',
-      body: `${murders.length} violent death${murders.length === 1 ? ' was' : 's were'} reported this week. Police say enquiries are continuing.`,
-      gangId: murders[0].gangId,
+      photo: 'funeral',
+      frontPagePriority: murders.length >= 3 ? 2 : 1,
+      headline: 'SHOOTING IN THE CITY',
+      body: `Shooting at ${place}. ${victim?.name ?? 'A person'} was killed. Police say enquiries are continuing.`,
+      gangId: crime.gangId,
+      buildingId: crime.buildingId ?? undefined,
     });
   }
-  if (fires.length) {
+  let fires = 0;
+  for (const building of buildingList(w)) {
+    if (building.fireWeek !== w.week) continue;
+    fires++;
+    const name = buildingName(w, building.id);
+    const where = fireWhere(w, building);
+    const injured = building.fireInjured ?? 0;
+    const dead = building.fireDead ?? 0;
     addNews(w, {
       section: 'crime',
-      headline: 'FIRE AND EXPLOSION IN THE CITY',
-      body: `${fires.length} arson or bombing incident${fires.length === 1 ? ' was' : 's were'} reported this week. Fire officials are assessing the damage.`,
-      gangId: fires[0].gangId,
+      photo: 'fire',
+      frontPagePriority: 2,
+      buildingId: building.id,
+      headline: 'FIRE IN THE CITY',
+      body: `Fire at ${name} on ${where.street} between ${where.between}. ${injured} injured, ${dead} dead. Firefighters responded and put it out. ${name} is closed pending repairs.`,
+      gangId: null,
+    });
+  }
+  const bombs = thisWeek.filter((c) => c.kind === 'bomb' && (c.buildingId == null || w.buildings[c.buildingId]?.fireWeek !== w.week));
+  for (const crime of bombs) {
+    const site = crime.buildingId != null ? w.buildings[crime.buildingId] : undefined;
+    addNews(w, {
+      section: 'crime',
+      photo: 'wreck',
+      frontPagePriority: 2,
+      headline: 'EXPLOSION IN THE CITY',
+      body: site ? `A bomb went off at ${placeName(w, site)}. The premises are a wreck.` : 'An explosion was reported in the city.',
+      gangId: crime.gangId,
+      buildingId: crime.buildingId ?? undefined,
+    });
+  }
+  const smashes = thisWeek.filter((c) => c.kind === 'smashUp');
+  for (const crime of smashes) {
+    const site = crime.buildingId != null ? w.buildings[crime.buildingId] : undefined;
+    if (!site) continue;
+    addNews(w, {
+      section: 'crime',
+      photo: 'wreck',
+      headline: 'SHOP WRECKED',
+      body: `${placeName(w, site)} was smashed up. The owner is closed until the damage is put right.`,
+      gangId: crime.gangId,
+      buildingId: site.id,
     });
   }
 
   const robberies = thisWeek.filter((c) => c.kind === 'raid');
-  if (robberies.length) {
+  for (const crime of robberies) {
+    const site = crime.buildingId != null ? w.buildings[crime.buildingId] : undefined;
     addNews(w, {
       section: 'crime',
-      headline: 'ARMED ROBBERIES REPORTED',
-      body: `Business owners reported ${robberies.length === 1 ? 'an armed robbery' : `${robberies.length} armed robberies`}. Takings were carried away in daylight.`,
-      gangId: robberies[0].gangId,
+      photo: 'raid',
+      headline: 'ARMED ROBBERY',
+      body: site ? `Armed men raided ${placeName(w, site)}. Takings were carried away.` : 'An armed robbery was reported.',
+      gangId: crime.gangId,
+      buildingId: crime.buildingId ?? undefined,
     });
   }
 
@@ -56,6 +100,7 @@ export function weeklyNews(w: WorldState, _rng: Rng): void {
     const recent = dead.map((p) => p.name);
     addNews(w, {
       section: 'deaths',
+      photo: 'funeral',
       headline: 'DEATHS',
       body: `The city records the passing of ${recent.join(', ')}.`,
       gangId: null,
@@ -73,15 +118,15 @@ export function weeklyNews(w: WorldState, _rng: Rng): void {
     const priest = building.ownerPersonId == null ? null : w.people[building.ownerPersonId];
     if (!priest || priest.status !== 'active') continue;
     const amount = donationAmount(w, building);
-    addNews(w, { section: 'charity', kind: 'charityAppeal', buildingId: building.id, amount,
+    addNews(w, { section: 'charity', kind: 'charityAppeal', photo: 'charity', buildingId: building.id, amount,
       headline: 'CHARITY APPEALS FOR HELP',
       body: `${placeName(w, building)} appeals for $${amount.toLocaleString('en-US')} to support families in its impoverished neighbourhood.`,
       gangId: null });
   }
 
   // ---- the front page
-  const front = pickFront(w, thisWeek.length, murders.length);
-  addNews(w, { section: 'front', ...front });
+  const front = pickFront(w, thisWeek.length, murders.length, fires);
+  if (front) addNews(w, { section: 'front', frontPagePriority: 1, ...front });
 
   // ---- the original's gang stories and period colour; added after the
   // routine lead so a milestone of equal rank takes the front page.
@@ -89,11 +134,33 @@ export function weeklyNews(w: WorldState, _rng: Rng): void {
   publishBusinessIntelligence(w);
 }
 
+/** The street the door is on, and the two streets that cross it. */
+function fireWhere(w: WorldState, building: Building): { street: string; between: string } {
+  const block = w.blocks[building.blockId];
+  const lot = w.lots[building.lotId];
+  const spanX = block?.layout?.spanX ?? 1;
+  const spanY = block?.layout?.spanY ?? 1;
+  const gx = block?.gx ?? 0;
+  const gy = block?.gy ?? 0;
+  const northSouth = lot?.facing === 'east' || lot?.facing === 'west';
+  if (northSouth) {
+    return {
+      street: streetName(w, 'ns', lot?.facing === 'east' ? gx + spanX : gx),
+      between: `${streetName(w, 'ew', gy)} and ${streetName(w, 'ew', gy + spanY)}`,
+    };
+  }
+  return {
+    street: streetName(w, 'ew', lot?.facing === 'south' ? gy + spanY : gy),
+    between: `${streetName(w, 'ns', gx)} and ${streetName(w, 'ns', gx + spanX)}`,
+  };
+}
+
 function pickFront(
   w: WorldState,
   crimeCount: number,
   murderCount: number,
-): { headline: string; body: string; gangId: number | null } {
+  fires: number,
+): { headline: string; body: string; gangId: number | null; photo: 'calm' | 'funeral' | 'rally' | 'courthouse' } | null {
   // A newly called race already has its own "election called" story.
   if (w.election.active && w.election.weeksLeft < ELECTION_WEEKS) {
     const left = `${w.election.weeksLeft} week${w.election.weeksLeft === 1 ? '' : 's'}`;
@@ -101,30 +168,36 @@ function pickFront(
       headline: 'CAMPAIGN ENTERS FINAL WEEKS',
       body: `With ${left} to polling, candidates traded accusations across the city.`,
       gangId: null,
+      photo: 'rally',
     } : {
       headline: 'MAYORAL RACE HEATS UP',
       body: `With ${left} to polling, the candidates took their case to every ward.`,
       gangId: null,
+      photo: 'rally',
     };
   }
+  if (fires > 0) return null;
   if (murderCount >= 3) {
     return {
       headline: 'CITY IN GRIP OF GANG WAR',
       body: 'Residents are urged to remain indoors after dark as violence spreads through the districts.',
       gangId: null,
+      photo: 'funeral',
     };
   }
-  if (crimeCount === 0) {
+  if (crimeCount === 0 && fires === 0) {
     return {
       headline: 'A QUIET WEEK IN NEW TEMPERANCE',
       body: 'Police report an unusually peaceful week. Business leaders welcomed the calm.',
       gangId: null,
+      photo: 'calm',
     };
   }
   return {
     headline: 'POLICE INVESTIGATE CITY CRIME',
     body: `Police received ${crimeCount} crime report${crimeCount === 1 ? '' : 's'} this week. Investigations continue across New Temperance.`,
     gangId: null,
+    photo: 'courthouse',
   };
 }
 

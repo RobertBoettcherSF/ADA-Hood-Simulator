@@ -46,6 +46,7 @@ export function CityView() {
 
   const sim = useGame((s) => s.sim);
   const streetLoading = useGame((s) => s.streetLoading);
+  const attract = useGame((s) => s.attract);
 
   // Keep the renderer in sync with a brand new simulation.
   useEffect(() => {
@@ -434,6 +435,7 @@ export function CityView() {
       onContextMenu={(e) => e.preventDefault()}
     />
     {showStreetLoading ? <StreetLoading
+      demo={attract}
       message={sim?.world.phase === 'planning' ? 'Saving your orders and getting the week ready…' : openingMessage}
       failed={cityStatus === 'failed'} onRetry={() => setRenderAttempt(n => n + 1)} onExit={() => useGame.getState().setScreen('menu')} /> :
     cityStatus !== 'ready' && <div className="city-opening">

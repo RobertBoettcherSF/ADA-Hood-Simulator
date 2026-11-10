@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is New Temperance in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.0.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.1.
 
 ## Decisions
 
@@ -23,6 +23,30 @@ The owner answered the open questions in §8. These decisions override anything 
 11. At startup the game fetches `version.json` (then `package.json`) from `main` on GitHub and, if that version is newer, offers to open it. The version number is on screen the whole time. A built copy lives in `play/` so the branch can be opened on raw.githack without a compile.
 
 §8 records the same answers. The 2032 column in §4 is a rejected proposal, not content in the game.
+
+## v1.2.1 decisions (made while Robert was away)
+
+1. End Week still runs every minute of the same sim. Nothing is skipped, so a Friday stays the one the orders produced. The week-to-week slowdown was not a growing leak in the people count.
+2. A living-world save is one `JSON.stringify`, not a per-entity loop that yields every 6 ms. That loop was the multi-second save. End Week draws a progress bar from the minute clock and works in 80 ms slices. The 40×32 minute sim itself was not cut under 5 seconds.
+3. A recruit order that finds hoods at the site signs at least one of them onto the crew, or the pool if the crew is full. The old success only marked them willing, so the headcount never moved. Accountants and lawyers still land on the willing list. Each week, sites on a non-original map are topped up to 2 hoods or 1 specialist. The original 40×32 map keeps its own quotas.
+4. The debug report's system timings are the week that just ran. They reset when the week opens.
+5. Portraits are the existing painted faces with a sepia grade so they sit with the newspaper photographs. The cartoon stand-in is gone. A missing file shows a sepia initial. The library was not redrawn.
+6. On a narrow screen the desk starts below the badge row, and the badges are shorter, so they do not sit on the tabs.
+7. Rented rooms are one apartment per floor and at most two people in it. The rent is once per apartment per day. One tenant can pay the whole rent.
+8. A tenant's day is eight hours: $75 an hour alone, $150 an hour when two share. They leave before the rent is due if the purse will not cover it.
+9. The on-screen title is the words Hood Simulator. The package name stays `original-gangster`.
+10. Graphics is Auto, Phone, or Desktop, saved in the folder. Auto treats a narrow touch screen, or a machine that reports 4 GB or less, as a phone. Phone turns shadows off, caps the pixel ratio at 1, shortens the fog, and uses 1024 textures. The model library was not converted to Draco, meshopt, or KTX2, and the whole art tree is not copied into the world folder.
+11. The idle street demo is on unless the options turn it off. The attract card and the loading card during that demo both say it is a demo. A click or a key leaves it.
+13. The debug report lists the slowest files it actually loaded this session, up to twelve.
+14. A generated person takes both names from one heritage. Recruits are weighted about twelve to one toward the boss's origin, still with two random draws so the rest of the city stays in step. The name the player typed for the boss is kept. The face is that heritage's portrait. A crew is still titled from its lieutenant's first name, so that title follows the origin too.
+15. Dropping a pool hood on an empty lieutenant slot promotes him. Dropping him on a crew adds him. The toast says which.
+16. The report keeps the last 20 clicks, screen changes, and orders. The wish question is asked only for a report the player asks for, not for a crash report.
+17. Available cash is cash minus the cost of orders already queued. The safe is charged when the order is carried out, not when it is queued. The header shows the available figure.
+18. The clock hands are always drawn. At normal speed they follow the fraction of the current minute. Above normal speed, and while fast-forwarding, the minute hand is drawn four extra times, faint and a few degrees off, and the hour hand stays a single stroke. The day and the digital time use the whole minute so they do not flicker.
+19. A story gets a photograph only when it names that kind of event. The fire picture is used only for a building whose fire was this week. A quiet week uses the docks photograph; there is no separate empty-street plate. A fire week does not also run the quiet headline. A burned building is damaged, so it does not trade, until the repairs finish. Injured and dead are counted as people escape.
+20. The "report written" line clears itself after 3 seconds. An error stays until Dismiss.
+21. Clicking the same lieutenant portrait, or the same empty slot, closes the pool and the city plan comes back. A drop on that slot does not also count as the click. Under 900 px the portrait column is hidden, so the large portrait on the crew page opens the pool the same way.
+
 
 ## 1. Current state
 

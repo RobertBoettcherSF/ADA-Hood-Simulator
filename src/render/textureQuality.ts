@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { patchLocalData, readLocalData } from '../app/localData';
+import { resolvedGraphics } from '../app/device';
 
 /**
  * Model texture quality (A20, minimum-spec GPUs). "High" keeps the approved
@@ -20,6 +21,7 @@ export function writeTextureQuality(quality: TextureQuality): void {
 
 /** The largest side a model texture keeps at this quality, or null for no limit. */
 export function textureLimit(quality: TextureQuality = readTextureQuality()): number | null {
+  if (resolvedGraphics() === 'phone') return STANDARD_TEXTURE_SIZE;
   return quality === 'standard' ? STANDARD_TEXTURE_SIZE : null;
 }
 

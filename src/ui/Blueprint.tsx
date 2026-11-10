@@ -12,7 +12,8 @@ import { recentEventCounts } from '../sim/events';
 import { drawTerritoryOutline } from '../render/territoryOutline';
 import { lieutenantAreaChoices } from '../sim/lieutenantAreas';
 import type { Block, ID, WorldState } from '../sim/types';
-import { blockAt, buildingsOfBlock } from '../sim/world';
+import { blockAt, buildingsOfBlock, money } from '../sim/world';
+import { buildingValue } from '../sim/execution';
 import { handleMapBox, handleMapHit } from './mapClick';
 import { art } from './art';
 import { PLAN, SITE_COLORS, drawCityLandscape, drawElevatedRail, drawPlanLot, drawPlanMarkers, drawPlanSelection, fromPlanPoint, label,
@@ -109,6 +110,7 @@ export function Blueprint() {
   const ref = useRef<HTMLCanvasElement>(null);
   const header = useRef<HTMLDivElement>(null), key = useRef<HTMLDivElement>(null);
   const [chrome, setChrome] = useState<MapChrome | null>(null);
+  const [priceTip, setPriceTip] = useState('');
   const mapBounds = useRef<MapArea>({ x: 0, y: 0, w: 1, h: 1 });
   const markerHits = useRef<PlanMarkerHit[]>([]);
   const sheet = useRef<HTMLCanvasElement | null>(null);
@@ -533,7 +535,12 @@ export function Blueprint() {
       // Held, not yet a drag: the tag follows the block under the pointer.
       if (d.button === 0) { holdBlockTag(p); composite.current(); }
     }
-    // Merely pointing at the map shows nothing, as in the original.
+    if (useGame.getState().jobCard?.type === 'buyPremises') {
+      const hit = hitAt(p.x, p.y);
+      const site = hit.buildingId != null ? sim.world.buildings[hit.buildingId] : undefined;
+      const next = site ? `${site.typeId} · ${money(buildingValue(sim.world, site))}` : '';
+      setPriceTip((prev) => prev === next ? prev : next);
+    } else if (priceTip) setPriceTip('');
   };
 
   const onUp = (e: ReactPointerEvent<HTMLCanvasElement>) => {
@@ -632,7 +639,7 @@ export function Blueprint() {
         <button onClick={() => zoom(1.4)} aria-label="Zoom in" title="Zoom in">+</button>
         <button onClick={fitCity}>Fit city</button><button onClick={focusHq} title="Zoom to your headquarters">HQ</button>
       </div>
-      <p className={jobCard || isBoxing(0) ? 'target-hint' : undefined}>{jobCard ? `${ORDERS[jobCard.type].name} · ${targetHint}`
+      <p className={jobCard || isBoxing(0) ? 'target-hint' : undefined}>{jobCard ? `${ORDERS[jobCard.type].name} · ${targetHint}${jobCard.type === 'buyPremises' ? (priceTip ? ` · ${priceTip}` : ' · hover a building for its price') : ''}`
         : pickMode?.kind === 'lieutenantArea' ? 'Allocate your territory · click or drag · repeat to remove · right-drag to pan'
         : isBoxing(0) ? 'Click or drag to select · repeat over a selected area to clear it · right-drag to pan'
         : 'Scroll to zoom · drag to move · hold the button on a block for its type'}</p>

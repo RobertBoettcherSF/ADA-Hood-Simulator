@@ -21,6 +21,7 @@ import { previewPosition } from '../sim/movement';
 import { allocateWeapons } from '../sim/weapons';
 import { streetLocation } from '../sim/cityLayout';
 import { dayIndex } from '../sim/world';
+import { spendableCash } from '../sim/orderCost';
 import { VIEW_ZOOM, viewForZoom, type CityViewMode } from '../render/viewModes';
 import { cameraApi } from './CityView';
 import { Icon } from './common';
@@ -108,7 +109,7 @@ export function WeekHud() {
         <span>Working week <b>{w.week}</b></span>
         <span className="week-status">{paused?'Paused':finishing?'Finishing week':`${WEEK_DAYS[dayIndex(w.minute)]} · ${weekTime(w.minute)}`}</span>
         <span className="week-place" title={place}>{place}</span>
-        <span className="week-cash">Cash <b><MoneyRoll value={gang.cash} /></b></span>
+        <span className="week-cash">Cash <b><MoneyRoll value={spendableCash(w, gang.id)} /></b></span>
       </div>
       <nav className="week-iconbar" aria-label="Working week controls">
         <div className="interface-control-group">

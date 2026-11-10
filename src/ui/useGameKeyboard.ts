@@ -59,7 +59,8 @@ export function useGameKeyboard() {
         }
         if (letter === 'h') {
           setTab('lieutenants');
-          s.setSheet({ kind: 'hoods' });
+          const teamId = s.selectedTeamId ?? undefined;
+          s.setSheet(s.sheet?.kind === 'hoods' && s.sheet.teamId === teamId ? null : { kind: 'hoods', teamId });
           return;
         }
         if (letter === 'v') {

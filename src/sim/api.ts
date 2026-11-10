@@ -5,6 +5,7 @@ import { LEFT_GANG, NO_ORIGINAL_CHANNEL, opinionSet } from './attitudes';
 import { originalStartingWage } from './originalWages';
 import { cityBlockAt } from './cityLayout';
 import { orderStaffing } from './orderStaffing';
+import { committedCash } from './orderCost';
 import { observeTargetRace } from './targetRace';
 import {
   MAX_TEAMS,
@@ -247,9 +248,12 @@ export function issueOrder(w: WorldState, gangId: ID, input: IssueOrderInput): A
   // out for a week to fail at the door. The order still checks again on arrival.
   const price = input.type === 'buyPremises' ? buildingValue(w, w.buildings[targetBuildingIds[0]])
     : input.type === 'setUpBusiness' ? BUILDING_BY_ID[opts.businessTypeId!]?.cost ?? 0
-    : input.type === 'donate' ? order.opts.amount ?? 0
+    : input.type === 'donate' || input.type === 'bribe' ? order.opts.amount ?? 0
     : 0;
-  if (price > gang.cash) return fail(`You cannot afford it: it costs $${Math.round(price).toLocaleString('en-US')}.`);
+  const freeCash = gang.cash - committedCash(w, gangId);
+  if (price > freeCash) {
+    return fail(`You cannot afford it: it costs $${Math.round(price).toLocaleString('en-US')} and $${Math.max(0, Math.round(freeCash)).toLocaleString('en-US')} is left after this week's orders.`);
+  }
 
   if (team.timeUsed + order.estimatedMinutes > MINUTES_PER_WEEK * 1.02) {
     // Undermanned for the whole area, the lieutenant offers what he can manage.
@@ -527,13 +531,13 @@ export function moveToTeam(w: WorldState, gangId: ID, personId: ID, teamId: ID):
   const old = p.teamId == null ? null : w.teams[p.teamId];
   if (!gang.poolIds.includes(personId) && !(old?.gangId === gangId && old.memberIds.includes(personId)))
     return fail('That hood is not in the pool or a crew.');
-  if (p.teamId === teamId) return ok();
+  if (p.teamId === teamId) return ok(`${p.name} is already in ${team.name}.`);
   if (team.memberIds.length >= MAX_TEAM_SIZE - 1) return fail('That crew is full.');
   if (old) old.memberIds = old.memberIds.filter((id) => id !== personId);
   gang.poolIds = gang.poolIds.filter((id) => id !== personId);
   team.memberIds.push(personId);
   p.teamId = teamId;
-  return ok();
+  return ok(`${p.name} joined ${team.name}.`);
 }
 
 export function moveToPool(w: WorldState, gangId: ID, personId: ID): ApiResult {

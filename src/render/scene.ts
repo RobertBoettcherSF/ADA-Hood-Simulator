@@ -11,6 +11,7 @@ import { closedFrontMaterial } from './closedFront';
 import { riverBank, riverCrossing } from './riverBanks';
 import { SculptTrees, type TreePlacement } from './sculptTrees';
 import * as THREE from 'three';
+import { resolvedGraphics } from '../app/device';
 import { BuildingPickBounds } from './buildingPickBounds';
 import { BuildingOutline } from './buildingOutline';
 import { actorSightlineHits, TaggedView, TaggedViews, type TaggedViewRect } from './taggedView';
@@ -457,9 +458,10 @@ export class CityRenderer {
     // The source bundle and decoded images are cached; this instance owns its
     // bundle metadata and every texture wrapper uploaded to its WebGL context.
     this.tex = { ...cityTextures() };
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
+    const phone = resolvedGraphics() === 'phone';
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !phone, powerPreference: phone ? 'low-power' : 'high-performance' });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, phone ? 1 : 2));
+    this.renderer.shadowMap.enabled = !phone;
     // World matrices are brought up to date once a frame in render(), not again
     // by every pass: each Tagged window re-renders the whole scene.
     this.scene.matrixWorldAutoUpdate = false;
@@ -473,7 +475,7 @@ export class CityRenderer {
     this.target.set(cityW / 2, 0, cityH / 2);
 
     this.scene.background = new THREE.Color(0x2b3038);
-    this.scene.fog = new THREE.Fog(0x2b3038, 900, 2600);
+    this.scene.fog = new THREE.Fog(0x2b3038, phone ? 500 : 900, phone ? 1400 : 2600);
 
     if (!deferConstruction) {
       try {

@@ -134,6 +134,18 @@ export function planGang(w: WorldState, rng: Rng, gang: Gang, autopilot = false)
   const recruitSites = near
     .flatMap((blk) => buildingsOfBlock(w, blk))
     .filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood');
+  const recruitAnywhere = recruitSites.length ? recruitSites : allBuildings(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood' && b.state !== 'destroyed');
+
+  // A short crew has to recruit before it takes on collection. Otherwise the
+  // only free hood is booked for the week and Recruit sits there with nobody to send.
+  if (autopilot && gangManpower(w, gang) < 12 && recruitAnywhere.length) {
+    issueOrder(w, gang.id, {
+      teamId: teams[0].id,
+      type: 'recruit',
+      buildingIds: recruitAnywhere.slice(0, 2).map((b) => b.id),
+      opts: { manpower: 1 },
+    });
+  }
 
   // Shops refusing to pay, shared out between the crews (one crew to a shop).
   const refusing = protectedBuildings(w, gang.id).filter((b) => b.protection?.refusing);
@@ -302,7 +314,9 @@ function issueRemainingHumanOrders(w: WorldState, gang: Gang): void {
   const unguarded = owned.find((building) => building.cls === 'illegal' && building.typeId !== 'office' && building.guardIds.length === 0);
   if (unguarded) once('guardBusiness', { teamId: team().id, type: 'guardBusiness', buildingIds: [unguarded.id], opts: { manpower: 1 } });
 
-  if (office) once('goTo', { teamId: team().id, type: 'goTo', pos: { ...w.lots[office.lotId].center }, opts: { manpower: 1 } });
+  // A whole-week lookout or ambush on a two-person crew keeps Recruit queued forever.
+  const roomToGrow = gangManpower(w, gang) >= 8;
+  if (office && roomToGrow) once('goTo', { teamId: team().id, type: 'goTo', pos: { ...w.lots[office.lotId].center }, opts: { manpower: 1 } });
 
   const official = w.people[w.policeChiefId];
   if (official && (official.opinion[gang.id] ?? 0) < 15 && gang.cash > 4000) {
@@ -314,7 +328,7 @@ function issueRemainingHumanOrders(w: WorldState, gang: Gang): void {
     const site = allBuildings(w).find((building) => building.ownerGangId === enemy.id && building.state === 'trading' && !building.isHQ);
     const person = peopleList(w).find((p) => p.gangId === enemy.id && p.status === 'active');
     if (person) once('assault', { teamId: team().id, type: 'assault', personId: person.id, opts: { manpower: 2 } });
-    if (site) once('ambush', { teamId: team().id, type: 'ambush', blockIds: [site.blockId], opts: { manpower: 2 } });
+    if (site && roomToGrow) once('ambush', { teamId: team().id, type: 'ambush', blockIds: [site.blockId], opts: { manpower: 2 } });
     if (person) once('kidnap', { teamId: team().id, type: 'kidnap', personId: person.id, opts: { manpower: 2 } });
     if (person) once('kill', { teamId: team().id, type: 'kill', personId: person.id, opts: { manpower: 2 } });
   }

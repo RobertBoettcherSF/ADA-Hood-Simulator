@@ -87,7 +87,13 @@ function openDb(): Promise<IDBDatabase> {
 
 /** The caller holds the world still while this bounded snapshot is assembled. */
 async function stringifyFrozenWorld(world: WorldState, signal?: AbortSignal): Promise<string> {
-  signal?.throwIfAborted();
+  // One native stringify. The old per-entity loop, yielding every 6ms, is what
+  // made save-world take more than two seconds on a desktop report.
+  if (!signal) {
+    await yieldForInput();
+    return JSON.stringify(world);
+  }
+  signal.throwIfAborted();
   const parts: string[] = ['{'];
   let deadline = performance.now() + 6;
   let first = true;

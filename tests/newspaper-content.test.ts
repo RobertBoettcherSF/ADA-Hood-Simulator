@@ -182,11 +182,19 @@ describe('accurate weekly summaries', () => {
       gangId: s.g.id, perpetratorId: s.g.bossId, kind, victimId, buildingId: s.site.id, witnesses: [], arrestRisk: .5, reported: true });
     s.w.crimes = [crime('shootout', null), crime('streetKill', dead[0].id), crime('kill', dead[0].id),
       crime('streetAssault', dead[1].id), crime('assault', s.g.bossId), crime('torch', null), crime('bomb', null)];
+    s.site.fireWeek = s.w.week;
+    s.site.fireInjured = 2;
+    s.site.fireDead = 1;
+    s.site.state = 'damaged';
     weeklyNews(s.w, s.sim.rng);
     const obituary = s.w.news.find(n => n.section === 'deaths')!.body;
     for (const p of dead) expect(obituary).toContain(p.name);
-    expect(s.w.news.find(n => n.headline === 'GANGLAND KILLING')!.body).toContain('2 violent deaths');
-    expect(s.w.news.find(n => n.headline === 'FIRE AND EXPLOSION IN THE CITY')!.body).toContain('2 arson or bombing incidents');
+    expect(s.w.news.filter(n => n.headline === 'SHOOTING IN THE CITY')).toHaveLength(2);
+    const fire = s.w.news.find(n => n.photo === 'fire')!;
+    expect(fire.body).toContain('2 injured, 1 dead');
+    expect(fire.body).toContain('closed pending repairs');
+    expect(s.w.news.filter(n => n.photo === 'fire')).toHaveLength(1);
+    expect(s.w.news.find(n => n.headline === 'A QUIET WEEK IN NEW TEMPERANCE')).toBeUndefined();
     expect(s.w.news.some(n => n.body.includes('premises were destroyed'))).toBe(false);
   });
 

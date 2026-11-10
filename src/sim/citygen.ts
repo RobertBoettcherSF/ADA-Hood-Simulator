@@ -20,7 +20,7 @@ import { originalStartingSites, placeOriginalHeadquarters } from './originalBoot
 import { replenishOriginalRecruits } from './recruitPool';
 import { C as OC, generateOriginalCitySafe, isParkContent, isRiverContent } from './originalCityGen';
 import { originalTramLines } from './trams';
-import { bossFace, heritageOfSurname, sitterFromSeed } from './heritage';
+import { HERITAGE_BY_ID, bossFace, heritageName, heritageOfSurname, mixedHeritageName, sitterFromSeed, type Heritage } from './heritage';
 import { bossName, generatedCityDimensions, isOriginalCity, potentialTerritoryCapacity, validateTerritoryTarget } from './newGameValidation';
 
 /** Constants.xtx line 13 (400 police) for the original 40 × 32 city. Line 1
@@ -64,9 +64,17 @@ function makeSkills(rng: Rng, quality = 1): Skills {
   return s;
 }
 
-function makeName(rng: Rng, female: boolean): string {
+function playerOrigin(options: GameOptions): Heritage {
+  if (options.playerHeritage) return options.playerHeritage;
+  const surname = options.playerName.trim().split(/\s+/).pop() ?? '';
+  return heritageOfSurname(surname) ?? 'italian';
+}
+
+function makeName(rng: Rng, female: boolean, origin?: Heritage, prefer?: Heritage): { name: string; heritage: Heritage | null } {
+  if (origin) return { name: heritageName(rng, female, origin), heritage: origin };
+  if (prefer) return mixedHeritageName(rng, female, prefer);
   const first = female ? rng.pick(FEMALE_FIRST) : rng.pick(MALE_FIRST);
-  return `${first} ${rng.pick(SURNAMES)}`;
+  return { name: `${first} ${rng.pick(SURNAMES)}`, heritage: null };
 }
 
 export function createPerson(
@@ -74,12 +82,13 @@ export function createPerson(
   rng: Rng,
   role: PersonRole,
   pos: Vec2,
-  opts: Partial<Person> & { quality?: number } = {},
+  opts: Partial<Person> & { quality?: number; origin?: Heritage; prefer?: Heritage } = {},
 ): Person {
   const female = opts.female ?? rng.chance(role === 'hood' ? 0.22 : 0.4);
+  const rolled = opts.name ? null : makeName(rng, female, opts.origin, opts.prefer);
   const p: Person = {
     id: newId(w),
-    name: opts.name ?? makeName(rng, female),
+    name: opts.name ?? rolled!.name,
     female,
     portrait: opts.portrait ?? rng.int(0, 23),
     role,
@@ -109,6 +118,7 @@ export function createPerson(
     capturedBy: null,
     streetOrder: null,
   };
+  if (rolled?.heritage) p.face = bossFace(rolled.heritage, female, sitterFromSeed(p.id));
   w.people[p.id] = p;
   return p;
 }
@@ -608,6 +618,7 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
       const p = createPerson(w, rng, 'hood', w.lots[site.lotId].center, {
         quality: rng.chance(0.16) ? 1.35 : 1,
         buildingId: site.id,
+        prefer: playerOrigin(options),
       });
       p.payDemand = hoodPayDemand(p, 'hood');
     }
@@ -619,6 +630,7 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
       const p = createPerson(w, rng, 'accountant', w.lots[site.lotId].center, {
         quality: 1.1,
         buildingId: site.id,
+        prefer: playerOrigin(options),
       });
       p.payDemand = hoodPayDemand(p, 'accountant');
     }
@@ -627,6 +639,7 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
       const p = createPerson(w, rng, 'lawyer', w.lots[site.lotId].center, {
         quality: 1.1,
         buildingId: site.id,
+        prefer: playerOrigin(options),
       });
       p.payDemand = hoodPayDemand(p, 'lawyer');
     }
@@ -682,8 +695,10 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
     const hqBlock = originalHQs ? w.blocks[originalHQs[idx].blockId] : rng.pick(candidates.length ? candidates : officeBlocks);
 
     const bossFemale = isPlayer ? options.playerFemale : rng.chance(0.2);
+    const heritage: Heritage = isPlayer ? playerOrigin(options) : (heritageOfSurname(surnames[idx]) ?? 'anglo');
+    const given = bossFemale ? HERITAGE_BY_ID[heritage].female : HERITAGE_BY_ID[heritage].male;
     const boss = createPerson(w, rng, 'boss', hqBlock.center, {
-      name: isPlayer ? bossName(options.playerName, options.playerNickname) : `${rng.pick(bossFemale ? FEMALE_FIRST : MALE_FIRST)} "${rng.pick(NICKNAMES)}" ${surnames[idx]}`,
+      name: isPlayer ? bossName(options.playerName, options.playerNickname) : `${rng.pick(given)} "${rng.pick(NICKNAMES)}" ${surnames[idx]}`,
       female: bossFemale,
       portrait: isPlayer ? options.playerPortrait : rng.int(0, 23),
       quality: 1.3,
@@ -691,8 +706,7 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
     });
     // A painted boss portrait: the player's chosen heritage and sitter; a rival
     // by its surname, with a sitter from the gang id (not the world's random stream).
-    const heritage = isPlayer ? options.playerHeritage : heritageOfSurname(surnames[idx]);
-    if (heritage) boss.face = bossFace(heritage, bossFemale,
+    boss.face = bossFace(heritage, bossFemale,
       isPlayer ? options.playerSitter ?? 0 : sitterFromSeed(options.seed + gangId * 7919));
 
     let personality: 'passive' | 'normal' | 'aggressive' = 'normal';
@@ -774,6 +788,7 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
       const p = createPerson(w, rng, 'hood', w.lots[office.lotId].center, {
         quality: i === 0 ? 1.15 : 1,
         gangId,
+        origin: heritage,
       });
       p.payDemand = hoodPayDemand(p, 'hood');
       p.pay = p.payDemand;

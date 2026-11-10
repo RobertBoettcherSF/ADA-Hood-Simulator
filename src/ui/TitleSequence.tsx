@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { ArtImage } from './ArtImage';
 import { art } from './art';
 import { audio } from '../audio/audio';
 
@@ -35,7 +34,7 @@ export function TitleSequence({ onDone }: { onDone: () => void }) {
       <div className="title-veil" aria-hidden="true" />
       <div className="title-stack">
         <div className="title-year">New Temperance · 1928</div>
-        <ArtImage className="title-plate" src={art('brand/wordmark.png')} alt="Original Gangster" draggable={false} />
+        <h1 className="scene-wordmark title-plate">Hood Simulator</h1>
         <p className="title-line">Prohibition is the law. The city is anybody's.</p>
       </div>
       <div className="title-skip">Press any key</div>

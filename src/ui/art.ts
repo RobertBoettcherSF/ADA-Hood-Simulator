@@ -1,4 +1,5 @@
 import type { Person } from '../sim/types';
+import { noteAssetLoad } from '../app/assetTiming';
 import thickenedIcons from '../../public/art/icons-small/index.json';
 
 /**
@@ -41,22 +42,25 @@ export function bossPortraitUrl(face: string | undefined): string | undefined {
 /** Mastheads in the same order as NEWSPAPER_NAMES. */
 export const MASTHEADS = ['press/masthead-herald.png', 'press/masthead-post.png', 'press/masthead-tribune.png', 'press/masthead-times.png'].map(art);
 
-/** Press photographs by news section; the week picks one. */
-export const SECTION_PHOTOS: Record<string, string[]> = {
-  crime: ['press/photo-shopfront-wrecked.jpg', 'press/photo-fire.jpg'].map(art),
-  law: ['press/photo-raid.jpg', 'press/photo-courthouse-steps.jpg'].map(art),
-  politics: ['press/photo-city-hall.jpg', 'press/photo-rally.jpg'].map(art),
-  deaths: ['press/photo-funeral.jpg'].map(art),
-  charity: ['press/photo-soup-kitchen.jpg'].map(art),
-  business: ['press/photo-bank.jpg', 'press/photo-docks.jpg'].map(art),
-  city: ['press/photo-rally.jpg', 'press/photo-docks.jpg', 'press/photo-city-hall.jpg'].map(art),
-};
-SECTION_PHOTOS.front = [...SECTION_PHOTOS.crime, ...SECTION_PHOTOS.law, ...SECTION_PHOTOS.politics, ...SECTION_PHOTOS.business];
+/** One photograph per kind of event. A story with no kind gets no picture. */
+export const PRESS_PHOTOS = {
+  fire: 'press/photo-fire.jpg',
+  wreck: 'press/photo-shopfront-wrecked.jpg',
+  raid: 'press/photo-raid.jpg',
+  funeral: 'press/photo-funeral.jpg',
+  courthouse: 'press/photo-courthouse-steps.jpg',
+  rally: 'press/photo-rally.jpg',
+  charity: 'press/photo-soup-kitchen.jpg',
+  bank: 'press/photo-bank.jpg',
+  docks: 'press/photo-docks.jpg',
+  calm: 'press/photo-docks.jpg',
+} as const;
 
-export function pressPhoto(section: string, seed: number): string | null {
-  const list = SECTION_PHOTOS[section];
-  if (!list || !list.length) return null;
-  return list[Math.abs(seed) % list.length];
+export type PressPhoto = keyof typeof PRESS_PHOTOS;
+
+export function pressPhoto(photo: string | undefined): string | null {
+  if (!photo || !(photo in PRESS_PHOTOS)) return null;
+  return art(PRESS_PHOTOS[photo as PressPhoto]);
 }
 
 export function crestUrl(color: string): string {
@@ -77,8 +81,9 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
   if (!p) {
     p = new Promise((resolve, reject) => {
       const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => { cache.delete(src); reject(new Error(`missing ${src}`)); };
+      const started = performance.now();
+      img.onload = () => { noteAssetLoad(src, performance.now() - started, true); resolve(img); };
+      img.onerror = () => { noteAssetLoad(src, performance.now() - started, false); cache.delete(src); reject(new Error(`missing ${src}`)); };
       img.src = src;
     });
     cache.set(src, p);

@@ -48,6 +48,8 @@ export function FolderGate({ onReady }: { onReady: () => void }) {
     useGame.setState({
       uiScale: stored.uiScale,
       textureQuality: stored.textureQuality,
+      graphics: stored.graphics,
+      cityDemo: stored.cityDemo,
       mouseReversal: stored.mouseReversal,
       roadNames: stored.roadNames,
       autoLowerRoofs: stored.autoLowerRoofs,

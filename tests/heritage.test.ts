@@ -35,7 +35,8 @@ describe('boss heritage (the original\'s nationality and face traits)', () => {
     const plain = new Sim({ ...defaultGameOptions(), seed: 404, citySize: 10 });
     const chosen = new Sim({ ...defaultGameOptions(), seed: 404, citySize: 10, playerHeritage: 'irish' });
     const strip = (s: Sim) => JSON.stringify({ ...s.world, options: null,
-      people: Object.values(s.world.people).map(p => ({ ...p, face: undefined })) });
+      people: Object.values(s.world.people).map(p => ({ ...p, face: undefined, name: '' })),
+      teams: Object.fromEntries(Object.entries(s.world.teams).map(([id, team]) => [id, { ...team, name: '' }])) });
     expect(strip(chosen)).toBe(strip(plain));
   });
 

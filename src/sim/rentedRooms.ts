@@ -4,17 +4,24 @@ import { r01 } from './hash';
 import type { Building, WorldState } from './types';
 import { buildingList } from './entityLists';
 
-/** One apartment per floor. */
+/** One apartment per floor, at most two tenants in it. */
 export const RENTED_ROOMS_MAX_FLOORS = 4;
-/** Collected each working day from a tenant who can pay. */
+export const RENTED_ROOMS_MAX_TENANTS = 2;
+/** Collected each working day from the apartment, once, whoever is living there. */
 export const RENTED_ROOMS_DAILY_RENT = 120;
-/** Days an apartment stays empty after a tenant leaves, before someone new takes it. */
+/** Days an apartment stays empty after the tenants leave, before someone new takes it. */
 export const RENTED_ROOMS_VACANT_DAYS = 1;
+/** A working day is eight hours. One tenant earns 75 an hour; two sharing earn 150. */
+export const TENANT_HOURLY = 75;
+export const TENANT_SHARED_HOURLY = 150;
+export const TENANT_HOURS = 8;
 
 export interface RoomTenant {
   /** null: nobody lives here. */
   budget: number | null;
   vacantDays: number;
+  /** People sharing the apartment. One of them can pay the whole rent. */
+  occupants?: 1 | 2;
 }
 
 export function clampFloors(floors: number | undefined): number {
@@ -27,21 +34,20 @@ export function isRentMinute(minute: number): boolean {
   return minute > 0 && minute % MINUTES_PER_DAY === 1;
 }
 
-/** What a tenant earned today. Most days it covers the rent. It does not touch the sim's random stream. */
-export function tenantEarnings(buildingId: number, floor: number, week: number, day: number, rent: number): number {
-  const roll = r01(buildingId * 17 + floor * 13, week * 10 + day);
-  if (roll < 0.18) return Math.round(rent * 0.35);
-  return Math.round(rent * (1.05 + roll * 0.45));
+/** What the apartment earned today. It does not touch the sim's random stream. */
+export function apartmentEarnings(occupants: number): number {
+  return (occupants >= 2 ? TENANT_SHARED_HOURLY : TENANT_HOURLY) * TENANT_HOURS;
 }
 
 export function freshTenants(floors: number): RoomTenant[] {
-  return Array.from({ length: clampFloors(floors) }, () => ({ budget: 0, vacantDays: 0 }));
+  return Array.from({ length: clampFloors(floors) }, () => ({ budget: 0, vacantDays: 0, occupants: 1 as const }));
 }
 
 /**
- * Each open apartment: the tenant adds the day's earnings to their own purse,
- * then pays the landlord if they can. If they cannot, they leave and the
- * apartment stays empty until a new tenant moves in.
+ * Each open apartment is billed once a day. The tenants add the day's wages
+ * to their own purse and pay the whole rent if they can. If the purse will
+ * not cover it, they move out before the rent is due and the landlord is not
+ * paid. A single tenant can pay the apartment's rent.
  */
 export function chargeRentedRooms(w: WorldState): void {
   if (!isRentMinute(w.minute)) return;
@@ -70,24 +76,26 @@ function settleTenant(
   tenant: RoomTenant, buildingId: number, floor: number, week: number, day: number, rent: number, take: (paid: number) => void,
 ): RoomTenant {
   if (tenant.budget == null) {
-    if (tenant.vacantDays >= RENTED_ROOMS_VACANT_DAYS) return payOrLeave({ budget: 0, vacantDays: 0 }, buildingId, floor, week, day, rent, take);
+    if (tenant.vacantDays >= RENTED_ROOMS_VACANT_DAYS) {
+      const occupants = r01(buildingId * 17 + floor * 13, week * 10 + day) < 0.5 ? 1 : 2;
+      return payOrLeave({ budget: 0, vacantDays: 0, occupants }, rent, take);
+    }
     return { budget: null, vacantDays: tenant.vacantDays + 1 };
   }
-  return payOrLeave(tenant, buildingId, floor, week, day, rent, take);
+  return payOrLeave(tenant, rent, take);
 }
 
-function payOrLeave(
-  tenant: RoomTenant, buildingId: number, floor: number, week: number, day: number, rent: number, take: (paid: number) => void,
-): RoomTenant {
-  const budget = (tenant.budget ?? 0) + tenantEarnings(buildingId, floor, week, day, rent);
-  if (budget < rent) return { budget: null, vacantDays: 0 };
+function payOrLeave(tenant: RoomTenant, rent: number, take: (paid: number) => void): RoomTenant {
+  const occupants = tenant.occupants === 2 ? 2 : 1;
+  const budget = (tenant.budget ?? 0) + apartmentEarnings(occupants);
+  if (budget < rent) return { budget: null, vacantDays: 0, occupants: 1 };
   take(rent);
-  return { budget: budget - rent, vacantDays: 0 };
+  return { budget: budget - rent, vacantDays: 0, occupants };
 }
 
 function normalizeTenants(building: Building, floors: number): RoomTenant[] {
   const current = building.roomsTenants ?? [];
-  return Array.from({ length: floors }, (_, i) => current[i] ?? { budget: 0, vacantDays: 0 });
+  return Array.from({ length: floors }, (_, i) => current[i] ?? { budget: 0, vacantDays: 0, occupants: 1 });
 }
 
 function isOpenRooms(building: Building): boolean {

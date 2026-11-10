@@ -1,7 +1,19 @@
 import { ERA_2032_ENABLED, ACTIVE_ERA } from './era';
 import { activeWorldStore, downloadText } from './worldFolder';
+import { recentActions } from './actionLog';
+import { slowestAssets } from './assetTiming';
+import { resolvedGraphics } from './device';
+import { readLocalData } from './localData';
+import { systemTimings } from '../sim/simTimings';
 import type { WorldState } from '../sim/types';
 import { gangManpower, money, territoryCount } from '../sim/world';
+
+let wish = '';
+
+/** Optional note typed before a debug report is saved. */
+export function setReportWish(text: string): void {
+  wish = text.trim().slice(0, 500);
+}
 
 const errors: string[] = [];
 const timings: { label: string; ms: number }[] = [];
@@ -64,9 +76,35 @@ export function buildDebugReport(world: WorldState | null, version: string, comm
     lines.push(`Viewport: ${window.innerWidth}×${window.innerHeight}`);
   }
   lines.push('');
+  lines.push(`Graphics: ${resolvedGraphics(readLocalData().graphics)} (choice ${readLocalData().graphics})`);
+  const heap = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
+  if (heap) lines.push(`JS heap: ${Math.round(heap.usedJSHeapSize / 1048576)} / ${Math.round(heap.totalJSHeapSize / 1048576)} MB`);
+  if (typeof navigator !== 'undefined') {
+    const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+    if (deviceMemory) lines.push(`Device memory: ${deviceMemory} GB`);
+  }
+  lines.push('');
   lines.push('Timings (ms)');
   if (!timings.length) lines.push('(none)');
   for (const timing of timings) lines.push(`${timing.label}: ${timing.ms}`);
+  lines.push('');
+  lines.push('Sim systems (ms, last week)');
+  const systems = systemTimings();
+  if (!systems.length) lines.push('(none)');
+  for (const system of systems) lines.push(`${system.name}: ${system.ms} (${system.calls} calls)`);
+  lines.push('');
+  lines.push('Slowest assets (ms)');
+  const assets = slowestAssets();
+  if (!assets.length) lines.push('(none)');
+  for (const asset of assets) lines.push(`${asset.ms} ${asset.ok ? 'ok' : 'failed'} ${asset.file}`);
+  lines.push('');
+  lines.push('What you wished would happen');
+  lines.push(wish || '(not answered)');
+  lines.push('');
+  lines.push('Last 20 actions');
+  const actions = recentActions();
+  if (!actions.length) lines.push('(none)');
+  for (const action of actions) lines.push(`${action.at} ${action.kind}: ${action.detail}`);
   lines.push('');
   if (!world) {
     lines.push('No city is open.');

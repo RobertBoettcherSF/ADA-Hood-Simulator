@@ -1,5 +1,5 @@
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
-import { originalWageQuote } from './originalWages';
+import { originalStartingWage, originalWageQuote } from './originalWages';
 import { BLAST_DAMAGE, blastFear, effectiveHostility, fearOf, hostilityOf, MEMBER_DEATH_FEAR, NO_ORIGINAL_CHANNEL, opinionShift, ownerSquealLevel, setAttitude, shiftAttitude } from './attitudes';
 import { onMayorDeath, refreshNominees } from './systems/politics';
 import { originalHuntArrived, originalHuntFinds, startOriginalHunt } from './systems/originalHunt';
@@ -13,6 +13,7 @@ import { allocateTransport, alight, availableVehicle, dismount, stepOut, orderVe
 import { cargoVehicles, cargoWarehouse, emptyGoods, goodsTotal, loadCargo, refreshExportCargo, unloadCargo } from './cargo';
 import {
   DRIVE_MIN_DISTANCE,
+  MAX_TEAM_SIZE,
   MINUTES_PER_WEEK,
   ORDERS,
   VEHICLES,
@@ -120,6 +121,31 @@ export function huntStops(w: WorldState, gangId: ID): ID[] {
     at = w.lots[b.lotId].center;
   }
   return round;
+}
+
+/** A hood who agrees to work joins the crew if it has room, otherwise the pool. */
+function takeOnHood(w: WorldState, gang: Gang, team: Team, person: Person): 'crew' | 'pool' {
+  person.gangId = gang.id;
+  person.buildingId = null;
+  person.teamId = null;
+  person.loyalty = 70;
+  person.payDemand = hoodPayDemand(person, 'hood');
+  person.pay = person.payDemand;
+  if (w.cityLayout?.original) originalStartingWage(person, gang.id);
+  for (const other of Object.values(w.gangs)) {
+    if (other.recruitIds.includes(person.id)) other.recruitIds = other.recruitIds.filter((id) => id !== person.id);
+  }
+  person.inVehicle = false;
+  person.orderId = null;
+  const office = nearestOffice(w, gang.id, person.pos);
+  if (office) person.pos = { ...w.lots[office.lotId].center };
+  if (team.memberIds.length < MAX_TEAM_SIZE - 1) {
+    team.memberIds.push(person.id);
+    person.teamId = team.id;
+    return 'crew';
+  }
+  if (!gang.poolIds.includes(person.id)) gang.poolIds.push(person.id);
+  return 'pool';
 }
 
 export function nearestOffice(w: WorldState, gangId: ID, near: Vec2): Building | null {
@@ -1079,7 +1105,7 @@ function resolveTarget(
       if (t.id === 'rentedRooms') {
         const floors = Math.max(1, Math.min(4, Math.round(order.opts.roomsFloors ?? 2)));
         building.roomsFloors = floors;
-        building.roomsTenants = Array.from({ length: floors }, () => ({ budget: 0, vacantDays: 0 }));
+        building.roomsTenants = Array.from({ length: floors }, () => ({ budget: 0, vacantDays: 0, occupants: 1 as const }));
         building.roomsChargedDay = 0;
         building.roomsWeekNet = 0;
       }
@@ -1299,18 +1325,29 @@ function resolveTarget(
         );
         return;
       }
+      // A crew that finds people takes at least one. The old roll could send
+      // them home with nobody, and a success only marked a name "willing" —
+      // the pool and the headcount never moved.
       const persuaded = roll(rng, actors, ['intelligence'], 0.25);
-      if (!persuaded) {
-        miss(`Nobody at ${placeName(w, building)} was interested.`);
-        return;
+      const take = persuaded ? rng.int(1, Math.min(3, candidates.length)) : 1;
+      if (kind !== 'hood') {
+        let added = 0;
+        for (let i = 0; i < take; i++) {
+          const c = candidates[i];
+          if (!gang.recruitIds.includes(c.id)) { gang.recruitIds.push(c.id); added++; }
+        }
+        say(added ? `${added} ${kind}(s) willing to work for you.` : 'Nobody new was willing to work for you.');
+        break;
       }
-      const take = rng.int(1, Math.min(3, candidates.length));
-      let added = 0;
+      let crew = 0, pool = 0;
       for (let i = 0; i < take; i++) {
-        const c = candidates[i];
-        if (!gang.recruitIds.includes(c.id)) { gang.recruitIds.push(c.id); added++; }
+        if (takeOnHood(w, gang, team, candidates[i]) === 'crew') crew++;
+        else pool++;
       }
-      say(added ? `${added} ${kind === 'hood' ? 'hood(s)' : kind + '(s)'} willing to work for you.` : 'Nobody new was willing to work for you.');
+      const joined = crew + pool;
+      say(joined
+        ? `${joined} hood${joined === 1 ? '' : 's'} signed on${pool ? ` (${pool} in the pool` : ''}${crew ? `${pool ? ', ' : ' ('}${crew} with the crew` : ''}${pool || crew ? ')' : ''}.`
+        : 'Nobody new was willing to work for you.');
       break;
     }
 
@@ -1744,6 +1781,9 @@ export function damageBuilding(w: WorldState, b: Building, severity: number): vo
 export function burnBuilding(w:WorldState,b:Building):void {
   if(b.cls==='municipal')return;
   damageBuilding(w,b,.85);b.fireWeek=w.week;
+  // Closed until somebody pays for the repairs. Damaged premises do not trade.
+  b.fireInjured = 0;
+  b.fireDead = 0;
 }
 
 export function destroyBuilding(w: WorldState, b: Building): void {

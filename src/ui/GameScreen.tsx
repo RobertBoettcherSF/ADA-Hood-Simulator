@@ -30,6 +30,7 @@ export function GameScreen() {
   useGame((s) => s.version);
   const attract = useGame((s) => s.attract);
   const resolving = useGame((s) => s.resolvingHeadless);
+  const weekProgress = useGame((s) => s.weekProgress);
 
   useEffect(() => {
     audio.startMusic();
@@ -49,6 +50,10 @@ export function GameScreen() {
         <div className="paper sheet">
           <h2>The week is being settled</h2>
           <p>Week {sim.world.week}, minute {sim.world.minute}. The city is not on screen. The same clock is running.</p>
+          <div className="week-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(weekProgress * 100)}>
+            <i style={{ width: `${Math.round(weekProgress * 100)}%` }} />
+          </div>
+          <p>{Math.round(weekProgress * 100)}% of the week settled.</p>
         </div>
       </div>
     );
