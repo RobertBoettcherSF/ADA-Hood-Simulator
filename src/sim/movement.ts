@@ -316,40 +316,50 @@ function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?:
   const car = p.inVehicle ? vehicleOf(world, p) : undefined;
   if (p.inVehicle) { noteDrive(p, p.pos); if (car) noteDrive(car, p.pos); }
 
+  // Drop every waypoint this minute in one splice. Shifting one point at a
+  // time copied the rest of the route on every corner; the route left behind
+  // is the same list.
+  const path = p.path;
+  let index = 0;
+  const drop = () => { if (index) { path.splice(0, index); index = 0; } };
   while (budget > 0) {
-    if (!p.path.length) {
+    if (index >= path.length) {
       p.pos.x = p.dest.x;
       p.pos.y = p.dest.y;
+      drop();
       clearDestination(p);
       return true;
     }
-    const next = p.path[0];
+    const next = path[index];
     const dx = next.x - p.pos.x;
     const dy = next.y - p.pos.y;
     const d = Math.hypot(dx, dy);
     // Still on the kerb at the start of a crossing: look before stepping off.
     if (traffic && next.cross && !p.inVehicle && d >= next.cross - 0.75 && crossingHasTraffic(traffic, p.pos, next)) {
       p.halted = true;
+      drop();
       return false;
     }
     // At the wheel: somebody on a crossing ahead means a stop. Standing on
     // the waypoint itself there is no heading yet; take it first.
     if (traffic && p.inVehicle && d > 0.5 && roadAheadBlocked(traffic, p.pos, next)) {
       p.halted = true;
+      drop();
       return false;
     }
     // A slower car in front: close up behind it and keep its pace.
     if (traffic && p.inVehicle && d > 0.5) {
-      budget = Math.min(budget, roadAheadRoom(traffic, p.pos, next, vehicleDriver(world ?? traffic.world!, p), p.path[1]));
-      if (budget <= 0) return false;
+      budget = Math.min(budget, roadAheadRoom(traffic, p.pos, next, vehicleDriver(world ?? traffic.world!, p), path[index + 1]));
+      if (budget <= 0) { drop(); return false; }
     }
     if (d <= budget) {
       p.pos.x = next.x;
       p.pos.y = next.y;
-      p.path.shift();
+      index++;
       budget -= d;
       if (p.inVehicle) { noteDrive(p, p.pos, true); if (car) noteDrive(car, p.pos, true); }
-      if (!p.path.length) {
+      if (index >= path.length) {
+        drop();
         clearDestination(p);
         return true;
       }
@@ -359,6 +369,7 @@ function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?:
       budget = 0;
     }
   }
+  drop();
   return false;
 }
 

@@ -10,6 +10,8 @@ function memoryStore(): WorldStore {
     label: 'test',
     read: async (name) => files.get(name) ?? null,
     write: async (name, body) => { files.set(name, body); },
+    readBytes: async () => null,
+    writeBytes: async () => {},
     writeReport: async () => {},
     exists: async (name) => files.has(name),
   };

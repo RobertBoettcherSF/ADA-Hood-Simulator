@@ -12,6 +12,7 @@
 
 import * as THREE from 'three';
 import { noteAssetLoad } from '../app/assetTiming';
+import { assetUrl } from '../app/assetCache';
 import { BUILDING_TYPES } from '../sim/data/buildings';
 import { TILE_BAYS, TILE_STOREYS, mulberry32 } from './util';
 
@@ -791,7 +792,7 @@ export interface CityArt {
   road: HTMLImageElement | null;
 }
 
-const ART_CITY = `${import.meta.env.BASE_URL}art/city/`;
+const cityFile = (file: string) => assetUrl(`art/city/${file}`);
 
 /** Palette name → delivered facade file stem. */
 const FACADE_FILES: Record<string, string> = {
@@ -807,7 +808,7 @@ const SIGN_FILES = ['sign-green', 'sign-oxblood', 'sign-navy', 'sign-walnut', 's
 function loadTexture(file: string, repeat = true): Promise<THREE.Texture | null> {
   const started = performance.now();
   return new THREE.TextureLoader()
-    .loadAsync(ART_CITY + file)
+    .loadAsync(cityFile(file))
     .then((t) => {
       noteAssetLoad(file, performance.now() - started, true);
       t.colorSpace = THREE.SRGBColorSpace;
@@ -825,7 +826,7 @@ function loadImageFile(file: string): Promise<HTMLImageElement | null> {
     const img = new Image();
     img.onload = () => { noteAssetLoad(file, performance.now() - started, true); resolve(img); };
     img.onerror = () => { noteAssetLoad(file, performance.now() - started, false); resolve(null); };
-    img.src = ART_CITY + file;
+    img.src = cityFile(file);
   });
 }
 

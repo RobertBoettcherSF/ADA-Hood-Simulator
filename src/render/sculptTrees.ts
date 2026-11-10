@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { sculptLoader, sculptModelUrl } from './sculptLoader';
 import { limitTextureSize, textureLimit } from './textureQuality';
 
 export const TREE_KINDS = ['elm', 'oak', 'linden'] as const;
@@ -55,8 +55,8 @@ export class SculptTrees {
   constructor() { this.group.name = 'sculpt-trees'; }
 
   async load(): Promise<void> {
-    const loader = new GLTFLoader();
-    const results = await Promise.allSettled(TREE_KINDS.map(kind => loader.loadAsync(`${import.meta.env.BASE_URL}art/city/sculpt/trees/${kind}.glb`)));
+    const loader = await sculptLoader();
+    const results = await Promise.allSettled(TREE_KINDS.map(kind => loader.loadAsync(sculptModelUrl(`trees/${kind}.glb`))));
     // Own fulfilled siblings even after cancellation or a partial load failure.
     for (const result of results) if (result.status === 'fulfilled') result.value.scene.traverse(child => {
       if (!(child instanceof THREE.Mesh)) return;

@@ -12,6 +12,8 @@ import { riverBank, riverCrossing } from './riverBanks';
 import { SculptTrees, type TreePlacement } from './sculptTrees';
 import * as THREE from 'three';
 import { resolvedGraphics } from '../app/device';
+import { preloadAssets } from '../app/assetCache';
+import { bindSculptRenderer } from './sculptLoader';
 import { BuildingPickBounds } from './buildingPickBounds';
 import { BuildingOutline } from './buildingOutline';
 import { actorSightlineHits, TaggedView, TaggedViews, type TaggedViewRect } from './taggedView';
@@ -460,6 +462,8 @@ export class CityRenderer {
     this.tex = { ...cityTextures() };
     const phone = resolvedGraphics() === 'phone';
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !phone, powerPreference: phone ? 'low-power' : 'high-performance' });
+    bindSculptRenderer(this.renderer);
+    if (phone) void preloadAssets('street');
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, phone ? 1 : 2));
     this.renderer.shadowMap.enabled = !phone;
     // World matrices are brought up to date once a frame in render(), not again
@@ -1856,17 +1860,18 @@ export class CityRenderer {
       this.colorScratch.setRGB(shade, shade * 0.99, shade * 0.96);
       this.pavement.push(this.dummy.matrix, this.colorScratch);
 
-      // A lamp standard on each corner of the block.
+      // A lamp standard on each corner of the block. A phone draws two.
       this.dummy.scale.set(1, 1, 1);
       const corner = rect.w / 2 + pave - 1.5, cornerZ = rect.h / 2 + pave - 1.5;
-      for (let k = 0; k < 4; k++) {
+      const phoneStreet = resolvedGraphics() === 'phone';
+      for (let k = 0; k < (phoneStreet ? 2 : 4); k++) {
         const dx = k & 1 ? corner : -corner;
         const dz = k & 2 ? cornerZ : -cornerZ;
         this.dummy.position.set(cx + dx, KERB_H, cz + dz);
         this.dummy.rotation.set(0, (k * Math.PI) / 2, 0);
         this.dummy.updateMatrix();
         this.lamps.push(this.dummy.matrix);
-        this.lampGlow.push(this.dummy.matrix);
+        if (!phoneStreet) this.lampGlow.push(this.dummy.matrix);
       }
 
       // A hydrant, and trees on the leafier blocks.
@@ -1877,10 +1882,10 @@ export class CityRenderer {
       this.dummy.position.set(hx, KERB_H, hz);
       this.dummy.rotation.set(0, r01(blk.id, 23) * Math.PI, 0);
       this.dummy.updateMatrix();
-      this.hydrants.push(this.dummy.matrix);
+      if (!phoneStreet) this.hydrants.push(this.dummy.matrix);
 
       if (blk.district === 'residential' || blk.district === 'civic' || r01(blk.id, 24) < 0.22) {
-        const n = 1 + rint(blk.id, 25, 3);
+        const n = phoneStreet ? 1 : 1 + rint(blk.id, 25, 3);
         for (let k = 0; k < n; k++) {
           const s2 = rint(blk.id, 26 + k, 4);
           const a2 = (r01(blk.id, 30 + k) - 0.5) * BLOCK_SIZE * 0.7;
