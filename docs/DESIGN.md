@@ -27,7 +27,7 @@ The owner answered the open questions in §8. These decisions override anything 
 ## v1.2.1 decisions (made while Robert was away)
 
 1. End Week still runs every minute of the same sim. Nothing is skipped, so a Friday stays the one the orders produced. The week-to-week slowdown was not a growing leak in the people count.
-2. A living-world save is one `JSON.stringify`, not a per-entity loop that yields every 6 ms. That loop was the multi-second save. End Week draws a progress bar from the minute clock and works in 80 ms slices. The 40×32 minute sim itself was not cut under 5 seconds.
+2. A living-world save is one `JSON.stringify`, not a per-entity loop that yields every 6 ms. That loop was the multi-second save. On this machine a 40×32 world stringified in 131 ms (about 13.5 MB). End Week draws a progress bar from the minute clock and works in 80 ms slices. The same city's minute sim still took 16.3 s, mostly people walking, and was not cut under 5 seconds.
 3. A recruit order that finds hoods at the site signs at least one of them onto the crew, or the pool if the crew is full. The old success only marked them willing, so the headcount never moved. Accountants and lawyers still land on the willing list. Each week, sites on a non-original map are topped up to 2 hoods or 1 specialist. The original 40×32 map keeps its own quotas.
 4. The debug report's system timings are the week that just ran. They reset when the week opens.
 5. Portraits are the existing painted faces with a sepia grade so they sit with the newspaper photographs. The cartoon stand-in is gone. A missing file shows a sepia initial. The library was not redrawn.
