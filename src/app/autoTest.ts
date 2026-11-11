@@ -45,6 +45,10 @@ import { isValidAreaTarget } from '../sim/execution';
 import type { Sim } from '../sim/sim';
 import { dist, gangManpower, protectedBuildings, territoryCount } from '../sim/world';
 import { buildingList } from '../sim/entityLists';
+import { MINUTES_PER_WEEK } from '../sim/constants';
+import { availableSpecialist } from '../sim/specialists';
+import { queueSpecialistJob } from '../sim/specialistJobs';
+import { bribePrice, isBribableOfficial } from '../sim/officials';
 import {
   balanceAnomalies,
   campaignLabel,
@@ -84,6 +88,24 @@ export interface AutoTestWeek {
 }
 
 const UNTIL_END_CAP = 40;
+
+/** Share of the browser's JavaScript memory limit at which Auto Test stops between weeks. */
+export const MEMORY_STOP_SHARE = 0.85;
+let memoryStopped = false;
+
+/** The browser's heap figures, where it reports them (Chrome). */
+export function heapShare(): number | null {
+  const memory = (globalThis.performance as Performance & { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } } | undefined)?.memory;
+  if (!memory || !memory.jsHeapSizeLimit) return null;
+  return memory.usedJSHeapSize / memory.jsHeapSizeLimit;
+}
+
+/** True once, after a run that stopped because memory was nearly full. */
+export function takeAutoTestMemoryStop(): boolean {
+  const was = memoryStopped;
+  memoryStopped = false;
+  return was;
+}
 
 function hqCenter(w: Sim['world'], gangId: number): { x: number; y: number } {
   const office = buildingList(w).find((b) => b.isHQ && b.ownerGangId === gangId);
@@ -144,7 +166,14 @@ function logResult(actions: string[], label: string, ok: boolean, detail: string
 }
 
 /** Crews one lieutenant can run well. Used to decide when to promote another. */
-const MEN_PER_CREW = 6;
+const MEN_PER_CREW = 5;
+
+/** What last Monday learned, per city: whether the crews ran out of week. */
+const lastMonday = new WeakMap<Sim['world'], { timeShort: boolean }>();
+
+/** Suspicion at which the desk starts paying officials and easing the extortion. */
+const SUSPICION_BRIBE = 40;
+const SUSPICION_EASE = 50;
 
 function crewReady(w: Sim['world'], teamId: number): boolean {
   const team = w.teams[teamId];
@@ -178,7 +207,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     logResult(actions, `hire ${person?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
   }
 
-  // Enough lieutenants for the men: one crew per six hoods, at least two, at most eight.
+  // Enough lieutenants for the men: one crew per five hoods, at least two, at most eight.
   if (weight.hiring >= 0.2) {
     const hoods = () => gang.poolIds.length + crewsOf().reduce((sum, team) => sum + team.memberIds.length + 1, 0);
     const wanted = () => Math.min(8, Math.max(2, Math.ceil(hoods() / MEN_PER_CREW)));
@@ -217,21 +246,33 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   }
 
   const outOfTime = new Set<number>();
+  const shortLastWeek = lastMonday.get(w)?.timeShort ?? false;
+  let timeShort = false;
   /** The crew with the most time left this week, skipping those already given this kind of job. */
   const freest = (skip: Set<number> = new Set()) =>
     ready.filter((team) => !outOfTime.has(team.id) && !skip.has(team.id)).sort((a, b) => a.timeUsed - b.timeUsed || a.id - b.id)[0];
   const give = (label: string, team: (typeof ready)[number] | undefined, input: Omit<IssueOrderInput, 'teamId'>): ApiResult => {
-    if (!team) return { ok: false, error: 'Every crew is busy this week.' };
+    if (!team) {
+      actions.push(`NOTE ${label} skipped — every crew's week is full`);
+      timeShort = true;
+      return { ok: false, error: 'Every crew is busy this week.' };
+    }
     const name = w.people[team.lieutenantId]?.name ?? 'crew';
     let result = issueOrder(w, gang.id, { ...input, teamId: team.id });
     // Undermanned for the whole area, take the part the lieutenant offers.
     if (!result.ok && result.suggestion?.buildingIds?.length) {
       result = issueOrder(w, gang.id, { ...input, teamId: team.id, buildingIds: result.suggestion.buildingIds });
     }
+    // Still no time: one site may fit where several did not.
+    if (!result.ok && /time/i.test(result.error) && (input.buildingIds?.length ?? 0) > 1) {
+      result = issueOrder(w, gang.id, { ...input, teamId: team.id, buildingIds: input.buildingIds!.slice(0, 1) });
+    }
     logResult(actions, `${label} (${name})`, result.ok, result.ok ? result.message ?? '' : result.error);
-    if (!result.ok && /time/i.test(result.error)) outOfTime.add(team.id);
+    if (!result.ok && /time/i.test(result.error)) { outOfTime.add(team.id); timeShort = true; }
     return result;
   };
+  /** Share of this crew's week still free. */
+  const freeShare = (team: (typeof ready)[number]) => 1 - team.timeUsed / MINUTES_PER_WEEK;
   const manpowerFor = (team: (typeof ready)[number], most: number) => Math.max(1, Math.min(most, team.memberIds.length + 1));
 
   const origin = hqCenter(w, gang.id);
@@ -244,22 +285,68 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   }
 
   // One-off hires come before the expansion fills the crews' week.
-  if (w.week >= 4 && gang.accountantId == null) {
-    const desk = buildingList(w).find((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'accountant' && b.state !== 'destroyed');
+  // Each week tries the next office, so one empty desk does not hold up the hire.
+  const deskFor = (role: 'accountant' | 'lawyer') => {
+    const desks = buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === role && b.state !== 'destroyed').sort(nearer);
+    return desks.length ? desks[w.week % desks.length] : undefined;
+  };
+  if (w.week >= 3 && gang.accountantId == null) {
+    const desk = deskFor('accountant');
     if (desk) give('recruit accountant', freest(), { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'accountant' } });
   }
-  if (w.week >= 6 && gang.lawyerId == null) {
-    const desk = buildingList(w).find((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'lawyer' && b.state !== 'destroyed');
+  if (w.week >= 4 && gang.lawyerId == null) {
+    const desk = deskFor('lawyer');
     if (desk) give('recruit lawyer', freest(), { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'lawyer' } });
   }
+
+  // Police and courts. Past SUSPICION_BRIBE, or with a case open against the
+  // gang, the lawyer pays the judges on those cases first, then the chief, the
+  // other judges and the district attorneys; a crew pays the chief as well.
+  const openCases = Object.values(w.cases ?? {}).filter((c) => c.gangId === gang.id && ['awaiting', 'onTrial'].includes(c.status));
+  const hot = gang.suspicion >= SUSPICION_BRIBE || openCases.length > 0;
+  if (hot) {
+    const lawyer = availableSpecialist(w, gang, 'lawyer');
+    if (lawyer) {
+      const officials = [
+        ...openCases.map((c) => c.judgeId),
+        w.policeChiefId,
+        ...(w.judgeIds ?? []),
+        ...(w.daIds ?? []),
+      ];
+      const seen = new Set<number>();
+      let paid = 0;
+      for (const id of officials) {
+        if (paid >= 4 || id == null || seen.has(id)) continue;
+        seen.add(id);
+        const official = w.people[id];
+        if (!official || official.bribedBy === gang.id || !isBribableOfficial(official)) continue;
+        if (bribePrice(w, official, gang.id) > gang.cash * 0.3) continue;
+        const result = queueSpecialistJob(w, gang.id, 'bribeOfficials', id);
+        logResult(actions, `lawyer bribes ${official.name}`, result.ok, result.ok ? result.message ?? '' : result.error);
+        if (result.ok) paid++;
+      }
+    } else if (gang.lawyerId == null) {
+      actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} and no lawyer yet`);
+    }
+    const chief = w.people[w.policeChiefId];
+    if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > 1500) {
+      give('bribe chief', freest(), { type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: Math.round(400 + gang.suspicion * 10) } });
+    }
+  }
+  const easing = gang.suspicion >= SUSPICION_EASE;
+  if (easing) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} — extortion eased, buying legal premises`);
 
   const spend = (key: PlayStrategy['priority'][number]) => {
     if (key === 'hiring') {
       // More streets need more collectors: the target grows with the territory.
-      const target = Math.max(18, Math.round(10 + weight.hiring * 12), Math.min(48, Math.round(territoryCount(w, gang.id) * 1.2)));
+      // Crews that ran out of week last Monday need more men, whatever the target says.
+      const base = Math.max(18, Math.round(10 + weight.hiring * 12), Math.min(60, Math.round(territoryCount(w, gang.id) * 2)));
+      const target = Math.min(64, base + (shortLastWeek ? 6 : 0));
       if (gangManpower(w, gang) < target && hoodSites.length) {
-        const count = Math.max(1, Math.round(1 + weight.hiring * 2));
-        give('recruit', freest(), { type: 'recruit', buildingIds: hoodSites.slice(0, count).map((b) => b.id), opts: { manpower: 1 } });
+        // Two sites at most, with two men: a longer list ran out of week before the last door.
+        const count = Math.min(2, Math.max(1, Math.round(1 + weight.hiring)));
+        const team = freest();
+        give('recruit', team, { type: 'recruit', buildingIds: hoodSites.slice(0, count).map((b) => b.id), opts: { manpower: team ? manpowerFor(team, 2) : 1 } });
       } else if (hoodSites.length === 0) {
         actions.push('NOTE no hoods standing at a hiring place');
       } else {
@@ -289,13 +376,22 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           list.push(b);
           byBlock.set(b.blockId, list);
         }
+        // The hottest quarter of the blocks is left alone while suspicion is high.
+        const heats = [...byBlock.keys()].map((id) => w.blocks[id]?.crimeHeat ?? 0).sort((a, b) => a - b);
+        const hotLine = heats.length ? heats[Math.floor(heats.length * 0.75)] : Infinity;
         const cap = Math.max(2, Math.round(weight.rackets * 5));
+        const crewsToSend = easing ? Math.max(1, Math.floor(ready.length / 2)) : ready.length;
         const sent = new Set<number>();
-        for (const sites of byBlock.values()) {
+        for (const [blockId, sites] of byBlock) {
+          if (sent.size >= crewsToSend) break;
+          if (easing && (w.blocks[blockId]?.crimeHeat ?? 0) >= hotLine && hotLine > 0) continue;
           const team = freest(sent);
-          if (!team) break;
+          if (!team) { timeShort = true; break; }
+          // Size the area to the crew's free week: about one site per sixth of a week.
+          const fit = Math.max(1, Math.min(cap, Math.floor(freeShare(team) * 6)));
+          if (freeShare(team) < 0.15) { sent.add(team.id); timeShort = true; continue; }
           sent.add(team.id);
-          give('extort', team, { type: 'extort', buildingIds: sites.slice(0, cap).map((b) => b.id), opts: { manpower: manpowerFor(team, 2) } });
+          give('extort', team, { type: 'extort', buildingIds: sites.slice(0, fit).map((b) => b.id), opts: { manpower: manpowerFor(team, 2) } });
         }
       }
       if (weight.rackets >= 0.45) {
@@ -318,16 +414,18 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         }
       }
     }
-    if (key === 'bribes' && w.week >= 4 && weight.bribes >= 0.25) {
+    if (key === 'bribes' && !hot && w.week >= 4 && weight.bribes >= 0.25) {
       const chief = w.people[w.policeChiefId];
       const gate = 1500 + (1 - weight.bribes) * 2500;
       if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > gate) {
         give('bribe', freest(), { type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: Math.round(200 + weight.bribes * 800) } });
       }
     }
-    if (key === 'buying' && w.week >= 4 && weight.buying >= 0.3) {
-      const gate = 8000 + (1 - weight.buying) * 8000;
-      const fraction = 0.15 + weight.buying * 0.5;
+    // Legal takings weigh against protection money in the Bureau's sums, so
+    // a suspicious gang buys shops whatever the strategy's buying weight.
+    if (key === 'buying' && w.week >= 4 && (weight.buying >= 0.3 || easing)) {
+      const gate = easing ? 3000 : 8000 + (1 - weight.buying) * 8000;
+      const fraction = easing ? 0.4 : 0.15 + weight.buying * 0.5;
       if (gang.cash > gate) {
         const site = buildingList(w).filter((b) => {
           const cost = BUILDING_BY_ID[b.typeId]?.cost ?? 0;
@@ -347,6 +445,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
 
   for (const key of strategy.priority) spend(key);
 
+  lastMonday.set(w, { timeShort });
   const idle = ready.filter((team) => team.orderIds.every((id) => !w.orders[id] || w.orders[id].gangId !== gang.id) && team.timeUsed === 0);
   if (idle.length) actions.push(`NOTE ${idle.length} crew${idle.length === 1 ? '' : 's'} without an order: ${idle.map((team) => w.people[team.lieutenantId]?.name ?? team.id).join(', ')}`);
   if (gangManpower(w, gang) === beforeMen && gang.poolIds.length === 0 && gang.recruitIds.length === 0 && hoodSites.length === 0) {
@@ -485,6 +584,14 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     if (flatRecruit >= 2) notes.push(`Stuck: men stayed ${men} and the pool stayed empty for ${flatRecruit} weeks.`);
     if (phase === 'gameOver') break;
     if (settings.weeks == null && sim.world.outcome) break;
+    // The week is saved by now. Stop before the tab runs out of memory.
+    const share = heapShare();
+    if (share != null && share >= MEMORY_STOP_SHARE) {
+      memoryStopped = true;
+      stoppedThisRun = true;
+      notes.push(`Stopped: the browser's memory was ${Math.round(share * 100)}% full after week ${sim.world.week - 1}. The city is saved; reload the page before running more weeks.`);
+      break;
+    }
     if (stopAfterThisWeek) { stoppedThisRun = true; notes.push('Stopped after this week. The desk is yours.'); break; }
   }
   } finally {
