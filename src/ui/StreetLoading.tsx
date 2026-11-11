@@ -29,7 +29,7 @@ export const LOADING_TIPS = [
   'Without an accountant, illegal cash is hard to explain.',
   'A lawyer keeps the courtroom from becoming the end of the gang.',
   'Guarding a front also guards the business hidden behind it.',
-  'End Week runs the same clock as Hit the Streets, without drawing the city.',
+  'End Week, beside Pause, finishes the week without the street animation. Escape returns to normal speed.',
   'The safe is charged when an order is carried out, not when you queue it.',
   'Your boss is the gang. If he dies or goes to prison, the game is over.',
   'The mayoralty needs territory, a lawyer, and the cash for the campaign.',

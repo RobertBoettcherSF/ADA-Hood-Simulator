@@ -59,6 +59,7 @@ function currentOrder(p:Person,w:WorldState) {
 export function WeekHud() {
   const sim=useGame(s=>s.sim)!;
   const paused=useGame(s=>s.paused), finishing=useGame(s=>s.finishingWeek);
+  const weekProgress=useGame(s=>s.weekProgress);
   const filter=useGame(s=>s.messageFilter), override=useGame(s=>s.messageOverride);
   const messageBox=useGame(s=>s.messageBox), taggedIds=useGame(s=>s.taggedPersonIds);
   const autoCut=useGame(s=>s.autoLowerRoofs), overlays=useGame(s=>s.overlays);
@@ -107,14 +108,17 @@ export function WeekHud() {
       <div className="week-titlebar">
         <button className="week-exit" onClick={()=>state().setQuitPrompt(true)} title="Exit to the main menu (Ctrl+Q)">Exit</button>
         <span>Working week <b>{w.week}</b></span>
-        <span className="week-status">{paused?'Paused':finishing?'Finishing week':`${WEEK_DAYS[dayIndex(w.minute)]} · ${weekTime(w.minute)}`}</span>
+        <span className="week-status">{finishing?'Finishing week':paused?'Paused':`${WEEK_DAYS[dayIndex(w.minute)]} · ${weekTime(w.minute)}`}</span>
         <span className="week-place" title={place}>{place}</span>
         <span className="week-cash">Cash <b><MoneyRoll value={spendableCash(w, gang.id)} /></b></span>
       </div>
       <nav className="week-iconbar" aria-label="Working week controls">
         <div className="interface-control-group">
           <InterfaceButton label={paused&&!finishing?'Resume':'Pause'} icon={paused&&!finishing?'hud/play':'hud/pause'} caption={paused&&!finishing?'Resume':'Pause'} aria-pressed={paused&&!finishing}
-            title={finishing?'Stop skipping and pause (P)':paused?'Resume (P)':'Pause (P)'} onClick={()=>finishing?state().cancelFinishWeek():state().setPaused(!paused)}/>
+            title={finishing?'Pause the skip (P)':paused?'Resume (P)':'Pause (P)'} onClick={()=>finishing?state().cancelFinishWeek():state().setPaused(!paused)}/>
+          <InterfaceButton label="End Week" icon="hud/endWeek" caption="End week" disabled={finishing}
+            title="End Week — finish the rest of the week without the street animation. Fights still resolve. Escape returns to normal speed."
+            onClick={()=>void state().finishWeek()}/>
           <InterfaceButton label="Help" glyph="?" caption="Help" onClick={()=>state().setHelpOpen(true)}/>
           <InterfaceButton label="City Plan View" icon="tabs/maps" caption="City plan" aria-pressed={view==='plan'} title="City Plan View (Insert)" onClick={()=>zoom('plan')}/>
           <InterfaceButton label="Rooftop View" glyph="▱" caption="Rooftop" aria-pressed={view==='roof'} title="Rooftop View (Home)" onClick={()=>zoom('roof')}/>
@@ -136,7 +140,7 @@ export function WeekHud() {
             <InterfaceButton label="Automatic cutaway" icon="orders/setUpBusiness" caption="Cutaway" aria-pressed={autoCut} onClick={()=>state().setAutoLowerRoofs(!autoCut)}/>
           </>}
         </div>
-        <div className="interface-control-group message-controls" aria-label="Messages">
+        <div className="interface-control-group message-controls wood-tools" aria-label="Messages">
           {(Object.keys(CATEGORIES) as MessageCategory[]).map(c=><InterfaceButton key={c} label={CATEGORIES[c].name} icon={`messages/${c}`} caption={CATEGORIES[c].short} count={counts[c]}
             className={flashes.includes(c)?'message-flash':''} aria-pressed={messageBox===c} title={`${CATEGORIES[c].name} (${CATEGORIES[c].key}); right-click to view latest event`}
             onClick={()=>{setMessageBox(c);setMessageId(null);}} onContextMenu={e=>{e.preventDefault();eventView(w.messages.filter(m=>m.category===c).at(-1));}}/>) }
@@ -144,6 +148,12 @@ export function WeekHud() {
         </div>
         <MapAccess className="interface-map-search" label="Find…"/>
       </nav>
+      {finishing && (
+        <div className="end-week-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(weekProgress * 100)} aria-label="End Week progress">
+          <span className="end-week-track"><i style={{ width: `${Math.round(weekProgress * 100)}%` }} /></span>
+          <span>End Week {Math.round(weekProgress * 100)}% · Esc for normal speed</span>
+        </div>
+      )}
     </header>
     <div className="week-windows">
       {taggedIds.map(id=><TaggedWindow key={id} id={id}/>)}

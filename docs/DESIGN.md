@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is Saint Volstead in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.7.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.8.
 
 ## Decisions
 
@@ -149,6 +149,13 @@ After the first week the clock stays near 21 seconds. The save stays near 13.7 M
 | Joe "The Boss" Masseria | Ellis "Last Call" Dunn |
 
 The eleven Hall names were the old default table. Their scores are unchanged, so a played game still climbs the same ladder. Chicago street names and neighborhood labels such as The Loop and Little Sicily stay; they are ordinary geography, and Little Sicily is also a song title. Period surnames and nicknames in the citizen pool stay. Curtain for Capone stays; that title was chosen for this version.
+
+## v1.2.8 decisions
+
+1. The version, Sound, Debug, and Auto Test controls are a wood strip of icon buttons, the same plaque, caption, and tooltip as the lieutenant tabs. Combat, Police, Failed, Waiting, and Override use that same frame. The Auto Test and Debug questions open as paper sheets in a brass frame. Escape closes a sheet.
+2. End Week sits beside Pause. It finishes the rest of the week on the same clock, without drawing the street. Fights still resolve. A short progress bar shows how far the week has gone. Escape stops the skip and continues the street at normal speed. Pause during the skip still pauses. The journal no longer has a second End Week button. Hit the Streets still starts the week you watch. One week of the default 40×32 city, seed 1934, took 16.2 s on this machine.
+3. The debug report says "(none this session)" only when Auto Test has not started. Starting a run is recorded at once, including a run that is still going or that stopped with an error. The finished line is cash, men, blocks, score, and the report file. The note is kept for the browser session.
+4. `art/city/thumbs/residential.png` was missing, so a row house on the building card failed to load. The file is a 256×256 elevation, the same size as the other thumbs.
 
 ## 1. Current state
 

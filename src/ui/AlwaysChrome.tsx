@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../app/store';
 import { audio } from '../audio/audio';
 import { onNowPlaying } from '../audio/musicPool';
+import { Modal } from './common';
+import { InterfaceButton } from './InterfaceControls';
+import './interface.css';
 import { recordAction } from '../app/actionLog';
 import { runAutoTest, campaignOf, type AutoTestSettings } from '../app/autoTest';
 import { folderDiary } from '../app/diary';
 import { campaignLabel, isDefaultCampaign } from '../app/strategy';
-import { installCrashReports, setReportWish, setReportWorld, writeDebugReport } from '../app/debugReport';
+import { installCrashReports, noteAutoTestStopped, setReportWish, setReportWorld, writeDebugReport } from '../app/debugReport';
 import { checkForUpdate, type UpdateOffer } from '../app/versionCheck';
 import { activeWorldStore } from '../app/worldFolder';
 
@@ -82,17 +85,21 @@ export function AlwaysChrome() {
   };
 
   return (
-    <div className="always-chrome">
-      <div className="always-version" aria-label={`Version ${__APP_VERSION__}`}>v{__APP_VERSION__}</div>
-      <button type="button" className="always-debug" aria-pressed={!muted} aria-label={muted ? 'Unmute music' : 'Mute music'} onClick={() => setMuted(audio.toggleMusicMuted())}>
-        {muted ? 'Sound off' : 'Sound on'}
-      </button>
-      <button type="button" className="always-debug" onClick={() => { setAutoOpen(false); setAsking(true); }} disabled={busy}>
-        {busy ? 'Writing…' : 'Debug'}
-      </button>
+    <div className="always-chrome wood-tools" aria-label="Desk tools">
+      <div className="always-version" aria-label={`Version ${__APP_VERSION__}`} title={`Version ${__APP_VERSION__}`}>v{__APP_VERSION__}</div>
+      <InterfaceButton label={muted ? 'Unmute music' : 'Mute music'} glyph={muted ? '×' : '♪'} caption="Sound" aria-pressed={!muted}
+        title={muted ? 'Sound off. Click or press M to unmute.' : 'Sound on. Click or press M to mute.'}
+        onClick={() => setMuted(audio.toggleMusicMuted())} />
+      <InterfaceButton label="Debug report" glyph="✎" caption={busy ? 'Writing' : 'Debug'} disabled={busy}
+        title="Debug — write a report of this session (F9)"
+        onClick={() => { setAutoOpen(false); setAsking(true); }} />
       {asking && (
-        <form className="always-update" onSubmit={(event) => { event.preventDefault(); void run(wishRef.current); }}>
-          <label>
+        <Modal title="Debug report" kicker="09 Reports" onClose={() => setAsking(false)} width={480}
+          footer={<>
+            <button className="btn" type="button" onClick={() => void run(wishRef.current)}>Save report</button>
+            <button className="btn" type="button" onClick={() => void run('')}>Skip</button>
+          </>}>
+          <label className="wood-field stack">
             What would you have wished to happen?
             <input
               value={wish}
@@ -100,9 +107,7 @@ export function AlwaysChrome() {
               maxLength={500}
             />
           </label>
-          <button type="submit">Save report</button>
-          <button type="button" onClick={() => void run('')}>Skip</button>
-        </form>
+        </Modal>
       )}
       {note && (
         <p className="always-note" role={note.error ? 'alert' : 'status'}>
@@ -111,11 +116,13 @@ export function AlwaysChrome() {
         </p>
       )}
       {offer && (
-        <div className="always-update" role="dialog" aria-label="Newer version">
+        <Modal title="A newer copy is available" kicker="Version" onClose={() => setOffer(null)} width={460}
+          footer={<>
+            <button className="btn brass" type="button" onClick={() => { window.location.href = offer.url; }}>Load it</button>
+            <button className="btn" type="button" onClick={() => setOffer(null)}>Keep this one</button>
+          </>}>
           <p>Version {offer.latest} is available. This copy is {offer.current}.</p>
-          <button type="button" onClick={() => { window.location.href = offer.url; }}>Load it</button>
-          <button type="button" onClick={() => setOffer(null)}>Keep this one</button>
-        </div>
+        </Modal>
       )}
       {sim?.world.phase === 'planning' && <AutoTest open={autoOpen} setOpen={(next) => { if (next) setAsking(false); setAutoOpen(next); }} />}
       <NowPlaying />
@@ -148,7 +155,9 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
       await runAutoTest(current, settings, () => useGame.getState().endWeekNow());
       useGame.getState().notify('Auto test report written to 09 Reports.');
     } catch (error) {
-      useGame.getState().notify({ ok: false, error: error instanceof Error ? error.message : 'Auto test failed.' });
+      const message = error instanceof Error ? error.message : 'Auto test failed.';
+      noteAutoTestStopped(message);
+      useGame.getState().notify({ ok: false, error: message });
     } finally {
       setRunning(false);
     }
@@ -160,39 +169,41 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
   };
   return (
     <span className="always-autoplay">
-      <button type="button" className="always-debug" disabled={resolving || running} onClick={() => setOpen(true)}>
-        {running ? 'Testing…' : 'Auto Test'}
-      </button>
+      <InterfaceButton label="Auto Test" glyph="⚑" caption={running ? 'Testing' : 'Test'} disabled={resolving || running}
+        title="Auto Test — a simulated player runs the desk and writes a report"
+        onClick={() => setOpen(true)} />
       {open && (
-        <form className="always-update" role="dialog" aria-label="Auto Test" onSubmit={(event) => { event.preventDefault(); void start(); }}>
+        <Modal title="Auto Test" kicker="A simulated player" onClose={() => setOpen(false)} width={520}
+          footer={<>
+            <button className="btn brass" type="button" onClick={() => void start()}>Start</button>
+            <button className="btn" type="button" onClick={() => setOpen(false)}>Cancel</button>
+            <button className="btn" type="button" onClick={() => void resetDiary()}>Reset diary</button>
+          </>}>
           <p>A simulated player uses the same actions as the desk. The diary learns the default campaign: normal opponents, normal economy, 40×32. This city is {campaign ? campaignLabel(campaign) : 'not open'}{campaign && isDefaultCampaign(campaign) ? ', the default.' : '. It is kept separate.'}</p>
-          <label>
+          <label className="wood-field">
             <input type="checkbox" checked={learn} onChange={(event) => setLearn(event.target.checked)} />
             Learn from diary
           </label>
-          <label>
+          <label className="wood-field">
             <input type="checkbox" checked={untilEnd} onChange={(event) => setUntilEnd(event.target.checked)} />
             Until victory or loss
           </label>
           {!untilEnd && (
-            <label>
+            <label className="wood-field">
               Weeks
               <input type="number" min={1} value={weeks} aria-label="Auto test weeks" onChange={(event) => setWeeks(Number(event.target.value))} />
             </label>
           )}
-          <label>
+          <label className="wood-field">
             Seed
             <input type="number" value={seed} aria-label="Auto test seed" onChange={(event) => setSeed(Number(event.target.value))} />
           </label>
-          <label>
+          <label className="wood-field">
             Speed
             <input type="number" min={1} max={10} value={speed} aria-label="Auto test speed" onChange={(event) => setSpeed(Number(event.target.value))} />
             <span>Written on the report. The test runs flat out.</span>
           </label>
-          <button type="submit">Start</button>
-          <button type="button" onClick={() => setOpen(false)}>Cancel</button>
-          <button type="button" onClick={() => void resetDiary()}>Reset diary</button>
-        </form>
+        </Modal>
       )}
     </span>
   );

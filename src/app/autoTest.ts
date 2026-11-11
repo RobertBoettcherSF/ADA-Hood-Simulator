@@ -3,7 +3,7 @@
  * and, when learning is on, which weights to nudge. It does not touch the
  * city's random stream until the week itself runs.
  */
-import { noteLastAutoTest, writeReportFile } from './debugReport';
+import { noteAutoTestRunning, noteAutoTestStopped, noteLastAutoTest, writeReportFile } from './debugReport';
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
 import { BUY_REACH_BLOCKS, hireRecruit, issueOrder, moveToTeam, nearTerritory, promote, type ApiResult, type IssueOrderInput } from '../sim/api';
@@ -293,6 +293,10 @@ function reportText(parts: {
 
 /** Run the bot, append the diary, then write 09 Reports. Returns the report text either way. */
 export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: (sim: Sim) => Promise<void> | void, sink: DiarySink = folderDiary()): Promise<string> {
+  noteAutoTestRunning(
+    `seed ${settings.seed} learn ${settings.learn === false ? 'off' : 'on'}`,
+    settings.weeks == null ? 'until victory or loss' : `${settings.weeks} weeks`,
+  );
   const learn = settings.learn !== false;
   const campaign = campaignOf(sim);
   const loaded = await loadDiary(sink).catch(() => ({ diary: { version: 1 as const, entries: [] }, unreadable: true }));
@@ -414,16 +418,23 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   });
   const filename = `auto-test-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
   const last = weeks[weeks.length - 1];
-  noteLastAutoTest({
-    settings: `${campaignLabel(campaign)} seed ${settings.seed} learn ${learn ? 'on' : 'off'}`,
-    weeks: settings.weeks == null ? 'until victory or loss' : `${settings.weeks} weeks`,
-    cash: last?.cash ?? 0,
-    men: last?.men ?? 0,
-    territory: last?.territory ?? 0,
-    score,
-    diary: diaryNote,
-    file: filename,
-  });
-  await writeReportFile(filename, text);
-  return text;
+  let noted = false;
+  try {
+    noteLastAutoTest({
+      settings: `${campaignLabel(campaign)} seed ${settings.seed} learn ${learn ? 'on' : 'off'}`,
+      weeks: settings.weeks == null ? 'until victory or loss' : `${settings.weeks} weeks`,
+      cash: last?.cash ?? 0,
+      men: last?.men ?? 0,
+      territory: last?.territory ?? 0,
+      score,
+      diary: diaryNote,
+      file: filename,
+    });
+    noted = true;
+    await writeReportFile(filename, text);
+    return text;
+  } catch (error) {
+    if (!noted) noteAutoTestStopped(error instanceof Error ? error.message : String(error));
+    throw error;
+  }
 }
