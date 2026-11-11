@@ -29,24 +29,55 @@ describe('inspect card', () => {
     const sim = city();
     const w = sim.world;
     const gang = sim.playerGang;
-    const site = Object.values(w.buildings).find((b) => b.cls === 'tenement' && b.state === 'trading')!;
-    site.ownerGangId = gang.id;
+    const site = Object.values(w.buildings).find((b) => b.cls === 'tenement' && b.state === 'trading' && b.ownerGangId == null)!;
     site.knowledge[gang.id] = 4;
     site.protection = null;
-    const resident = Object.values(w.people).find((p) => p.status === 'active')!;
-    resident.buildingId = site.id;
-    const rent = inspectFacts(w, gang.id, { buildingId: site.id, blockId: site.blockId, personId: null, point: { x: 0, y: 0 } });
-    expect(rent?.rows.find((row) => row.label === 'Rent')?.value).toBe(`$${BUILDING_BY_ID[site.typeId].profit}/wk`);
-    expect(rent?.rows.find((row) => row.label === 'Inside')?.value).toContain(resident.name);
+    const open = inspectFacts(w, gang.id, { buildingId: site.id, blockId: site.blockId, personId: null, point: { x: 0, y: 0 } });
+    expect(open?.rows.find((row) => row.label === 'Rent')?.value).toBe(`$${BUILDING_BY_ID[site.typeId].profit}/wk`);
 
-    site.protection = { gangId: gang.id, weekly: 180, base: 180, refusing: false, grievance: 0 };
+    const rival = Object.values(w.gangs).find((g) => g.id !== gang.id)!;
+    site.ownerGangId = rival.id;
+    site.protection = { gangId: rival.id, weekly: 180, base: 180, refusing: false, grievance: 0 };
     const protectedSite = inspectFacts(w, gang.id, { buildingId: site.id, blockId: site.blockId, personId: null, point: { x: 0, y: 0 } });
     expect(protectedSite?.title).toBe(BUILDING_BY_ID[site.typeId].name);
     expect(protectedSite?.rows).toEqual(expect.arrayContaining([
       { label: 'Business', value: BUILDING_BY_ID[site.typeId].name },
-      { label: 'Owner', value: gang.name },
-      { label: 'Protection', value: `$180/wk to ${gang.name}` },
+      { label: 'Owner', value: rival.name },
+      { label: 'Protection', value: `$180/wk to ${rival.name}` },
     ]));
+  });
+
+  it('shows last week\'s books for a building the player owns, and the racket it hides', () => {
+    const sim = city();
+    const w = sim.world;
+    const gang = sim.playerGang;
+    const site = Object.values(w.buildings).find((b) => b.cls === 'commercial' && b.ownerGangId !== gang.id)!;
+    const racket = Object.values(w.buildings).find((b) => b.cls === 'illegal')!;
+    site.ownerGangId = gang.id;
+    site.knowledge[gang.id] = 4;
+    site.protection = { gangId: gang.id, weekly: 180, base: 180, refusing: false, grievance: 0 };
+    site.lastProfit = 420;
+    site.hidesId = racket.id;
+    racket.typeId = 'speakeasy';
+    racket.lastProfit = -40;
+    const resident = Object.values(w.people).find((p) => p.status === 'active')!;
+    resident.buildingId = site.id;
+    const facts = inspectFacts(w, gang.id, { buildingId: site.id, blockId: site.blockId, personId: null, point: { x: 0, y: 0 } });
+    expect(facts?.rows.find((row) => row.label === 'Protection')).toBeUndefined();
+    expect(facts?.rows.find((row) => row.label === 'Owner')?.value).toBe(gang.name);
+    expect(facts?.rows.find((row) => row.label === 'Income')?.value).toBe('$420');
+    expect(facts?.rows.find((row) => row.label === 'Costs')?.value).toBe('$0');
+    expect(facts?.rows.find((row) => row.label === 'Profit/loss')?.value).toBe('$420');
+    expect(facts?.rows.find((row) => row.label === 'Hidden business')?.value).toBe('Speakeasy, last week -$40');
+    expect(facts?.rows.find((row) => row.label === 'Inside')?.value).toContain(resident.name);
+
+    site.lastProfit = -75;
+    site.state = 'ceased';
+    site.hidesId = null;
+    const loss = inspectFacts(w, gang.id, { buildingId: site.id, blockId: site.blockId, personId: null, point: { x: 0, y: 0 } });
+    expect(loss?.rows.find((row) => row.label === 'Income')?.value).toBe('$0');
+    expect(loss?.rows.find((row) => row.label === 'Profit/loss')?.value).toMatch(/^-?\$/);
+    expect(Number(loss?.rows.find((row) => row.label === 'Costs')?.value.replace(/[^0-9]/g, ''))).toBeGreaterThanOrEqual(75);
   });
 
   it('names a person, their gang, and the order they are carrying out', () => {
