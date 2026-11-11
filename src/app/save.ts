@@ -39,6 +39,25 @@ const DB_NAME = 'original-gangster';
 const STORE = 'saves';
 const VERSION = 1;
 
+/** UTF-8 size of a string without encoding a copy of it. */
+export function utf8Length(text: string): number {
+  let bytes = text.length;
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code < 0x80) continue;
+    if (code < 0x800) bytes += 1;
+    else if (code >= 0xd800 && code <= 0xdbff) { bytes += 2; i++; }
+    else bytes += 2;
+  }
+  return bytes;
+}
+
+let lastSave: { world: WorldState; week: number; bytes: number } | null = null;
+/** Size of the save just written for this world and week, so Auto Test need not stringify the city again. */
+export function lastSavedBytes(world: WorldState): number | null {
+  return lastSave && lastSave.world === world && lastSave.week === world.week ? lastSave.bytes : null;
+}
+
 // Identity belongs to the save envelope, not deterministic simulation state.
 const campaignIds = new WeakMap<WorldState, string>();
 function campaignId(world: WorldState): string {
@@ -133,6 +152,7 @@ export async function saveGame(name: string, world: WorldState, frozen = false):
     const worldJson = await stringifyFrozenWorld(world);
     const boss = Object.values(world.gangs).find((g) => g.isPlayer);
     await living.write('world.json', worldJson);
+    lastSave = { world, week: world.week, bytes: utf8Length(worldJson) };
     await living.write('manifest.json', JSON.stringify({
       format: 1,
       game: 'ada-hood-simulator',
@@ -174,6 +194,7 @@ export async function saveGame(name: string, world: WorldState, frozen = false):
       tx.onabort = () => reject(tx.error ?? new Error('Save transaction aborted'));
       tx.objectStore(STORE).put(slot);
     });
+    lastSave = { world, week: world.week, bytes: utf8Length(worldJson) };
   } finally {
     db.close();
   }

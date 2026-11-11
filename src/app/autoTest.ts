@@ -3,6 +3,7 @@
  * and, when learning is on, which weights to nudge. It does not touch the
  * city's random stream until the week itself runs.
  */
+import { lastSavedBytes, utf8Length } from './save';
 import { noteAutoTestRunning, noteAutoTestStopped, noteLastAutoTest, writeReportFile } from './debugReport';
 
 let autoTestRunning = false;
@@ -89,15 +90,19 @@ export interface AutoTestWeek {
 
 const UNTIL_END_CAP = 40;
 
-/** Share of the browser's JavaScript memory limit at which Auto Test stops between weeks. */
-export const MEMORY_STOP_SHARE = 0.85;
+/**
+ * Share of the browser's JavaScript memory limit at which Auto Test stops
+ * between weeks. Measured on the larger of used and reserved heap: a healthy
+ * 20-week run in Chrome reserves under a fifth of the limit.
+ */
+export const MEMORY_STOP_SHARE = 0.6;
 let memoryStopped = false;
 
 /** The browser's heap figures, where it reports them (Chrome). */
 export function heapShare(): number | null {
-  const memory = (globalThis.performance as Performance & { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } } | undefined)?.memory;
+  const memory = (globalThis.performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } } | undefined)?.memory;
   if (!memory || !memory.jsHeapSizeLimit) return null;
-  return memory.usedJSHeapSize / memory.jsHeapSizeLimit;
+  return Math.max(memory.usedJSHeapSize, memory.totalJSHeapSize || 0) / memory.jsHeapSizeLimit;
 }
 
 /** True once, after a run that stopped because memory was nearly full. */
@@ -119,19 +124,6 @@ function heatOf(sim: Sim): number {
   return Math.round(blocks.reduce((sum, block) => sum + block.crimeHeat, 0) / blocks.length);
 }
 
-/** UTF-8 size without encoding a 14 MB copy of the save every week. */
-function utf8Length(text: string): number {
-  let bytes = text.length;
-  for (let i = 0; i < text.length; i++) {
-    const code = text.charCodeAt(i);
-    if (code < 0x80) continue;
-    if (code < 0x800) bytes += 1;
-    else if (code >= 0xd800 && code <= 0xdbff) { bytes += 2; i++; }
-    else bytes += 2;
-  }
-  return bytes;
-}
-
 function snapshot(sim: Sim, ms: number): AutoTestWeek {
   const gang = sim.playerGang;
   const owned = buildingList(sim.world).filter((b) => b.ownerGangId === gang.id && b.state !== 'destroyed').length;
@@ -148,7 +140,7 @@ function snapshot(sim: Sim, ms: number): AutoTestWeek {
     suspicion: Math.round(gang.suspicion),
     standings,
     ms,
-    saveBytes: utf8Length(JSON.stringify(sim.world)),
+    saveBytes: lastSavedBytes(sim.world) ?? utf8Length(JSON.stringify(sim.world)),
   };
 }
 

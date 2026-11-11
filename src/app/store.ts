@@ -24,6 +24,7 @@ import type { OverlayKind } from '../render/scene';
 import { defaultGameOptions, newCampaignOptions } from './newGame';
 import { cloneSavedWorldResponsive, loadGame, loadSlotWorld, saveGame, type SaveSlot } from './save';
 import { yieldForInput } from '../yieldForInput';
+import { autoTestRunState } from './autoTest';
 import { yieldForPaint } from '../yieldForPaint';
 import { captureTutorialProgress } from './tutorials';
 import { addOrderBlocks, toggleOrderBlock, toggleOrderSite } from './orderSelection';
@@ -834,7 +835,9 @@ export const useGame = create<GameState>((set, get) => ({
     const started = performance.now();
     try {
       await yieldForPaint();
-      await get().autosave(true);
+      // Auto Test saved this city at the end of the last week; a second full
+      // save before every week only doubled the 14 MB copies it makes.
+      if (!autoTestRunState().running) await get().autosave(true);
       if (get().sim !== sim) return;
       resetSystemTimings();
       sim.launchWeek();
