@@ -39,6 +39,8 @@ export interface DiaryEntry {
   beatBest: boolean;
   previousBest: number | null;
   anomalies: string[];
+  /** Auto Test's ranked action table at the end of the run (1.2.16+). */
+  actionRanks?: Partial<Record<string, number>>;
 }
 
 export interface Diary {

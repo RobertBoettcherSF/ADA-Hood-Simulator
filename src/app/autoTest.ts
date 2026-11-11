@@ -40,13 +40,21 @@ export function takeAutoTestStopped(): boolean {
 }
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
-import { BUY_REACH_BLOCKS, hireRecruit, issueOrder, moveToTeam, nearTerritory, promote, type ApiResult, type IssueOrderInput } from '../sim/api';
+import { BUY_REACH_BLOCKS, buySnitchInfo, buyVehicle, buyWeapon, hireRecruit, issueOrder, moveToTeam, nearTerritory, promote, transferWeapon, type ApiResult, type IssueOrderInput } from '../sim/api';
+import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, carMinutesSaved, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, talentSwaps, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
+import { DRIVE_SPEED, VEHICLES, WALK_SPEED, WEAPONS } from '../sim/constants';
+import type { Building, WeaponId } from '../sim/types';
 import { BUILDING_BY_ID, ILLEGAL_TYPES } from '../sim/data/buildings';
 import { isValidAreaTarget } from '../sim/execution';
 import type { Sim } from '../sim/sim';
 import { dist, gangManpower, protectedBuildings, territoryCount } from '../sim/world';
 import { buildingList } from '../sim/entityLists';
 import { MINUTES_PER_WEEK } from '../sim/constants';
+
+/** The ranked action table for this run, and what was tried last Monday. */
+let actionRanks: ActionRanks = defaultActionRanks();
+let pendingActions: PendingAction[] = [];
+export function currentActionRanks(): ActionRanks { return { ...actionRanks }; }
 import { availableSpecialist } from '../sim/specialists';
 import { queueSpecialistJob } from '../sim/specialistJobs';
 import { bribePrice, isBribableOfficial } from '../sim/officials';
@@ -338,6 +346,29 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
   }
 
+  // Crews by talent: business men run the shops, the most intimidating crew
+  // extorts without guns, a crew with guns and stealth does the rough work,
+  // and the rest collect.
+  const roles = assignCrewRoles(w, crewsOf().filter((team) => crewReady(w, team.id)));
+  for (const move of talentSwaps(w, crewsOf(), roles)) {
+    const result = moveToTeam(w, gang.id, move.personId, move.toTeamId);
+    logResult(actions, `talent: ${w.people[move.personId]?.name ?? move.personId} to the ${roles.get(move.toTeamId)} crew`, result.ok, result.ok ? '' : result.error);
+  }
+  if (roles.size) actions.push(`NOTE crews: ${[...roles].map(([id, role]) => `${w.people[w.teams[id]?.lieutenantId]?.name ?? id} ${role}`).join(', ')}`);
+  const GUNS: WeaponId[] = ['pistol', 'shotgun', 'rifle', 'tommy', 'twinPistols'];
+  const roleCrew = (role: CrewRole) => crewsOf().find((team) => roles.get(team.id) === role);
+  const extortionCrew = roleCrew('extortion');
+  if (extortionCrew && roles.size > 1) {
+    const handed: string[] = [];
+    for (const gun of GUNS) while ((extortionCrew.weapons[gun] ?? 0) > 0 && transferWeapon(w, gang.id, gun, extortionCrew.id, false).ok) handed.push(gun);
+    if (handed.length) actions.push(`NOTE extortion crew hands in ${handed.join(', ')} so nobody is shot by accident`);
+  }
+  const muscleCrew = roleCrew('muscle') ?? crewsOf().find((team) => roles.get(team.id) === 'collect');
+  if (muscleCrew) {
+    for (const gun of GUNS) while ((gang.weapons[gun] ?? 0) > 0 && transferWeapon(w, gang.id, gun, muscleCrew.id, true).ok) { /* arm the muscle */ }
+    if ((gang.weapons.explosives ?? 0) > 0) while ((gang.weapons.explosives ?? 0) > 0 && transferWeapon(w, gang.id, 'explosives', muscleCrew.id, true).ok) { /* and the dynamite */ }
+  }
+
   const ready = crewsOf().filter((team) => crewReady(w, team.id));
   if (!ready.length) {
     actions.push('FAIL orders — no crew');
@@ -348,8 +379,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const shortLastWeek = lastMonday.get(w)?.timeShort ?? false;
   let timeShort = false;
   /** The crew with the most time left this week, skipping those already given this kind of job. */
-  const freest = (skip: Set<number> = new Set()) =>
-    ready.filter((team) => !outOfTime.has(team.id) && !skip.has(team.id)).sort((a, b) => a.timeUsed - b.timeUsed || a.id - b.id)[0];
+  const freest = (skip: Set<number> = new Set(), role?: CrewRole) => {
+    const open = ready.filter((team) => !outOfTime.has(team.id) && !skip.has(team.id));
+    const preferred = role ? open.find((team) => roles.get(team.id) === role && team.timeUsed < MINUTES_PER_WEEK * 0.85) : undefined;
+    return preferred ?? open.sort((a, b) => a.timeUsed - b.timeUsed || a.id - b.id)[0];
+  };
   const give = (label: string, team: (typeof ready)[number] | undefined, input: Omit<IssueOrderInput, 'teamId'>): ApiResult => {
     if (!team) {
       actions.push(`NOTE ${label} skipped — every crew's week is full`);
@@ -466,7 +500,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         const share = Math.max(3, Math.ceil(owed.length / ready.length));
         const collected = new Set<number>();
         for (let i = 0; i < owed.length; i += share) {
-          const team = freest(collected);
+          const team = freest(collected, 'collect');
           if (!team) break;
           collected.add(team.id);
           give('collect', team, { type: 'collectProtection', buildingIds: owed.slice(i, i + share).map((b) => b.id), opts: { manpower: 1 } });
@@ -491,7 +525,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         for (const [blockId, sites] of byBlock) {
           if (sent.size >= crewsToSend) break;
           if (easing && (w.blocks[blockId]?.crimeHeat ?? 0) >= hotLine && hotLine > 0) continue;
-          const team = freest(sent);
+          const team = freest(sent, 'extortion');
           if (!team) { timeShort = true; break; }
           // Size the area to the crew's free week: about one site per sixth of a week.
           const fit = Math.max(1, Math.min(cap, Math.floor(freeShare(team) * 6)));
@@ -511,7 +545,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           const rooms = BUILDING_BY_ID.rentedRooms;
           const racket = rooms && rooms.cost < budget && rooms.fronts?.includes(front.typeId) ? rooms : fit;
           if (!racket) continue;
-          const result = give(`racket ${racket.id}`, freest(), {
+          const result = give(`racket ${racket.id}`, freest(undefined, 'business'), {
             type: 'setUpBusiness',
             buildingIds: [land.id],
             opts: { manpower: 1, businessTypeId: racket.id, frontBuildingId: front.id, roomsFloors: racket.id === 'rentedRooms' ? 2 : undefined },
@@ -537,7 +571,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           const cost = BUILDING_BY_ID[b.typeId]?.cost ?? 0;
           return b.ownerGangId == null && b.state === 'trading' && cost > 0 && cost < gang.cash * fraction && nearTerritory(w, gang.id, b.blockId, BUY_REACH_BLOCKS);
         }).sort(nearer)[0];
-        if (site) give(`buy ${site.typeId}`, freest(), { type: 'buyPremises', buildingIds: [site.id] });
+        if (site) give(`buy ${site.typeId}`, freest(undefined, 'business'), { type: 'buyPremises', buildingIds: [site.id] });
       }
     }
     if (key === 'violence' && w.week >= 8 && weight.violence >= 0.45) {
@@ -550,6 +584,82 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   };
 
   for (const key of strategy.priority) spend(key);
+
+  // ---- equipment: cars where they save time, guns and explosives for the rough work
+  const reserve = 2500 + gangManpower(w, gang) * 60;
+  if (w.week >= 2) {
+    const owed = protectedBuildings(w, gang.id);
+    const reach = owed.length ? owed.reduce((sum, b) => sum + dist(w.lots[b.lotId].center, origin), 0) / owed.length : 0;
+    // About six trips out and back a week per crew.
+    const saved = Math.round(carMinutesSaved(reach, WALK_SPEED, DRIVE_SPEED, 12));
+    const carless = ready.filter((team) => !Object.values(team.vehicles).some((n) => n > 0));
+    if (carless.length && saved >= 120 && gang.cash > reserve + VEHICLES.coupe.cost) {
+      const team = carless.sort((a, b) => b.timeUsed - a.timeUsed)[0];
+      const result = buyVehicle(w, gang.id, 'coupe', team.id);
+      logResult(actions, `buy car for ${w.people[team.lieutenantId]?.name ?? 'crew'} (saves about ${saved} min a week, average run ${(reach / 54).toFixed(1)} blocks)`, result.ok, result.ok ? '' : result.error);
+    } else if (carless.length) {
+      actions.push(`NOTE no car bought: a car would save about ${saved} min a week`);
+    }
+  }
+  const armed = muscleCrew && ready.includes(muscleCrew) ? muscleCrew : undefined;
+  if (armed && w.week >= 3) {
+    const shop: WeaponId[] = [];
+    if ((armed.weapons.pistol ?? 0) < Math.min(3, armed.memberIds.length + 1)) shop.push('pistol');
+    if (gang.cash > reserve + 6000 && (armed.weapons.tommy ?? 0) < 1) shop.push('tommy');
+    if (gang.cash > reserve + 3000 && (armed.weapons.explosives ?? 0) < 2 && actionRanks.bombRival >= 0.4) shop.push('explosives');
+    for (const item of shop) {
+      if (gang.cash < reserve + WEAPONS[item].cost) continue;
+      const result = buyWeapon(w, gang.id, item, armed.id);
+      logResult(actions, `buy ${item} for ${w.people[armed.lieutenantId]?.name ?? 'crew'}`, result.ok, result.ok ? '' : result.error);
+    }
+  }
+
+  // ---- the ranked action table: dice weighted by rank when men and cash are spare
+  const spare = ready.filter((team) => freeShare(team) >= 0.35);
+  if (w.week >= 3 && gangManpower(w, gang) >= 8 && spare.length && gang.cash > reserve) {
+    const near = (b: Building) => nearTerritory(w, gang.id, b.blockId, 3);
+    const rivalSites = buildingList(w).filter((b) => b.ownerGangId != null && b.ownerGangId !== gang.id && !b.isHQ && b.state === 'trading' && near(b)).sort(nearer);
+    const raidSites = buildingList(w).filter((b) => raidValue(b, gang.id) > 0 && near(b) && b.protection?.gangId !== gang.id).sort((a, b) => raidValue(b, gang.id) - raidValue(a, gang.id));
+    const refused = w.lastWeekOrders.filter((o) => o.gangId === gang.id && o.type === 'extort').flatMap((o) => (o.refusals ?? []).map((r) => r.buildingId))
+      .map((id) => w.buildings[id]).filter((b): b is Building => !!b && b.state === 'trading' && b.protection?.gangId !== gang.id);
+    const rivals = gang.knownPeople.map((id) => w.people[id]).filter((p): p is NonNullable<typeof p> => !!p && p.status === 'active' && p.gangId != null && p.gangId !== gang.id && (p.role === 'hood' || p.role === 'lieutenant'));
+    const snitch = Object.values(w.people).find((p) => p.role === 'snitch' && p.status === 'active');
+    const rivalGangs = Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated).map((g) => g.id);
+    const explosives = (armed?.weapons.explosives ?? 0) + (gang.weapons.explosives ?? 0) > 0;
+    const available = ACTION_KEYS.filter((key) => ({
+      raid: raidSites.length > 0, pressRefuser: refused.length > 0, torchRival: rivalSites.length > 0,
+      bombRival: rivalSites.length > 0 && explosives, kidnapRival: rivals.length > 0, killRival: rivals.length > 0 && !!armed,
+      snitch: !!snitch && gang.snitchUsedWeek !== w.week && rivalGangs.length > 0 && gang.cash > reserve + 1500,
+    } as Record<ActionKey, boolean>)[key]);
+    const rolls = gang.cash > reserve + 15000 ? 2 : 1;
+    const tried = new Set<ActionKey>();
+    for (let n = 0; n < rolls; n++) {
+      const key = rollAction(actionRanks, available.filter((k) => !tried.has(k)), rng);
+      if (!key) break;
+      tried.add(key);
+      actions.push(`ROLL ${key} (${ACTION_LABELS[key]}, rank ${actionRanks[key]})`);
+      const crewRole: CrewRole = key === 'pressRefuser' ? 'extortion' : 'muscle';
+      const team = freest(undefined, crewRole);
+      const cashBefore = gang.cash;
+      if (key === 'snitch') {
+        const knownBefore = gang.knownPeople.length;
+        const result = buySnitchInfo(w, rng, gang.id, snitch!.id, rivalGangs);
+        logResult(actions, `snitch ${snitch!.name}`, result.ok, result.ok ? result.message ?? '' : result.error);
+        if (result.ok) pendingActions.push({ key, knownBefore, cashBefore });
+        continue;
+      }
+      let input: Omit<IssueOrderInput, 'teamId'>;
+      let targetBuildingId: number | undefined, targetPersonId: number | undefined;
+      const men = team ? manpowerFor(team, 3) : 1;
+      if (key === 'raid') { targetBuildingId = raidSites[0].id; input = { type: 'raid', buildingIds: [targetBuildingId], opts: { manpower: men } }; }
+      else if (key === 'pressRefuser') { targetBuildingId = refused[0].id; input = { type: 'extort', buildingIds: [targetBuildingId], opts: { manpower: team ? manpowerFor(team, 3) : 1 } }; }
+      else if (key === 'torchRival' || key === 'bombRival') { targetBuildingId = rivalSites[rng.int(0, Math.min(2, rivalSites.length - 1))].id; input = { type: key === 'torchRival' ? 'torch' : 'bomb', buildingIds: [targetBuildingId], opts: { manpower: men } }; }
+      else { const victim = rivals[rng.int(0, rivals.length - 1)]; targetPersonId = victim.id; input = { type: key === 'kidnapRival' ? 'kidnap' : 'kill', personId: victim.id, opts: { manpower: men } }; }
+      const result = give(`${ACTION_LABELS[key]}`, team, input);
+      const orderId = team?.orderIds[team.orderIds.length - 1];
+      if (result.ok && orderId != null) pendingActions.push({ key, orderId, targetBuildingId, targetPersonId, cashBefore });
+    }
+  }
 
   lastMonday.set(w, { timeShort });
   const idle = ready.filter((team) => team.orderIds.every((id) => !w.orders[id] || w.orders[id].gangId !== gang.id) && team.timeUsed === 0);
@@ -623,6 +733,7 @@ function reportText(parts: {
 /** Run the bot, append the diary, then write 09 Reports. Returns the report text either way. */
 export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: (sim: Sim) => Promise<void> | void, sink: DiarySink = folderDiary()): Promise<string> {
   recruitMemory = newRecruitMemory();
+  pendingActions = [];
   clearWeekHeaps();
   noteAutoTestRunning(
     `seed ${settings.seed} learn ${settings.learn === false ? 'off' : 'on'}`,
@@ -638,6 +749,10 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     planned.note = 'The diary file could not be read and was left in place. This run used the built-in strategy.';
     planned.versusLast = ['The diary could not be read. Built-in strategy.'];
   }
+  // The ranked action table carries on from the last matching run that kept one.
+  const rankedBefore = learn && !loaded.unreadable ? [...matchingEntries(loaded.diary, campaign)].reverse().find((entry) => entry.actionRanks) : undefined;
+  actionRanks = loadActionRanks(rankedBefore?.actionRanks);
+  const ranksAtStart = { ...actionRanks };
 
   const actions: string[] = [];
   const notes: string[] = [];
@@ -695,6 +810,12 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       sim.world.lastWeekOrders.filter((order) => order.gangId === sim.playerGang.id),
       sim.world.week,
     );
+    for (const pending of pendingActions) {
+      const verdict = judgeAction(sim.world, sim.playerGang, pending, sim.world.lastWeekOrders);
+      const rank = verdict.ok ? rankUp(actionRanks, pending.key) : rankDown(actionRanks, pending.key);
+      actions.push(`OUTCOME ${pending.key} ${verdict.ok ? 'success' : 'failure'} — ${verdict.why}; rank now ${rank}`);
+    }
+    pendingActions = [];
     for (const order of sim.world.lastWeekOrders) {
       if (order.gangId !== sim.playerGang.id || order.type !== 'recruit') continue;
       const reason = order.failReason || order.results.join(' ');
@@ -723,6 +844,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   if (settings.weeks != null && settings.weeks > AUTO_TEST_MAX_WEEKS && weeks.length >= AUTO_TEST_MAX_WEEKS) {
     notes.push(`Stopped after ${AUTO_TEST_MAX_WEEKS} weeks, the one-year limit.`);
   }
+  notes.push(`Action ranks: ${ACTION_KEYS.map((key) => `${key} ${ranksAtStart[key]}→${actionRanks[key]}`).join(', ')}.`);
   const odd = weeks.filter((week) => !Number.isFinite(week.cash) || !Number.isFinite(week.men) || week.cash < 0 || week.men < 0);
   for (const week of odd) notes.push(`Suspicious: week ${week.week} cash ${week.cash} men ${week.men}.`);
 
@@ -761,6 +883,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       beatBest,
       previousBest,
       anomalies,
+      actionRanks: { ...actionRanks },
     };
     recorded = [...loaded.diary.entries, entry];
     try {
