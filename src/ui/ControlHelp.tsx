@@ -54,7 +54,9 @@ function describe(el: HTMLElement, kind: Shown['kind'], x: number, y: number): S
   const label = controlLabel(el);
   const help = controlHelp(label) ?? (tip ? controlHelp(tip) : undefined);
   if (kind === 'tip') {
-    const text = tip || label;
+    // A bare key ("F2") reads better with the name; a bare name with what it does.
+    const text = tip && label && tip.length <= 12 && !tip.toLowerCase().includes(label.toLowerCase()) ? `${label} (${tip})`
+      : tip || (help ? `${label} — ${help.body}` : label);
     return text ? { kind, x, y, title: text, rows: [] } : null;
   }
   const teamId = el.closest('[data-team-id]')?.getAttribute('data-team-id');
