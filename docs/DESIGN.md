@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is New Temperance in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.3.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.4.
 
 ## Decisions
 
@@ -61,7 +61,12 @@ The owner answered the open questions in §8. These decisions override anything 
 4. Auto Test uses hire, promote, move to a crew, recruit, collect, extort, bribe, buy, and a racket (rented rooms when the front fits, otherwise another illegal business) through those API functions. Its seed picks the bot's choices and does not rebuild the city. Headless weeks run flat out; the speed box is written on the report and also sets the on-screen speed. "Until victory or loss" stops after 40 weeks if the city has not ended. The report is a text file in 09 Reports, same as a debug report. It records a streak of weeks with nobody standing at a hiring place.
 5. Friday's leftover walking routes are still saved. Robert has not decided to drop them.
 
+## v1.2.4 decisions
 
+1. Each diary entry is tagged with opponent level, economy, and map size. Learning, the previous best, and the plateau look only at entries with the same three. A run on another combination is stored and left out of that comparison. The default campaign is normal opponents, normal economy, and 40×32. Rivals in a new game copy the best strategy from that combination only, and only after it has three runs. Lessons and scenarios do not copy it. A city that is already running never reads the diary again. An 8×8 diary does not change rivals.
+2. The built-in weights are hiring 0.70, rackets 0.58, bribes 0.40, buying 0.48, violence 0.12, in that priority. A learning run mutates the best matching strategy: two weights move by 0.08, and sometimes two neighbours in the priority list swap. The seed plus the number of matching runs chooses the nudge. If the run scores no higher than the best, the next learning run starts from the best again. Score is cash/1000 + territory×25 + men×8 − heat×4, plus 500 for a win and minus 500 for a loss.
+3. The three rivals keep the ordinary planner. The copied playbook only adds an order the planner did not already queue, and only when that weight is at least 0.35 (0.45 for violence). The personality bias is +0.08 on one weight: the first rival violence, the second bribes, the third rackets. It does not reorder priority. Those extra orders use their own random stream, so a city with no playbook rolls the same dice as before.
+4. The Auto Test dialog shows the open city's settings and says the diary's job is the default campaign. Learn from diary starts on. Reset diary asks first. Speed is written on the report; the test runs flat out, because a real-time week is about twelve minutes. The report names the strategy, what changed since the last matching run, whether it beat the best, and whether the best score has sat still for the last 4 matching runs. It also lists balance anomalies: impossible cash, men, territory, heat, or suspicion, a cash jump of eight times and at least $25,000, an action refused twice, a win on the first finished week, a loss while still rich, and a gang with no men that has not lost.
 
 ## 1. Current state
 

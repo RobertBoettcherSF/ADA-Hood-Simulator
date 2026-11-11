@@ -1,8 +1,10 @@
 /**
- * A player made of the same actions the desk uses. The seed picks his choices.
- * It does not touch the city's random stream until the week itself runs.
+ * A player made of the same actions the desk uses. The seed picks his choices
+ * and, when learning is on, which weights to nudge. It does not touch the
+ * city's random stream until the week itself runs.
  */
 import { writeReportFile } from './debugReport';
+import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
 import { BUY_REACH_BLOCKS, hireRecruit, issueOrder, moveToTeam, nearTerritory, promote, type ApiResult, type IssueOrderInput } from '../sim/api';
 import { BUILDING_BY_ID, ILLEGAL_TYPES } from '../sim/data/buildings';
@@ -10,14 +12,29 @@ import { isValidAreaTarget } from '../sim/execution';
 import type { Sim } from '../sim/sim';
 import { gangManpower, protectedBuildings, territoryCount } from '../sim/world';
 import { buildingList } from '../sim/entityLists';
+import {
+  balanceAnomalies,
+  campaignLabel,
+  formatStrategy,
+  isDefaultCampaign,
+  matchingEntries,
+  planRun,
+  plateauNote,
+  scoreRun,
+  type CampaignSettings,
+  type DiaryEntry,
+  type PlayStrategy,
+} from './strategy';
 
 export interface AutoTestSettings {
   /** Null runs until the city is won or lost, and stops after 40 weeks. */
   weeks: number | null;
-  /** Chooses the bot's actions. It does not rebuild the city. */
+  /** Chooses the bot's actions and, when learning, which weights move. It does not rebuild the city. */
   seed: number;
-  /** Recorded on the report. Headless weeks still run as fast as the machine allows. */
+  /** Written on the report. The test itself runs flat out. */
   speed: number;
+  /** Default on. Off uses the built-in strategy and still records the run. */
+  learn?: boolean;
 }
 
 export interface AutoTestWeek {
@@ -61,17 +78,27 @@ function snapshot(sim: Sim, ms: number): AutoTestWeek {
   };
 }
 
+export function campaignOf(sim: Sim): CampaignSettings {
+  return {
+    opponents: sim.world.options.opponents,
+    economy: sim.world.options.economy,
+    mapW: sim.world.gridW,
+    mapH: sim.world.gridH,
+  };
+}
+
 function logResult(actions: string[], label: string, ok: boolean, detail: string): void {
   actions.push(`${ok ? 'OK' : 'FAIL'} ${label}${detail ? ` — ${detail}` : ''}`);
 }
 
 /** One Monday at the desk, using hire, promote, and issueOrder. */
-export function playAutoWeek(sim: Sim, seed: number): string[] {
+export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): string[] {
   const actions: string[] = [];
   const rng = new Rng(seed + sim.world.week * 997);
   const w = sim.world;
   const gang = sim.playerGang;
   const beforeMen = gangManpower(w, gang);
+  const weight = strategy.weights;
 
   for (const id of [...gang.recruitIds]) {
     const person = w.people[id];
@@ -80,16 +107,18 @@ export function playAutoWeek(sim: Sim, seed: number): string[] {
     logResult(actions, `hire ${person?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
   }
 
-  if (gang.poolIds.length && gang.teamIds.length < 4 && gang.teamIds.length < 8) {
+  if (weight.hiring >= 0.2 && gang.poolIds.length && gang.teamIds.length < Math.max(2, Math.round(weight.hiring * 5)) && gang.teamIds.length < 8) {
     const id = rng.pick(gang.poolIds);
     const result = promote(w, gang.id, id);
     logResult(actions, `promote ${w.people[id]?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
   }
-  for (const id of [...gang.poolIds]) {
-    const crew = gang.teamIds.map((teamId) => w.teams[teamId]).find((team) => team && team.memberIds.length < 8);
-    if (!crew) break;
-    const result = moveToTeam(w, gang.id, id, crew.id);
-    logResult(actions, `to crew ${w.people[id]?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
+  if (weight.hiring >= 0.2) {
+    for (const id of [...gang.poolIds]) {
+      const crew = gang.teamIds.map((teamId) => w.teams[teamId]).find((team) => team && team.memberIds.length < 8);
+      if (!crew) break;
+      const result = moveToTeam(w, gang.id, id, crew.id);
+      logResult(actions, `to crew ${w.people[id]?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
+    }
   }
 
   const teamId = gang.teamIds[0];
@@ -109,50 +138,69 @@ export function playAutoWeek(sim: Sim, seed: number): string[] {
   };
 
   const hoodSites = buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood' && b.state !== 'destroyed');
-  if (gangManpower(w, gang) < 8 && hoodSites.length) {
-    give('recruit', { teamId: team.id, type: 'recruit', buildingIds: hoodSites.slice(0, 2).map((b) => b.id), opts: { manpower: 1 } });
-  } else if (hoodSites.length === 0) {
-    actions.push('NOTE no hoods standing at a hiring place');
-  }
-
-  const owed = protectedBuildings(w, gang.id).filter((b) => b.state === 'trading').slice(0, 6);
-  if (owed.length) give('collect', { teamId: team.id, type: 'collectProtection', buildingIds: owed.map((b) => b.id), opts: { manpower: 1 } });
-
-  const extort = buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b));
-  if (extort.length) {
-    const take = extort.slice(0, rng.int(1, Math.min(3, extort.length)));
-    give('extort', { teamId: team.id, type: 'extort', buildingIds: take.map((b) => b.id), opts: { manpower: 1 } });
-  }
-
-  const chief = w.people[w.policeChiefId];
-  if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > 3_000) {
-    give('bribe', { teamId: team.id, type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: 500 } });
-  }
-
-  if (gang.cash > 12_000) {
-    const site = buildingList(w).find((b) => {
-      const cost = BUILDING_BY_ID[b.typeId]?.cost ?? 0;
-      return b.ownerGangId == null && b.state === 'trading' && cost > 0 && cost < gang.cash * 0.4 && nearTerritory(w, gang.id, b.blockId, BUY_REACH_BLOCKS);
-    });
-    if (site) give(`buy ${site.typeId}`, { teamId: team.id, type: 'buyPremises', buildingIds: [site.id] });
-  }
-
-  const owned = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.state === 'trading');
-  const land = owned.find((b) => b.cls === 'empty' && w.lots[b.lotId]?.index === 4);
-  const front = land ? owned.find((b) => b.blockId === land.blockId && b.id !== land.id && b.hidesId == null && ['commercial', 'industrial', 'tenement'].includes(b.cls)) : undefined;
-  if (land && front) {
-    const fit = ILLEGAL_TYPES.find((type) => type.id !== 'office' && type.cost < gang.cash * 0.5 && (type.fronts?.includes(front.typeId) || type.fronts?.includes('*')));
-    const rooms = BUILDING_BY_ID.rentedRooms;
-    const racket = rooms && rooms.cost < gang.cash * 0.5 && rooms.fronts?.includes(front.typeId) ? rooms : fit;
-    if (racket) {
-      give(`racket ${racket.id}`, {
-        teamId: team.id,
-        type: 'setUpBusiness',
-        buildingIds: [land.id],
-        opts: { manpower: 1, businessTypeId: racket.id, frontBuildingId: front.id, roomsFloors: racket.id === 'rentedRooms' ? 2 : undefined },
-      });
+  const spend = (key: PlayStrategy['priority'][number]) => {
+    if (key === 'hiring') {
+      const target = Math.round(4 + weight.hiring * 8);
+      if (gangManpower(w, gang) < target && hoodSites.length) {
+        const count = Math.max(1, Math.round(1 + weight.hiring * 2));
+        give('recruit', { teamId: team.id, type: 'recruit', buildingIds: hoodSites.slice(0, count).map((b) => b.id), opts: { manpower: 1 } });
+      } else if (hoodSites.length === 0) {
+        actions.push('NOTE no hoods standing at a hiring place');
+      }
     }
-  }
+    if (key === 'rackets') {
+      const owed = protectedBuildings(w, gang.id).filter((b) => b.state === 'trading').slice(0, Math.max(1, Math.round(weight.rackets * 10)));
+      if (weight.rackets >= 0.2 && owed.length) give('collect', { teamId: team.id, type: 'collectProtection', buildingIds: owed.map((b) => b.id), opts: { manpower: 1 } });
+      const extort = buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b));
+      if (weight.rackets >= 0.25 && extort.length) {
+        const cap = Math.max(1, Math.round(weight.rackets * 4));
+        const take = extort.slice(0, rng.int(1, Math.min(cap, extort.length)));
+        give('extort', { teamId: team.id, type: 'extort', buildingIds: take.map((b) => b.id), opts: { manpower: 1 } });
+      }
+      if (weight.rackets >= 0.45) {
+        const owned = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.state === 'trading');
+        const land = owned.find((b) => b.cls === 'empty' && w.lots[b.lotId]?.index === 4);
+        const front = land ? owned.find((b) => b.blockId === land.blockId && b.id !== land.id && b.hidesId == null && ['commercial', 'industrial', 'tenement'].includes(b.cls)) : undefined;
+        if (land && front) {
+          const fit = ILLEGAL_TYPES.find((type) => type.id !== 'office' && type.cost < gang.cash * 0.5 && (type.fronts?.includes(front.typeId) || type.fronts?.includes('*')));
+          const rooms = BUILDING_BY_ID.rentedRooms;
+          const racket = rooms && rooms.cost < gang.cash * 0.5 && rooms.fronts?.includes(front.typeId) ? rooms : fit;
+          if (racket) {
+            give(`racket ${racket.id}`, {
+              teamId: team.id,
+              type: 'setUpBusiness',
+              buildingIds: [land.id],
+              opts: { manpower: 1, businessTypeId: racket.id, frontBuildingId: front.id, roomsFloors: racket.id === 'rentedRooms' ? 2 : undefined },
+            });
+          }
+        }
+      }
+    }
+    if (key === 'bribes' && weight.bribes >= 0.25) {
+      const chief = w.people[w.policeChiefId];
+      const gate = 1500 + (1 - weight.bribes) * 2500;
+      if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > gate) {
+        give('bribe', { teamId: team.id, type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: Math.round(200 + weight.bribes * 800) } });
+      }
+    }
+    if (key === 'buying' && weight.buying >= 0.3) {
+      const gate = 8000 + (1 - weight.buying) * 8000;
+      const fraction = 0.15 + weight.buying * 0.5;
+      if (gang.cash > gate) {
+        const site = buildingList(w).find((b) => {
+          const cost = BUILDING_BY_ID[b.typeId]?.cost ?? 0;
+          return b.ownerGangId == null && b.state === 'trading' && cost > 0 && cost < gang.cash * fraction && nearTerritory(w, gang.id, b.blockId, BUY_REACH_BLOCKS);
+        });
+        if (site) give(`buy ${site.typeId}`, { teamId: team.id, type: 'buyPremises', buildingIds: [site.id] });
+      }
+    }
+    if (key === 'violence' && weight.violence >= 0.45) {
+      const rival = buildingList(w).find((b) => b.ownerGangId != null && b.ownerGangId !== gang.id && !b.isHQ && b.state === 'trading');
+      if (rival) give('smash', { teamId: team.id, type: 'smashUp', buildingIds: [rival.id], opts: { manpower: 2 } });
+    }
+  };
+
+  for (const key of strategy.priority) spend(key);
 
   if (gangManpower(w, gang) === beforeMen && gang.poolIds.length === 0 && gang.recruitIds.length === 0 && hoodSites.length === 0) {
     actions.push('NOTE nobody hired and no hiring place');
@@ -160,33 +208,78 @@ export function playAutoWeek(sim: Sim, seed: number): string[] {
   return actions;
 }
 
-export function buildAutoTestReport(settings: AutoTestSettings, citySeed: number, weeks: AutoTestWeek[], actions: string[], notes: string[], outcome: string): string {
+function reportText(parts: {
+  settings: AutoTestSettings;
+  citySeed: number;
+  campaign: CampaignSettings;
+  strategy: PlayStrategy;
+  versusLast: string[];
+  planNote: string;
+  weeks: AutoTestWeek[];
+  actions: string[];
+  notes: string[];
+  anomalies: string[];
+  outcome: string;
+  score: number;
+  beat: string;
+  plateau: string;
+  diaryNote: string;
+}): string {
+  const learn = parts.settings.learn !== false;
   const lines = [
     'Hood Simulator — auto test',
-    `Strategy seed: ${settings.seed}`,
-    `City seed: ${citySeed}`,
-    `Weeks asked: ${settings.weeks ?? 'until victory or loss'}`,
-    `Speed noted: ${settings.speed} (headless weeks still run flat out)`,
+    `Strategy seed: ${parts.settings.seed}`,
+    `City seed: ${parts.citySeed}`,
+    `Settings: ${campaignLabel(parts.campaign)}`,
+    isDefaultCampaign(parts.campaign)
+      ? 'This is the default campaign. The diary is learning this combination.'
+      : 'This is not the default campaign. It is learned on its own and does not teach rivals.',
+    `Weeks asked: ${parts.settings.weeks ?? 'until victory or loss'}`,
+    `Speed: ${parts.settings.speed}. Written on the report. The test runs flat out.`,
+    `Learning: ${learn ? 'on' : 'off'}`,
+    '',
+    'Strategy tried',
+    ...formatStrategy(parts.strategy),
+    parts.planNote,
+    'Changed vs last matching run',
+    ...(parts.versusLast.length ? parts.versusLast : ['(no change)']),
+    parts.beat,
+    parts.plateau,
+    parts.diaryNote,
     '',
     'Timeline',
   ];
-  if (!weeks.length) lines.push('(no week finished)');
-  for (const week of weeks) {
+  if (!parts.weeks.length) lines.push('(no week finished)');
+  for (const week of parts.weeks) {
     lines.push(`Week ${week.week}: cash ${week.cash} men ${week.men} territory ${week.territory} heat ${week.heat} buildings ${week.buildings} suspicion ${week.suspicion} end-week ${week.ms} ms save ${week.saveBytes} bytes`);
     lines.push(`  ${week.standings}`);
   }
   lines.push('', 'Actions');
-  if (!actions.length) lines.push('(none)');
-  for (const action of actions) lines.push(action);
+  if (!parts.actions.length) lines.push('(none)');
+  for (const action of parts.actions) lines.push(action);
+  lines.push('', 'Anomalies');
+  if (!parts.anomalies.length) lines.push('(none)');
+  for (const anomaly of parts.anomalies) lines.push(anomaly);
   lines.push('', 'Notes');
-  if (!notes.length) lines.push('(none)');
-  for (const note of notes) lines.push(note);
-  lines.push('', 'Outcome', outcome);
+  if (!parts.notes.length) lines.push('(none)');
+  for (const note of parts.notes) lines.push(note);
+  lines.push('', 'Outcome', parts.outcome, `Score: ${parts.score}`);
   return lines.join('\n');
 }
 
-/** Run the bot, then write 09 Reports. Returns the report text either way. */
-export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: (sim: Sim) => Promise<void> | void): Promise<string> {
+/** Run the bot, append the diary, then write 09 Reports. Returns the report text either way. */
+export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: (sim: Sim) => Promise<void> | void, sink: DiarySink = folderDiary()): Promise<string> {
+  const learn = settings.learn !== false;
+  const campaign = campaignOf(sim);
+  const loaded = await loadDiary(sink).catch(() => ({ diary: { version: 1 as const, entries: [] }, unreadable: true }));
+  const planned = loaded.unreadable
+    ? planRun({ version: 1, entries: [] }, campaign, settings.seed, false)
+    : planRun(loaded.diary, campaign, settings.seed, learn);
+  if (loaded.unreadable) {
+    planned.note = 'The diary file could not be read and was left in place. This run used the built-in strategy.';
+    planned.versusLast = ['The diary could not be read. Built-in strategy.'];
+  }
+
   const actions: string[] = [];
   const notes: string[] = [];
   const weeks: AutoTestWeek[] = [];
@@ -199,7 +292,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     const poolBefore = sim.playerGang.poolIds.length;
     try {
       actions.push(`-- week ${sim.world.week}`);
-      const taken = playAutoWeek(sim, settings.seed);
+      const taken = playAutoWeek(sim, settings.seed, planned.strategy);
       actions.push(...taken);
       if (taken.some((line) => line.startsWith('NOTE no hoods'))) dryRecruit += 1;
       else dryRecruit = 0;
@@ -236,8 +329,60 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   }
   const odd = weeks.filter((week) => !Number.isFinite(week.cash) || !Number.isFinite(week.men) || week.cash < 0 || week.men < 0);
   for (const week of odd) notes.push(`Suspicious: week ${week.week} cash ${week.cash} men ${week.men}.`);
+
+  const won = sim.world.outcome ? sim.world.outcome.won : null;
   const outcome = sim.world.outcome ? `${sim.world.outcome.won ? 'won' : 'lost'}: ${sim.world.outcome.reason}` : 'still playing';
-  const text = buildAutoTestReport(settings, sim.world.options.seed, weeks, actions, notes, outcome);
+  const score = scoreRun(weeks[weeks.length - 1], won);
+  const previousBest = planned.previousBest;
+  const beatBest = previousBest == null || score > previousBest;
+  const beat = previousBest == null
+    ? `Beat the previous best: yes (score ${score}, no earlier matching run).`
+    : beatBest
+      ? `Beat the previous best: yes (score ${score}, previous ${previousBest}).`
+      : `Beat the previous best: no (score ${score}, previous ${previousBest}). The next learning run returns to the best.`;
+  const anomalies = [
+    ...balanceAnomalies(weeks, actions, won, sim.world.gridW * sim.world.gridH),
+    ...notes.filter((note) => note.startsWith('Stuck:') || note.startsWith('Suspicious:')),
+  ];
+
+  let diaryNote = 'Diary: appended.';
+  let recorded = loaded.diary.entries;
+  if (loaded.unreadable) {
+    diaryNote = 'Diary: the file could not be read, so this run was not appended.';
+  } else {
+    const entry: DiaryEntry = {
+      at: new Date().toISOString(),
+      settings: campaign,
+      seed: settings.seed,
+      weeks: settings.weeks,
+      speed: settings.speed,
+      learn,
+      strategy: planned.strategy,
+      changes: planned.versusLast,
+      summary: weeks.map((week) => ({ week: week.week, cash: week.cash, men: week.men, territory: week.territory, heat: week.heat, buildings: week.buildings })),
+      score,
+      outcome,
+      beatBest,
+      previousBest,
+      anomalies,
+    };
+    recorded = [...loaded.diary.entries, entry];
+    try {
+      await sink.write(serializeDiary({ version: 1, entries: recorded }));
+      const same = matchingEntries({ version: 1, entries: recorded }, campaign).length;
+      const other = recorded.length - same;
+      diaryNote = `Diary: ${same} matching run${same === 1 ? '' : 's'}, ${other} other setting${other === 1 ? '' : 's'} left out of the comparison.`;
+    } catch (error) {
+      diaryNote = `Diary: not saved (${error instanceof Error ? error.message : 'the folder refused the file'}).`;
+    }
+  }
+
+  const plateau = plateauNote(recorded, campaign);
+  const text = reportText({
+    settings, citySeed: sim.world.options.seed, campaign, strategy: planned.strategy,
+    versusLast: planned.versusLast, planNote: planned.note, weeks, actions, notes, anomalies,
+    outcome, score, beat, plateau, diaryNote,
+  });
   const filename = `auto-test-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
   await writeReportFile(filename, text);
   return text;
