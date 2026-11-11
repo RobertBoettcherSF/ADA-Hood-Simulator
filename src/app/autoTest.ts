@@ -65,7 +65,7 @@ import {
 } from './strategy';
 
 export interface AutoTestSettings {
-  /** Null runs until the city is won or lost, and stops after 40 weeks. */
+  /** Null runs until the city is won or lost, with no week cap. A number runs that many weeks, at most 52 (one year). */
   weeks: number | null;
   /** Chooses the bot's actions and, when learning, which weights move. It does not rebuild the city. */
   seed: number;
@@ -91,7 +91,8 @@ export interface AutoTestWeek {
   heapTotal?: number;
 }
 
-const UNTIL_END_CAP = 40;
+/** The longest fixed-length run: one year. "Until victory or loss" has no cap. */
+export const AUTO_TEST_MAX_WEEKS = 52;
 
 /**
  * Used-heap share that first triggers a pause so the browser can collect
@@ -643,7 +644,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   const weeks: AutoTestWeek[] = [];
   let flatRecruit = 0;
   let dryRecruit = 0;
-  const cap = settings.weeks ?? UNTIL_END_CAP;
+  const cap = settings.weeks == null ? Infinity : Math.min(settings.weeks, AUTO_TEST_MAX_WEEKS);
   autoTestRunning = true;
   stopAfterThisWeek = false;
   stoppedThisRun = false;
@@ -719,8 +720,8 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     stopAfterThisWeek = false;
     emitAutoTestRun();
   }
-  if (settings.weeks == null && !sim.world.outcome && weeks.length >= UNTIL_END_CAP) {
-    notes.push(`Stopped after ${UNTIL_END_CAP} weeks with no victory or loss.`);
+  if (settings.weeks != null && settings.weeks > AUTO_TEST_MAX_WEEKS && weeks.length >= AUTO_TEST_MAX_WEEKS) {
+    notes.push(`Stopped after ${AUTO_TEST_MAX_WEEKS} weeks, the one-year limit.`);
   }
   const odd = weeks.filter((week) => !Number.isFinite(week.cash) || !Number.isFinite(week.men) || week.cash < 0 || week.men < 0);
   for (const week of odd) notes.push(`Suspicious: week ${week.week} cash ${week.cash} men ${week.men}.`);
