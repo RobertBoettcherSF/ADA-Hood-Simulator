@@ -5,6 +5,7 @@ import { issueOrder, interrogatePrisoner, releasePrisoner, type IssueOrderInput 
 import { MINUTES_PER_WEEK } from '../src/sim/constants';
 import { Sim, MINUTES_PER_SECOND } from '../src/sim/sim';
 import { presentationEvents } from '../src/sim/presentationEvents';
+import { expandTargets } from '../src/sim/execution';
 import { allBuildings, buildingDoor, dist, placeName, typeOf } from '../src/sim/world';
 
 function fixture(seed = 404) {
@@ -77,6 +78,20 @@ describe('planned orders produce real gameplay outcomes', () => {
     expect(local.some(p => (p.opinion[s.gang.id] ?? 0) > opinions.get(p.id)!)).toBe(true);
   });
 
+  it('sends a plain recruit to hood haunts and a specialist order to that profession', () => {
+    const s = fixture();
+    const blockIds = Object.values(s.w.blocks).map((block) => block.id);
+    const plain = expandTargets(s.w, s.gang.id, 'recruit', blockIds, []);
+    expect(plain.length).toBeGreaterThan(0);
+    expect(plain.every((id) => typeOf(s.w.buildings[id])?.recruit === 'hood')).toBe(true);
+    const accountants = expandTargets(s.w, s.gang.id, 'recruit', blockIds, [], { recruitAs: 'accountant' });
+    expect(accountants.length).toBeGreaterThan(0);
+    expect(accountants.every((id) => typeOf(s.w.buildings[id])?.recruit === 'accountant')).toBe(true);
+    const finance = allBuildings(s.w).find((b) => typeOf(b)?.recruit === 'accountant')!;
+    const refused = issueOrder(s.w, s.gang.id, { teamId: s.team.id, type: 'recruit', buildingIds: [finance.id] });
+    expect(refused.ok).toBe(false);
+  });
+
   it.each(['hood', 'accountant', 'lawyer'] as const)('recruit finds a real available %s at the correct premises', role => {
     const s = fixture();
     const available = () => Object.values(s.w.people).find(p => p.gangId == null && p.role === role && p.status === 'active' &&
@@ -86,15 +101,19 @@ describe('planned orders produce real gameplay outcomes', () => {
     // Persuasion is a real roll even for a strong crew; ask again next week, at
     // a site that still has somebody (a rival may have hired the first one).
     const asked: number[] = [];
-    for (let week = 0; week < 3 && !s.gang.recruitIds.some(id => s.w.people[id].role === role); week++) {
+    const signed = () => role === 'hood'
+      ? asked.some((id) => s.w.people[id]?.gangId === s.gang.id)
+      : s.gang.recruitIds.some((id) => s.w.people[id].role === role);
+    for (let week = 0; week < 3 && !signed(); week++) {
       if (week) s.sim.finishWeek();
       const candidate = available()!;
       asked.push(candidate.id);
-      run(s, { type: 'recruit', buildingIds: [candidate.buildingId!] });
+      run(s, { type: 'recruit', buildingIds: [candidate.buildingId!], opts: { recruitAs: role } });
     }
-    expect(s.gang.recruitIds.some(id => s.w.people[id].role === role)).toBe(true);
-    // Finding somebody is not silently hiring them into the gang.
-    for (const id of asked) expect(s.w.people[id].gangId).not.toBe(s.gang.id);
+    expect(signed()).toBe(true);
+    // A hood who agrees joins the crew or the pool. An accountant or a lawyer
+    // is only willing: hiring them is a separate decision.
+    if (role !== 'hood') for (const id of asked) expect(s.w.people[id].gangId).not.toBe(s.gang.id);
   });
 
   it('points an empty recruiting site to hoods looking for work, never to an owner', () => {

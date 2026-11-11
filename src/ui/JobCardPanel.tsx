@@ -40,7 +40,7 @@ export function JobCardPanel() {
   const staffing = team ? orderStaffing(w, team, jc, true) : null;
   const crewIndex = team ? gang.teamIds.indexOf(team.id) + 1 : 0;
 
-  const expanded = expandTargets(w, gang.id, jc.type, jc.blockIds, jc.buildingIds);
+  const expanded = expandTargets(w, gang.id, jc.type, jc.blockIds, jc.buildingIds, jc.opts);
   const targetCount = def.target === 'area' ? expanded.length : jc.buildingIds.length;
   const person = jc.personId != null ? w.people[jc.personId] : null;
 
@@ -262,6 +262,29 @@ export function JobCardPanel() {
                   Cover quality: <b>{Math.round(coverQuality(chosenType.id, chosenFront.typeId) * 100)}%</b>
                 </div>
               )}
+            </div>
+          )}
+
+          {jc.type === 'recruit' && (
+            <div>
+              <Kicker style={{ marginBottom: 6 }}>Who to look for</Kicker>
+              <div className="opt-row">
+                {([
+                  ['hood', 'Hoods', 'Gyms, pool halls, the docks, and the labour exchange.'],
+                  ['accountant', 'Accountants', 'Finance companies, accountancy firms, and the main bank.'],
+                  ['lawyer', 'Lawyers', 'Law offices and the courthouse.'],
+                ] as const).map(([role, label, tip]) => (
+                  <button
+                    key={role}
+                    aria-pressed={(jc.opts.recruitAs ?? 'hood') === role}
+                    className={`chip${(jc.opts.recruitAs ?? 'hood') === role ? ' on' : ''}`}
+                    title={tip}
+                    onClick={() => updateOpts({ recruitAs: role })}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

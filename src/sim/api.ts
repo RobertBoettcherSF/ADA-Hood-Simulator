@@ -144,7 +144,7 @@ export function previewOrder(w: WorldState, gangId: ID, input: IssueOrderInput):
   const opts = defaultOptions(input.opts);
   const blockIds = [...new Set((input.blockIds ?? []).map(id => w.blocks[id]?.layout?.mergedInto ?? id))];
   const buildingIds = [...new Set(input.buildingIds ?? [])];
-  const targetBuildingIds = expandTargets(w, gangId, input.type, blockIds, buildingIds);
+  const targetBuildingIds = expandTargets(w, gangId, input.type, blockIds, buildingIds, input.opts);
   const charity = w.buildings[targetBuildingIds[0]];
   if (input.type === 'donate' && opts.amount == null && charity && donationTarget(charity)) opts.amount = donationAmount(w, charity);
   const order: Order = {
@@ -214,7 +214,7 @@ export function issueOrder(w: WorldState, gangId: ID, input: IssueOrderInput): A
   if (def.target === 'building' && (buildingIds.length !== 1 || !validBuildingTarget(w, gangId, input.type, w.buildings[buildingIds[0]], opts))) {
     return fail('Choose a valid site for that order.');
   }
-  if (def.target === 'area' && buildingIds.some((id) => !isValidAreaTarget(w, gangId, input.type, w.buildings[id]))) {
+  if (def.target === 'area' && buildingIds.some((id) => !isValidAreaTarget(w, gangId, input.type, w.buildings[id], input.opts))) {
     return fail('That site is not valid for this order.');
   }
   if (def.target === 'person') {
@@ -230,6 +230,7 @@ export function issueOrder(w: WorldState, gangId: ID, input: IssueOrderInput): A
     input.type,
     blockIds,
     buildingIds,
+    input.opts,
   );
 
   // A whole-block order with no eligible sites (for example, a municipal or
@@ -436,7 +437,7 @@ export function rolloverOrders(w: WorldState): void {
         if (order.type === 'collectProtection' && order.targetBlockIds.length) {
           const blocks = new Set(order.targetBlockIds);
           const picked = order.targetBuildingIds.filter(id => !blocks.has(w.buildings[id]?.blockId));
-          order.targetBuildingIds = expandTargets(w, order.gangId, order.type, order.targetBlockIds, picked);
+          order.targetBuildingIds = expandTargets(w, order.gangId, order.type, order.targetBlockIds, picked, order.opts);
         }
         order.estimatedMinutes = estimateMinutes(w, team, order);
         team.timeUsed += order.estimatedMinutes;

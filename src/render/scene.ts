@@ -2293,10 +2293,12 @@ export class CityRenderer {
       const x = c.axisX ? c.x : c.x - out;
       const z = c.axisX ? c.y - out : c.y;
       if (mainView && (Math.abs(x - carCx) > carReach || Math.abs(z - carCz) > carReach) && !this.tagged.contains(x, z)) continue;
-      const livery = trafficLivery(c.x, c.y, c.truck);
+      const livery = trafficLivery(c.x, c.y, c.truck, c.id);
       const truck = livery === 'truck';
-      // The car's nose is its local +x; a yaw of 0 drives east.
-      const yaw = c.axisX ? (c.dir > 0 ? 0 : Math.PI) : c.dir > 0 ? -Math.PI / 2 : Math.PI / 2;
+      // The car's nose is its local +x; a yaw of 0 drives east. The heading
+      // follows this leg, including the diagonal through a corner, so the
+      // body does not snap to a compass point at the start of a turn.
+      const yaw = c.heading;
 
       this.dummy.position.set(x, VEHICLE_GROUND_CLEARANCE, z);
       this.dummy.rotation.set(0, yaw, 0);
@@ -2347,8 +2349,12 @@ export class CityRenderer {
 
     for (const person of Object.values(w.people)) {
       if (person.status !== 'arrested' && !(person.role === 'police' && person.emergencyResponse)) continue;
-      this.dummy.position.set(person.pos.x, VEHICLE_GROUND_CLEARANCE, person.pos.y);
-      this.dummy.rotation.set(0, 0, 0);
+      const at = previewStreetPosition(person, w, this.subMinute, this.taggedPreview);
+      const next = person.path[0] ?? person.dest;
+      const dx = next ? next.x - at.x : 0, dy = next ? next.y - at.y : 0;
+      const yaw = dx * dx + dy * dy > 1e-6 ? -Math.atan2(dy, dx) : 0;
+      this.dummy.position.set(at.x, VEHICLE_GROUND_CLEARANCE, at.y);
+      this.dummy.rotation.set(0, yaw, 0);
       this.dummy.scale.setScalar(1);
       this.dummy.updateMatrix();
       (person.status === 'arrested' ? this.paddies : this.policeSedans).push(this.dummy.matrix, this.colorScratch);

@@ -4,6 +4,39 @@
  * city's random stream until the week itself runs.
  */
 import { noteAutoTestRunning, noteAutoTestStopped, noteLastAutoTest, writeReportFile } from './debugReport';
+
+let autoTestRunning = false;
+let stopAfterThisWeek = false;
+let stoppedThisRun = false;
+const runListeners = new Set<() => void>();
+
+function emitAutoTestRun(): void {
+  for (const listener of runListeners) listener();
+}
+
+/** Whether a test is in progress, and whether the player asked it to stop. */
+export function autoTestRunState(): { running: boolean; stopping: boolean } {
+  return { running: autoTestRunning, stopping: stopAfterThisWeek };
+}
+
+export function onAutoTestRun(listener: () => void): () => void {
+  runListeners.add(listener);
+  return () => { runListeners.delete(listener); };
+}
+
+/** Lit while a test runs. Click once to stop after the week now settling; click again to keep going. */
+export function toggleAutoTestStop(): boolean {
+  if (!autoTestRunning) return false;
+  stopAfterThisWeek = !stopAfterThisWeek;
+  emitAutoTestRun();
+  return stopAfterThisWeek;
+}
+
+export function takeAutoTestStopped(): boolean {
+  const stopped = stoppedThisRun;
+  stoppedThisRun = false;
+  return stopped;
+}
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
 import { BUY_REACH_BLOCKS, hireRecruit, issueOrder, moveToTeam, nearTerritory, promote, type ApiResult, type IssueOrderInput } from '../sim/api';
@@ -219,11 +252,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   }
   if (w.week >= 4 && gang.accountantId == null) {
     const desk = buildingList(w).find((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'accountant' && b.state !== 'destroyed');
-    if (desk) give('recruit accountant', { teamId: team.id, type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1 } });
+    if (desk) give('recruit accountant', { teamId: team.id, type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'accountant' } });
   }
   if (w.week >= 6 && gang.lawyerId == null) {
     const desk = buildingList(w).find((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'lawyer' && b.state !== 'destroyed');
-    if (desk) give('recruit lawyer', { teamId: team.id, type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1 } });
+    if (desk) give('recruit lawyer', { teamId: team.id, type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'lawyer' } });
   }
 
   if (gangManpower(w, gang) === beforeMen && gang.poolIds.length === 0 && gang.recruitIds.length === 0 && hoodSites.length === 0) {
@@ -314,7 +347,13 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   let flatRecruit = 0;
   let dryRecruit = 0;
   const cap = settings.weeks ?? UNTIL_END_CAP;
+  autoTestRunning = true;
+  stopAfterThisWeek = false;
+  stoppedThisRun = false;
+  emitAutoTestRun();
+  try {
   for (let i = 0; i < cap; i++) {
+    if (stopAfterThisWeek) { stoppedThisRun = true; notes.push('Stopped before another week. The desk is yours.'); break; }
     if (sim.world.phase !== 'planning') break;
     const menBefore = gangManpower(sim.world, sim.playerGang);
     const poolBefore = sim.playerGang.poolIds.length;
@@ -356,6 +395,12 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     if (flatRecruit >= 2) notes.push(`Stuck: men stayed ${men} and the pool stayed empty for ${flatRecruit} weeks.`);
     if (phase === 'gameOver') break;
     if (settings.weeks == null && sim.world.outcome) break;
+    if (stopAfterThisWeek) { stoppedThisRun = true; notes.push('Stopped after this week. The desk is yours.'); break; }
+  }
+  } finally {
+    autoTestRunning = false;
+    stopAfterThisWeek = false;
+    emitAutoTestRun();
   }
   if (settings.weeks == null && !sim.world.outcome && weeks.length >= UNTIL_END_CAP) {
     notes.push(`Stopped after ${UNTIL_END_CAP} weeks with no victory or loss.`);

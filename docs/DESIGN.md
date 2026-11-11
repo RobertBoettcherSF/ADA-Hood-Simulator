@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is Saint Volstead in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.8.1.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.9.
 
 ## Decisions
 
@@ -160,6 +160,13 @@ The eleven Hall names were the old default table. Their scores are unchanged, so
 ## v1.2.8.1 decisions
 
 1. The score is fetched as bytes and played from a blob whose type is `audio/mpeg`. The play link redirects those mp3 files to a host that does not label them as audio, and an `<audio>` element pointed at that address stays silent. Click sounds already decode the bytes themselves, which is why they kept working. Mute still stops the song. Unmute starts it again, and a track that failed to open is fetched again instead of resuming the broken address. The new-game screen keeps the menu song. The debug report lists the category, the track, whether it is playing, and the last error.
+
+## v1.2.9 decisions
+
+1. A traffic car keeps one body for the whole drive. The paint job used to be taken from the coordinates it was passing, so a police sedan became a wagon or a civilian car every few metres, and the mesh popped. The nose now follows the leg it is on, including the diagonal through a corner, instead of snapping to a compass point. A wagon or sedan drawn for an arrest or a call-out uses the same glide and the same heading as the person it belongs to.
+2. A new errand searches only the street corners it visits. The old search wiped a full-size array of every junction first, and a fast clock asks for a new errand every minute, so the ambient line climbed from about 0.7 ms a call to about 3.4 ms. The routes are the same.
+3. A plain Recruit order only visits gyms, pool halls, the docks, the labour exchange, and the other hood haunts. An area no longer picks up a finance company or a law office. An accountant or a lawyer is hired with that role named on the order, and only their own haunts are used.
+4. A wooden Stop button sits under Debug. It lights while Auto Test runs. One click shows "Stopping after this week" and, when the week now settling finishes, returns the desk to the player. The diary and the report keep the weeks already played. A second click before that week ends takes the stop back.
 
 ## 1. Current state
 

@@ -120,7 +120,7 @@ export function buildReel(sim: Sim): ReelFrame[] {
 
   const crew = peopleList(w).find((p) => p.gangId === gang.id && p.status === 'active' && p.dest);
   const cars = carsAt(w, w.minute + 0.25);
-  const dark = cars.find((car) => trafficLivery(car.x, car.y, car.truck) === 'police')
+  const dark = cars.find((car) => trafficLivery(car.x, car.y, car.truck, car.id) === 'police')
     ?? cars.find((car) => car.color === 0 || car.color === 7)
     ?? cars[0];
   const other = cars.find((car) => car !== dark && car.junction) ?? cars[1] ?? cars[0];

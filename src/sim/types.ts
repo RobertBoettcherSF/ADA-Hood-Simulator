@@ -479,6 +479,8 @@ export interface OrderOptions {
   amount?: number;
   /** setUpBusiness, rented rooms: how many floors to open, 1–4. */
   roomsFloors?: number;
+  /** Recruit: hoods use the street haunts. Accountant and lawyer visits say so. */
+  recruitAs?: 'hood' | 'accountant' | 'lawyer';
 }
 
 export type OrderState =
