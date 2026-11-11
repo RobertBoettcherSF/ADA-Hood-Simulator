@@ -17,6 +17,18 @@ export interface AssetProgress {
 const SAVED = 'assets/manifest.json';
 /** Leave this much free after a copy, so the city save still fits. */
 const RESERVE = 32 * 1024 * 1024;
+/** The copy waits this long after the folder opens, then for an idle moment. */
+const START_DELAY_MS = 45_000;
+const BETWEEN_FILES_MS = 150;
+const FAILED_PAUSE_MS = 5_000;
+
+const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+async function idleStart(): Promise<void> {
+  await pause(START_DELAY_MS);
+  const idle = (globalThis as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+  if (idle) await new Promise<void>((resolve) => idle(() => resolve(), { timeout: 10_000 }));
+}
 
 export function persistentFiles(files: AssetFile[], tier: 'phone' | 'desktop'): AssetFile[] {
   if (tier === 'phone') return files.filter((file) => file.tier === 'phone');
@@ -70,31 +82,46 @@ export async function syncWorldAssets(onProgress?: (progress: AssetProgress) => 
     onNotice?.('Artwork stays on the network. This device does not have room for a local copy.');
     return;
   }
-  const written: string[] = [];
+  // Let the menu, the reel and the city's own pictures arrive first: on a
+  // slow line the copy used to compete with them for minutes.
+  await idleStart();
   let done = 0;
   let current: string | null = null;
+  let sinceSave = 0;
+  let failed = 0;
+  const persist = () => store.write(SAVED, JSON.stringify({ tier, files: saved }));
   try {
     for (const file of files) {
       done += 1;
       onProgress?.({ done, total: files.length, label: file.path });
       if (saved[file.path] === file.sha256) continue;
       if (!(await roomFor(file.bytes))) throw Object.assign(new Error('quota'), { name: 'QuotaExceededError' });
-      const response = await fetch(`${import.meta.env.BASE_URL}${file.path}`, { cache: 'no-store' });
-      if (!response.ok) continue;
-      const body = new Uint8Array(await response.arrayBuffer());
+      // The browser's own cache is fine: a file the reel just fetched is not fetched twice.
+      let body: Uint8Array;
+      try {
+        const response = await fetch(`${import.meta.env.BASE_URL}${file.path}`);
+        if (!response.ok) { failed += 1; continue; }
+        body = new Uint8Array(await response.arrayBuffer());
+      } catch {
+        // A dropped request skips this file; the next session tries it again.
+        failed += 1;
+        await pause(FAILED_PAUSE_MS);
+        continue;
+      }
       current = `assets/${file.path}`;
       await store.writeBytes(current, body);
-      written.push(current);
       current = null;
       saved[file.path] = file.sha256;
+      // Progress is kept as it goes, so an interrupted copy does not start over.
+      if (++sinceSave >= 10) { sinceSave = 0; await persist(); }
+      await pause(BETWEEN_FILES_MS);
     }
-    await store.write(SAVED, JSON.stringify({ tier, files: saved }));
+    await persist();
+    if (failed) onNotice?.(`Artwork copy: ${failed} file${failed === 1 ? '' : 's'} did not arrive and will be tried next time.`);
   } catch (error) {
     if (current) await store.remove(current).catch(() => {});
-    for (const name of written) await store.remove(name).catch(() => {});
-    for (const name of written) delete saved[name.slice('assets/'.length)];
     if (current) delete saved[current.slice('assets/'.length)];
-    await store.write(SAVED, JSON.stringify({ tier, files: saved })).catch(() => {});
+    await persist().catch(() => {});
     if (isQuotaError(error)) onNotice?.('Artwork stays on the network. Copying stopped because storage is full.');
     else onNotice?.('Artwork stays on the network. The local copy could not be finished.');
   }
