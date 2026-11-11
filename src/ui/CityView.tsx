@@ -24,6 +24,7 @@ import { lieutenantAreaChoices } from '../sim/lieutenantAreas';
 import { yieldForPaint } from '../yieldForPaint';
 import { StreetLoading } from './StreetLoading';
 import { peopleList } from '../sim/entityLists';
+import { noteStreetFrame } from '../render/characterDetail';
 import { PressWatch, showInspect } from './inspectCard';
 
 /**
@@ -111,7 +112,8 @@ export function CityView() {
 
       const loop = (now: number) => {
         raf = requestAnimationFrame(loop);
-        const dt = Math.min(0.1, (now - last) / 1000);
+        const frameMs = now - last;
+        const dt = Math.min(0.1, frameMs / 1000);
         last = now;
 
         const state = useGame.getState();
@@ -244,9 +246,13 @@ export function CityView() {
 
         // The clock and Stop Skipping control stay live while fast-forwarding;
         // hold the city image instead of spending half the skip drawing it.
-        if (!state.finishingWeek && !state.savingSnapshot && state.loadingSave == null) renderer.update();
         // While the blueprint is on the desk the city is under it; no need to draw it.
-        if (!state.finishingWeek && !state.savingSnapshot && state.loadingSave == null && !(s.world.phase === 'planning' && state.planningView === 'plan')) renderer.render();
+        const drewStreet = !state.finishingWeek && !state.savingSnapshot && state.loadingSave == null && !(s.world.phase === 'planning' && state.planningView === 'plan');
+        if (!state.finishingWeek && !state.savingSnapshot && state.loadingSave == null) renderer.update();
+        if (drewStreet) {
+          renderer.render();
+          if (s.world.phase === 'week') noteStreetFrame(frameMs);
+        }
         for (const view of tagged) {
           const status = renderer.taggedViewStatus(view.personId);
           view.element.dataset.flipped = String(status.flipped);

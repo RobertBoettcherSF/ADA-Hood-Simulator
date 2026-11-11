@@ -11,10 +11,55 @@ const MIN_CHARACTER_PIXELS = 8;
  * held 60. The most important (burning, watched, fighting, the player's own
  * men, officials) and then the nearest get them; the rest are simple figures.
  */
-export const MAX_DETAILED_STREET_CHARACTERS = 32;
-/** A figure already detailed counts this much nearer, so one walking along the
- * edge of the detailed set does not flicker between the two models. */
-export const DETAIL_KEEP_METRES = 6;
+/** A frame this slow, this many times in a row, puts every walker on the simple
+ * figure together. A run of quick frames brings the detailed models back. */
+const SLOW_FRAME_MS = 48;
+const FAST_FRAME_MS = 28;
+const SLOW_FRAMES = 15;
+const FAST_FRAMES = 120;
+
+let simple = false;
+let slowRun = 0;
+let fastRun = 0;
+const figureWatchers = new Set<() => void>();
+
+/** True while the whole street is on the simple figures. */
+export function simpleFigures(): boolean {
+  return simple;
+}
+
+export function watchSimpleFigures(listener: () => void): () => void {
+  figureWatchers.add(listener);
+  return () => { figureWatchers.delete(listener); };
+}
+
+function setSimpleFigures(next: boolean): void {
+  if (next === simple) return;
+  simple = next;
+  slowRun = 0;
+  fastRun = 0;
+  for (const listener of figureWatchers) listener();
+}
+
+/** One drawn street frame. The choice is global: nobody is detailed while
+ * anyone else on the same street is a simple figure. */
+export function noteStreetFrame(ms: number): void {
+  if (!Number.isFinite(ms) || ms <= 0) return;
+  if (!simple) {
+    slowRun = ms > SLOW_FRAME_MS ? slowRun + 1 : 0;
+    if (slowRun >= SLOW_FRAMES) setSimpleFigures(true);
+  } else {
+    fastRun = ms < FAST_FRAME_MS ? fastRun + 1 : 0;
+    if (fastRun >= FAST_FRAMES) setSimpleFigures(false);
+  }
+}
+
+/** Test hook. */
+export function resetSimpleFigures(): void {
+  simple = false;
+  slowRun = 0;
+  fastRun = 0;
+}
 
 /** Screen size, not a fixed zoom: the same zoom covers different pixel heights
  * in the main city and the independent tagged viewport. */

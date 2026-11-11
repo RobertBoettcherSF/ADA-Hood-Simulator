@@ -9,6 +9,7 @@ import { Portrait } from './Portrait';
 import { bossInsideOffice } from '../render/characterPresentation';
 import { InterfaceButton } from './InterfaceControls';
 import { cancelSpecialistJob, setSpecialistWaiting, SPECIALIST_JOB_NAMES, specialistJobActive } from '../sim/specialistJobs';
+import { STATUS_LABELS } from '../sim/types';
 
 /** Manual pp. 78-79: a live, independent view of the selected character. */
 export function TaggedWindow({id}: {id: number}) {
@@ -73,7 +74,7 @@ export function TaggedWindow({id}: {id: number}) {
       </>}
     </div>
     <div className="paper tagged-status">
-      <b>{mine && active ? (paused ? 'Paused · ' : waiting ? 'Waiting · ' : '') + orderName + (pursuit ? ` · ${pursuit}` : '') : person.status}</b>
+      <b>{mine && active ? (paused ? 'Paused · ' : waiting ? 'Waiting · ' : '') + orderName + (pursuit ? ` · ${pursuit}` : '') : STATUS_LABELS[person.status]}</b>
       <span>{Math.round(person.hp)} hp{person.inVehicle ? ' · In vehicle' : ''}{cargo?` · ${goodsTotal(cargo.goods)} cases`:''}</span>
     </div>
     <div ref={viewport} className="tagged-viewport" data-mode={mode} role="img"

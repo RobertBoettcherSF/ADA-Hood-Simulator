@@ -58,6 +58,28 @@ export type PersonRole =
   | 'clergy'
   | 'snitch';
 
+/** Names players see. The role id stays on the person; the desk never prints it. */
+export const ROLE_LABELS: Record<PersonRole, string> = {
+  boss: 'Boss',
+  lieutenant: 'Lieutenant',
+  hood: 'Hood',
+  accountant: 'Accountant',
+  lawyer: 'Lawyer',
+  citizen: 'Citizen',
+  owner: 'Owner',
+  police: 'Police officer',
+  firefighter: 'Firefighter',
+  policeChief: 'Chief of Police',
+  fbi: 'F.B.I. agent',
+  fbiHead: 'Bureau chief',
+  judge: 'Judge',
+  da: 'District Attorney',
+  mayor: 'Mayor',
+  reporter: 'Reporter',
+  clergy: 'Clergy',
+  snitch: 'Snitch',
+};
+
 export type PersonStatus =
   | 'active'
   | 'arrested'
@@ -66,6 +88,16 @@ export type PersonStatus =
   | 'kidnapped'
   | 'beaten'
   | 'dead';
+
+export const STATUS_LABELS: Record<PersonStatus, string> = {
+  active: 'Active',
+  arrested: 'Arrested',
+  onTrial: 'On trial',
+  jailed: 'In prison',
+  kidnapped: 'Kidnapped',
+  beaten: 'Beaten',
+  dead: 'Dead',
+};
 
 export interface Vec2 {
   x: number;

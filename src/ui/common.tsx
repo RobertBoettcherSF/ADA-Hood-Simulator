@@ -16,10 +16,10 @@ export function Stars({ value, max = 5 }: { value: number; max?: number }) {
 }
 
 /** The lieutenant's time indicator: a dial that fills as his week is spoken for. */
-export function Dial({ pct, label, size }: { pct: number; label?: string; size?: number }) {
+export function Dial({ pct, label, size, title }: { pct: number; label?: string; size?: number; title?: string }) {
   const p = Math.round(Math.max(0, Math.min(100, pct)));
   return (
-    <div className="dial" style={{ ['--pct' as string]: p, ...(size ? { width: size, height: size } : {}) }}>
+    <div className="dial" title={title ?? `${p}%`} style={{ ['--pct' as string]: p, ...(size ? { width: size, height: size } : {}) }}>
       <span>{label ?? `${p}`}</span>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../app/store';
+import { simpleFigures, watchSimpleFigures } from '../render/characterDetail';
 import { SPEED_STAGES, stageIndex } from '../app/speed';
 import { DAY_START_HOUR, MINUTES_PER_DAY } from '../sim/constants';
 import { dayIndex } from '../sim/world';
@@ -16,6 +17,8 @@ export function WeekClock() {
   const {sim,speed,paused,speedUp,speedDown,finishingWeek}=game;
   const phase = sim?.world.phase;
   const [, paint] = useState(0);
+  const [simple, setSimple] = useState(simpleFigures);
+  useEffect(() => watchSimpleFigures(() => setSimple(simpleFigures())), []);
   useEffect(() => {
     if (!sim || paused || phase !== 'week') return;
     let frame = 0;
@@ -34,6 +37,7 @@ export function WeekClock() {
   const minuteAngle = (minute % 60) * 6;
   const hourAngle = (h % 12) * 30;
   return <section className="week-clock" aria-label={`Game clock: ${day}, ${time}, ${state}`} title={`${day} · ${time} · ${state}`}>
+    {simple && <span className="simple-figures">Simple figures</span>}
     <div className="clock-shoulders">
       <button aria-label="Slower" title="Slower (<)" onClick={speedDown} disabled={stage===0}>‹</button>
       <div className="clock-speed" aria-label={`Time speed: ${speed===1?'Normal':`${speed} times`}`}>

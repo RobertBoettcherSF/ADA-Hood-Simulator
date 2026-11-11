@@ -1,4 +1,5 @@
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
+import { recruitJoin } from './recruitDestination';
 import { originalStartingWage, originalWageQuote } from './originalWages';
 import { BLAST_DAMAGE, blastFear, effectiveHostility, fearOf, hostilityOf, MEMBER_DEATH_FEAR, NO_ORIGINAL_CHANNEL, opinionShift, ownerSquealLevel, setAttitude, shiftAttitude } from './attitudes';
 import { onMayorDeath, refreshNominees } from './systems/politics';
@@ -124,8 +125,8 @@ export function huntStops(w: WorldState, gangId: ID): ID[] {
   return round;
 }
 
-/** A hood who agrees to work joins the crew if it has room, otherwise the pool. */
-function takeOnHood(w: WorldState, gang: Gang, team: Team, person: Person): 'crew' | 'pool' {
+/** A hood who agrees to work. The player can send them to the pool, or onto this crew when it has room. */
+function takeOnHood(w: WorldState, gang: Gang, team: Team, person: Person, forcePool = false): 'crew' | 'pool' {
   person.gangId = gang.id;
   person.buildingId = null;
   person.teamId = null;
@@ -140,7 +141,7 @@ function takeOnHood(w: WorldState, gang: Gang, team: Team, person: Person): 'cre
   person.orderId = null;
   const office = nearestOffice(w, gang.id, person.pos);
   if (office) person.pos = { ...w.lots[office.lotId].center };
-  if (team.memberIds.length < MAX_TEAM_SIZE - 1) {
+  if (!forcePool && team.memberIds.length < MAX_TEAM_SIZE - 1) {
     team.memberIds.push(person.id);
     person.teamId = team.id;
     return 'crew';
@@ -1342,15 +1343,18 @@ function resolveTarget(
         say(added ? `${added} ${kind}(s) willing to work for you.` : 'Nobody new was willing to work for you.');
         break;
       }
+      const toPool = gang.isPlayer && recruitJoin() !== 'crew';
       let crew = 0, pool = 0;
       for (let i = 0; i < take; i++) {
-        if (takeOnHood(w, gang, team, candidates[i]) === 'crew') crew++;
+        if (takeOnHood(w, gang, team, candidates[i], toPool) === 'crew') crew++;
         else pool++;
       }
       const joined = crew + pool;
-      const hired = joined
-        ? `${joined} hood${joined === 1 ? '' : 's'} signed on${pool ? ` (${pool} in the pool` : ''}${crew ? `${pool ? ', ' : ' ('}${crew} with the crew` : ''}${pool || crew ? ')' : ''}.`
-        : 'Nobody new was willing to work for you.';
+      const hired = !joined
+        ? 'Nobody new was willing to work for you.'
+        : toPool
+          ? `${joined} hood${joined === 1 ? '' : 's'} signed on, waiting in the pool.`
+          : `${joined} hood${joined === 1 ? '' : 's'} signed on${pool ? ` (${pool} in the pool` : ''}${crew ? `${pool ? ', ' : ' ('}${crew} with the crew` : ''}${pool || crew ? ')' : ''}.`;
       say(hired);
       if (!joined) report(w, gang.id, 'failed', hired);
       break;

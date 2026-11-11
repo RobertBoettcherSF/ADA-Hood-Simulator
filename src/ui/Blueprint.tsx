@@ -12,6 +12,7 @@ import { recentEventCounts } from '../sim/events';
 import { drawTerritoryOutline } from '../render/territoryOutline';
 import { lieutenantAreaChoices } from '../sim/lieutenantAreas';
 import type { Block, ID, WorldState } from '../sim/types';
+import { BUILDING_BY_ID } from '../sim/data/buildings';
 import { blockAt, buildingsOfBlock, money } from '../sim/world';
 import { buildingValue } from '../sim/execution';
 import { handleMapBox, handleMapHit } from './mapClick';
@@ -552,7 +553,8 @@ export function Blueprint() {
     if (useGame.getState().jobCard?.type === 'buyPremises') {
       const hit = hitAt(p.x, p.y);
       const site = hit.buildingId != null ? sim.world.buildings[hit.buildingId] : undefined;
-      const next = site ? `${site.typeId} · ${money(buildingValue(sim.world, site))}` : '';
+      const name = !site ? '' : site.cls === 'empty' ? 'Empty land' : BUILDING_BY_ID[site.typeId]?.name ?? 'Premises';
+      const next = site ? `${name} · ${money(buildingValue(sim.world, site))}` : '';
       setPriceTip((prev) => prev === next ? prev : next);
     } else if (priceTip) setPriceTip('');
   };

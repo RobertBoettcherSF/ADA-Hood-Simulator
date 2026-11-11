@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { syncWorldAssets } from '../app/assetSync';
 import { loadLocalData, readLocalData } from '../app/localData';
+import { setRecruitJoin } from '../sim/recruitDestination';
 import { applyUiScale } from '../app/uiScale';
 import { useGame } from '../app/store';
 import { audio } from '../audio/audio';
@@ -62,10 +63,12 @@ export function FolderGate({ onReady, onProgress, onChoice }: {
       graphics: stored.graphics,
       cityDemo: stored.cityDemo,
       mouseReversal: stored.mouseReversal,
+      recruitJoin: stored.recruitJoin,
       roadNames: stored.roadNames,
       autoLowerRoofs: stored.autoLowerRoofs,
     });
     applyUiScale(stored.uiScale);
+    setRecruitJoin(stored.recruitJoin);
     void syncWorldAssets(undefined, (text) => useGame.getState().notify(text));
   };
 

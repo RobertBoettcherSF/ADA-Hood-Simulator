@@ -6,6 +6,7 @@ import { deviceIsPhone } from '../app/device';
 import { CELL, DAYS_PER_WEEK, ORDERS } from '../sim/constants';
 import { cityBlockAt, lotRect } from '../sim/cityLayout';
 import { BUILDING_BY_ID } from '../sim/data/buildings';
+import { businessCarryingCost } from '../sim/businessState';
 import { cargoActivity } from '../sim/cargo';
 import { peopleList } from '../sim/entityLists';
 import { buildingMapIntel, personMapPosition } from '../sim/mapIntel';
@@ -144,15 +145,37 @@ function placeFacts(w: WorldState, viewer: ID, building: Building): InspectFacts
   const intel = buildingMapIntel(building, viewer);
   const type = BUILDING_BY_ID[building.typeId];
   const business = !intel.siteKnown ? 'Unknown' : type?.name ?? (building.cls === 'empty' ? 'Empty land' : 'Premises');
+  const owned = building.ownerGangId === viewer;
   return {
     title: building.cls === 'empty' ? 'Empty lot' : business,
     rows: [
       { label: 'Business', value: business },
       { label: 'Owner', value: ownerOf(w, viewer, building) },
-      moneyRow(w, viewer, building),
+      ...(owned ? ownedWeek(w, building) : [moneyRow(w, viewer, building)]),
       { label: 'Inside', value: intel.siteKnown ? insideNames(w, building) : 'Unknown' },
     ],
   };
+}
+
+/** The player's own site: last week's books, not a protection note. */
+function ownedWeek(w: WorldState, building: Building): InspectRow[] {
+  // A trading week's stored result is already net of running the site. A gain is
+  // income; a loss is the cost. A closed site still pays its carrying cost.
+  const net = building.lastProfit;
+  const carrying = building.state === 'ceased' ? businessCarryingCost(building) : 0;
+  const income = Math.max(0, net);
+  const costs = Math.max(0, -net) + carrying;
+  const hidden = building.hidesId != null ? w.buildings[building.hidesId] : null;
+  const rows: InspectRow[] = [
+    { label: 'Income', value: money(income) },
+    { label: 'Costs', value: money(costs) },
+    { label: 'Profit/loss', value: money(income - costs) },
+  ];
+  if (hidden && hidden.cls === 'illegal') {
+    const name = BUILDING_BY_ID[hidden.typeId]?.name ?? 'Illegal business';
+    rows.push({ label: 'Hidden business', value: `${name}, last week ${money(hidden.lastProfit)}` });
+  }
+  return rows;
 }
 
 function ownerOf(w: WorldState, viewer: ID, building: Building): string {
