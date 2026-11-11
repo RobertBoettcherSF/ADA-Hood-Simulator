@@ -1,18 +1,17 @@
 import { audio } from './audio';
 
 /**
- * Recorded sounds and music in
- * public/audio. They load in the background after the first gesture; until a
- * sound has loaded, or if it fails to, callers fall back to the synthesised
- * version, so the game never waits on audio.
+ * Recorded effects and street beds in public/audio. They load in the
+ * background after the first gesture; until a sound has loaded, or if it
+ * fails to, callers fall back to the synthesised version. The score is not
+ * in this list. It is streamed from the music pool.
  */
 export type SampleName =
   | 'shot-pistol' | 'shot-shotgun' | 'shot-rifle' | 'shot-tommy' | 'shot-twin' | 'explosion' | 'punch' | 'fall'
-  | 'camera-flash' | 'horn' | 'siren' | 'car-speed' | 'car-door' | 'bed-street' | 'bed-fire' | 'ui-click' | 'ui-page' | 'ui-cash'
-  | 'music-planning' | 'music-week' | 'music-menu';
+  | 'camera-flash' | 'horn' | 'siren' | 'car-speed' | 'car-door' | 'bed-street' | 'bed-fire' | 'ui-click' | 'ui-page' | 'ui-cash';
 
 const ALL: SampleName[] = ['ui-click', 'ui-page', 'ui-cash', 'shot-pistol', 'shot-shotgun', 'shot-rifle', 'shot-tommy', 'shot-twin',
-  'explosion', 'punch', 'fall', 'camera-flash', 'horn', 'siren', 'car-speed', 'car-door', 'bed-street', 'bed-fire', 'music-menu', 'music-planning', 'music-week'];
+  'explosion', 'punch', 'fall', 'camera-flash', 'horn', 'siren', 'car-speed', 'car-door', 'bed-street', 'bed-fire'];
 
 const buffers = new Map<SampleName, AudioBuffer>();
 let loading: Promise<void> | null = null;
