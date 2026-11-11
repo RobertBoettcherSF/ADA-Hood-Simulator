@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is Saint Volstead in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.13.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.14.
 
 ## Decisions
 
@@ -211,6 +211,16 @@ Items marked *(my call)* are choices made while building, not asked for.
 12. Memory. A 12-week browser Auto Test held 80 MB of live JavaScript at the start and 94 MB at the end, measured after a forced garbage collection. The growth is the city's own records. The 951 / 1022 MB in the 1.2.12 debug report is the browser's figure before it collects garbage. It is mostly the large save strings each week makes. Auto Test no longer makes an extra encoded copy of the save every week, and the debug report now says that its heap figure counts garbage not yet collected.
 13. Buttons on the desk show a tip on hover: the section tabs, the lieutenant strip, the left page, the map bar, the street HUD and the corner tools. The tip replaces the browser's own tooltip. A right-click opens a card that says what the button does, its key, and whether it is on or unavailable. On a lieutenant's tab the card shows his crew, headcount, share of the week given out, orders, loyalty and status. Right-click there no longer opens the browser menu. The message buttons keep their own right-click, which jumps to the latest event. *(my call: the card wording.)*
 14. Existing test failures on main that 1.2.13 did not change: two order-outcome tests (export with a truck, and smash up), the number-key cycling test (E#61), and the late sculpt-load cleanup test.
+
+## v1.2.14 decisions
+
+Items marked *(my call)* are choices made while building, not asked for.
+
+1. Memory. Auto Test no longer writes a second full save before every week, and no longer stringifies the city again just to measure the save. The schema that checks a save now lists each type's fields as entries, not as an object keyed by field name: a schema object with `x` and `y` keys shared V8's `{x, y}` shape and boxed every position's coordinates, about 0.6 GB of garbage per End Week. The save file itself is unchanged, so a 1.2.13 save still loads. Between weeks, Auto Test stops when the larger of used and reserved heap reaches 60% of the browser's limit, saves the city, and shows a message asking to reload. *(my call: 60%. A healthy 20-week run reserves under a fifth of the limit; Robert's 1.2.13 crash was 2,481 of 2,483 MB at week 20.)*
+2. Police suspicion. Once suspicion reaches 40, or a case is open against the gang, the lawyer pays the judges on those cases first, then the chief, the other judges and the district attorneys (up to four, and not if the bribe is more than 30% of cash). A crew also pays the chief. Past suspicion 50 the gang eases off: only half the crews extort, they skip the hottest quarter of the blocks, and Auto Test buys legal premises. *(my call: the 50 line, the half-crew cap, and the 30% cash cap.)*
+3. Stalled growth. The hiring target is two men per block (up to 60). If the crews ran out of week last Monday, six more are hired, up to 64. A recruit order takes at most two sites and two men, so a long list no longer uses up the week before the last door. Extortion is sized to the crew's free week (about one site per sixth of a week) and skipped when less than 15% of the week is left. A new lieutenant is promoted for every five hoods (at least two, at most eight). The accountant is hired from week 3 and the lawyer from week 4, trying the next desk each week so one empty office does not hold up the hire. *(my call: two men per block, five hoods per crew, and the earlier specialist weeks.)*
+4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
+5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
 ## 1. Current state
 
