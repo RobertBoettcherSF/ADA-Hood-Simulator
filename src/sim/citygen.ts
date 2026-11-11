@@ -19,6 +19,7 @@ import { ourTypeForOriginalKind } from './data/originalKinds';
 import { createOriginalBusinessSeeding } from './originalBusinesses';
 import { originalStartingSites, placeOriginalHeadquarters } from './originalBootstrap';
 import { replenishOriginalRecruits } from './recruitPool';
+import { generateHoodSkills } from './hoodGeneration';
 import { C as OC, generateOriginalCitySafe, isParkContent, isRiverContent } from './originalCityGen';
 import { originalTramLines } from './trams';
 import { HERITAGE_BY_ID, bossFace, heritageName, heritageOfSurname, mixedHeritageName, sitterFromSeed, type Heritage } from './heritage';
@@ -83,7 +84,7 @@ export function createPerson(
   rng: Rng,
   role: PersonRole,
   pos: Vec2,
-  opts: Partial<Person> & { quality?: number; origin?: Heritage; prefer?: Heritage } = {},
+  opts: Partial<Person> & { quality?: number; origin?: Heritage; prefer?: Heritage; businessType?: boolean } = {},
 ): Person {
   const female = opts.female ?? rng.chance(role === 'hood' ? 0.22 : 0.4);
   const rolled = opts.name ? null : makeName(rng, female, opts.origin, opts.prefer);
@@ -93,7 +94,7 @@ export function createPerson(
     female,
     portrait: opts.portrait ?? rng.int(0, 23),
     role,
-    skills: opts.skills ?? makeSkills(rng, opts.quality ?? 1),
+    skills: opts.skills ?? (role === 'hood' ? generateHoodSkills(rng, { business: opts.businessType }) : makeSkills(rng, opts.quality ?? 1)),
     gangId: opts.gangId ?? null,
     teamId: null,
     buildingId: opts.buildingId ?? null,
@@ -618,7 +619,7 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
     for (let i = 0; i < freeHoodCount; i++) {
       const site = recruitSites.length ? rng.pick(recruitSites) : rng.pick(Object.values(w.buildings));
       const p = createPerson(w, rng, 'hood', w.lots[site.lotId].center, {
-        quality: rng.chance(0.16) ? 1.35 : 1,
+        businessType: i < 2,
         buildingId: site.id,
         prefer: playerOrigin(options),
       });
@@ -788,7 +789,7 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
     const hoods: Person[] = [];
     for (let i = 0; i < hoodCount; i++) {
       const p = createPerson(w, rng, 'hood', w.lots[office.lotId].center, {
-        quality: i === 0 ? 1.15 : 1,
+        businessType: i === 0,
         gangId,
         origin: heritage,
       });
