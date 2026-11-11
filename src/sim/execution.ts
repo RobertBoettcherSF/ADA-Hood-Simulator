@@ -1325,6 +1325,8 @@ function resolveTarget(
         const empty = elsewhere
           ? `Nobody worth hiring at ${placeName(w, building)} — word is there are people looking for work at ${placeName(w, elsewhere)}.`
           : `Nobody worth hiring at ${placeName(w, building)}.`;
+        if (elsewhere) order.recruitHintId = elsewhere.id;
+        (order.emptyRecruitIds ??= []).push(building.id);
         say(empty);
         report(w, gang.id, 'failed', empty);
         return;

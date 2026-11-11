@@ -546,6 +546,10 @@ export interface Order {
   /** The report lines that are an owner's refusal, and the premises each came from. */
   refusals?: { line: number; buildingId: ID }[];
   failReason: string | null;
+  /** A recruiting site that had people looking for work, when this site was empty. */
+  recruitHintId?: ID;
+  /** Recruiting sites this order found empty. */
+  emptyRecruitIds?: ID[];
   /** Street orders are transient and re-entrant. */
   isStreetOrder: boolean;
   completedTargets: number;

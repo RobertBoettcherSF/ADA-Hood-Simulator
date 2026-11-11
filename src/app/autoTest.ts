@@ -165,6 +165,59 @@ export function takeAutoTestMemoryStop(): boolean {
   return was;
 }
 
+/** Weeks a recruiting venue is skipped after a crew found nobody there. */
+export const EMPTY_VENUE_SKIP_WEEKS = 4;
+
+export interface RecruitMemory {
+  hintIds: number[];
+  /** Building id → first week the venue may be tried again. */
+  emptyUntil: Map<number, number>;
+}
+
+export function newRecruitMemory(): RecruitMemory {
+  return { hintIds: [], emptyUntil: new Map() };
+}
+
+let recruitMemory = newRecruitMemory();
+
+/** Prefer last week's "looking for work" tip; skip venues that just came up empty. */
+export function chooseHoodRecruitSites<T extends { id: number }>(
+  sites: T[],
+  memory: RecruitMemory = recruitMemory,
+  week = 0,
+): T[] {
+  const open = (site: T) => (memory.emptyUntil.get(site.id) ?? 0) <= week;
+  const hinted: T[] = [];
+  const seen = new Set<number>();
+  for (const id of memory.hintIds) {
+    const site = sites.find((entry) => entry.id === id);
+    if (!site || seen.has(id) || !open(site)) continue;
+    hinted.push(site);
+    seen.add(id);
+  }
+  const rest = sites.filter((site) => !seen.has(site.id) && open(site));
+  const picked = [...hinted, ...rest];
+  // If every known venue is still cooling down, try them anyway rather than hiring nowhere.
+  return picked.length ? picked : sites;
+}
+
+export function rememberRecruitResults(
+  orders: { type: string; recruitHintId?: number | null; emptyRecruitIds?: number[] }[],
+  week: number,
+  memory: RecruitMemory = recruitMemory,
+): void {
+  for (const order of orders) {
+    if (order.type !== 'recruit') continue;
+    if (order.recruitHintId != null) {
+      memory.hintIds = [order.recruitHintId, ...memory.hintIds.filter((id) => id !== order.recruitHintId)];
+    }
+    for (const id of order.emptyRecruitIds ?? []) {
+      memory.emptyUntil.set(id, week + EMPTY_VENUE_SKIP_WEEKS);
+      memory.hintIds = memory.hintIds.filter((hint) => hint !== id);
+    }
+  }
+}
+
 function hqCenter(w: Sim['world'], gangId: number): { x: number; y: number } {
   const office = buildingList(w).find((b) => b.isHQ && b.ownerGangId === gangId);
   const lot = office ? w.lots[office.lotId] : undefined;
@@ -322,7 +375,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
 
   const origin = hqCenter(w, gang.id);
   const nearer = (a: { lotId: number }, b: { lotId: number }) => dist(w.lots[a.lotId].center, origin) - dist(w.lots[b.lotId].center, origin);
-  const hoodSites = buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood' && b.state !== 'destroyed').sort(nearer);
+  const hoodSites = chooseHoodRecruitSites(
+    buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood' && b.state !== 'destroyed').sort(nearer),
+    recruitMemory,
+    w.week,
+  );
 
   const hq = buildingList(w).find((b) => b.isHQ && b.ownerGangId === gang.id);
   if (w.week >= 2 && gangManpower(w, gang) >= 8 && hq) {
@@ -391,6 +448,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         // Two sites at most, with two men: a longer list ran out of week before the last door.
         const count = Math.min(2, Math.max(1, Math.round(1 + weight.hiring)));
         const team = freest();
+        if (recruitMemory.hintIds.includes(hoodSites[0].id)) {
+          actions.push('NOTE recruit following last week\'s tip');
+        }
         give('recruit', team, { type: 'recruit', buildingIds: hoodSites.slice(0, count).map((b) => b.id), opts: { manpower: team ? manpowerFor(team, 2) : 1 } });
       } else if (hoodSites.length === 0) {
         actions.push('NOTE no hoods standing at a hiring place');
@@ -561,6 +621,7 @@ function reportText(parts: {
 
 /** Run the bot, append the diary, then write 09 Reports. Returns the report text either way. */
 export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: (sim: Sim) => Promise<void> | void, sink: DiarySink = folderDiary()): Promise<string> {
+  recruitMemory = newRecruitMemory();
   clearWeekHeaps();
   noteAutoTestRunning(
     `seed ${settings.seed} learn ${settings.learn === false ? 'off' : 'on'}`,
@@ -629,6 +690,10 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       noteWeekHeap(weekSnap.week, memory.heap.used, memory.heap.total);
     }
     weeks.push(weekSnap);
+    rememberRecruitResults(
+      sim.world.lastWeekOrders.filter((order) => order.gangId === sim.playerGang.id),
+      sim.world.week,
+    );
     for (const order of sim.world.lastWeekOrders) {
       if (order.gangId !== sim.playerGang.id || order.type !== 'recruit') continue;
       const reason = order.failReason || order.results.join(' ');
