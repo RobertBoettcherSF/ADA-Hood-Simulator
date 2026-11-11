@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is Saint Volstead in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.9.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.10.
 
 ## Decisions
 
@@ -156,6 +156,8 @@ The eleven Hall names were the old default table. Their scores are unchanged, so
 2. End Week sits beside Pause. It finishes the rest of the week on the same clock, without drawing the street. Fights still resolve. A short progress bar shows how far the week has gone. Escape stops the skip and continues the street at normal speed. Pause during the skip still pauses. The journal no longer has a second End Week button. Hit the Streets still starts the week you watch. One week of the default 40×32 city, seed 1934, took 16.2 s on this machine.
 3. The debug report says "(none this session)" only when Auto Test has not started. Starting a run is recorded at once, including a run that is still going or that stopped with an error. The finished line is cash, men, blocks, score, and the report file. The note is kept for the browser session.
 4. `art/city/thumbs/residential.png` was missing, so a row house on the building card failed to load. The file is a 256×256 elevation, the same size as the other thumbs.
+6. A third report on the 1.2.7 build measured ambient walking at 9012.5 ms over 2400 calls, about 3.75 ms a call, by the end of week 1. That confirms the slowdown. The search was changed in 1.2.9. The routes stayed the same.
+8. Right-clicking a building, a lot, or a person, on the street or on the city plan, opens a small wooden card at the cursor. A building or a lot shows the business, the owner, the weekly protection or the weekly rent, and who is inside. A person shows the name, the gang, and the current order. Escape or another click closes it. A phone uses a long press. The card is in 1.2.10; this list already names it because it was approved with 1.2.8.
 
 ## v1.2.8.1 decisions
 
@@ -167,6 +169,11 @@ The eleven Hall names were the old default table. Their scores are unchanged, so
 2. A new errand searches only the street corners it visits. The old search wiped a full-size array of every junction first, and a fast clock asks for a new errand every minute, so the ambient line climbed from about 0.7 ms a call to about 3.4 ms. The routes are the same.
 3. A plain Recruit order only visits gyms, pool halls, the docks, the labour exchange, and the other hood haunts. An area no longer picks up a finance company or a law office. An accountant or a lawyer is hired with that role named on the order, and only their own haunts are used.
 4. A wooden Stop button sits under Debug. It lights while Auto Test runs. One click shows "Stopping after this week" and, when the week now settling finishes, returns the desk to the player. The diary and the report keep the weeks already played. A second click before that week ends takes the stop back.
+
+## v1.2.10 decisions
+
+1. The wooden info card approved with 1.2.8 is on the street and the city plan. Right-click, or a long press on a phone, opens it at the cursor. Escape or another click closes it.
+2. The loading reel's nine street shots of the seed-1908 city are drawn again. The renderer was left at a one-pixel viewport, so each frame cleared the sky and the city never appeared: a flat grey-blue, then black, while the title, the tips, and Smoky Night Order kept going. The reel now takes the size of its canvas. The debug report's Music section names that reel player as well as the ordinary score. The reel city is not the open game, so the report still says no city is open until a game starts.
 
 ## 1. Current state
 

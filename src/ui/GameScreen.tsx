@@ -9,6 +9,7 @@ import { BuildingPanel } from './BuildingPanel';
 import { CityView } from './CityView';
 import { ConfirmDialog } from './common';
 import { HelpSheet } from './HelpSheet';
+import { InspectCard } from './InspectCard';
 import { Organizer } from './organizer/Organizer';
 import { WeekHud } from './WeekHud';
 import { useGameKeyboard } from './useGameKeyboard';
@@ -111,6 +112,7 @@ export function GameScreen() {
       <CityView />
       {planning && planningView === 'plan' && <Blueprint />}
 
+      <InspectCard />
       {planning ? <Organizer /> : <WeekHud />}
       {planning && !jobCard && !staff && <BuildingPanel />}
       {!planning && <BuildingPanel />}

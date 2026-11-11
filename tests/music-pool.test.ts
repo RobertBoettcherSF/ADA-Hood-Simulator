@@ -71,6 +71,8 @@ describe('music status', () => {
     expect(lines[0]).toBe('Category: (none)');
     expect(lines.join('\n')).toContain('Playing: no');
     expect(lines.join('\n')).toContain('Error: (none)');
+    expect(lines.join('\n')).toContain('Reel: (none)');
+    expect(lines.join('\n')).toContain('Reel playing: no');
   });
 });
 

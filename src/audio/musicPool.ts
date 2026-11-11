@@ -58,6 +58,8 @@ const listeners = new Set<(title: string) => void>();
 let announced = '';
 const objectUrls = new Map<string, string>();
 let lastError = '';
+/** The loading reel plays on its own element, not on the two pool players. */
+let reelNode: HTMLAudioElement | null = null;
 
 const MEDIA_ERROR = ['', 'aborted', 'network', 'decode', 'source not supported'];
 
@@ -65,7 +67,7 @@ function noteMusicError(message: string): void {
   lastError = message;
 }
 
-function formatMediaError(node: HTMLAudioElement | undefined): string {
+function formatMediaError(node: HTMLAudioElement | null | undefined): string {
   const err = node?.error;
   if (!err) return '';
   return `code ${err.code} ${MEDIA_ERROR[err.code] ?? ''}`.trim();
@@ -98,17 +100,35 @@ function watchNode(node: HTMLAudioElement): void {
   });
 }
 
-/** Category, track, and the last media error, for the debug report. */
+function audible(node: HTMLAudioElement | null | undefined): boolean {
+  return !!node && node.src !== '' && !node.paused && !node.ended;
+}
+
+function trackName(node: HTMLAudioElement | null | undefined): string {
+  if (!node?.dataset.trackTitle) return '(none)';
+  return `${node.dataset.trackTitle}${node.dataset.trackId ? ` (${node.dataset.trackId})` : ''}`;
+}
+
+/** Category, track, and the last media error, for the debug report. The reel has its own player. */
 export function musicStatusLines(): string[] {
-  const node = nodes[active];
+  const pool = nodes[active];
+  const reelAudible = audible(reelNode);
+  const node = reelAudible ? reelNode : pool;
   const error = lastError || formatMediaError(node) || '(none)';
-  return [
-    `Category: ${currentScene ?? '(none)'}`,
-    `Track: ${node?.dataset.trackTitle || '(none)'}${node?.dataset.trackId ? ` (${node.dataset.trackId})` : ''}`,
-    `Playing: ${node && !node.paused && !node.ended ? 'yes' : 'no'}`,
+  const lines = [
+    `Category: ${reelAudible ? 'reel' : (currentScene ?? '(none)')}`,
+    `Track: ${trackName(node)}`,
+    `Playing: ${audible(node) ? 'yes' : 'no'}`,
     `Ready state: ${node ? String(node.readyState) : '-'}`,
     `Error: ${error}`,
+    `Reel: ${trackName(reelNode)}`,
+    `Reel playing: ${reelAudible ? 'yes' : 'no'}`,
   ];
+  if (reelAudible) {
+    lines.push(`Pool category: ${currentScene ?? '(none)'}`);
+    lines.push(`Pool playing: ${audible(pool) ? 'yes' : 'no'}`);
+  }
+  return lines;
 }
 
 export function onNowPlaying(listener: (title: string) => void): () => void {
@@ -177,6 +197,7 @@ export function reelTheme(): PoolTrack | undefined {
 
 /** The reel stays on its beat-mapped theme and loops it. Cuts follow currentTime. */
 export async function playReelQueue(node: HTMLAudioElement): Promise<void> {
+  reelNode = node;
   await loadMusicPool();
   const theme = reelTheme();
   if (!theme) return;

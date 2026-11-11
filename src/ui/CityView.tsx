@@ -24,6 +24,7 @@ import { lieutenantAreaChoices } from '../sim/lieutenantAreas';
 import { yieldForPaint } from '../yieldForPaint';
 import { StreetLoading } from './StreetLoading';
 import { peopleList } from '../sim/entityLists';
+import { PressWatch, showInspect } from './inspectCard';
 
 /**
  * The city itself: owns the Three.js renderer, drives the simulation clock and
@@ -38,6 +39,7 @@ export function CityView() {
   const [loadPercent, setLoadPercent] = useState(8);
   const [renderAttempt, setRenderAttempt] = useState(0);
   const dragging = useRef(false);
+  const press = useRef(new PressWatch());
   const dragMoved = useRef(false);
   // A left-button drag draws a box and gathers your own people inside it.
   const boxing = useRef(false);
@@ -326,10 +328,21 @@ export function CityView() {
       lastPointer.current = { x: e.clientX, y: e.clientY };
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
     }
+    const renderer = rendererRef.current;
+    const canvas = canvasRef.current;
+    press.current.arm(e, () => {
+      if (!renderer || !canvas || !useGame.getState().sim) return;
+      dragMoved.current = true;
+      boxing.current = false;
+      if (boxRef.current) boxRef.current.hidden = true;
+      const current = useGame.getState().sim!;
+      showInspect(e.clientX, e.clientY, current.world, current.playerGang.id, renderer.pick(e.clientX, e.clientY, canvas.getBoundingClientRect()));
+    });
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!readyForInput.current) return;
+    press.current.move(e.clientX, e.clientY);
     if (boxing.current) {
       const dx = e.clientX - boxStart.current.x;
       const dy = e.clientY - boxStart.current.y;
@@ -398,6 +411,14 @@ export function CityView() {
         /* pointer already released */
       }
     }
+    if (e.button === 2 && !dragMoved.current) {
+      const renderer = rendererRef.current;
+      const canvas = canvasRef.current;
+      const current = useGame.getState().sim;
+      if (renderer && canvas && current) {
+        showInspect(e.clientX, e.clientY, current.world, current.playerGang.id, renderer.pick(e.clientX, e.clientY, canvas.getBoundingClientRect()));
+      }
+    }
   };
 
   const onWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
@@ -415,7 +436,7 @@ export function CityView() {
     const state = useGame.getState();
     const s = state.sim;
     if (!readyForInput.current || !renderer || !canvas || !s) return;
-    if (dragMoved.current) return;
+    if (press.current.finish() || dragMoved.current) return;
 
     handleMapHit(renderer.pick(e.clientX, e.clientY, canvas.getBoundingClientRect()), { site: e.shiftKey, add: e.ctrlKey });
   };
@@ -433,7 +454,7 @@ export function CityView() {
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={() => { boxing.current = false; dragging.current = false; dragMoved.current = true; if (boxRef.current) boxRef.current.hidden = true; }}
+      onPointerCancel={() => { press.current.cancel(); boxing.current = false; dragging.current = false; dragMoved.current = true; if (boxRef.current) boxRef.current.hidden = true; }}
       onWheel={onWheel}
       onClick={onClick}
       onContextMenu={(e) => e.preventDefault()}
