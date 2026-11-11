@@ -53,7 +53,7 @@ export const RIVAL_RUNS = 3;
 
 export function defaultStrategy(): PlayStrategy {
   return {
-    weights: { hiring: 0.7, rackets: 0.58, bribes: 0.4, buying: 0.48, violence: 0.12 },
+    weights: { hiring: 0.85, rackets: 0.72, bribes: 0.22, buying: 0.28, violence: 0.08 },
     priority: ['hiring', 'rackets', 'bribes', 'buying', 'violence'],
   };
 }

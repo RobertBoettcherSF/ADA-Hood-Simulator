@@ -13,6 +13,8 @@ export interface AudioPrefs {
   gameMusic: boolean;
   /** The loading reel's theme. Absent in older settings, which means play it. */
   reelMuted?: boolean;
+  /** Speaker button and the M key. Silences the reel and the desk score together. */
+  musicMuted?: boolean;
 }
 
 export type GraphicsChoice = 'auto' | 'phone' | 'desktop';
@@ -66,6 +68,7 @@ function audioPrefs(value: unknown, fallback: AudioPrefs): AudioPrefs {
     menuMusic: typeof saved.menuMusic === 'boolean' ? saved.menuMusic : fallback.menuMusic,
     gameMusic: typeof saved.gameMusic === 'boolean' ? saved.gameMusic : fallback.gameMusic,
     reelMuted: typeof saved.reelMuted === 'boolean' ? saved.reelMuted : false,
+    musicMuted: typeof saved.musicMuted === 'boolean' ? saved.musicMuted : (typeof saved.reelMuted === 'boolean' ? saved.reelMuted : false),
   };
 }
 

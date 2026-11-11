@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is New Temperance in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.5.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.6.
 
 ## Decisions
 
@@ -76,6 +76,32 @@ The owner answered the open questions in §8. These decisions override anything 
 4. Phones use the same cut times, because the cuts belong to the music. The city is the 8×8 demo, not the 40×32 campaign, and the clock is advanced with a smaller frame budget. If the picture stays under 20 frames a second for 1.5 s after a 2.5 s grace, the reel drops to the Loading card. The theme is an `<audio>` element (`data-audio-slot="loading-reel"`). It is not in the artwork manifest and not in the sample loader, so it is streamed and not copied into the city folder.
 5. The supplied m4a is Opus inside an MP4 box, 2,034,599 bytes, about 136 kb/s, not AAC. Browsers that can play it take that file first. Safari and iOS cannot play Opus, so they fall through to the MP3. That fallback was re-encoded at 128 kb/s with the cover picture removed, 1,916,016 bytes, down from the 2.7 MB original. No AAC file was made. Volume is 0.42. If the browser blocks sound, the track still runs muted so the cuts stay on the beat, and a Sound button unmutes without skipping. The choice is `reelMuted` in the city settings, next to the other music switches.
 6. On a returning browser the storage probe was 89 ms with the reel off and 84 ms with it on. A first visit was 37 ms off and 55 ms on. The first drawn street frame arrived 8.5 s after the probe had already finished, so the menu was not waiting on the picture.
+
+## v1.2.6 decisions
+
+1. One mute covers the loading reel and the desk score. The speaker button in the top bar and the M key set `musicMuted` in the city settings. The music slider in Game Options is the same volume for both. Effects stay on.
+2. Auto Test labels are dark ink on the cream card. Opening Debug closes Auto Test, and opening Auto Test closes the wish box, so the two cards cannot sit on top of each other.
+3. The score is a streamed pool, `public/audio/music-pool.json`, one track per line. Smoky Night Order, Smoky Bar Stabs, Smoky Saloon Swing, Dance Bar, The Final Brass Hit, and The Last Order are in it, each an MP3 at 128 kb/s with the cover picture removed. The desk and the working week shuffle that pool and do not play the same track twice in a row. The loading reel stays on Smoky Night Order for every loop, including later loops, so the cuts stay on that track's beats. None of these files are in the artwork copy.
+4. The ten-man stall was the test player, not a hiring cap. The opening weights stopped asking for recruits once the gang had about ten men (`4 + weight × 8`). The street still had people. The built-in strategy now keeps recruiting until at least 18 men, extorts close to home, collects from the second week, guards the office once the gang is large enough, and looks for an accountant and a lawyer later. It does not raise the protection rate in the early weeks. When a recruit visit finds nobody, that reason is written on the order and, for the player, in the message list.
+5. The debug report's old Autoplay heading now records the last Auto Test of the session: settings, weeks, final cash, men, blocks, score, whether the diary was written, and the report file name under 09 Reports.
+6. The opening mix is the one a careful boss would use on a normal 40×32 city: hire hard at the nearest hiring place, extort the neighbouring blocks, collect what is owed from the second week, keep a guard on the office once the gang is large enough, and leave bribes, buying, and violence until later. A ten-week run of that mix, seed 1934, varied 40×32, normal opponents and economy, finished on the Monday of week 11 as: Moretti (player) $16,502, 20 men, 6 blocks; Sullivan $1,799, 18 men, 20 blocks; Kowalski $60,107, 10 men, 16 blocks; Corvino $21,537, 19 men, 18 blocks. The player is no longer stuck at 10 men. The rivals still hold more ground. Kowalski's cash is the outlier.
+7. Walking is unchanged. The same ten weeks, timed on this machine:
+
+| Week finished | End Week | Save size |
+| --- | ---: | ---: |
+| 1 | 17.4 s | 13,470,364 |
+| 2 | 21.6 s | 13,574,624 |
+| 3 | 21.1 s | 13,752,536 |
+| 4 | 21.0 s | 13,726,170 |
+| 5 | 21.5 s | 13,688,852 |
+| 6 | 21.1 s | 13,839,170 |
+| 7 | 21.8 s | 13,798,190 |
+| 8 | 21.8 s | 13,715,812 |
+| 9 | 20.7 s | 13,803,215 |
+| 10 | 21.7 s | 13,815,695 |
+
+After the first week the clock stays near 21 seconds. The save stays near 13.7 MB and does not climb week after week. Robert's 1.2.4 run, with the old test player, rose from 20.7 s to 33.2 s; that rise is not repeated here.
+8. Police traffic is a black sedan with POLICE on the hood, a star and POLICE DEPT on the door, and a red roof lamp. One of those sedans has red wheel hubs. Arrests and a share of the police traffic use a black box wagon with POLICE PATROL on the side and bars on the rear glass. The phone mesh uses fewer wheel segments. They are drawn by the game, not stored as extra artwork, so a phone does not copy them. The reel's police shot aims at one of those sedans. Later-year two-tone Fords are not in this set.
 
 ## 1. Current state
 

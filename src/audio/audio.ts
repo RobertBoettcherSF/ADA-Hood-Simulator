@@ -7,19 +7,25 @@
  */
 import { JazzBand } from './jazz';
 import { patchLocalData, readLocalData } from '../app/localData';
-import { loadSamples, playSample, sample, type SampleName } from './samples';
+import { applyMusicMix, playMusicPool, stopMusicPool } from './musicPool';
+import { loadSamples, playSample, type SampleName } from './samples';
 
 /** Which piece of score is wanted: the menu's ballad, planning's speakeasy band, or the week's tension. */
 export type MusicTrack = 'menu' | 'planning' | 'week';
-const TRACKS: Record<MusicTrack, SampleName> = { menu: 'music-menu', planning: 'music-planning', week: 'music-week' };
 const CROSSFADE = 1.6;
 /** Sound settings kept in the world folder, with the original's two music
  * switches: music at the menus (InterfaceAmbient) and in the game (GameAmbient). */
-interface AudioPrefs { music: number; sfx: number; menuMusic: boolean; gameMusic: boolean }
+interface AudioPrefs { music: number; sfx: number; menuMusic: boolean; gameMusic: boolean; musicMuted: boolean; reelMuted?: boolean }
 
 function readPrefs(): AudioPrefs {
   const saved = readLocalData().audio;
-  return { music: saved.music, sfx: saved.sfx, menuMusic: saved.menuMusic, gameMusic: saved.gameMusic };
+  return {
+    music: saved.music,
+    sfx: saved.sfx,
+    menuMusic: saved.menuMusic,
+    gameMusic: saved.gameMusic,
+    musicMuted: saved.musicMuted === true || saved.reelMuted === true,
+  };
 }
 
 class AudioEngine {
@@ -35,8 +41,20 @@ class AudioEngine {
   private prefs = readPrefs();
   musicVolume = this.prefs.music;
   sfxVolume = this.prefs.sfx;
+  private mixListeners = new Set<() => void>();
   get menuMusic(): boolean { return this.prefs.menuMusic; }
   get gameMusic(): boolean { return this.prefs.gameMusic; }
+  get musicMuted(): boolean { return this.prefs.musicMuted; }
+
+  onMix(listener: () => void): () => void {
+    this.mixListeners.add(listener);
+    return () => this.mixListeners.delete(listener);
+  }
+
+  private emitMix(): void {
+    applyMusicMix();
+    for (const listener of this.mixListeners) listener();
+  }
 
   /** Browsers require a gesture before audio can start. */
   ensure(): void {
@@ -74,8 +92,23 @@ class AudioEngine {
 
   setMusicVolume(v: number): void {
     this.musicVolume = v;
-    if (this.musicGain) this.musicGain.gain.value = v * 0.5;
+    if (this.musicGain) this.musicGain.gain.value = this.prefs.musicMuted ? 0 : v * 0.5;
     this.savePrefs({ music: v });
+    this.emitMix();
+  }
+
+  /** One mute for the loading reel and the desk score. */
+  setMusicMuted(muted: boolean): void {
+    this.savePrefs({ musicMuted: muted, reelMuted: muted });
+    if (this.musicGain) this.musicGain.gain.value = muted ? 0 : this.musicVolume * 0.5;
+    this.emitMix();
+    if (muted) stopMusicPool();
+    else if (this.track) void playMusicPool();
+  }
+
+  toggleMusicMuted(): boolean {
+    this.setMusicMuted(!this.prefs.musicMuted);
+    return this.prefs.musicMuted;
   }
 
   setSfxVolume(v: number): void {
@@ -96,7 +129,8 @@ class AudioEngine {
     this.prefs = readPrefs();
     this.musicVolume = this.prefs.music;
     this.sfxVolume = this.prefs.sfx;
-    if (this.musicGain) this.musicGain.gain.value = this.musicVolume * 0.5;
+    if (this.musicGain) this.musicGain.gain.value = this.prefs.musicMuted ? 0 : this.musicVolume * 0.5;
+    this.emitMix();
     if (this.sfxGain) this.sfxGain.gain.value = this.sfxVolume;
   }
 
@@ -117,28 +151,13 @@ class AudioEngine {
   music(track: MusicTrack): void {
     this.ensure();
     this.track = track;
-    if (!this.ctx || !this.musicGain || !this.noiseBuffer) return;
-    if (!(track === 'menu' ? this.prefs.menuMusic : this.prefs.gameMusic)) { this.silenceMusic(); return; }
-    if (this.playing?.track === track) return;
-    const buf = sample(TRACKS[track]);
-    if (!buf) {
-      if (!this.playing && !this.started) {
-        this.started = true;
-        this.band ??= new JazzBand(this.ctx, this.musicGain, this.noiseBuffer);
-        this.band.start();
-      }
+    if (this.prefs.musicMuted || !(track === 'menu' ? this.prefs.menuMusic : this.prefs.gameMusic)) {
+      this.silenceMusic();
+      stopMusicPool();
       return;
     }
-    if (this.started) { this.band?.stop(); this.started = false; }
-    this.fadeOutRecorded();
-    const now = this.ctx.currentTime;
-    const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true;
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(1, now + CROSSFADE);
-    src.connect(gain).connect(this.musicGain);
-    src.start(now);
-    this.playing = { track, src, gain };
+    void playMusicPool();
+    this.silenceMusic();
   }
 
   /** The score for a game screen: the planning band, which music() may change with the phase. */
@@ -148,6 +167,7 @@ class AudioEngine {
     this.band?.stop();
     this.started = false;
     this.fadeOutRecorded();
+    stopMusicPool();
     this.track = null;
   }
 

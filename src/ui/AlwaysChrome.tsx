@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../app/store';
+import { audio } from '../audio/audio';
 import { recordAction } from '../app/actionLog';
 import { runAutoTest, campaignOf, type AutoTestSettings } from '../app/autoTest';
 import { folderDiary } from '../app/diary';
@@ -15,6 +16,8 @@ export function AlwaysChrome() {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
   const [asking, setAsking] = useState(false);
+  const [muted, setMuted] = useState(audio.musicMuted);
+  const [autoOpen, setAutoOpen] = useState(false);
   const [wish, setWish] = useState('');
   const wishRef = useRef('');
 
@@ -36,10 +39,19 @@ export function AlwaysChrome() {
       const label = (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim();
       if (label) recordAction('click', label);
     };
+    const onMuteKey = (event: KeyboardEvent) => {
+      if ((event.key !== 'm' && event.key !== 'M') || event.repeat) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea')) return;
+      event.preventDefault();
+      setMuted(audio.toggleMusicMuted());
+    };
+    window.addEventListener('keydown', onMuteKey);
     window.addEventListener('keydown', onKey);
     document.addEventListener('click', onClick, true);
     return () => {
       cancel = true;
+      window.removeEventListener('keydown', onMuteKey);
       window.removeEventListener('keydown', onKey);
       document.removeEventListener('click', onClick, true);
     };
@@ -71,7 +83,10 @@ export function AlwaysChrome() {
   return (
     <div className="always-chrome">
       <div className="always-version" aria-label={`Version ${__APP_VERSION__}`}>v{__APP_VERSION__}</div>
-      <button type="button" className="always-debug" onClick={() => setAsking(true)} disabled={busy}>
+      <button type="button" className="always-debug" aria-pressed={!muted} aria-label={muted ? 'Unmute music' : 'Mute music'} onClick={() => setMuted(audio.toggleMusicMuted())}>
+        {muted ? 'Sound off' : 'Sound on'}
+      </button>
+      <button type="button" className="always-debug" onClick={() => { setAutoOpen(false); setAsking(true); }} disabled={busy}>
         {busy ? 'Writing…' : 'Debug'}
       </button>
       {asking && (
@@ -101,15 +116,14 @@ export function AlwaysChrome() {
           <button type="button" onClick={() => setOffer(null)}>Keep this one</button>
         </div>
       )}
-      {sim?.world.phase === 'planning' && <AutoTest />}
+      {sim?.world.phase === 'planning' && <AutoTest open={autoOpen} setOpen={(next) => { if (next) setAsking(false); setAutoOpen(next); }} />}
     </div>
   );
 }
 
-function AutoTest() {
+function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) {
   const resolving = useGame((s) => s.resolvingHeadless);
   const sim = useGame((s) => s.sim);
-  const [open, setOpen] = useState(false);
   const [untilEnd, setUntilEnd] = useState(false);
   const [weeks, setWeeks] = useState(4);
   const [seed, setSeed] = useState(sim?.world.options.seed ?? 1932);
