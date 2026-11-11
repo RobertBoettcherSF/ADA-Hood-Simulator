@@ -90,6 +90,17 @@ describe('bounded end-week scheduling', () => {
     expect(useGame.getState().sim!.world.minute).toBe(0);
   });
 
+  it('Escape from End Week continues the street at normal speed', async () => {
+    const sim = new Sim({ ...defaultGameOptions(), seed: 404, citySize: 10 });
+    sim.launchWeek();
+    useGame.setState({ sim, screen: 'game', finishingWeek: false, paused: false, streetLoading: false, savingToQuit: false, savingSnapshot: false, loadingSave: null, speed: 8 });
+    const slice = vi.spyOn(sim, 'finishWeekSlice').mockImplementation(() => useGame.getState().resumeFromEndWeek());
+    await useGame.getState().finishWeek();
+    expect(slice).toHaveBeenCalled();
+    expect(useGame.getState()).toMatchObject({ finishingWeek: false, paused: false, speed: 1 });
+    expect(sim.world.phase).toBe('week');
+  });
+
   it('keeps a cancelled run stopped when skipping is immediately restarted', async () => {
     useGame.getState().startGame({ ...defaultGameOptions(), seed: 404, citySize: 10 });
     const sim = useGame.getState().sim!;

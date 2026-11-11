@@ -182,6 +182,7 @@ export function useGameKeyboard() {
           cameraApi.ref?.flipView();
           break;
         case 'Escape':
+          if (s.finishingWeek) { s.resumeFromEndWeek(); break; }
           if (s.sheet) s.setSheet(null);
           else if (s.jobCard) cancelJobCard();
           else if (s.specialistCard) s.cancelSpecialistCard();

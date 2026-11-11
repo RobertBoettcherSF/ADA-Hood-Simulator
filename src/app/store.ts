@@ -8,6 +8,7 @@ import { bossInsideOffice } from '../render/characterPresentation';
 import { create } from 'zustand';
 import { fitAreaToWeek, type ApiResult } from '../sim/api';
 import { Sim } from '../sim/sim';
+import { MINUTES_PER_WEEK } from '../sim/constants';
 import { planGang } from '../sim/ai';
 import { markTiming, noteAutoplay, noteError } from './debugReport';
 import { recordAction } from './actionLog';
@@ -168,6 +169,8 @@ interface GameState {
   /** Issue the rival planner's orders for the player, then resolve that many weeks. */
   autoplayWeeks: (weeks: number) => Promise<void>;
   cancelFinishWeek: () => void;
+  /** Esc during End Week: stop the skip and continue the street at normal speed. */
+  resumeFromEndWeek: () => void;
   advance: (seconds: number) => void;
 
   setTab: (t: OrganizerTab) => void;
@@ -780,32 +783,38 @@ export const useGame = create<GameState>((set, get) => ({
     }
   },
 
-  // Not offered to the player (the original has no End Week; maximum speed runs
-  // flat out). Kept for tools and tests that need to finish a week quickly.
+  /** Finish the rest of the week without drawing the street. Fights still resolve. */
   finishWeek: async () => {
     const sim = get().sim;
     if (sim?.world.phase === 'gameOver' && get().screen === 'game') { get().bump(); return; }
     if (!sim || sim.world.phase !== 'week' || get().streetLoading || get().finishingWeek || get().savingToQuit || get().savingSnapshot || get().loadingSave != null) return;
     const run = ++finishRun;
-    set({ finishingWeek: true, paused: true });
+    const progress = () => sim.world.phase === 'week' ? Math.min(1, sim.world.minute / MINUTES_PER_WEEK) : 1;
+    set({ finishingWeek: true, paused: true, weekProgress: progress() });
     let lastUi = performance.now();
-    // Yield even the first batch so the busy/cancel control can paint.
+    // Yield even the first batch so the progress bar and Escape can paint.
     while (sim.world.phase === 'week') {
       await yieldForInput();
       if (run !== finishRun || get().sim !== sim || !get().finishingWeek || get().screen !== 'game') return;
       if (get().loadingSave != null) continue;
       sim.finishWeekSlice();
       if (performance.now() - lastUi >= 200 || sim.world.phase !== 'week') {
+        set({ weekProgress: progress() });
         get().bump();
         lastUi = performance.now();
       }
     }
     if (sim.world.phase === 'planning') get().setTab('newspaper');
-    set({ finishingWeek: false, paused: false, screen: sim.world.phase === 'gameOver' ? 'gameOver' : 'game' });
+    set({ finishingWeek: false, paused: false, weekProgress: 1, screen: sim.world.phase === 'gameOver' ? 'gameOver' : 'game' });
     await get().autosave(true);
   },
 
-  cancelFinishWeek: () => set({ finishingWeek: false, paused: true }),
+  cancelFinishWeek: () => set({ finishingWeek: false, paused: true, weekProgress: 0 }),
+  resumeFromEndWeek: () => {
+    if (!get().finishingWeek) return;
+    finishRun += 1;
+    set({ finishingWeek: false, paused: false, speed: 1, weekProgress: 0 });
+  },
 
   endWeekNow: async () => {
     const sim = get().sim;

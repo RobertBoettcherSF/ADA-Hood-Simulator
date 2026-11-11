@@ -52,9 +52,71 @@ export interface LastAutoTest {
 
 let lastAutoTest: LastAutoTest | null = null;
 
-/** The debug report's Autoplay section was only filled by the old autoplay button. */
+type AutoTestSession =
+  | { kind: 'none' }
+  | { kind: 'running'; settings: string; weeks: string }
+  | { kind: 'done'; note: LastAutoTest };
+
+const AUTO_TEST_KEY = 'hood.autoTestSession';
+let autoTestSession: AutoTestSession = { kind: 'none' };
+
+function persistAutoTest(): void {
+  try {
+    if (typeof sessionStorage === 'undefined') return;
+    if (autoTestSession.kind === 'none') sessionStorage.removeItem(AUTO_TEST_KEY);
+    else sessionStorage.setItem(AUTO_TEST_KEY, JSON.stringify(autoTestSession));
+  } catch { /* the report still has the in-memory copy */ }
+}
+
+function restoreAutoTest(): void {
+  try {
+    if (typeof sessionStorage === 'undefined' || autoTestSession.kind !== 'none') return;
+    const raw = sessionStorage.getItem(AUTO_TEST_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as AutoTestSession;
+    if (parsed?.kind === 'running' || parsed?.kind === 'done') {
+      autoTestSession = parsed;
+      if (parsed.kind === 'done') lastAutoTest = parsed.note;
+    }
+  } catch { /* a bad copy is ignored */ }
+}
+
+restoreAutoTest();
+
+/** Clear the session note. Tests use this so one file does not leak into the next. */
+export function clearAutoTestSession(): void {
+  autoTestSession = { kind: 'none' };
+  lastAutoTest = null;
+  autoplay.splice(0, autoplay.length);
+  persistAutoTest();
+}
+
+/** Called as soon as Auto Test starts, so a report during the run is not "none". */
+export function noteAutoTestRunning(settings: string, weeks: string): void {
+  autoTestSession = { kind: 'running', settings, weeks };
+  lastAutoTest = null;
+  persistAutoTest();
+}
+
+/** A run that threw before it could write its result. */
+export function noteAutoTestStopped(message: string): void {
+  if (autoTestSession.kind !== 'running') return;
+  noteLastAutoTest({
+    settings: autoTestSession.settings,
+    weeks: autoTestSession.weeks,
+    cash: 0,
+    men: 0,
+    territory: 0,
+    score: 0,
+    diary: `Stopped: ${message}`,
+    file: '(not written)',
+  });
+}
+
+/** The debug report's Auto Test section. "(none this session)" only when none has started. */
 export function noteLastAutoTest(note: LastAutoTest): void {
   lastAutoTest = note;
+  autoTestSession = { kind: 'done', note };
   autoplay.splice(0, autoplay.length, ...[
     note.settings,
     note.weeks,
@@ -62,6 +124,7 @@ export function noteLastAutoTest(note: LastAutoTest): void {
     note.diary,
     `Report file: ${note.file}`,
   ]);
+  persistAutoTest();
 }
 
 export function installCrashReports(): void {
@@ -171,14 +234,20 @@ export function buildDebugReport(world: WorldState | null, version: string, comm
   }
   lines.push('');
   lines.push('Auto test');
-  if (lastAutoTest) {
-    lines.push(lastAutoTest.settings);
-    lines.push(lastAutoTest.weeks);
-    lines.push(`Final: cash ${lastAutoTest.cash} men ${lastAutoTest.men} blocks ${lastAutoTest.territory} score ${lastAutoTest.score}`);
-    lines.push(lastAutoTest.diary);
-    lines.push(`Report file: 09 Reports/${lastAutoTest.file}`);
-  } else if (!autoplay.length) lines.push('(none this session)');
-  else for (const line of autoplay) lines.push(line);
+  if (autoTestSession.kind === 'running') {
+    lines.push(autoTestSession.settings);
+    lines.push(autoTestSession.weeks);
+    lines.push('This session: running. The result is recorded when it finishes.');
+  } else if (autoTestSession.kind === 'done' || lastAutoTest) {
+    const note = autoTestSession.kind === 'done' ? autoTestSession.note : lastAutoTest!;
+    lines.push(note.settings);
+    lines.push(note.weeks);
+    lines.push(`Final: cash ${note.cash} men ${note.men} blocks ${note.territory} score ${note.score}`);
+    lines.push(note.diary);
+    lines.push(`Report file: 09 Reports/${note.file}`);
+  } else if (autoplay.length) {
+    for (const line of autoplay) lines.push(line);
+  } else lines.push('(none this session)');
   lines.push('');
   lines.push('Errors');
   if (!errors.length) lines.push('(none)');
