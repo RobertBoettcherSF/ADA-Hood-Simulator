@@ -222,6 +222,12 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## v1.2.15 decisions
+
+Items marked *(my call)* are choices made while building, not asked for.
+
+1. Memory stop. Auto Test now measures used heap (`usedJSHeapSize`), not the larger of used and reserved. If used heap reaches 60% of the tab's limit, it yields for 3 seconds so the browser can collect garbage, then checks again. It stops only if used heap is still at least 80% of the limit. The Auto Test timeline logs used/reserved heap after every week, and the debug report lists the same series. *(my call: the 60% pause line and the 3-second yield. The 80% stop line was asked for.)* Robert's 1.2.14 run stopped at week 6 because reserved heap was 67% of the limit; after a reload, used heap was 230 MB.
+
 ## 1. Current state
 
 ### How this was surveyed
