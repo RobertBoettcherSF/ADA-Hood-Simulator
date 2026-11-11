@@ -21,7 +21,7 @@ export const SCENARIOS: Scenario[] = [
     difficulty: 'easy',
     blurb:
       'A soft city with a thirst. The rivals are reluctant to turn violent, the trade is strong, and the first boss to $150,000 in total wealth — cash plus assets — takes it.',
-    options: { seed: 1928, mode: 'wealth', wealthTarget: 150_000, economy: 'strong', opponents: 'passive', startMoney: 8000, startHoods: 6, startBusinesses: 4, citySize: 10 },
+    options: { seed: 1932, mode: 'wealth', wealthTarget: 150_000, economy: 'strong', opponents: 'passive', startMoney: 8000, startHoods: 6, startBusinesses: 4, citySize: 10 },
   },
   {
     id: 'wardHeeler',

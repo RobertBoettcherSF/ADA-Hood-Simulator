@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../app/store';
 import { audio } from '../audio/audio';
+import { onNowPlaying } from '../audio/musicPool';
 import { recordAction } from '../app/actionLog';
 import { runAutoTest, campaignOf, type AutoTestSettings } from '../app/autoTest';
 import { folderDiary } from '../app/diary';
@@ -117,6 +118,7 @@ export function AlwaysChrome() {
         </div>
       )}
       {sim?.world.phase === 'planning' && <AutoTest open={autoOpen} setOpen={(next) => { if (next) setAsking(false); setAutoOpen(next); }} />}
+      <NowPlaying />
     </div>
   );
 }
@@ -194,4 +196,19 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
       )}
     </span>
   );
+}
+
+/** A short line when the song changes. It does not take clicks. */
+function NowPlaying() {
+  const [title, setTitle] = useState('');
+  useEffect(() => {
+    let timer = 0;
+    return onNowPlaying((next) => {
+      setTitle(next);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setTitle(''), 4500);
+    });
+  }, []);
+  if (!title) return null;
+  return <p className="now-playing" role="status">Now playing: {title}</p>;
 }

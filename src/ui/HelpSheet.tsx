@@ -6,7 +6,7 @@ export function HelpSheet({ onClose, onStartLesson }: { onClose: () => void; onS
   return (
     <Modal title="How to Play" kicker="A short briefing · four pages" onClose={onClose} width={900}>
       <p style={{ fontSize: 15, margin: '0 0 16px', lineHeight: 1.5 }}>
-        You run one of four gangs in New Temperance. The game alternates between two phases.
+        You run one of four gangs in Saint Volstead. The game alternates between two phases.
       </p>
       <p>Use Tab and Shift+Tab to move between controls, Enter or Space to activate them,
         and the arrow keys to change Organizer tabs. Choose on map lets you search for

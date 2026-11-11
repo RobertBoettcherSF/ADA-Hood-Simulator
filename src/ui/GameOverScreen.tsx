@@ -1,5 +1,6 @@
 import { ArtImage } from './ArtImage';
 import { useEffect, useState } from 'react';
+import { audio } from '../audio/audio';
 import { recordHallOfFame } from '../app/save';
 import { useGame } from '../app/store';
 import { gangManpower, territoryCount, money } from '../sim/world';
@@ -17,6 +18,11 @@ export function GameOverScreen({ recordResult = true }: { recordResult?: boolean
   useEffect(() => {
     if (sim && recordResult) setEntered(recordHallOfFame(sim.world));
   }, [sim, recordResult]);
+  const won = sim?.world.outcome?.won;
+  useEffect(() => {
+    if (won == null) return;
+    audio.music(won ? 'win' : 'loss');
+  }, [won]);
 
   if (!sim || !sim.world.outcome) {
     return (
@@ -46,7 +52,7 @@ export function GameOverScreen({ recordResult = true }: { recordResult?: boolean
     <div className="desk key-art">
       <div className="paper gameover-sheet">
         <div className="masthead">
-          <ArtImage className="masthead-img" src={MASTHEADS[0]} alt="New Temperance Herald" />
+          <ArtImage className="masthead-img" src={MASTHEADS[0]} alt="Saint Volstead Herald" />
           <div className="meta">
             <span>Special edition · Week {w.week}</span>
             <span>Final</span>
@@ -58,7 +64,7 @@ export function GameOverScreen({ recordResult = true }: { recordResult?: boolean
             <h1>{outcome.won ? 'The City Is Yours' : 'It Ends Here'}</h1>
             <div className="reason">
               {outcome.reason}
-              {outcome.won && boss ? ` New Temperance answers to ${boss.name}.` : ''}
+              {outcome.won && boss ? ` Saint Volstead answers to ${boss.name}.` : ''}
             </div>
             <div className="gameover-stats">
               <div>
@@ -127,7 +133,7 @@ export function EndingSequence({ won, boss, reason, onDone }: { won: boolean; bo
   return (
     <div className={`ending-sequence ${won ? 'won' : 'lost'}`} role="status" aria-live="polite" onClick={onDone}>
       <div className="ending-card">
-        <div className="ending-kicker">{won ? 'New Temperance, 1928' : 'The end of the line'}</div>
+        <div className="ending-kicker">{won ? 'Saint Volstead, 1932' : 'The end of the line'}</div>
         <h1>{won ? 'Victory' : 'Defeat'}</h1>
         <div className="ending-boss">{boss}</div>
         <p>{reason}</p>

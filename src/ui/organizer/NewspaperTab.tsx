@@ -48,7 +48,7 @@ export function NewspaperContent({ sim }: { sim: Sim }) {
       <div className="masthead">
         {paper ? <img className="masthead-img" src={MASTHEADS[paperIndex]} alt={paperName} /> : <h2>No newspaper available</h2>}
         <div className="meta">
-          <span>New Temperance</span>
+          <span>Saint Volstead</span>
           <span>{lastWeek === 0 ? 'Opening edition' : `Week ${lastWeek}`}</span>
           <span>Two Cents</span>
         </div>

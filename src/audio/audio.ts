@@ -7,11 +7,15 @@
  */
 import { JazzBand } from './jazz';
 import { patchLocalData, readLocalData } from '../app/localData';
-import { applyMusicMix, playMusicPool, stopMusicPool } from './musicPool';
+import { applyMusicMix, playScene, stopMusicPool, type MusicCue } from './musicPool';
 import { loadSamples, playSample, type SampleName } from './samples';
 
-/** Which piece of score is wanted: the menu's ballad, planning's speakeasy band, or the week's tension. */
-export type MusicTrack = 'menu' | 'planning' | 'week';
+/** Which piece of score is wanted. Menu and credits follow the menu switch; the rest follow the game switch. */
+export type MusicTrack = MusicCue;
+
+function menuSwitch(track: MusicTrack): boolean {
+  return track === 'menu' || track === 'credits';
+}
 const CROSSFADE = 1.6;
 /** Sound settings kept in the world folder, with the original's two music
  * switches: music at the menus (InterfaceAmbient) and in the game (GameAmbient). */
@@ -103,7 +107,7 @@ class AudioEngine {
     if (this.musicGain) this.musicGain.gain.value = muted ? 0 : this.musicVolume * 0.5;
     this.emitMix();
     if (muted) stopMusicPool();
-    else if (this.track) void playMusicPool();
+    else if (this.track) this.music(this.track);
   }
 
   toggleMusicMuted(): boolean {
@@ -151,12 +155,12 @@ class AudioEngine {
   music(track: MusicTrack): void {
     this.ensure();
     this.track = track;
-    if (this.prefs.musicMuted || !(track === 'menu' ? this.prefs.menuMusic : this.prefs.gameMusic)) {
+    if (this.prefs.musicMuted || !(menuSwitch(track) ? this.prefs.menuMusic : this.prefs.gameMusic)) {
       this.silenceMusic();
       stopMusicPool();
       return;
     }
-    void playMusicPool();
+    void playScene(track);
     this.silenceMusic();
   }
 

@@ -333,7 +333,7 @@ function concludeElection(w: WorldState): void {
       section: 'politics',
       headline: 'NEW MAYOR ELECTED',
       frontPagePriority: 3,
-      body: `${w.people[winner.id]?.name ?? 'The winner'} has been elected Mayor of New Temperance in a decisive result.`,
+      body: `${w.people[winner.id]?.name ?? 'The winner'} has been elected Mayor of Saint Volstead in a decisive result.`,
       gangId: winner.gangId,
     });
     w.weekLog.push(`${gang?.name ?? 'A gang leader'} won the mayoral election.`);

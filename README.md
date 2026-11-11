@@ -4,7 +4,7 @@ Inspired by *Gangsters: Organized Crime* (1998): a Prohibition-era crime
 strategy game. Plan your gang's week at
 the desk, then watch it play out on the streets of a fully 3D city.
 
-Planned extension: From New Temperance in 1932 to a imaginary city in 2032. Same mechanics, similar goods.
+Planned extension: From Saint Volstead in 1932 to a imaginary city in 2032. Same mechanics, similar goods.
 
 ## Play
 

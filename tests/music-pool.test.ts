@@ -1,22 +1,51 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { dealTrack, type PoolTrack } from '../src/audio/musicPool';
+import { dealTrack, tracksFor, type PoolTrack } from '../src/audio/musicPool';
+import { streetActionHot } from '../src/audio/streetAction';
+import { presentAttack } from '../src/sim/presentationEvents';
+import type { Person, WorldState } from '../src/sim/types';
 import { policeSedanGeometry, paddyWagonGeometry, trafficLivery } from '../src/render/policeVehicles';
 
 describe('music pool', () => {
   it('lists each track on its own line and does not copy them into the artwork manifest', () => {
     const pool = JSON.parse(readFileSync('public/audio/music-pool.json', 'utf8')) as { tracks: PoolTrack[] };
-    expect(pool.tracks.map((track) => track.title)).toEqual([
-      'Smoky Night Order',
-      'Smoky Bar Stabs',
-      'Smoky Saloon Swing',
-      'Dance Bar',
-      'The Final Brass Hit',
-      'The Last Order',
-    ]);
-    expect(pool.tracks.filter((track) => track.reel)).toHaveLength(1);
+    const count = (category: string) => pool.tracks.filter((track) => track.category === category).length;
+    expect(count('menu')).toBe(4);
+    expect(count('planner')).toBe(6);
+    expect(count('street')).toBe(6);
+    expect(count('action')).toBe(6);
+    expect(count('win')).toBe(2);
+    expect(count('loss')).toBe(2);
+    expect(count('credits')).toBe(2);
+    expect(count('tutorial')).toBe(2);
+    expect(count('general')).toBe(5);
+    expect(count('reel')).toBe(1);
+    expect(tracksFor('planner', pool.tracks)).toHaveLength(11);
+    expect(tracksFor('street', pool.tracks)).toHaveLength(11);
+    expect(tracksFor('menu', pool.tracks)).toHaveLength(4);
+    expect(tracksFor('reel', pool.tracks).map((track) => track.title)).toEqual(['Smoky Night Order']);
+    expect(pool.tracks.map((track) => track.title)).toEqual(expect.arrayContaining([
+      'Back Door Knock', 'Swing for the Alderman', 'Gin Joint Jitterbug', 'Curtain for Capone', 'Last Round on the House',
+      'Goodnight, Saint Volstead',
+    ]));
+    expect(pool.tracks.map((track) => track.title).join('\n')).not.toMatch(/Smoky Bar Stabs|Smoky Saloon Swing|Dance Bar|The Final Brass Hit|The Last Order|New Temperance/);
     const manifest = readFileSync('public/asset-manifest.json', 'utf8');
     for (const track of pool.tracks) expect(manifest.includes(track.src)).toBe(false);
+    for (const track of pool.tracks) expect(existsSync('public/' + track.src)).toBe(true);
+  });
+
+  it('treats a raid or a recent shooting as action on the street', () => {
+    const quiet = { phase: 'planning', week: 1, minute: 10, orders: {}, people: {} } as unknown as WorldState;
+    expect(streetActionHot(quiet)).toBe(false);
+    const raid = { phase: 'week', week: 1, minute: 10, orders: { 1: { type: 'raid', state: 'executing' } }, people: {} } as unknown as WorldState;
+    expect(streetActionHot(raid)).toBe(true);
+    const queued = { phase: 'week', week: 1, minute: 10, orders: { 1: { type: 'kill', state: 'queued' } }, people: {} } as unknown as WorldState;
+    expect(streetActionHot(queued)).toBe(false);
+    const shooting = { phase: 'week', week: 2, minute: 4, orders: {}, people: {} } as unknown as WorldState;
+    presentAttack(shooting, { id: 1, pos: { x: 0, y: 0 } } as Person, { id: 2, pos: { x: 1, y: 1 } } as Person, 'pistol', true);
+    expect(streetActionHot(shooting)).toBe(true);
+    shooting.minute = 8;
+    expect(streetActionHot(shooting)).toBe(false);
   });
 
   it('does not play the same track twice in a row when others are waiting', () => {

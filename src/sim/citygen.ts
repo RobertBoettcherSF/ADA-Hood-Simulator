@@ -220,7 +220,7 @@ const ORIGINAL_CIVIC_TYPES: Record<number, string> = {
   [OC.WATER_PLANT]: 'waterPlant', [OC.STATION]: 'railroad', [OC.RADIO]: 'radioStation', [OC.NEWSPAPER]: 'newspaper',
   [OC.DOCKS]: 'docks',
 };
-const ORIGINAL_PARK_NAMES = ['Temperance Park', 'Oak Square', 'Lincoln Park', 'Riverside Gardens'];
+const PARK_NAMES = ['Volstead Green', 'Hinge Oak', 'Lantern Park', 'Cinder Gardens'];
 
 function originalBlockUse(c: number): NonNullable<Block['layout']>['use'] {
   if (isParkContent(c)) return 'park';
@@ -272,7 +272,7 @@ function buildOriginalCity(w: WorldState, rng: Rng, gangIds: ID[]): void {
     for (const b of cells) b.layout = b === root
       ? { ...b.layout!, spanX: park.w, spanY: park.h, use: church ? 'civic' : 'park',
         ...(church ? { landmark: 'church', name: `St. ${['Michael’s', 'Mary’s', 'Joseph’s', 'Patrick’s'][plan.churches.indexOf(plan.churches.find(p => at(p.x, p.y) === church.id)!)]}` }
-          : { name: ORIGINAL_PARK_NAMES[parkName++ % ORIGINAL_PARK_NAMES.length] }) }
+          : { name: PARK_NAMES[parkName++ % PARK_NAMES.length] }) }
       : { ...b.layout!, use: church ? 'civic' : 'park', mergedInto: root.id };
     if (church) root.original = church.original, root.district = 'civic';
     const r = blockRect(root); root.center = { x: r.x + r.w / 2, y: r.y + r.h / 2 };

@@ -42,7 +42,7 @@
  *  - The message boxes (0x481E20) drop a tip at the same street corner within
  *    1,000 sub-cell units (96 to a cell) of one still listed, and replace one
  *    further off; one fight message at a time, on the same distance rule. Tips
- *    go to the Gangsters and Police box (type 7), fights to Combat (type 2).
+ *    go to the Hoods and the Law box (type 7), fights to Combat (type 2).
  */
 import { BUILDING_BY_ID } from '../data/buildings';
 import { blockRect, cityBlockAt, lotRect, streetLocation } from '../cityLayout';
@@ -373,7 +373,7 @@ function spotted(w: WorldState, gang: Gang, man: Person, who: string): void {
   if (!gang.knownPeople.includes(man.id)) gang.knownPeople.push(man.id);
   const corner = streetLocation(w, man.pos);
   const text = `${who}: "I've just seen ${man.name} ${TIP_TEXT} ${corner}.`;
-  // The original's tip is type 7: the Gangsters and Police box (0x47FE00).
+  // The original's tip is type 7: the Hoods and the Law box (0x47FE00).
   if (w.cityLayout?.original) postOriginal(w, 'police', TIP_TEXT, corner, text, man.pos, man.id);
   else addMessage(w, 'waiting', text, man.pos, man.id);
 }

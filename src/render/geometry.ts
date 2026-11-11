@@ -1,5 +1,5 @@
 /**
- * Procedural geometry for New Temperance. Everything here is built from THREE
+ * Procedural geometry for Saint Volstead. Everything here is built from THREE
  * primitives and merged into a handful of low-poly shapes that are then drawn
  * with InstancedMesh, so the whole city stays inside a couple of dozen draw
  * calls. Baked vertex colours carry the parts of a shape that must not be

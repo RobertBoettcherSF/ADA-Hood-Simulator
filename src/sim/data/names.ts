@@ -58,10 +58,10 @@ export const STREET_NAMES_EW = [
 ];
 
 export const NEWSPAPER_NAMES = [
-  'New Temperance Herald',
-  'New Temperance Post',
-  'New Temperance Tribune',
-  'New Temperance Times',
+  'Saint Volstead Herald',
+  'Saint Volstead Post',
+  'Saint Volstead Tribune',
+  'Saint Volstead Times',
 ];
 
 export const DISTRICT_NAMES: Record<string, string[]> = {
