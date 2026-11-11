@@ -29,7 +29,10 @@ function shape(type) {
       shape: shape(checker.getTypeOfSymbolAtLocation(p, p.valueDeclaration ?? declaration)),
     };
     const index = checker.getIndexTypeOfType(type, ts.IndexKind.String) ?? checker.getIndexTypeOfType(type, ts.IndexKind.Number);
-    defs[key] = { object: props, ...(index ? { values: shape(index) } : {}) };
+    // Entries, not an object keyed by field name: a schema object with x and y keys
+    // shared V8's {x, y} shape and turned every position's coordinates into boxed
+    // numbers, about 4 GB of garbage per End Week.
+    defs[key] = { object: Object.entries(props), ...(index ? { values: shape(index) } : {}) };
   } else throw Error(`Unsupported save type: ${checker.typeToString(type)}`);
   return { ref: key };
 }
