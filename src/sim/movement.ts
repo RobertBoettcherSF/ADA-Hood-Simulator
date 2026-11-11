@@ -31,7 +31,7 @@ export function applyLiveMovement<T>(w: WorldState, fraction: number, command: (
   for (const old of before) {
     const p = old.person;
     if (w.people[p.id] !== p || (p.status !== 'active' && p.status !== 'beaten')) continue;
-    if (p.pos.x !== old.x || p.pos.y !== old.y) { delete p.commandFraction; earlySteps.delete(p); continue; }
+    if (p.pos.x !== old.x || p.pos.y !== old.y) { p.commandFraction = undefined; earlySteps.delete(p); continue; }
     if (p.path === old.path && p.dest === old.dest && p.inVehicle === old.inVehicle && p.halted === old.halted) continue;
     // A car is drawn along the minute it has already driven, behind where it
     // is: it takes the new route from where it really is, at once, with no
@@ -52,7 +52,7 @@ export function applyLiveMovement<T>(w: WorldState, fraction: number, command: (
 /** Also clear offsets for cancelled/waiting actors that did not take a step. */
 export function finishMovementTick(w: WorldState): void {
   if (!w.commandFractionIds) return;
-  for (const id of w.commandFractionIds) if (w.people[id]) delete w.people[id].commandFraction;
+  for (const id of w.commandFractionIds) if (w.people[id]) w.people[id].commandFraction = undefined;
   delete w.commandFractionIds;
 }
 
@@ -307,10 +307,10 @@ export function stepPerson(p: Person, minutes: number, traffic?: TrafficContext,
   return world ? afterTransportStep(world,p,arrived) : arrived;
 }
 function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?: WorldState): boolean {
-  if (!p.dest) { delete p.commandFraction; return true; }
+  if (!p.dest) { if (p.commandFraction !== undefined) p.commandFraction = undefined; return true; }
   // Most walkers carry no command fraction; skip the map write for them.
   const fraction = p.commandFraction;
-  if (fraction !== undefined) { minutes = Math.max(0, minutes - fraction); delete p.commandFraction; }
+  if (fraction !== undefined) { minutes = Math.max(0, minutes - fraction); p.commandFraction = undefined; }
   p.halted = false;
   let budget = personSpeed(p,world) * minutes;
   const car = p.inVehicle ? vehicleOf(world, p) : undefined;

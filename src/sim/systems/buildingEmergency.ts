@@ -100,7 +100,7 @@ function finishEscape(w:WorldState,rng:Rng,p:Person):void{
     if(escape.gangId!=null&&escape.perpetratorId!=null)recordCrime(w,rng,{gangId:escape.gangId,
       perpetratorId:escape.perpetratorId,type:'kill',buildingId:escape.buildingId,victimId:p.id,pos:p.pos,severity:10});
     addMessage(w,'combat',`${p.name} escaped the building but died from burns.`,p.pos,p.id);
-  }else delete p.burningEscape;
+  }else p.burningEscape = undefined;
 }
 
 /** Escapes still under way when the week ends finish with it (week settlement). */
@@ -115,11 +115,11 @@ export function settleBurningEscapes(w:WorldState,rng:Rng):void{
 
 export function tickBuildingEmergencies(w:WorldState,rng:Rng,minutes:number):void{
   const traffic=trafficContext(w);
-  for(const p of Object.values(w.people)){
+  for(const p of peopleList(w)){
     const shock=p.shockReaction;
     if(shock){
       if(shock.week!==w.week||p.status!=='active'||w.minute>=shock.untilMinute){
-        delete p.shockReaction;
+        p.shockReaction = undefined;
         if(p.status==='active'&&shock.resume&&!p.streetOrder&&p.orderId==null)setDestination(w,p,shock.resume);
       }else if(w.minute>=shock.startMinute){p.pos={...shock.to};clearDestination(p);}
     }
@@ -133,18 +133,18 @@ export function tickBuildingEmergencies(w:WorldState,rng:Rng,minutes:number):voi
     if(response.week!==w.week||p.status!=='active'||p.streetOrder||p.orderId!=null){
       // A responder the week (not an order) relieved still walks home.
       if(p.status==='active'&&!p.streetOrder&&p.orderId==null)setDestination(w,p,response.home);
-      delete p.emergencyResponse;continue;
+      p.emergencyResponse = undefined;continue;
     }
     if(w.minute<response.startMinute)continue;
     if(response.stage==='working'){
       if(response.kind==='reporter'&&Math.floor(w.minute-(response.arrivedMinute??0))%Math.round(secs(20))===0)presentPhoto(w,p);
       if(w.minute-(response.arrivedMinute??0)>=secs(53)){response.stage='returning';setDestination(w,p,response.home);}
     }else if(p.dest&&stepPerson(p,Math.min(minutes,w.minute-response.startMinute),traffic)){
-      if(response.stage==='returning')delete p.emergencyResponse;
+      if(response.stage==='returning')p.emergencyResponse = undefined;
       else {response.stage='working';response.arrivedMinute=w.minute;if(response.kind==='reporter')presentPhoto(w,p);}
     }
     // Out of time on the job: home on foot (the fire crew has nothing else to
     // take it there and stood in the street for good).
-    if(w.minute>response.untilMinute){delete p.emergencyResponse;setDestination(w,p,response.home);}
+    if(w.minute>response.untilMinute){p.emergencyResponse = undefined;setDestination(w,p,response.home);}
   }
 }

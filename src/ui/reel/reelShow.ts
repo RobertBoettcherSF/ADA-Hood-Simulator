@@ -11,7 +11,8 @@ import { trafficLivery } from '../../render/policeVehicles';
 import type { Building, WorldState } from '../../sim/types';
 import { presentBuildingEffect } from '../../sim/presentationEvents';
 import { startBuildingEmergency } from '../../sim/systems/buildingEmergency';
-import { buildingList, peopleList } from '../../sim/entityLists';
+import { buildingList, forgetEntityLists, peopleList } from '../../sim/entityLists';
+import { CELL } from '../../sim/constants';
 
 export const REEL_SEED = 1908;
 /** Measured off the supplied theme. A bar is four of these beats. */
@@ -59,8 +60,26 @@ export function frameAt(seconds: number, count: number): number {
   return index;
 }
 
+/**
+ * Walkers the reel keeps, of the city's free citizens. Fewer people on the
+ * street lets every one of them stay a detailed figure for the whole reel.
+ */
+export const REEL_CROWD_SHARE = 0.4;
+/** Clock speed of the reel's street shots (the street's normal speed is 1). */
+export const REEL_SPEED = 3;
+export const REEL_SPEED_PHONE = 2;
+export const REEL_DUSK_SPEED = 1;
+/** The dusk shot opens late in the day and runs on into the night (480 minutes a day). */
+export const REEL_DUSK_MINUTE = 425;
+/**
+ * How far a camera point keeps from the edge of the reel city, in blocks.
+ * The street camera looks across about two blocks, so a point nearer the
+ * edge than this showed the empty ground past the last row of houses.
+ */
+export const REEL_EDGE_BLOCKS = 2.6;
+
 export function createReelSim(): Sim {
-  return new Sim({
+  const sim = new Sim({
     seed: REEL_SEED,
     playerName: 'Vince Reel',
     playerFemale: false,
@@ -79,6 +98,61 @@ export function createReelSim(): Sim {
     cityLayout: 'varied',
     era: '1932',
   });
+  thinCrowd(sim.world, REEL_CROWD_SHARE);
+  return sim;
+}
+
+/**
+ * Take most of the free walkers off the reel's street. Only citizens that no
+ * building, order, or record names are taken, a fixed share by id, so the
+ * reel is the same city every time.
+ */
+export function thinCrowd(w: WorldState, keep: number): void {
+  const { people, ...rest } = w;
+  const named = new Set<number>();
+  JSON.stringify(rest, (key, value) => {
+    if (/Ids?$/.test(key)) for (const id of Array.isArray(value) ? value : [value]) if (typeof id === 'number') named.add(id);
+    return value;
+  });
+  for (const p of Object.values(people)) {
+    for (const id of p.snitchKnows ?? []) named.add(id);
+    if (p.employedBy != null) named.add(p.id);
+  }
+  const free = Object.values(people).filter((p) => p.role === 'citizen' && p.buildingId == null && p.gangId == null && !named.has(p.id));
+  const take = free.length - Math.round(free.length * keep);
+  // Every k-th walker by id: spread across the whole city, not one district emptied.
+  const step = free.length / Math.max(1, take);
+  for (let i = 0; i < take; i++) delete people[free[Math.floor(i * step)].id];
+  forgetEntityLists(w);
+}
+
+/** The city's extent, for keeping the camera off its edge. */
+function cityBounds(w: WorldState): { x0: number; y0: number; x1: number; y1: number } {
+  return { x0: 0, y0: 0, x1: w.gridW * CELL, y1: w.gridH * CELL };
+}
+
+/** A camera point moved in from the edge until there is city all round it. */
+export function inland(w: WorldState, at: { x: number; y: number }): { x: number; y: number } {
+  const b = cityBounds(w);
+  const margin = REEL_EDGE_BLOCKS * CELL;
+  const clamp = (v: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.max(lo, Math.min(hi, v)));
+  return { x: clamp(at.x, b.x0 + margin, b.x1 - margin), y: clamp(at.y, b.y0 + margin, b.y1 - margin) };
+}
+
+/** Whether a point already has city all round it. */
+export function isInland(w: WorldState, at: { x: number; y: number }): boolean {
+  const moved = inland(w, at);
+  return Math.abs(moved.x - at.x) < 1e-6 && Math.abs(moved.y - at.y) < 1e-6;
+}
+
+function lotCentre(w: WorldState, b: Building): { x: number; y: number } {
+  return w.lots[b.lotId]?.center ?? { x: 0, y: 0 };
+}
+
+function nearestCentre(w: WorldState, list: Building[]): Building[] {
+  const mid = { x: w.gridW * CELL / 2, y: w.gridH * CELL / 2 };
+  const d = (b: Building) => { const c = lotCentre(w, b); return (c.x - mid.x) ** 2 + (c.y - mid.y) ** 2; };
+  return [...list].sort((a, b) => d(a) - d(b));
 }
 
 function spot(w: WorldState, building: Building | undefined, fallback: { x: number; y: number }): { x: number; y: number } {
@@ -108,18 +182,22 @@ function busiest(w: WorldState): { x: number; y: number } {
 /** Stage one extortion and open the week, then name a camera for each shot. */
 export function buildReel(sim: Sim): ReelFrame[] {
   const w = sim.world;
-  const home = w.blocks[0] ? { x: w.blocks[0].center.x, y: w.blocks[0].center.y } : { x: 0, y: 0 };
+  // The middle of the city: the old corner block showed the empty map edge.
+  const home = inland(w, { x: w.gridW * CELL / 2, y: w.gridH * CELL / 2 });
   const gang = sim.playerGang;
   const teamId = gang.teamIds[0];
-  const shop = buildingList(w).find((b) => b.state === 'trading' && isValidAreaTarget(w, gang.id, 'extort', b));
+  // Shops and fires are chosen inland first, so the action is in the middle of the picture.
+  const inlandFirst = (list: Building[]) => [...list.filter((b) => isInland(w, lotCentre(w, b))), ...nearestCentre(w, list.filter((b) => !isInland(w, lotCentre(w, b))))];
+  const shop = inlandFirst(buildingList(w).filter((b) => b.state === 'trading' && isValidAreaTarget(w, gang.id, 'extort', b)))[0];
   if (teamId != null && shop) {
     issueOrder(w, gang.id, { teamId, type: 'extort', buildingIds: [shop.id], opts: { manpower: 1 } });
   }
-  const fire = buildingList(w).find((b) => b.state === 'trading' && !b.isHQ && b.id !== shop?.id && b.cls !== 'municipal');
+  const fire = inlandFirst(buildingList(w).filter((b) => b.state === 'trading' && !b.isHQ && b.id !== shop?.id && b.cls !== 'municipal'))[0];
   sim.launchWeek();
 
   const crew = peopleList(w).find((p) => p.gangId === gang.id && p.status === 'active' && p.dest);
-  const cars = carsAt(w, w.minute + 0.25);
+  const allCars = carsAt(w, w.minute + 0.25);
+  const cars = [...allCars.filter((car) => isInland(w, car)), ...allCars.filter((car) => !isInland(w, car))];
   const dark = cars.find((car) => trafficLivery(car.x, car.y, car.truck, car.id) === 'police')
     ?? cars.find((car) => car.color === 0 || car.color === 7)
     ?? cars[0];
@@ -132,16 +210,18 @@ export function buildReel(sim: Sim): ReelFrame[] {
     : home;
   const crossing = other ? { x: other.x, y: other.y } : home;
 
+  // Every camera point has city all round it.
+  const at = (p: { x: number; y: number }) => inland(w, p);
   return [
-    { id: 'crowds', kind: 'street', ...busiest(w), pace: 'fast' },
-    { id: 'crew', kind: 'street', x: crew?.pos.x ?? home.x, y: crew?.pos.y ?? home.y, pace: 'fast' },
-    { id: 'shakedown', kind: 'street', ...spot(w, shop, home), pace: 'fast' },
-    { id: 'police', kind: 'street', ...police, pace: 'fast' },
-    { id: 'crossing', kind: 'street', ...crossing, pace: 'fast' },
-    { id: 'racket', kind: 'street', ...spot(w, racket, home), pace: 'fast' },
+    { id: 'crowds', kind: 'street', ...at(busiest(w)), pace: 'fast' },
+    { id: 'crew', kind: 'street', ...at({ x: crew?.pos.x ?? home.x, y: crew?.pos.y ?? home.y }), pace: 'fast' },
+    { id: 'shakedown', kind: 'street', ...at(spot(w, shop, home)), pace: 'fast' },
+    { id: 'police', kind: 'street', ...at(police), pace: 'fast' },
+    { id: 'crossing', kind: 'street', ...at(crossing), pace: 'fast' },
+    { id: 'racket', kind: 'street', ...at(spot(w, racket, home)), pace: 'fast' },
     { id: 'dusk', kind: 'street', ...home, pace: 'dusk' },
-    { id: 'fire', kind: 'street', ...spot(w, fire, home), pace: 'fast', fireId: fire?.id },
-    { id: 'street', kind: 'street', ...spot(w, hq, home), pace: 'fast' },
+    { id: 'fire', kind: 'street', ...at(spot(w, fire, home)), pace: 'fast', fireId: fire?.id },
+    { id: 'street', kind: 'street', ...at(spot(w, hq, home)), pace: 'fast' },
     { id: 'logo', kind: 'logo', x: 0, y: 0, pace: 'still' },
   ];
 }

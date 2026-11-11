@@ -323,6 +323,9 @@ export class CityRenderer {
   private pavement!: InstancePool;
   private lamps!: InstancePool;
   private lampGlow!: InstancePool;
+  /** Warm light on the pavement under each street lamp after dark. */
+  private lampPools!: InstancePool;
+  private lampPoolMat!: THREE.MeshBasicMaterial;
   private hydrants!: InstancePool;
   private trees!: InstancePool;
   private treeModels?: SculptTrees;
@@ -331,6 +334,8 @@ export class CityRenderer {
   // --- movers
   /** People at the wheel this frame, drawn as cars once the traffic is in. */
   private drivers: { x: number; z: number; facing: number; hex: number; kind: VehicleId; moving?: boolean }[] = [];
+  /** Which body each traffic car in view is drawn with (see refreshTraffic). */
+  private carBodies = new Map<number, 'model' | 'plain'>();
   private actors!: ActorLayer;
   private actorMotion = new ActorMotion();
   private characterActions:CharacterActions;
@@ -700,7 +705,12 @@ export class CityRenderer {
     });
     patchInstancedUv(this.shopMat);
 
-    this.glowMat = new THREE.MeshBasicMaterial({ color: 0xffdc9a, transparent: true, opacity: 0 });
+    this.glowMat = new THREE.MeshBasicMaterial({ color: 0xffe3a8, transparent: true, opacity: 0, toneMapped: false });
+    this.lampPoolMat = new THREE.MeshBasicMaterial({
+      map: this.ownedTextures.own(lampPoolTexture()), color: 0xffd08a, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false,
+      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+    });
     this.headlampMat = new THREE.MeshBasicMaterial({ color: 0xfff0c4, transparent: true, opacity: 0 });
   }
 
@@ -923,11 +933,14 @@ export class CityRenderer {
     const ironMat = new THREE.MeshStandardMaterial({ roughness: 0.65, metalness: 0.3, vertexColors: true });
     this.lamps = new InstancePool(lampPostGeometry(), ironMat, nBlocks * 4, { castShadow: true });
     this.lampGlow = new InstancePool(lampGlowGeometry(), this.glowMat, nBlocks * 4, {});
+    this.lampPools = new InstancePool(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), this.lampPoolMat, nBlocks * 4, {});
+    this.lampPools.mesh.renderOrder = 1;
+    this.lampPools.mesh.name = 'lamp-light-pools';
     const propMat = new THREE.MeshStandardMaterial({ roughness: 0.85, vertexColors: true });
     this.hydrants = new InstancePool(hydrantGeometry(), propMat, nBlocks * 2, { castShadow: true });
     this.trees = new InstancePool(treeGeometry(), propMat, nBlocks * 3, { castShadow: true });
 
-    for (const p of [this.lamps, this.lampGlow, this.hydrants, this.trees]) this.scene.add(p.mesh);
+    for (const p of [this.lamps, this.lampGlow, this.lampPools, this.hydrants, this.trees]) this.scene.add(p.mesh);
   }
 
   private buildAgents(): void {
@@ -1840,6 +1853,7 @@ export class CityRenderer {
     this.pavement.reset();
     this.lamps.reset();
     this.lampGlow.reset();
+    this.lampPools.reset();
     this.hydrants.reset();
     this.trees.reset();
 
@@ -1883,7 +1897,15 @@ export class CityRenderer {
         this.dummy.rotation.set(0, (k * Math.PI) / 2, 0);
         this.dummy.updateMatrix();
         this.lamps.push(this.dummy.matrix);
-        if (!phoneStreet) this.lampGlow.push(this.dummy.matrix);
+        if (!phoneStreet) {
+          this.lampGlow.push(this.dummy.matrix);
+          // The pool of light it throws on the pavement and the road edge.
+          this.dummy.position.set(cx + dx, KERB_H + 0.04, cz + dz);
+          this.dummy.scale.set(LAMP_POOL_SIZE, 1, LAMP_POOL_SIZE);
+          this.dummy.updateMatrix();
+          this.lampPools.push(this.dummy.matrix);
+          this.dummy.scale.set(1, 1, 1);
+        }
       }
 
       // A hydrant, and trees on the leafier blocks.
@@ -1919,8 +1941,9 @@ export class CityRenderer {
     this.pavement.commit();
     this.lamps.commit();
     this.lampGlow.commit();
+    this.lampPools.commit();
     this.hydrants.commit();
-    this.streetFurniture = [this.lamps, this.lampGlow, this.hydrants].map(pool => snapshotPlacements(pool));
+    this.streetFurniture = [this.lamps, this.lampGlow, this.lampPools, this.hydrants].map(pool => snapshotPlacements(pool));
     this.furnitureAt.set(Infinity, 0, Infinity);
     this.cullStreetFurniture();
     this.trees.commit();
@@ -2283,6 +2306,7 @@ export class CityRenderer {
     // triangles, twice with shadows); only those the frame can reach are now.
     const carReach = this.groundReach() + BLOCK_SIZE, carCx = this.target.x, carCz = this.target.z;
     const mainView = camera === this.camera;
+    const seenCars = new Set<number>();
     for (const c of carsAt(w, w.minute + this.subMinute)) {
       const out = this.standingCars.length ? this.edgeOut(c) : 0;
       const x = c.axisX ? c.x : c.x - out;
@@ -2299,13 +2323,25 @@ export class CityRenderer {
       this.dummy.rotation.set(0, yaw, 0);
       this.dummy.scale.setScalar(1);
       this.dummy.updateMatrix();
-      this.colorScratch.setHex(CAR_COLORS[c.color % CAR_COLORS.length]);
+      // Police coachwork is painted in its own colours. It used to be tinted
+      // with the paint of whichever car came before it in the list, so a
+      // police car changed colour as other cars came and went.
+      const police = livery === 'police' || livery === 'police-hero' || livery === 'paddy';
+      this.colorScratch.setHex(police ? 0xffffff : CAR_COLORS[c.color % CAR_COLORS.length]);
+      seenCars.add(c.id);
       if (livery === 'police') this.policeSedans.push(this.dummy.matrix, this.colorScratch);
       else if (livery === 'police-hero') this.policeHeroes.push(this.dummy.matrix, this.colorScratch);
       else if (livery === 'paddy') this.paddies.push(this.dummy.matrix, this.colorScratch);
       else if (spriteMode) this.vehicleSprites!.push(truck ? 'truck' : 'coupe', x, z, yaw);
-      else if (this.sculptModelsActive && this.sculptModels?.pushVehicle(truck ? 'truck' : 'coupe', this.dummy.matrix)) { /* Detailed vehicle */ }
-      else (truck ? this.trucks : this.sedans).push(this.dummy.matrix, this.colorScratch);
+      else {
+        // One body for as long as the car stays in view: a car first drawn as
+        // the plain model (the detailed ones were still loading) keeps it
+        // until it has left the picture, and the other way round.
+        const body = this.carBodies.get(c.id) ?? (this.sculptModelsActive ? 'model' : 'plain');
+        const drawn = body === 'model' && this.sculptModelsActive && !!this.sculptModels?.pushVehicle(truck ? 'truck' : 'coupe', this.dummy.matrix);
+        if (!drawn) (truck ? this.trucks : this.sedans).push(this.dummy.matrix, this.colorScratch);
+        this.carBodies.set(c.id, drawn ? 'model' : 'plain');
+      }
 
       if (dusk > 0.02) {
         const { nose, lampY } = this.vehicleProfile(truck ? 'truck' : 'coupe');
@@ -2342,7 +2378,10 @@ export class CityRenderer {
       }
     }
 
-    for (const person of Object.values(w.people)) {
+    // Cars that left the picture may take the other body when they come back.
+    if (mainView) for (const id of this.carBodies.keys()) if (!seenCars.has(id)) this.carBodies.delete(id);
+    this.colorScratch.setHex(0xffffff);
+    for (const person of peopleList(w)) {
       if (person.status !== 'arrested' && !(person.role === 'police' && person.emergencyResponse)) continue;
       const at = previewStreetPosition(person, w, this.subMinute, this.taggedPreview);
       const next = person.path[0] ?? person.dest;
@@ -2747,6 +2786,8 @@ export class CityRenderer {
     const noon = Math.sin(Math.PI * clamp(0.28 + 0.44 * phase, 0, 1));
     // The last hour of business goes golden and then flat.
     const dusk = smoothstep(0.74, 1.0, phase);
+    // Then night: the daylight goes, and the lamps and windows carry the street.
+    const night = smoothstep(NIGHT_FROM, NIGHT_FULL, phase);
 
     // As in the original's pre-lit street view, the sun comes from the
     // viewer's upper left whichever way the camera faces: the wall on the left
@@ -2764,28 +2805,33 @@ export class CityRenderer {
     // The original's street view sits in strong, warm sunlight all day with
     // deep shadow on the far faces (playtest, 28 September: warmer, higher
     // contrast). A strong warm sun with less fill; the day still swings.
-    this.sun.intensity = 2.2 + noon * 1.0;
+    this.sun.intensity = (2.2 + noon * 1.0) * (1 - 0.9 * night);
     this.sun.color.setRGB(1, lerp(0.8, 0.9, noon), lerp(0.58, 0.72, noon));
-    this.hemi.intensity = 0.5 + noon * 0.4;
+    this.hemi.intensity = (0.5 + noon * 0.4) * (1 - 0.7 * night);
     this.hemi.color.setRGB(lerp(0.55, 0.62, noon), lerp(0.6, 0.7, noon), lerp(0.78, 0.85, noon));
     // Match the gain-four horizontal direction; I * direction.y is unchanged.
-    this.bounce.intensity = (0.15 + noon * 0.2) * (Math.hypot(720, 120, 560) / Math.hypot(180, 120, 140));
+    this.bounce.intensity = (0.15 + noon * 0.2) * (Math.hypot(720, 120, 560) / Math.hypot(180, 120, 140)) * (1 - 0.8 * night);
 
     const sky = new THREE.Color().setRGB(
       lerp(0.1, 0.42, noon) + dusk * 0.16,
       lerp(0.1, 0.48, noon) - dusk * 0.03,
       lerp(0.15, 0.56, noon) - dusk * 0.08,
     );
+    sky.lerp(NIGHT_SKY, night);
     (this.scene.background as THREE.Color).copy(sky);
     if (this.scene.fog) (this.scene.fog as THREE.Fog).color.copy(sky);
 
     // Windows come on as the afternoon light goes.
     const lightUp = smoothstep(0.66, 1.0, phase);
-    for (const m of this.facadeMats) m.emissiveIntensity = lightUp * 1.1;
-    this.shopMat.emissiveIntensity = lightUp * 0.9;
-    this.glowMat.opacity = dusk * 0.95;
-    this.headlampMat.opacity = dusk * 0.9;
+    // At night the lit windows stand out against darker walls.
+    for (const m of this.facadeMats) m.emissiveIntensity = lightUp * 1.1 + night * 1.5;
+    this.shopMat.emissiveIntensity = lightUp * 0.9 + night * 1.3;
+    this.glowMat.opacity = Math.min(1, dusk * 0.95 + night);
+    this.headlampMat.opacity = Math.min(1, dusk * 0.9 + night * 0.1);
     this.lampGlow.mesh.visible = dusk > 0.02;
+    // Bright pools under the lamps; the street between them stays dark.
+    this.lampPoolMat.opacity = Math.min(1, dusk * 0.35 + night);
+    this.lampPools.mesh.visible = dusk > 0.02;
 
     // A faint sheen on the roadway once the light goes flat.
     this.groundMat.roughness = 0.93 - dusk * 0.3;
@@ -3238,6 +3284,7 @@ export class CityRenderer {
       this.pavement,
       this.lamps,
       this.lampGlow,
+      this.lampPools,
       this.hydrants,
       this.trees,
       this.footRings,
@@ -3266,6 +3313,7 @@ export class CityRenderer {
     if (!this.wallPools.length) for (const material of this.facadeMats) material.dispose();
     if (!this.shopBase) this.shopMat?.dispose();
     if (!this.lampGlow) this.glowMat?.dispose();
+    if (!this.lampPools) this.lampPoolMat?.dispose();
     if (!this.headlamps) this.headlampMat?.dispose();
     this.clearBuildingViews();
     this.tagged.set([], false);
@@ -3289,6 +3337,32 @@ export class CityRenderer {
 }
 
 // ------------------------------------------------------------------ helpers
+
+/** Where in the day night starts and where it is full (0..1 of the working day). */
+export const NIGHT_FROM = 0.82;
+export const NIGHT_FULL = 0.96;
+const NIGHT_SKY = new THREE.Color().setRGB(0.035, 0.045, 0.09);
+/** Width of a lamp's pool of light on the ground, metres. */
+const LAMP_POOL_SIZE = 14;
+
+/** A soft warm disc, brightest under the lamp. Drawn once, no file. */
+function lampPoolTexture(): THREE.Texture {
+  const size = 128;
+  const cv = document.createElement('canvas');
+  cv.width = size;
+  cv.height = size;
+  const ctx = cv.getContext('2d')!;
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.25, 'rgba(255,255,255,0.75)');
+  g.addColorStop(0.6, 'rgba(255,255,255,0.25)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const texture = new THREE.CanvasTexture(cv);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
 
 /** A small card painted on a canvas: cream disc, dark glyph. */
 function markerTexture(draw: (ctx: CanvasRenderingContext2D) => void): THREE.Texture {

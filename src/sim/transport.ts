@@ -27,9 +27,15 @@ export const PURSUIT_PACE = 1.5;
  * flag). Chosen from the person and the leg's destination, so nothing extra is
  * saved and a restored game makes the same choice. */
 export function runningCivilian(p: Person): boolean {
-  return p.role === 'citizen' && !p.inVehicle && p.dest != null &&
-    hash32(p.id * 7919 + Math.round(p.dest.x * 4) * 131 + Math.round(p.dest.y * 4)) % 64 === 0;
+  if (p.role !== 'citizen' || p.inVehicle || p.dest == null) return false;
+  // Asked every minute for every walker: remembered per leg (the dest object).
+  const dest = p.dest;
+  if (runningLeg[p.id] === dest) return runningFlag[p.id] === 1;
+  const running = hash32(p.id * 7919 + Math.round(dest.x * 4) * 131 + Math.round(dest.y * 4)) % 64 === 0;
+  runningLeg[p.id] = dest; runningFlag[p.id] = running ? 1 : 0;
+  return running;
 }
+const runningLeg: (Vec2 | undefined)[] = [], runningFlag: number[] = [];
 export function transportSpeed(p: Person, w?: WorldState): number {
   // Someone sent after a person on foot hurries, or an ambling target would
   // keep the same lead for ever at the original's walking pace.
@@ -40,9 +46,14 @@ export function transportSpeed(p: Person, w?: WorldState): number {
   return DRIVE_SPEED * (kind ? VEHICLES[kind].speed : p.role === 'police' ? 1.6 : 1) * (.75 + driver.skills.driving * .1);
 }
 function base(w: WorldState, gangId: ID, near: Vec2): Vec2 {
-  const offices = allBuildings(w).filter(b => b.ownerGangId === gangId && b.typeId === 'office' && b.state !== 'destroyed');
-  offices.sort((a,b) => dist(buildingDoor(w,a),near)-dist(buildingDoor(w,b),near));
-  return offices[0] ? buildingDoor(w,offices[0]) : near;
+  // The nearest office door; on a tie the first in the list, as the stable sort this replaced chose.
+  let best: Vec2 | null = null, bestD = Infinity;
+  for (const b of allBuildings(w)) {
+    if (b.ownerGangId !== gangId || b.typeId !== 'office' || b.state === 'destroyed') continue;
+    const door = buildingDoor(w, b), d = dist(door, near);
+    if (best == null || d < bestD) { best = door; bestD = d; }
+  }
+  return best ?? near;
 }
 /** Where the gang's other cars stand, or are going to stand. */
 export function parkedSpots(w: WorldState, exceptKey: string): Vec2[] {
@@ -115,7 +126,7 @@ export function allocateTransport(w:WorldState,team:Team,people:Person[],to:Vec2
   const drivers=type==='export'||type==='raid'?people:people.filter(p=>dist(p.pos,to)>DRIVE_MIN_DISTANCE);
   const plan=transportPlan(w,team,drivers,type);
   for(const {key,kind,slot,riders} of plan.cars)reserve(w,key,makeVehicle(w,key,kind,team.gangId,team.id,null,slot,to),riders,to,orderId);
-  for(const p of [...plan.walkers,...people.filter(p=>!drivers.includes(p))]){p.inVehicle=false;delete p.vehicleKey;setDestination(w,p,to);}
+  for(const p of [...plan.walkers,...people.filter(p=>!drivers.includes(p))]){p.inVehicle=false;p.vehicleKey = undefined;setDestination(w,p,to);}
 }
 export function startStaffJourney(w:WorldState,p:Person,to:Vec2):void {
   const role=p.role==='accountant'?'accountant':'lawyer',kind=w.gangs[p.gangId!]?.staffVehicles?.[role];
@@ -142,7 +153,7 @@ export function dismount(w:WorldState,p:Person):void {
     if(v.driverId===p.id)v.driverId=bestDriver(w,v.occupantIds);
     if(!v.occupantIds.length){v.boarding=false;v.destination=null;v.returning=false;}
   }
-  delete p.vehicleKey;p.inVehicle=false;
+  p.vehicleKey = undefined;p.inVehicle=false;
 }
 /** The best driver left in the car takes the wheel (not whoever sat first). */
 function bestDriver(w:WorldState,ids:ID[]):ID|null{
@@ -285,7 +296,7 @@ export function removeFleetVehicle(w:WorldState,owner:Team|Gang,kind:VehicleId):
 /** Empty cars at the offices are back in the garage after the weekend; one left out
  * on the streets, and undelivered loads, keep their place. */
 export function resetWeekTransport(w:WorldState):void {
-  for(const p of Object.values(w.people))if(p.vehicleKey&&!w.vehicleFleet?.[p.vehicleKey]?.cargo){delete p.vehicleKey;p.inVehicle=false;clearDestination(p);}
+  for(const p of Object.values(w.people))if(p.vehicleKey&&!w.vehicleFleet?.[p.vehicleKey]?.cargo){p.vehicleKey = undefined;p.inVehicle=false;clearDestination(p);}
   for(const [key,v] of Object.entries(w.vehicleFleet??{})){
     if(v.cargo){v.cargo.purpose='return';v.cargo.orderId=null;v.orderId=null;}
     // Left out on the streets: it is still there next week (fetched, or taken from where it stands).

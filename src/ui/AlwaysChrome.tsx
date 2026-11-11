@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../app/store';
 import { audio } from '../audio/audio';
-import { onNowPlaying } from '../audio/musicPool';
+import { onNowPlaying, setMusicHold } from '../audio/musicPool';
 import { Modal } from './common';
 import { InterfaceButton } from './InterfaceControls';
 import './interface.css';
@@ -152,6 +152,7 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
     };
     setOpen(false);
     setRunning(true);
+    setMusicHold(true);
     try {
       await runAutoTest(current, settings, () => useGame.getState().endWeekNow());
       if (takeAutoTestStopped() && useGame.getState().sim?.world.phase === 'planning') useGame.getState().setTab('lieutenants');
@@ -161,6 +162,7 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
       noteAutoTestStopped(message);
       useGame.getState().notify({ ok: false, error: message });
     } finally {
+      setMusicHold(false);
       setRunning(false);
     }
   };

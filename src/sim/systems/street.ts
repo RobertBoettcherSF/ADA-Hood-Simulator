@@ -27,7 +27,7 @@ export function tickStreetOrders(w: WorldState, rng: Rng, minutes: number, loado
     // A beaten man gets back on his feet after a while, not at the week's end.
     if (p.status === 'beaten' && p.beatenUntil != null && p.beatenUntil <= absoluteMinute(w)) {
       p.status = 'active';
-      delete p.beatenUntil;
+      p.beatenUntil = undefined;
     }
     const so = p.streetOrder;
     if (!so || p.status !== 'active' || p.burningEscape?.week===w.week) continue;

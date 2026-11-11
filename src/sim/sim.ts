@@ -22,6 +22,7 @@ import { beginWeekOrders, disbandTeam, promoteToLieutenant, replaceLieutenant, t
 import { Rng } from './rng';
 import { allocateWeapons } from './weapons';
 import { tickAmbient } from './systems/ambient';
+import { shapePeople } from './personShape';
 import { scanStreetSlice, tickTraffic, trafficContext } from './traffic';
 import { TRAM_RIDING, tickTramRiding } from './tramRiding';
 import { capturePeaceFireExclusions, tickCombat } from './systems/combat';
@@ -87,6 +88,7 @@ export class Sim {
   private static restoreValidated(state: WorldState): Sim {
     earlySteps.clear(); driveFrom.clear();
     const sim = Object.create(Sim.prototype) as Sim;
+    state.people = shapePeople(state.people);
     sim.world = state;
     sim.rng = new Rng(state.options.seed);
     sim.rng.state = state.rngState;
@@ -458,8 +460,8 @@ export class Sim {
     for (const p of peopleList(w)) {
       p.streetOrder = null;
       if (p.status === 'beaten') p.status = 'active';
-      delete p.beatenUntil;
-      delete p.resumeOrderId;
+      p.beatenUntil = undefined;
+      p.resumeOrderId = undefined;
       if (p.status !== 'dead') p.hp = Math.min(100, p.hp + 35);
     }
   }

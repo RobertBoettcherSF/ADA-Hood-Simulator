@@ -130,7 +130,25 @@ function logResult(actions: string[], label: string, ok: boolean, detail: string
   actions.push(`${ok ? 'OK' : 'FAIL'} ${label}${detail ? ` — ${detail}` : ''}`);
 }
 
-/** One Monday at the desk, using hire, promote, and issueOrder. */
+/** Crews one lieutenant can run well. Used to decide when to promote another. */
+const MEN_PER_CREW = 6;
+
+function crewReady(w: Sim['world'], teamId: number): boolean {
+  const team = w.teams[teamId];
+  const lt = team ? w.people[team.lieutenantId] : undefined;
+  return !!lt && lt.status !== 'dead' && lt.status !== 'jailed' && lt.status !== 'kidnapped';
+}
+
+/**
+ * One Monday at the desk, using hire, promote, and issueOrder.
+ *
+ * 1.2.13 plays every lieutenant, not just the first. The expansion playbook,
+ * in order: guard the office; collect from every protected shop, split across
+ * crews; hire until the target; push the frontier outward from the office one
+ * block per crew, nearest blocks first, so the territory grows as a ring; set
+ * up rackets behind owned fronts; bribe the chief; buy premises at the edge;
+ * hit rivals only when the strategy wants it.
+ */
 export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): string[] {
   const actions: string[] = [];
   const rng = new Rng(seed + sim.world.week * 997);
@@ -138,53 +156,97 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const gang = sim.playerGang;
   const beforeMen = gangManpower(w, gang);
   const weight = strategy.weights;
+  const crewsOf = () => gang.teamIds.map((teamId) => w.teams[teamId]).filter((team) => !!team);
 
   for (const id of [...gang.recruitIds]) {
     const person = w.people[id];
-    const room = gang.teamIds.map((teamId) => w.teams[teamId]).find((team) => team && team.memberIds.length < 8);
+    const room = crewsOf().filter((team) => team.memberIds.length < 8).sort((a, b) => a.memberIds.length - b.memberIds.length)[0];
     const result = hireRecruit(w, gang.id, id, room ? 'team' : 'pool', room?.id);
     logResult(actions, `hire ${person?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
   }
 
-  if (weight.hiring >= 0.2 && gang.poolIds.length && gang.teamIds.length < Math.max(2, Math.round(weight.hiring * 5)) && gang.teamIds.length < 8) {
-    const id = rng.pick(gang.poolIds);
-    const result = promote(w, gang.id, id);
-    logResult(actions, `promote ${w.people[id]?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
-  }
+  // Enough lieutenants for the men: one crew per six hoods, at least two, at most eight.
   if (weight.hiring >= 0.2) {
+    const hoods = () => gang.poolIds.length + crewsOf().reduce((sum, team) => sum + team.memberIds.length + 1, 0);
+    const wanted = () => Math.min(8, Math.max(2, Math.ceil(hoods() / MEN_PER_CREW)));
+    for (let tries = 0; tries < 3 && gang.teamIds.length < wanted(); tries++) {
+      const fromPool = gang.poolIds.length ? rng.pick(gang.poolIds) : undefined;
+      const biggest = crewsOf().filter((team) => team.memberIds.length >= 4).sort((a, b) => b.memberIds.length - a.memberIds.length)[0];
+      const id = fromPool ?? biggest?.memberIds[biggest.memberIds.length - 1];
+      if (id == null) break;
+      const result = promote(w, gang.id, id);
+      logResult(actions, `promote ${w.people[id]?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
+      if (!result.ok) break;
+    }
     for (const id of [...gang.poolIds]) {
-      const crew = gang.teamIds.map((teamId) => w.teams[teamId]).find((team) => team && team.memberIds.length < 8);
+      const crew = crewsOf().filter((team) => team.memberIds.length < 8).sort((a, b) => a.memberIds.length - b.memberIds.length)[0];
       if (!crew) break;
       const result = moveToTeam(w, gang.id, id, crew.id);
       logResult(actions, `to crew ${w.people[id]?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
     }
+    // A new crew gets men from the biggest one, so no lieutenant walks alone.
+    for (let moves = 0; moves < 8; moves++) {
+      const sorted = crewsOf().sort((a, b) => a.memberIds.length - b.memberIds.length);
+      const small = sorted[0];
+      const big = sorted[sorted.length - 1];
+      if (!small || !big || big === small || big.memberIds.length - small.memberIds.length < 3) break;
+      const id = big.memberIds[big.memberIds.length - 1];
+      const result = moveToTeam(w, gang.id, id, small.id);
+      logResult(actions, `to crew ${w.people[id]?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
+      if (!result.ok) break;
+    }
   }
 
-  const teamId = gang.teamIds[0];
-  const team = teamId == null ? undefined : w.teams[teamId];
-  if (!team) {
+  const ready = crewsOf().filter((team) => crewReady(w, team.id));
+  if (!ready.length) {
     actions.push('FAIL orders — no crew');
     return actions;
   }
 
-  let timeLeft = true;
-  const give = (label: string, input: IssueOrderInput): ApiResult => {
-    if (!timeLeft) return { ok: false, error: 'The crew has no time left this week.' };
-    const result = issueOrder(w, gang.id, input);
-    logResult(actions, label, result.ok, result.ok ? result.message ?? '' : result.error);
-    if (!result.ok && /time/i.test(result.error)) timeLeft = false;
+  const outOfTime = new Set<number>();
+  /** The crew with the most time left this week, skipping those already given this kind of job. */
+  const freest = (skip: Set<number> = new Set()) =>
+    ready.filter((team) => !outOfTime.has(team.id) && !skip.has(team.id)).sort((a, b) => a.timeUsed - b.timeUsed || a.id - b.id)[0];
+  const give = (label: string, team: (typeof ready)[number] | undefined, input: Omit<IssueOrderInput, 'teamId'>): ApiResult => {
+    if (!team) return { ok: false, error: 'Every crew is busy this week.' };
+    const name = w.people[team.lieutenantId]?.name ?? 'crew';
+    let result = issueOrder(w, gang.id, { ...input, teamId: team.id });
+    // Undermanned for the whole area, take the part the lieutenant offers.
+    if (!result.ok && result.suggestion?.buildingIds?.length) {
+      result = issueOrder(w, gang.id, { ...input, teamId: team.id, buildingIds: result.suggestion.buildingIds });
+    }
+    logResult(actions, `${label} (${name})`, result.ok, result.ok ? result.message ?? '' : result.error);
+    if (!result.ok && /time/i.test(result.error)) outOfTime.add(team.id);
     return result;
   };
+  const manpowerFor = (team: (typeof ready)[number], most: number) => Math.max(1, Math.min(most, team.memberIds.length + 1));
 
   const origin = hqCenter(w, gang.id);
   const nearer = (a: { lotId: number }, b: { lotId: number }) => dist(w.lots[a.lotId].center, origin) - dist(w.lots[b.lotId].center, origin);
   const hoodSites = buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood' && b.state !== 'destroyed').sort(nearer);
+
+  const hq = buildingList(w).find((b) => b.isHQ && b.ownerGangId === gang.id);
+  if (w.week >= 2 && gangManpower(w, gang) >= 8 && hq) {
+    give('guard office', freest(), { type: 'guardBusiness', buildingIds: [hq.id], opts: { manpower: 1 } });
+  }
+
+  // One-off hires come before the expansion fills the crews' week.
+  if (w.week >= 4 && gang.accountantId == null) {
+    const desk = buildingList(w).find((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'accountant' && b.state !== 'destroyed');
+    if (desk) give('recruit accountant', freest(), { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'accountant' } });
+  }
+  if (w.week >= 6 && gang.lawyerId == null) {
+    const desk = buildingList(w).find((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'lawyer' && b.state !== 'destroyed');
+    if (desk) give('recruit lawyer', freest(), { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'lawyer' } });
+  }
+
   const spend = (key: PlayStrategy['priority'][number]) => {
     if (key === 'hiring') {
-      const target = Math.max(18, Math.round(10 + weight.hiring * 12));
+      // More streets need more collectors: the target grows with the territory.
+      const target = Math.max(18, Math.round(10 + weight.hiring * 12), Math.min(48, Math.round(territoryCount(w, gang.id) * 1.2)));
       if (gangManpower(w, gang) < target && hoodSites.length) {
         const count = Math.max(1, Math.round(1 + weight.hiring * 2));
-        give('recruit', { teamId: team.id, type: 'recruit', buildingIds: hoodSites.slice(0, count).map((b) => b.id), opts: { manpower: 1 } });
+        give('recruit', freest(), { type: 'recruit', buildingIds: hoodSites.slice(0, count).map((b) => b.id), opts: { manpower: 1 } });
       } else if (hoodSites.length === 0) {
         actions.push('NOTE no hoods standing at a hiring place');
       } else {
@@ -192,31 +254,54 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       }
     }
     if (key === 'rackets') {
-      const owed = protectedBuildings(w, gang.id).filter((b) => b.state === 'trading').slice(0, Math.max(1, Math.round(weight.rackets * 10)));
-      if (w.week >= 2 && weight.rackets >= 0.2 && owed.length) give('collect', { teamId: team.id, type: 'collectProtection', buildingIds: owed.map((b) => b.id), opts: { manpower: 1 } });
-      const nearby = buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b) && nearTerritory(w, gang.id, b.blockId, 2)).sort(nearer);
-      const extort = nearby.length ? nearby : buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b)).sort(nearer);
-      if (weight.rackets >= 0.25 && extort.length) {
-        const cap = Math.max(1, Math.round(weight.rackets * 4));
-        const take = extort.slice(0, rng.int(1, Math.min(cap, extort.length)));
-        give('extort', { teamId: team.id, type: 'extort', buildingIds: take.map((b) => b.id), opts: { manpower: 1 } });
+      // Collect: the owed shops, split evenly over the crews, nearest first.
+      const owed = protectedBuildings(w, gang.id).filter((b) => b.state === 'trading').sort(nearer);
+      if (w.week >= 2 && weight.rackets >= 0.2 && owed.length) {
+        const share = Math.max(3, Math.ceil(owed.length / ready.length));
+        const collected = new Set<number>();
+        for (let i = 0; i < owed.length; i += share) {
+          const team = freest(collected);
+          if (!team) break;
+          collected.add(team.id);
+          give('collect', team, { type: 'collectProtection', buildingIds: owed.slice(i, i + share).map((b) => b.id), opts: { manpower: 1 } });
+        }
+      }
+      // Expand: every crew takes the nearest unclaimed block at the edge of the territory.
+      if (weight.rackets >= 0.25) {
+        const nearby = buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b) && nearTerritory(w, gang.id, b.blockId, 2)).sort(nearer);
+        const targets = nearby.length ? nearby : buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b)).sort(nearer);
+        const byBlock = new Map<number, typeof targets>();
+        for (const b of targets) {
+          const list = byBlock.get(b.blockId) ?? [];
+          list.push(b);
+          byBlock.set(b.blockId, list);
+        }
+        const cap = Math.max(2, Math.round(weight.rackets * 5));
+        const sent = new Set<number>();
+        for (const sites of byBlock.values()) {
+          const team = freest(sent);
+          if (!team) break;
+          sent.add(team.id);
+          give('extort', team, { type: 'extort', buildingIds: sites.slice(0, cap).map((b) => b.id), opts: { manpower: manpowerFor(team, 2) } });
+        }
       }
       if (weight.rackets >= 0.45) {
         const owned = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.state === 'trading');
-        const land = owned.find((b) => b.cls === 'empty' && w.lots[b.lotId]?.index === 4);
-        const front = land ? owned.find((b) => b.blockId === land.blockId && b.id !== land.id && b.hidesId == null && ['commercial', 'industrial', 'tenement'].includes(b.cls)) : undefined;
-        if (land && front) {
-          const fit = ILLEGAL_TYPES.find((type) => type.id !== 'office' && type.cost < gang.cash * 0.5 && (type.fronts?.includes(front.typeId) || type.fronts?.includes('*')));
+        const lands = owned.filter((b) => b.cls === 'empty' && w.lots[b.lotId]?.index === 4);
+        let budget = gang.cash * 0.5;
+        for (const land of lands.slice(0, 2)) {
+          const front = owned.find((b) => b.blockId === land.blockId && b.id !== land.id && b.hidesId == null && ['commercial', 'industrial', 'tenement'].includes(b.cls));
+          if (!front) continue;
+          const fit = ILLEGAL_TYPES.find((type) => type.id !== 'office' && type.cost < budget && (type.fronts?.includes(front.typeId) || type.fronts?.includes('*')));
           const rooms = BUILDING_BY_ID.rentedRooms;
-          const racket = rooms && rooms.cost < gang.cash * 0.5 && rooms.fronts?.includes(front.typeId) ? rooms : fit;
-          if (racket) {
-            give(`racket ${racket.id}`, {
-              teamId: team.id,
-              type: 'setUpBusiness',
-              buildingIds: [land.id],
-              opts: { manpower: 1, businessTypeId: racket.id, frontBuildingId: front.id, roomsFloors: racket.id === 'rentedRooms' ? 2 : undefined },
-            });
-          }
+          const racket = rooms && rooms.cost < budget && rooms.fronts?.includes(front.typeId) ? rooms : fit;
+          if (!racket) continue;
+          const result = give(`racket ${racket.id}`, freest(), {
+            type: 'setUpBusiness',
+            buildingIds: [land.id],
+            opts: { manpower: 1, businessTypeId: racket.id, frontBuildingId: front.id, roomsFloors: racket.id === 'rentedRooms' ? 2 : undefined },
+          });
+          if (result.ok) budget -= racket.cost;
         }
       }
     }
@@ -224,41 +309,33 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const chief = w.people[w.policeChiefId];
       const gate = 1500 + (1 - weight.bribes) * 2500;
       if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > gate) {
-        give('bribe', { teamId: team.id, type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: Math.round(200 + weight.bribes * 800) } });
+        give('bribe', freest(), { type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: Math.round(200 + weight.bribes * 800) } });
       }
     }
     if (key === 'buying' && w.week >= 4 && weight.buying >= 0.3) {
       const gate = 8000 + (1 - weight.buying) * 8000;
       const fraction = 0.15 + weight.buying * 0.5;
       if (gang.cash > gate) {
-        const site = buildingList(w).find((b) => {
+        const site = buildingList(w).filter((b) => {
           const cost = BUILDING_BY_ID[b.typeId]?.cost ?? 0;
           return b.ownerGangId == null && b.state === 'trading' && cost > 0 && cost < gang.cash * fraction && nearTerritory(w, gang.id, b.blockId, BUY_REACH_BLOCKS);
-        });
-        if (site) give(`buy ${site.typeId}`, { teamId: team.id, type: 'buyPremises', buildingIds: [site.id] });
+        }).sort(nearer)[0];
+        if (site) give(`buy ${site.typeId}`, freest(), { type: 'buyPremises', buildingIds: [site.id] });
       }
     }
     if (key === 'violence' && w.week >= 8 && weight.violence >= 0.45) {
-      const rival = buildingList(w).find((b) => b.ownerGangId != null && b.ownerGangId !== gang.id && !b.isHQ && b.state === 'trading');
-      if (rival) give('smash', { teamId: team.id, type: 'smashUp', buildingIds: [rival.id], opts: { manpower: 2 } });
+      const rival = buildingList(w).filter((b) => b.ownerGangId != null && b.ownerGangId !== gang.id && !b.isHQ && b.state === 'trading').sort(nearer)[0];
+      if (rival) {
+        const team = freest();
+        if (team) give('smash', team, { type: 'smashUp', buildingIds: [rival.id], opts: { manpower: manpowerFor(team, 2) } });
+      }
     }
   };
 
   for (const key of strategy.priority) spend(key);
 
-  const hq = buildingList(w).find((b) => b.isHQ && b.ownerGangId === gang.id);
-  if (w.week >= 2 && gangManpower(w, gang) >= 8 && hq) {
-    give('guard office', { teamId: team.id, type: 'guardBusiness', buildingIds: [hq.id], opts: { manpower: 1 } });
-  }
-  if (w.week >= 4 && gang.accountantId == null) {
-    const desk = buildingList(w).find((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'accountant' && b.state !== 'destroyed');
-    if (desk) give('recruit accountant', { teamId: team.id, type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'accountant' } });
-  }
-  if (w.week >= 6 && gang.lawyerId == null) {
-    const desk = buildingList(w).find((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'lawyer' && b.state !== 'destroyed');
-    if (desk) give('recruit lawyer', { teamId: team.id, type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'lawyer' } });
-  }
-
+  const idle = ready.filter((team) => team.orderIds.every((id) => !w.orders[id] || w.orders[id].gangId !== gang.id) && team.timeUsed === 0);
+  if (idle.length) actions.push(`NOTE ${idle.length} crew${idle.length === 1 ? '' : 's'} without an order: ${idle.map((team) => w.people[team.lieutenantId]?.name ?? team.id).join(', ')}`);
   if (gangManpower(w, gang) === beforeMen && gang.poolIds.length === 0 && gang.recruitIds.length === 0 && hoodSites.length === 0) {
     actions.push('NOTE nobody hired and no hiring place');
   }
