@@ -459,6 +459,7 @@ function LieutenantTab({ team: t, index, selected, onSelect }: { team: Team; ind
   const pct = Math.round((t.timeUsed / MINUTES_PER_WEEK) * 100);
   return (
     <button
+      data-team-id={t.id}
       aria-pressed={selected || poolOpen} className={`lt-tab${selected ? ' on' : ''}${poolOpen ? ' pool-open' : ''}${lt && lt.status !== 'active' ? ' absent' : ''}${dropOver ? ' drop-over' : ''}`}
       title={`${lt?.name ?? 'Vacant'} — ${t.name}${pct ? ` · ${pct}% of the week allocated` : ''}. Click the portrait to open the pool for this crew; click again for the city plan.`}
       onClick={onSelect}

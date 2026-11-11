@@ -8,6 +8,7 @@ import { Toast } from './Toast';
 import { DialogFrame } from './DialogFrame';
 import { TitleSequence } from './TitleSequence';
 import { AlwaysChrome } from './AlwaysChrome';
+import { ControlHelp } from './ControlHelp';
 import { FolderGate } from './FolderGate';
 import { LoadingReel } from './LoadingReel';
 import { StreetLoading } from './StreetLoading';
@@ -55,6 +56,7 @@ export function App() {
   };
   return <>
     <AlwaysChrome />
+    <ControlHelp />
     <Toast />
     {!storageReady && (
       <div hidden={reel !== 'off'}>
