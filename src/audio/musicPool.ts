@@ -55,6 +55,29 @@ export function reelTheme(): PoolTrack | undefined {
   return tracks.find((track) => track.reel) ?? tracks[0];
 }
 
+/** The reel opens on its beat-mapped theme, then each ending draws the next pool track. */
+export async function playReelQueue(node: HTMLAudioElement): Promise<void> {
+  await loadMusicPool();
+  const theme = reelTheme();
+  if (!theme) return;
+  lastId = theme.id;
+  node.loop = false;
+  node.preload = 'none';
+  node.src = `${import.meta.env.BASE_URL}${theme.src}`;
+  node.onended = () => { void advanceQueued(node); };
+  applyMusicMix(node);
+}
+
+async function advanceQueued(node: HTMLAudioElement): Promise<void> {
+  if (!tracks.length) return;
+  const dealt = dealTrack(tracks, lastId, bag);
+  bag = dealt.remaining;
+  lastId = dealt.previousId;
+  node.src = `${import.meta.env.BASE_URL}${dealt.track.src}`;
+  applyMusicMix(node);
+  try { await node.play(); } catch { /* the speaker button retries */ }
+}
+
 function poolElement(): HTMLAudioElement | null {
   if (typeof Audio === 'undefined') return null;
   if (!element) {

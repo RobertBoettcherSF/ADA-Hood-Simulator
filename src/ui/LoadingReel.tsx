@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { audio } from '../audio/audio';
-import { applyMusicMix } from '../audio/musicPool';
+import { applyMusicMix, playReelQueue } from '../audio/musicPool';
 import { deviceIsPhone } from '../app/device';
 import { CityRenderer } from '../render/scene';
 import { VIEW_ZOOM } from '../render/viewModes';
@@ -15,7 +15,6 @@ import {
   type ReelFrame,
 } from './reel/reelShow';
 
-const THEME = `${import.meta.env.BASE_URL}audio/reel-theme`;
 /**
  * A private city, cut to the loading theme. The player's world is not in this
  * component. The track is an &lt;audio&gt; element so the browser streams it
@@ -103,7 +102,7 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
       await yieldForInput();
       if (!alive) return;
       frames = buildReel(sim);
-      applyMusicMix(music);
+      await playReelQueue(music);
       setMuted(music.muted);
       unmix = audio.onMix(() => { applyMusicMix(music); setMuted(music.muted); });
       try {
@@ -188,10 +187,7 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
   return (
     <div className={`loading-reel${leaving ? ' leaving' : ''}${logo ? ' logo-card' : ''}`} onPointerDown={() => finishRef.current()} role="presentation">
       <canvas ref={canvasRef} className="loading-reel-canvas" aria-hidden="true" />
-      <audio ref={audioRef} data-audio-slot="loading-reel" preload="metadata" loop playsInline>
-        <source src={`${THEME}.m4a`} type="audio/mp4" />
-        <source src={`${THEME}.mp3`} type="audio/mpeg" />
-      </audio>
+      <audio ref={audioRef} data-audio-slot="loading-reel" preload="none" playsInline />
       {!logo && <h1 className="reel-logo">Hood Simulator</h1>}
       {!logo && <p className="reel-tip">{LOADING_TIPS[tip]}</p>}
       {logo && (
