@@ -6,7 +6,9 @@ afterEach(() => clearAutoTestSession());
 describe('auto test in the debug report', () => {
   it('says none only when Auto Test has not started', () => {
     clearAutoTestSession();
-    expect(buildDebugReport(null, '1.2.8', null)).toContain('Auto test\n(none this session)');
+    const report = buildDebugReport(null, '1.2.8.1', null);
+    expect(report).toContain('Music\nCategory: (none)');
+    expect(report).toContain('Auto test\n(none this session)');
   });
 
   it('records a run as soon as it starts, and the result when it finishes', () => {

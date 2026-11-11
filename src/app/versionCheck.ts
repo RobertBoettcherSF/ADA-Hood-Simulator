@@ -9,14 +9,15 @@ export interface UpdateOffer {
 }
 
 function parseVersion(text: string): string | null {
-  const match = text.match(/"version"\s*:\s*"(\d+\.\d+\.\d+)"/);
+  const match = text.match(/"version"\s*:\s*"(\d+(?:\.\d+){2,3})"/);
   return match ? match[1] : null;
 }
 
 function compare(a: string, b: string): number {
   const left = a.split('.').map((n) => Number(n));
   const right = b.split('.').map((n) => Number(n));
-  for (let i = 0; i < 3; i++) {
+  const parts = Math.max(left.length, right.length, 3);
+  for (let i = 0; i < parts; i++) {
     const d = (left[i] ?? 0) - (right[i] ?? 0);
     if (d !== 0) return d;
   }

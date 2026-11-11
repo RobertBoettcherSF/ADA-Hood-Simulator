@@ -56,6 +56,60 @@ const mixed = new Set<HTMLAudioElement>();
 const fading = new Set<HTMLAudioElement>();
 const listeners = new Set<(title: string) => void>();
 let announced = '';
+const objectUrls = new Map<string, string>();
+let lastError = '';
+
+const MEDIA_ERROR = ['', 'aborted', 'network', 'decode', 'source not supported'];
+
+function noteMusicError(message: string): void {
+  lastError = message;
+}
+
+function formatMediaError(node: HTMLAudioElement | undefined): string {
+  const err = node?.error;
+  if (!err) return '';
+  return `code ${err.code} ${MEDIA_ERROR[err.code] ?? ''}`.trim();
+}
+
+/**
+ * Githack sends mp3 requests on to GitHub, and that response is not an audio
+ * content type. An <audio> element then refuses the file. Fetch the bytes
+ * (the same path the click sounds use) and hand the element a blob whose
+ * type is audio, so the type check is ours.
+ */
+async function mediaUrl(src: string): Promise<string> {
+  const cached = objectUrls.get(src);
+  if (cached) return cached;
+  const response = await fetch(`${import.meta.env.BASE_URL}${src}`);
+  if (!response.ok) throw new Error(`HTTP ${response.status} for ${src}`);
+  const type = src.endsWith('.m4a') ? 'audio/mp4' : 'audio/mpeg';
+  const blob = new Blob([await response.arrayBuffer()], { type });
+  const url = URL.createObjectURL(blob);
+  objectUrls.set(src, url);
+  return url;
+}
+
+function watchNode(node: HTMLAudioElement): void {
+  if (node.dataset.musicWatch === '1') return;
+  node.dataset.musicWatch = '1';
+  node.addEventListener('error', () => {
+    const detail = formatMediaError(node);
+    if (detail) noteMusicError(detail);
+  });
+}
+
+/** Category, track, and the last media error, for the debug report. */
+export function musicStatusLines(): string[] {
+  const node = nodes[active];
+  const error = lastError || formatMediaError(node) || '(none)';
+  return [
+    `Category: ${currentScene ?? '(none)'}`,
+    `Track: ${node?.dataset.trackTitle || '(none)'}${node?.dataset.trackId ? ` (${node.dataset.trackId})` : ''}`,
+    `Playing: ${node && !node.paused && !node.ended ? 'yes' : 'no'}`,
+    `Ready state: ${node ? String(node.readyState) : '-'}`,
+    `Error: ${error}`,
+  ];
+}
 
 export function onNowPlaying(listener: (title: string) => void): () => void {
   listeners.add(listener);
@@ -127,8 +181,16 @@ export async function playReelQueue(node: HTMLAudioElement): Promise<void> {
   const theme = reelTheme();
   if (!theme) return;
   node.loop = true;
-  node.preload = 'none';
-  node.src = `${import.meta.env.BASE_URL}${theme.src}`;
+  node.preload = 'auto';
+  node.dataset.trackTitle = theme.title;
+  node.dataset.trackId = theme.id;
+  watchNode(node);
+  try {
+    node.src = await mediaUrl(theme.src);
+  } catch (error) {
+    noteMusicError(error instanceof Error ? error.message : 'could not fetch the reel theme');
+    return;
+  }
   node.onended = null;
   applyMusicMix(node);
   announce(theme.title);
@@ -138,7 +200,8 @@ function ensureNodes(): void {
   if (nodes.length || typeof Audio === 'undefined') return;
   nodes = [0, 1].map(() => {
     const node = new Audio();
-    node.preload = 'none';
+    node.preload = 'auto';
+    watchNode(node);
     mixed.add(node);
     return node;
   });
@@ -146,6 +209,7 @@ function ensureNodes(): void {
 
 function remember(node: HTMLAudioElement, track: PoolTrack): void {
   node.dataset.trackTitle = track.title;
+  node.dataset.trackId = track.id;
 }
 
 /** Volume and mute from the city settings, for the pool and the loading reel. */
@@ -205,14 +269,27 @@ async function fadeTo(track: PoolTrack, loop: boolean, scene: MusicScene): Promi
   const next = nodes[nextIndex];
   const prev = nodes[active];
   next.loop = loop;
-  next.preload = 'none';
-  next.src = `${import.meta.env.BASE_URL}${track.src}`;
+  next.preload = 'auto';
   remember(next, track);
+  let url: string;
+  try {
+    url = await mediaUrl(track.src);
+  } catch (error) {
+    noteMusicError(error instanceof Error ? error.message : 'could not fetch the track');
+    announce(track.title);
+    return;
+  }
+  if (token !== fadeToken || pending !== scene) return;
+  next.src = url;
   applyMusicMix(next);
   const goal = next.volume;
   next.volume = 0;
   bindEnd(next, scene);
-  try { await next.play(); } catch { announce(track.title); return; }
+  try { await next.play(); } catch (error) {
+    noteMusicError(formatMediaError(next) || (error instanceof Error ? error.message : 'play was blocked'));
+    announce(track.title);
+    return;
+  }
   if (token !== fadeToken || pending !== scene) { next.pause(); return; }
   await ramp(prev, next, goal, token, nextIndex, track.title);
 }
@@ -273,13 +350,18 @@ export async function playScene(cue: MusicCue): Promise<void> {
     applyMusicMix();
     return;
   }
-  if (pausedScene === scene && nodes[active]?.src) {
+  const pausedNode = nodes[active];
+  if (pausedScene === scene && pausedNode?.src && !pausedNode.error) {
     currentScene = scene;
     pausedScene = null;
-    bindEnd(nodes[active], scene);
-    applyMusicMix(nodes[active]);
-    try { await nodes[active].play(); } catch { /* a gesture or the speaker button retries */ }
-    return;
+    bindEnd(pausedNode, scene);
+    applyMusicMix(pausedNode);
+    try {
+      await pausedNode.play();
+      return;
+    } catch (error) {
+      noteMusicError(formatMediaError(pausedNode) || (error instanceof Error ? error.message : 'play was blocked'));
+    }
   }
   pausedScene = null;
   if (parked && scene === parked.scene) {

@@ -33,6 +33,7 @@ export function portraitFromName(name: string): number {
 
 export function NewGameScreen() {
   const options = useGame((s) => s.options);
+  useEffect(() => { audio.music('menu'); }, []);
   const setOptions = useGame((s) => s.setOptions);
   const startGame = useGame((s) => s.startGame);
   const setScreen = useGame((s) => s.setScreen);
