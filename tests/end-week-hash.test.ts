@@ -13,9 +13,14 @@ import { Sim } from '../src/sim/sim';
  * 12c150e7e5be1d35b52ebae02317c9efa0f57a79bb648def1defe7cb4dbbc16f to the one
  * below. The canonical hash sorts keys first, so it shows the world itself is
  * unchanged: 1.2.12 and 1.2.13 give the same canonical hash.
+ *
+ * 1.2.15 records the empty site and the "looking for work" tip as IDs on a
+ * recruit order, so Auto Test can follow the tip. A two-week Friday that
+ * includes an AI recruit order now lists those fields, and both hashes change.
+ * The 1.2.15 walking work keeps this same canonical hash.
  */
-const TWO_WEEKS = '0498e0bd5f4a1cd993149fa5d51e4ff91d3692126a00def7dd87144a7610aa58';
-const TWO_WEEKS_CANONICAL = '34c60a34eae9631cd159a9f4d4f1bc5e8a71fc24aeecfb297d3bbb7d22981174';
+const TWO_WEEKS = 'd2144b280522ce609b3f8c955808f26402bf4cbf16afea657713d13bc10f03b6';
+const TWO_WEEKS_CANONICAL = 'bf088cf9d88034dea7b799dd86d14101b88e21f1ff0088e4e86eca62d8c6a97f';
 
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map((item) => (item === undefined ? null : canonical(item)));

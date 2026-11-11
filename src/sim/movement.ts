@@ -304,7 +304,9 @@ export function stepPerson(p: Person, minutes: number, traffic?: TrafficContext,
     const car=vehicleOf(world,p)!;syncVehicle(world,car);return !p.dest;
   }
   const arrived=stepRoute(p,minutes,traffic,world);
-  return world ? afterTransportStep(world,p,arrived) : arrived;
+  // Walkers with no car skip the boarding/cargo bookkeeping. The result is the
+  // same: afterTransportStep returns arrived at once when there is no vehicle.
+  return world && p.vehicleKey ? afterTransportStep(world,p,arrived) : arrived;
 }
 function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?: WorldState): boolean {
   if (!p.dest) { if (p.commandFraction !== undefined) p.commandFraction = undefined; return true; }
@@ -313,6 +315,25 @@ function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?:
   if (fraction !== undefined) { minutes = Math.max(0, minutes - fraction); p.commandFraction = undefined; }
   p.halted = false;
   let budget = personSpeed(p,world) * minutes;
+  // Mid-block walkers, on foot: one step toward the next corner, almost always
+  // still short of it. Footways are axis-aligned, so the distance is |dx| or
+  // |dy|, which matches Math.hypot when the other side is exactly 0. The move
+  // is the same (dx/d)*budget, written as a signed budget along that axis.
+  if (!p.inVehicle && p.path.length) {
+    const pos = p.pos, next = p.path[0];
+    const dx = next.x - pos.x, dy = next.y - pos.y;
+    const d = dy === 0 ? (dx < 0 ? -dx : dx) : dx === 0 ? (dy < 0 ? -dy : dy) : Math.hypot(dx, dy);
+    if (traffic && next.cross && d >= next.cross - 0.75 && crossingHasTraffic(traffic, pos, next)) {
+      p.halted = true;
+      return false;
+    }
+    if (d > budget) {
+      if (dy === 0) pos.x += dx < 0 ? -budget : budget;
+      else if (dx === 0) pos.y += dy < 0 ? -budget : budget;
+      else { pos.x += (dx / d) * budget; pos.y += (dy / d) * budget; }
+      return false;
+    }
+  }
   const car = p.inVehicle ? vehicleOf(world, p) : undefined;
   if (p.inVehicle) { noteDrive(p, p.pos); if (car) noteDrive(car, p.pos); }
 
