@@ -116,6 +116,21 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
       const created = await CityRenderer.create(canvas, sim.world, () => alive);
       if (!created || !alive) { created?.dispose(); return; }
       renderer = created;
+      // The street view sizes itself from the canvas. Without that, every
+      // frame clears the sky and draws the city into a one-pixel viewport,
+      // so the reel is a flat colour with the title on top.
+      const fit = () => {
+        if (!renderer) return;
+        const width = canvas.clientWidth || canvas.parentElement?.clientWidth || window.innerWidth;
+        const height = canvas.clientHeight || canvas.parentElement?.clientHeight || window.innerHeight;
+        renderer.resize(Math.max(1, width), Math.max(1, height));
+      };
+      fit();
+      const observer = new ResizeObserver(fit);
+      observer.observe(canvas);
+      const stopFit = () => observer.disconnect();
+      const previousUnmix = unmix;
+      unmix = () => { stopFit(); previousUnmix(); };
       renderer.setZoom(VIEW_ZOOM.street);
       renderer.setHiddenRoofs(true);
       renderer.setStreetsOpen(true);

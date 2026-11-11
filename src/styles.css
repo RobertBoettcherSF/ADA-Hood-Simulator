@@ -4761,3 +4761,33 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font: 600 14px/1 'Barlow', sans-serif;
   touch-action: manipulation;
 }
+
+/* The right-click plaque. Same light wood as the desk buttons. */
+.inspect-card {
+  position: fixed;
+  z-index: 2250;
+  width: max-content;
+  max-width: 280px;
+  margin: 0;
+  padding: 8px 10px 9px;
+  pointer-events: none;
+  color: #2c2418;
+  background: linear-gradient(#efe2c4, #cbb892 42%, #b79a6e);
+  border: 2px solid #6e5a3c;
+  border-top-color: #f3e6c8;
+  border-left-color: #f3e6c8;
+  box-shadow: 2px 3px 8px #0008, inset 1px 1px #fff4d750, inset -1px -1px #6d5b3d55;
+  font: 13px/1.35 var(--font-body);
+}
+.inspect-card h4 {
+  margin: 0 0 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #8d7350;
+  color: #3a2a14;
+  font: 700 15px/1.15 var(--font-heading);
+  letter-spacing: 0.04em;
+}
+.inspect-card dl { margin: 0; }
+.inspect-card dl div { display: flex; gap: 10px; justify-content: space-between; }
+.inspect-card dt { color: #6a5434; }
+.inspect-card dd { margin: 0; text-align: right; }

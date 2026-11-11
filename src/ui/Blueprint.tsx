@@ -21,6 +21,7 @@ import { PLAN, SITE_COLORS, drawCityLandscape, drawElevatedRail, drawPlanLot, dr
 import { peopleList, buildingList } from '../sim/entityLists';
 import { cityTramLines } from '../sim/trams';
 import { blockTypeName } from './blockTypeName';
+import { personOnPlan, PressWatch, showInspect } from './inspectCard';
 
 /**
  * The City Plan, after the original organizer map: dark streets, rooftops seen
@@ -122,6 +123,7 @@ export function Blueprint() {
   const blockTag = useRef<{ x: number; y: number; w: number; text: string } | null>(null);
   const tagTimer = useRef<number | null>(null);
   const drag = useRef<{ x0: number; y0: number; x1: number; y1: number; button: number; moved: boolean; panX: number; panY: number } | null>(null);
+  const press = useRef(new PressWatch());
   const paintBase = useRef<() => void>(() => {});
   const composite = useRef<() => void>(() => {});
 
@@ -505,6 +507,17 @@ export function Blueprint() {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     if (e.button === 0) holdBlockTag(p);
+    press.current.arm(e, () => {
+      const current = useGame.getState().sim;
+      if (!current) return;
+      const hit = hitAt(p.x, p.y);
+      const person = personOnPlan(current.world, current.playerGang.id, (pos) => {
+        const f = frame.current;
+        return { x: f.ox + pos.x * f.scale, y: f.oy + pos.y * f.scale };
+      }, p.x, p.y);
+      if (person != null) hit.personId = person;
+      showInspect(e.clientX, e.clientY, current.world, current.playerGang.id, hit);
+    });
     drag.current = { x0: p.x, y0: p.y, x1: p.x, y1: p.y, button: e.button, moved: false, panX: view.current.panX, panY: view.current.panY };
     composite.current();
   };
@@ -512,6 +525,7 @@ export function Blueprint() {
   const onMove = (e: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!sim) return;
     const p = local(e);
+    press.current.move(e.clientX, e.clientY);
     const d = drag.current;
     if (d) {
       d.x1 = p.x;
@@ -550,6 +564,19 @@ export function Blueprint() {
     if (!d) return;
     if (d.button === 0) releaseBlockTag();
     const p = local(e);
+    if (d.button === 2 && !d.moved) {
+      const current = useGame.getState().sim;
+      if (current) {
+        const hit = hitAt(p.x, p.y);
+        const person = personOnPlan(current.world, current.playerGang.id, (pos) => {
+          const f = frame.current;
+          return { x: f.ox + pos.x * f.scale, y: f.oy + pos.y * f.scale };
+        }, p.x, p.y);
+        if (person != null) hit.personId = person;
+        showInspect(e.clientX, e.clientY, current.world, current.playerGang.id, hit);
+      }
+      return;
+    }
     if (d.moved) {
       if (isBoxing(d.button)) handleMapBox(blocksInBox(d.x0, d.y0, p.x, p.y));
       else paintBase.current();
@@ -557,6 +584,7 @@ export function Blueprint() {
       return;
     }
     if (d.button !== 0) return;
+    if (press.current.finish()) return;
     handleMapHit(hitAt(p.x, p.y), { site: e.shiftKey, fromPlan: true });
   };
 
@@ -628,7 +656,7 @@ export function Blueprint() {
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
-      onPointerCancel={() => { drag.current = null; releaseBlockTag(); composite.current(); }}
+      onPointerCancel={() => { press.current.cancel(); drag.current = null; releaseBlockTag(); composite.current(); }}
       onWheel={onWheel}
       onContextMenu={(e) => e.preventDefault()}
     />
@@ -642,7 +670,7 @@ export function Blueprint() {
       <p className={jobCard || isBoxing(0) ? 'target-hint' : undefined}>{jobCard ? `${ORDERS[jobCard.type].name} · ${targetHint}${jobCard.type === 'buyPremises' ? (priceTip ? ` · ${priceTip}` : ' · hover a building for its price') : ''}`
         : pickMode?.kind === 'lieutenantArea' ? 'Allocate your territory · click or drag · repeat to remove · right-drag to pan'
         : isBoxing(0) ? 'Click or drag to select · repeat over a selected area to clear it · right-drag to pan'
-        : 'Scroll to zoom · drag to move · hold the button on a block for its type'}</p>
+        : 'Scroll to zoom · drag to move · hold the button on a block for its type · right-click, or press and hold, for a card'}</p>
     </div>
     <div ref={key} className="city-plan-key" style={{ ...panelStyle, top: chrome?.footerY ?? 0 }} aria-label="City plan key">
       <div className="city-plan-key-row">
