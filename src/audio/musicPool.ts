@@ -43,7 +43,6 @@ let loading: Promise<PoolTrack[]> | null = null;
 const bags = new Map<string, PoolTrack[]>();
 const lastByScene = new Map<string, string>();
 const sequenceAt = new Map<string, number>();
-const held = new Map<string, PoolTrack>();
 let nodes: HTMLAudioElement[] = [];
 let active = 0;
 let fadeToken = 0;
@@ -171,8 +170,9 @@ function shuffle<T>(list: T[]): T[] {
   return out;
 }
 
-function loopOne(scene: MusicScene): boolean {
-  return scene === 'menu' || scene === 'win' || scene === 'loss' || scene === 'action' || scene === 'reel';
+/** The reel is one theme on its own element. Every other category plays the next track when a song ends. */
+function sequences(scene: MusicScene): boolean {
+  return scene === 'credits' || scene === 'tutorial';
 }
 
 export async function loadMusicPool(): Promise<PoolTrack[]> {
@@ -249,22 +249,18 @@ export function musicPoolPlaying(): boolean {
   return !!node && !node.paused && node.currentTime > 0;
 }
 
+let continuing = false;
+
 function bindEnd(node: HTMLAudioElement, scene: MusicScene): void {
   node.onended = () => {
-    if (currentScene !== scene || node !== nodes[active] || loopOne(scene)) return;
-    void advance(scene);
+    if (continuing || currentScene !== scene || node !== nodes[active]) return;
+    pending = scene;
+    void follow(scene);
   };
 }
 
 function choose(scene: MusicScene, list: PoolTrack[]): PoolTrack {
-  if (loopOne(scene)) {
-    const kept = held.get(scene);
-    if (kept && list.some((track) => track.id === kept.id)) return kept;
-    const track = list[Math.floor(Math.random() * list.length)];
-    held.set(scene, track);
-    return track;
-  }
-  if (scene === 'credits' || scene === 'tutorial') {
+  if (sequences(scene)) {
     const at = sequenceAt.get(scene) ?? 0;
     const track = list[at % list.length];
     sequenceAt.set(scene, at + 1);
@@ -276,20 +272,46 @@ function choose(scene: MusicScene, list: PoolTrack[]): PoolTrack {
   return dealt.track;
 }
 
-async function advance(scene: MusicScene): Promise<void> {
-  const list = tracksFor(scene, tracks);
-  if (!list.length || currentScene !== scene) return;
-  await fadeTo(choose(scene, list), false, scene);
+function still(scene: MusicScene, token: number): boolean {
+  return token === fadeToken && (pending === scene || currentScene === scene);
 }
 
-async function fadeTo(track: PoolTrack, loop: boolean, scene: MusicScene): Promise<void> {
+async function startNode(node: HTMLAudioElement): Promise<boolean> {
+  try {
+    await node.play();
+    return true;
+  } catch (error) {
+    noteMusicError(formatMediaError(node) || (error instanceof Error ? error.message : 'play was blocked'));
+    return false;
+  }
+}
+
+/** The song that just finished, and a song that failed to open, both hand the same player the next track. */
+async function follow(scene: MusicScene, skips = 0): Promise<void> {
+  if (continuing || skips >= 8 || currentScene !== scene) return;
+  const list = tracksFor(scene, tracks);
+  if (!list.length) return;
+  continuing = true;
+  pending = scene;
+  try {
+    const result = await fadeTo(choose(scene, list), scene, true);
+    if (result === 'failed' && currentScene === scene) {
+      continuing = false;
+      await follow(scene, skips + 1);
+    }
+  } finally {
+    continuing = false;
+  }
+}
+
+async function fadeTo(track: PoolTrack, scene: MusicScene, sameNode = false): Promise<'ok' | 'stale' | 'failed'> {
   ensureNodes();
-  if (!nodes.length) { announce(track.title); return; }
+  if (!nodes.length) { announce(track.title); return 'failed'; }
   const token = ++fadeToken;
-  const nextIndex = 1 - active;
-  const next = nodes[nextIndex];
+  const index = sameNode ? active : 1 - active;
+  const next = nodes[index];
   const prev = nodes[active];
-  next.loop = loop;
+  next.loop = false;
   next.preload = 'auto';
   remember(next, track);
   let url: string;
@@ -297,35 +319,55 @@ async function fadeTo(track: PoolTrack, loop: boolean, scene: MusicScene): Promi
     url = await mediaUrl(track.src);
   } catch (error) {
     noteMusicError(error instanceof Error ? error.message : 'could not fetch the track');
-    announce(track.title);
-    return;
+    return 'failed';
   }
-  if (token !== fadeToken || pending !== scene) return;
-  next.src = url;
+  if (!still(scene, token)) return 'stale';
+  const cross = !sameNode && prev !== next;
+  const begun = await playUrl(next, url, scene, token, cross);
+  if (begun === 'ok' && cross) {
+    const goal = readLocalData().audio.musicMuted ? 0 : Math.max(0, Math.min(1, readLocalData().audio.music));
+    await ramp(prev, next, goal, token, index, track.title);
+    return still(scene, token) ? 'ok' : 'stale';
+  }
+  if (begun === 'failed' && !sameNode && prev !== next && prev) {
+    prev.loop = false;
+    remember(prev, track);
+    const recovered = await playUrl(prev, url, scene, token);
+    if (recovered !== 'ok') return recovered;
+    announce(track.title);
+    applyMusicMix(prev);
+    return 'ok';
+  }
+  if (begun !== 'ok') return begun;
+  announce(track.title);
+  active = index;
   applyMusicMix(next);
-  const goal = next.volume;
-  next.volume = 0;
-  bindEnd(next, scene);
-  try { await next.play(); } catch (error) {
-    noteMusicError(formatMediaError(next) || (error instanceof Error ? error.message : 'play was blocked'));
-    announce(track.title);
-    return;
-  }
-  if (token !== fadeToken || pending !== scene) { next.pause(); return; }
-  await ramp(prev, next, goal, token, nextIndex, track.title);
+  return 'ok';
+}
+
+/** Point one element at a track and start it. A rejection here is a failed open, not a new silence. */
+async function playUrl(node: HTMLAudioElement, url: string, scene: MusicScene, token: number, quiet = false): Promise<'ok' | 'stale' | 'failed'> {
+  if (!still(scene, token)) return 'stale';
+  node.src = url;
+  applyMusicMix(node);
+  if (quiet) node.volume = 0;
+  bindEnd(node, scene);
+  if (!await startNode(node)) return 'failed';
+  if (!still(scene, token)) { node.pause(); return 'stale'; }
+  return 'ok';
 }
 
 async function resumeParked(scene: MusicScene): Promise<void> {
   if (!parked || parked.scene !== scene) return;
   const next = nodes[parked.index];
   parked = null;
-  if (!next?.src) return;
+  if (!next?.src) { await follow(scene); return; }
   const token = ++fadeToken;
   const prev = nodes[active];
   applyMusicMix(next);
   const goal = next.volume;
   bindEnd(next, scene);
-  try { await next.play(); } catch { return; }
+  if (!await startNode(next)) { await follow(scene); return; }
   if (token !== fadeToken) { next.pause(); return; }
   await ramp(prev, next, goal, token, nodes.indexOf(next), next.dataset.trackTitle ?? '');
 }
@@ -368,6 +410,7 @@ export async function playScene(cue: MusicCue): Promise<void> {
   if (!list.length) return;
   ensureNodes();
   if (currentScene === scene && (musicPoolPlaying() || starting === scene)) {
+    if (nodes[active]) bindEnd(nodes[active], scene);
     applyMusicMix();
     return;
   }
@@ -375,14 +418,12 @@ export async function playScene(cue: MusicCue): Promise<void> {
   if (pausedScene === scene && pausedNode?.src && !pausedNode.error) {
     currentScene = scene;
     pausedScene = null;
+    pending = scene;
     bindEnd(pausedNode, scene);
     applyMusicMix(pausedNode);
-    try {
-      await pausedNode.play();
-      return;
-    } catch (error) {
-      noteMusicError(formatMediaError(pausedNode) || (error instanceof Error ? error.message : 'play was blocked'));
-    }
+    if (await startNode(pausedNode)) return;
+    await follow(scene);
+    return;
   }
   pausedScene = null;
   if (parked && scene === parked.scene) {
@@ -396,12 +437,12 @@ export async function playScene(cue: MusicCue): Promise<void> {
     parked = null;
   }
   if ((scene === 'credits' || scene === 'tutorial') && currentScene !== scene) sequenceAt.set(scene, 0);
-  if (scene === 'action' && currentScene !== 'action') held.delete('action');
   currentScene = scene;
   starting = scene;
   const track = choose(scene, list);
   try {
-    await fadeTo(track, loopOne(scene), scene);
+    const started = await fadeTo(track, scene, false);
+    if (started === 'failed' && currentScene === scene) await follow(scene);
   } finally {
     if (starting === scene) starting = null;
   }
