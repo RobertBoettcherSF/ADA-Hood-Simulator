@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { patchLocalData, readLocalData } from '../app/localData';
+import { audio } from '../audio/audio';
+import { applyMusicMix } from '../audio/musicPool';
 import { deviceIsPhone } from '../app/device';
 import { CityRenderer } from '../render/scene';
 import { VIEW_ZOOM } from '../render/viewModes';
@@ -15,9 +16,6 @@ import {
 } from './reel/reelShow';
 
 const THEME = `${import.meta.env.BASE_URL}audio/reel-theme`;
-/** Loud enough to lead the picture, under the level of a gunshot. */
-const REEL_VOLUME = 0.42;
-
 /**
  * A private city, cut to the loading theme. The player's world is not in this
  * component. The track is an &lt;audio&gt; element so the browser streams it
@@ -33,7 +31,7 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [tip, setTip] = useState(0);
   const [logo, setLogo] = useState(false);
-  const [muted, setMuted] = useState(() => readLocalData().audio.reelMuted === true);
+  const [muted, setMuted] = useState(() => audio.musicMuted);
   const [leaving, setLeaving] = useState(false);
   const skipLock = useRef(false);
   const finishRef = useRef<() => void>(() => {});
@@ -64,6 +62,7 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
     const brigade = { current: false };
     let frames: ReelFrame[] = [];
     let sim: ReturnType<typeof createReelSim> | null = null;
+    let unmix = () => {};
 
     const time = () => {
       if (music.currentTime > 0 && !music.paused) return music.currentTime;
@@ -104,9 +103,9 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
       await yieldForInput();
       if (!alive) return;
       frames = buildReel(sim);
-      music.volume = REEL_VOLUME;
-      music.muted = readLocalData().audio.reelMuted === true;
+      applyMusicMix(music);
       setMuted(music.muted);
+      unmix = audio.onMix(() => { applyMusicMix(music); setMuted(music.muted); });
       try {
         await music.play();
       } catch {
@@ -166,6 +165,7 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
     return () => {
       alive = false;
       window.removeEventListener('keydown', skip, true);
+      unmix();
       cancelAnimationFrame(raf);
       music.pause();
       renderer?.dispose();
@@ -175,14 +175,13 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
   const toggleSound = (event: { stopPropagation: () => void; preventDefault: () => void }) => {
     event.stopPropagation();
     event.preventDefault();
+    audio.setMusicMuted(!audio.musicMuted);
     const music = audioRef.current;
-    if (!music) return;
-    const next = !music.muted;
-    music.muted = next;
-    music.volume = REEL_VOLUME;
-    if (!next) void music.play().catch(() => { music.muted = true; setMuted(true); });
-    setMuted(music.muted);
-    patchLocalData({ audio: { reelMuted: music.muted } });
+    if (music) {
+      applyMusicMix(music);
+      if (!music.muted) void music.play().catch(() => { music.muted = true; setMuted(true); });
+      setMuted(music.muted);
+    } else setMuted(audio.musicMuted);
   };
 
   const label = ready ? 'Ready, click to start' : `Loading ${Math.max(0, Math.min(100, Math.round(percent)))}%`;

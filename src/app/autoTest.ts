@@ -3,14 +3,14 @@
  * and, when learning is on, which weights to nudge. It does not touch the
  * city's random stream until the week itself runs.
  */
-import { writeReportFile } from './debugReport';
+import { noteLastAutoTest, writeReportFile } from './debugReport';
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
 import { BUY_REACH_BLOCKS, hireRecruit, issueOrder, moveToTeam, nearTerritory, promote, type ApiResult, type IssueOrderInput } from '../sim/api';
 import { BUILDING_BY_ID, ILLEGAL_TYPES } from '../sim/data/buildings';
 import { isValidAreaTarget } from '../sim/execution';
 import type { Sim } from '../sim/sim';
-import { gangManpower, protectedBuildings, territoryCount } from '../sim/world';
+import { dist, gangManpower, protectedBuildings, territoryCount } from '../sim/world';
 import { buildingList } from '../sim/entityLists';
 import {
   balanceAnomalies,
@@ -51,6 +51,12 @@ export interface AutoTestWeek {
 }
 
 const UNTIL_END_CAP = 40;
+
+function hqCenter(w: Sim['world'], gangId: number): { x: number; y: number } {
+  const office = buildingList(w).find((b) => b.isHQ && b.ownerGangId === gangId);
+  const lot = office ? w.lots[office.lotId] : undefined;
+  return lot?.center ?? w.blocks[0].center;
+}
 
 function heatOf(sim: Sim): number {
   const blocks = sim.world.blocks;
@@ -137,21 +143,26 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     return result;
   };
 
-  const hoodSites = buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood' && b.state !== 'destroyed');
+  const origin = hqCenter(w, gang.id);
+  const nearer = (a: { lotId: number }, b: { lotId: number }) => dist(w.lots[a.lotId].center, origin) - dist(w.lots[b.lotId].center, origin);
+  const hoodSites = buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood' && b.state !== 'destroyed').sort(nearer);
   const spend = (key: PlayStrategy['priority'][number]) => {
     if (key === 'hiring') {
-      const target = Math.round(4 + weight.hiring * 8);
+      const target = Math.max(18, Math.round(10 + weight.hiring * 12));
       if (gangManpower(w, gang) < target && hoodSites.length) {
         const count = Math.max(1, Math.round(1 + weight.hiring * 2));
         give('recruit', { teamId: team.id, type: 'recruit', buildingIds: hoodSites.slice(0, count).map((b) => b.id), opts: { manpower: 1 } });
       } else if (hoodSites.length === 0) {
         actions.push('NOTE no hoods standing at a hiring place');
+      } else {
+        actions.push(`NOTE recruit held — ${gangManpower(w, gang)} men already meets the hiring target ${target}`);
       }
     }
     if (key === 'rackets') {
       const owed = protectedBuildings(w, gang.id).filter((b) => b.state === 'trading').slice(0, Math.max(1, Math.round(weight.rackets * 10)));
-      if (weight.rackets >= 0.2 && owed.length) give('collect', { teamId: team.id, type: 'collectProtection', buildingIds: owed.map((b) => b.id), opts: { manpower: 1 } });
-      const extort = buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b));
+      if (w.week >= 2 && weight.rackets >= 0.2 && owed.length) give('collect', { teamId: team.id, type: 'collectProtection', buildingIds: owed.map((b) => b.id), opts: { manpower: 1 } });
+      const nearby = buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b) && nearTerritory(w, gang.id, b.blockId, 2)).sort(nearer);
+      const extort = nearby.length ? nearby : buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b)).sort(nearer);
       if (weight.rackets >= 0.25 && extort.length) {
         const cap = Math.max(1, Math.round(weight.rackets * 4));
         const take = extort.slice(0, rng.int(1, Math.min(cap, extort.length)));
@@ -176,14 +187,14 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         }
       }
     }
-    if (key === 'bribes' && weight.bribes >= 0.25) {
+    if (key === 'bribes' && w.week >= 4 && weight.bribes >= 0.25) {
       const chief = w.people[w.policeChiefId];
       const gate = 1500 + (1 - weight.bribes) * 2500;
       if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > gate) {
         give('bribe', { teamId: team.id, type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: Math.round(200 + weight.bribes * 800) } });
       }
     }
-    if (key === 'buying' && weight.buying >= 0.3) {
+    if (key === 'buying' && w.week >= 4 && weight.buying >= 0.3) {
       const gate = 8000 + (1 - weight.buying) * 8000;
       const fraction = 0.15 + weight.buying * 0.5;
       if (gang.cash > gate) {
@@ -194,13 +205,26 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         if (site) give(`buy ${site.typeId}`, { teamId: team.id, type: 'buyPremises', buildingIds: [site.id] });
       }
     }
-    if (key === 'violence' && weight.violence >= 0.45) {
+    if (key === 'violence' && w.week >= 8 && weight.violence >= 0.45) {
       const rival = buildingList(w).find((b) => b.ownerGangId != null && b.ownerGangId !== gang.id && !b.isHQ && b.state === 'trading');
       if (rival) give('smash', { teamId: team.id, type: 'smashUp', buildingIds: [rival.id], opts: { manpower: 2 } });
     }
   };
 
   for (const key of strategy.priority) spend(key);
+
+  const hq = buildingList(w).find((b) => b.isHQ && b.ownerGangId === gang.id);
+  if (w.week >= 2 && gangManpower(w, gang) >= 8 && hq) {
+    give('guard office', { teamId: team.id, type: 'guardBusiness', buildingIds: [hq.id], opts: { manpower: 1 } });
+  }
+  if (w.week >= 4 && gang.accountantId == null) {
+    const desk = buildingList(w).find((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'accountant' && b.state !== 'destroyed');
+    if (desk) give('recruit accountant', { teamId: team.id, type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1 } });
+  }
+  if (w.week >= 6 && gang.lawyerId == null) {
+    const desk = buildingList(w).find((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'lawyer' && b.state !== 'destroyed');
+    if (desk) give('recruit lawyer', { teamId: team.id, type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1 } });
+  }
 
   if (gangManpower(w, gang) === beforeMen && gang.poolIds.length === 0 && gang.recruitIds.length === 0 && hoodSites.length === 0) {
     actions.push('NOTE nobody hired and no hiring place');
@@ -317,6 +341,11 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       break;
     }
     weeks.push(snapshot(sim, ms));
+    for (const order of sim.world.lastWeekOrders) {
+      if (order.gangId !== sim.playerGang.id || order.type !== 'recruit') continue;
+      const reason = order.failReason || order.results.join(' ');
+      if (reason) actions.push(`RESULT ${order.type} — ${reason}`);
+    }
     const men = gangManpower(sim.world, sim.playerGang);
     if (men === menBefore && sim.playerGang.poolIds.length === poolBefore && sim.playerGang.recruitIds.length === 0) flatRecruit += 1;
     else flatRecruit = 0;
@@ -384,6 +413,17 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     outcome, score, beat, plateau, diaryNote,
   });
   const filename = `auto-test-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+  const last = weeks[weeks.length - 1];
+  noteLastAutoTest({
+    settings: `${campaignLabel(campaign)} seed ${settings.seed} learn ${learn ? 'on' : 'off'}`,
+    weeks: settings.weeks == null ? 'until victory or loss' : `${settings.weeks} weeks`,
+    cash: last?.cash ?? 0,
+    men: last?.men ?? 0,
+    territory: last?.territory ?? 0,
+    score,
+    diary: diaryNote,
+    file: filename,
+  });
   await writeReportFile(filename, text);
   return text;
 }

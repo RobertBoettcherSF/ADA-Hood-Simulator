@@ -7,6 +7,7 @@ import { issueOrder } from '../../sim/api';
 import { isValidAreaTarget } from '../../sim/execution';
 import { Sim } from '../../sim/sim';
 import { carsAt } from '../../sim/traffic';
+import { trafficLivery } from '../../render/policeVehicles';
 import type { Building, WorldState } from '../../sim/types';
 import { presentBuildingEffect } from '../../sim/presentationEvents';
 import { startBuildingEmergency } from '../../sim/systems/buildingEmergency';
@@ -119,7 +120,9 @@ export function buildReel(sim: Sim): ReelFrame[] {
 
   const crew = peopleList(w).find((p) => p.gangId === gang.id && p.status === 'active' && p.dest);
   const cars = carsAt(w, w.minute + 0.25);
-  const dark = cars.find((car) => car.color === 0 || car.color === 7) ?? cars[0];
+  const dark = cars.find((car) => trafficLivery(car.x, car.y, car.truck) === 'police')
+    ?? cars.find((car) => car.color === 0 || car.color === 7)
+    ?? cars[0];
   const other = cars.find((car) => car !== dark && car.junction) ?? cars[1] ?? cars[0];
   const racket = buildingList(w).find((b) => b.cls === 'illegal' || b.protection) ?? shop;
   const hq = buildingList(w).find((b) => b.isHQ && b.ownerGangId === gang.id);

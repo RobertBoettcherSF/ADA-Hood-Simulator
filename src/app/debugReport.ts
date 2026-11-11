@@ -39,6 +39,31 @@ export function noteAutoplay(lines: string[]): void {
   autoplay.splice(0, autoplay.length, ...lines);
 }
 
+export interface LastAutoTest {
+  settings: string;
+  weeks: string;
+  cash: number;
+  men: number;
+  territory: number;
+  score: number;
+  diary: string;
+  file: string;
+}
+
+let lastAutoTest: LastAutoTest | null = null;
+
+/** The debug report's Autoplay section was only filled by the old autoplay button. */
+export function noteLastAutoTest(note: LastAutoTest): void {
+  lastAutoTest = note;
+  autoplay.splice(0, autoplay.length, ...[
+    note.settings,
+    note.weeks,
+    `Final: cash ${note.cash} men ${note.men} blocks ${note.territory} score ${note.score}`,
+    note.diary,
+    `Report file: ${note.file}`,
+  ]);
+}
+
 export function installCrashReports(): void {
   if (installed || typeof window === 'undefined') return;
   installed = true;
@@ -145,9 +170,15 @@ export function buildDebugReport(world: WorldState | null, version: string, comm
     for (const message of messages) lines.push(`${message.minute} ${message.category}: ${message.text}`);
   }
   lines.push('');
-  lines.push('Autoplay');
-  if (!autoplay.length) lines.push('(none this session)');
-  for (const line of autoplay) lines.push(line);
+  lines.push('Auto test');
+  if (lastAutoTest) {
+    lines.push(lastAutoTest.settings);
+    lines.push(lastAutoTest.weeks);
+    lines.push(`Final: cash ${lastAutoTest.cash} men ${lastAutoTest.men} blocks ${lastAutoTest.territory} score ${lastAutoTest.score}`);
+    lines.push(lastAutoTest.diary);
+    lines.push(`Report file: 09 Reports/${lastAutoTest.file}`);
+  } else if (!autoplay.length) lines.push('(none this session)');
+  else for (const line of autoplay) lines.push(line);
   lines.push('');
   lines.push('Errors');
   if (!errors.length) lines.push('(none)');

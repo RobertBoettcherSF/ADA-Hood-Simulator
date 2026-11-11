@@ -4595,6 +4595,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font: 15px/1.4 'Barlow', 'Segoe UI', sans-serif;
 }
 .always-update { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.always-autoplay .always-update,
+.always-autoplay .always-update label,
+.always-autoplay .always-update p,
+.always-autoplay .always-update span { color: #1c1610; }
+.always-autoplay .always-update input { color: #1c1610; background: #fff; border: 1px solid #8a7044; }
 .always-update button {
   min-height: 44px;
   padding: 0 12px;

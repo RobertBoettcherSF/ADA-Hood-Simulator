@@ -1318,11 +1318,11 @@ function resolveTarget(
               peopleList(w).some((p) => seeking(p, b.id)),
           )
           .sort((a, b) => dist(w.lots[a.lotId].center, here) - dist(w.lots[b.lotId].center, here))[0];
-        say(
-          elsewhere
-            ? `Nobody worth hiring at ${placeName(w, building)} — word is there are people looking for work at ${placeName(w, elsewhere)}.`
-            : `Nobody worth hiring at ${placeName(w, building)}.`,
-        );
+        const empty = elsewhere
+          ? `Nobody worth hiring at ${placeName(w, building)} — word is there are people looking for work at ${placeName(w, elsewhere)}.`
+          : `Nobody worth hiring at ${placeName(w, building)}.`;
+        say(empty);
+        report(w, gang.id, 'failed', empty);
         return;
       }
       // A crew that finds people takes at least one. The old roll could send
@@ -1345,9 +1345,11 @@ function resolveTarget(
         else pool++;
       }
       const joined = crew + pool;
-      say(joined
+      const hired = joined
         ? `${joined} hood${joined === 1 ? '' : 's'} signed on${pool ? ` (${pool} in the pool` : ''}${crew ? `${pool ? ', ' : ' ('}${crew} with the crew` : ''}${pool || crew ? ')' : ''}.`
-        : 'Nobody new was willing to work for you.');
+        : 'Nobody new was willing to work for you.';
+      say(hired);
+      if (!joined) report(w, gang.id, 'failed', hired);
       break;
     }
 

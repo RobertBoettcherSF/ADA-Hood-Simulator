@@ -71,6 +71,7 @@ import { previewVehicle } from '../sim/movement';
 import { specialistParticipants } from '../sim/specialistJobs';
 import { vehicleDriver } from '../sim/transport';
 import { createVehicleMaterial, VEHICLE_PROFILE, vehicleGeometry, vehicleForPerson, vehicleLightGeometry } from './vehicles';
+import { paddyWagonGeometry, policeSedanGeometry, trafficLivery } from './policeVehicles';
 import { VehicleSpriteLayer } from './vehicleSpriteLayer';
 import { SculptReviewLayer } from './sculptReviewLayer';
 import { SCULPT_VEHICLE_PROFILE } from './sculptVehicles';
@@ -354,6 +355,9 @@ export class CityRenderer {
   private sedans!: InstancePool;
   private trucks!: InstancePool;
   private speedsters!: InstancePool;
+  private policeSedans!: InstancePool;
+  private policeHeroes!: InstancePool;
+  private paddies!: InstancePool;
   private headlamps!: InstancePool;
   private vehicleSprites: VehicleSpriteLayer | null = null;
   private preferVehicleSprites = false;
@@ -973,11 +977,18 @@ export class CityRenderer {
       dynamic: true,
     });
     this.speedsters = new InstancePool(vehicleGeometry('speedster'), carMat, MAX_AGENTS, { color: true, castShadow: true, dynamic: true });
+    const phoneMesh = resolvedGraphics() === 'phone';
+    this.policeSedans = new InstancePool(policeSedanGeometry(!phoneMesh, false), carMat, capacity, { color: true, castShadow: true, dynamic: true });
+    this.policeHeroes = new InstancePool(policeSedanGeometry(!phoneMesh, true), carMat, 8, { color: true, castShadow: true, dynamic: true });
+    this.paddies = new InstancePool(paddyWagonGeometry(!phoneMesh), carMat, 24, { color: true, castShadow: true, dynamic: true });
     this.sedans.mesh.name = 'vehicle-coupe';
     this.trucks.mesh.name = 'vehicle-truck';
     this.speedsters.mesh.name = 'vehicle-speedster';
+    this.policeSedans.mesh.name = 'vehicle-police';
+    this.policeHeroes.mesh.name = 'vehicle-police-hero';
+    this.paddies.mesh.name = 'vehicle-paddy';
     this.headlamps = new InstancePool(vehicleLightGeometry(), this.headlampMat, capacity, { dynamic: true });
-    for (const p of [this.sedans, this.trucks, this.speedsters, this.headlamps]) this.scene.add(p.mesh);
+    for (const p of [this.sedans, this.trucks, this.speedsters, this.policeSedans, this.policeHeroes, this.paddies, this.headlamps]) this.scene.add(p.mesh);
     // Delivered models are the default. Explicit switches retain the audit/fallback views.
     this.preferVehicleSprites = new URLSearchParams(window.location.search).get('vehicleSprites') === '1';
     if (this.preferVehicleSprites) this.ensureVehicleSprites();
@@ -2265,6 +2276,9 @@ export class CityRenderer {
     this.sedans.reset();
     this.trucks.reset();
     this.speedsters.reset();
+    this.policeSedans.reset();
+    this.policeHeroes.reset();
+    this.paddies.reset();
     this.sculptModels?.resetVehicles();
     this.headlamps.reset();
     this.vehicleSprites?.reset(camera);
@@ -2279,7 +2293,8 @@ export class CityRenderer {
       const x = c.axisX ? c.x : c.x - out;
       const z = c.axisX ? c.y - out : c.y;
       if (mainView && (Math.abs(x - carCx) > carReach || Math.abs(z - carCz) > carReach) && !this.tagged.contains(x, z)) continue;
-      const truck = c.truck;
+      const livery = trafficLivery(c.x, c.y, c.truck);
+      const truck = livery === 'truck';
       // The car's nose is its local +x; a yaw of 0 drives east.
       const yaw = c.axisX ? (c.dir > 0 ? 0 : Math.PI) : c.dir > 0 ? -Math.PI / 2 : Math.PI / 2;
 
@@ -2288,7 +2303,10 @@ export class CityRenderer {
       this.dummy.scale.setScalar(1);
       this.dummy.updateMatrix();
       this.colorScratch.setHex(CAR_COLORS[c.color % CAR_COLORS.length]);
-      if (spriteMode) this.vehicleSprites!.push(truck ? 'truck' : 'coupe', x, z, yaw);
+      if (livery === 'police') this.policeSedans.push(this.dummy.matrix, this.colorScratch);
+      else if (livery === 'police-hero') this.policeHeroes.push(this.dummy.matrix, this.colorScratch);
+      else if (livery === 'paddy') this.paddies.push(this.dummy.matrix, this.colorScratch);
+      else if (spriteMode) this.vehicleSprites!.push(truck ? 'truck' : 'coupe', x, z, yaw);
       else if (this.sculptModelsActive && this.sculptModels?.pushVehicle(truck ? 'truck' : 'coupe', this.dummy.matrix)) { /* Detailed vehicle */ }
       else (truck ? this.trucks : this.sedans).push(this.dummy.matrix, this.colorScratch);
 
@@ -2327,9 +2345,21 @@ export class CityRenderer {
       }
     }
 
+    for (const person of Object.values(w.people)) {
+      if (person.status !== 'arrested' && !(person.role === 'police' && person.emergencyResponse)) continue;
+      this.dummy.position.set(person.pos.x, VEHICLE_GROUND_CLEARANCE, person.pos.y);
+      this.dummy.rotation.set(0, 0, 0);
+      this.dummy.scale.setScalar(1);
+      this.dummy.updateMatrix();
+      (person.status === 'arrested' ? this.paddies : this.policeSedans).push(this.dummy.matrix, this.colorScratch);
+    }
+
     this.sedans.commit();
     this.trucks.commit();
     this.speedsters.commit();
+    this.policeSedans.commit();
+    this.policeHeroes.commit();
+    this.paddies.commit();
     this.sculptModels?.commitVehicles();
     this.vehicleSprites?.commit();
     this.headlamps.commit();

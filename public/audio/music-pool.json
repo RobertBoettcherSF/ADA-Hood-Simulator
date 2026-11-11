@@ -1,0 +1,10 @@
+{
+  "tracks": [
+    { "id": "smoky-night-order", "title": "Smoky Night Order", "src": "audio/reel-theme.mp3", "reel": true },
+    { "id": "smoky-bar-stabs", "title": "Smoky Bar Stabs", "src": "audio/smoky-bar-stabs.mp3" },
+    { "id": "smoky-saloon-swing", "title": "Smoky Saloon Swing", "src": "audio/smoky-saloon-swing.mp3" },
+    { "id": "dance-bar", "title": "Dance Bar", "src": "audio/dance-bar.mp3" },
+    { "id": "the-final-brass-hit", "title": "The Final Brass Hit", "src": "audio/the-final-brass-hit.mp3" },
+    { "id": "the-last-order", "title": "The Last Order", "src": "audio/the-last-order.mp3" }
+  ]
+}
