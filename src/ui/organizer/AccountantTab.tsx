@@ -10,6 +10,7 @@ import {
   toggleEvadeTax,
 } from '../../sim/api';
 import { VEHICLES, VEHICLE_ORDER } from '../../sim/constants';
+import { ROLE_LABELS } from '../../sim/types';
 import { gangHoldings, money } from '../../sim/world';
 import { reservedAudit, specialistTargetEligible } from '../../sim/specialistJobs';
 import { Avatar, ConfirmDialog, Empty, Hint, Meter, Panel, Pill, Stars } from '../common';
@@ -302,7 +303,7 @@ export function AccountantTab() {
             .map((p) => (
               <div key={p.id} className="row between tiny" style={{ padding: '2px 0' }}>
                 <span>{p.name}</span>
-                <Pill>{p.role}</Pill>
+                <Pill>{ROLE_LABELS[p.role]}</Pill>
               </div>
             ))
         )}

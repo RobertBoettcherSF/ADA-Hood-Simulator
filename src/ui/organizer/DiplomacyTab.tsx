@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { act, useGame } from '../../app/store';
 import { buySnitchInfo, setDiplomacy, snitchPrice } from '../../sim/api';
 import { GANG_COLORS } from '../../sim/constants';
-import { DIPLOMACY_ORDER, type DiplomacyLevel, type ID } from '../../sim/types';
+import { DIPLOMACY_ORDER, ROLE_LABELS, type DiplomacyLevel, type ID } from '../../sim/types';
 import { gangAssets, gangManpower, money, powerRating, territoryCount } from '../../sim/world';
 import { crestUrl } from '../art';
 import { Empty, Hint, Icon, Panel, Pill } from '../common';
@@ -125,7 +125,7 @@ export function DiplomacyTab() {
           </div>
           <div className="kv">
             <span>Temperament</span>
-            <b>{viewed.personality}</b>
+            <b>{viewed.personality === 'passive' ? 'Passive' : viewed.personality === 'aggressive' ? 'Aggressive' : 'Normal'}</b>
           </div>
           <div style={{ marginTop: 8 }}>
             <b className="tiny">People you have identified ({knownOfViewed.length})</b>
@@ -140,7 +140,7 @@ export function DiplomacyTab() {
                     onClick={() => centreOnPerson(p.id)}
                   >
                     <span className="name tiny">{p.name}</span>
-                    <span className="muted tiny">{p.role}</span>
+                    <span className="muted tiny">{ROLE_LABELS[p.role]}</span>
                   </button>
                 ))}
               </div>

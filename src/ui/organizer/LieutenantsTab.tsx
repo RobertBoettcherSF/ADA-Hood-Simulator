@@ -12,7 +12,7 @@ import {
   sackPerson,
 } from '../../sim/api';
 import { MINUTES_PER_WEEK, ORDERS, ORDER_GROUPS } from '../../sim/constants';
-import type { ID, Order, Team, WorldState } from '../../sim/types';
+import { STATUS_LABELS, type ID, type Order, type Team, type WorldState } from '../../sim/types';
 import { buildingName, money } from '../../sim/world';
 import { ConfirmDialog, Dial, Empty, Hint, Icon, Kicker, Pill, SkillList, Stamp } from '../common';
 import { Portrait } from '../Portrait';
@@ -181,7 +181,7 @@ export function LieutenantsTab() {
             <div style={{ minWidth: 0 }}>
               <div className="row" style={{ gap: 12, alignItems: 'center' }}>
                 <h3 className={lt.pay < lt.payDemand ? 'unhappy' : ''}>{lt.name}</h3>
-                <Dial pct={timePct} size={36} />
+                <Dial pct={timePct} size={36} title={`${Math.round(timePct)}% of this crew's week assigned`} />
               </div>
               <div className="counters">
                 <span title="The lieutenant leads this crew; the hoods serve under them">
@@ -202,7 +202,7 @@ export function LieutenantsTab() {
                 <span className="tag">Wanted {Math.round(lt.wanted)}</span>
                 {lt.status !== 'active' && (
                   <span className="tag bad">
-                    <Icon name={`status/${lt.status}`} size={12} /> {ABSENT[lt.status] ?? lt.status}
+                    <Icon name={`status/${lt.status}`} size={12} /> {ABSENT[lt.status] ?? STATUS_LABELS[lt.status]}
                   </span>
                 )}
               </div>

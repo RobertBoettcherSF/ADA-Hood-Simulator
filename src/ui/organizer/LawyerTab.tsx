@@ -13,13 +13,21 @@ import {
 } from '../../sim/api';
 import { GO_STRAIGHT_ASSETS } from '../../sim/constants';
 import { campaignWeeklyCost, officeEntryCheck, electionBlocksRequired } from '../../sim/systems/politics';
-import type { Person } from '../../sim/types';
+import type { CourtCase, Person } from '../../sim/types';
 import { gangAssets, money, territoryCount } from '../../sim/world';
 import { Avatar, ConfirmDialog, Empty, Hint, Panel, Pill, Stars } from '../common';
 import { VEHICLES, VEHICLE_ORDER } from '../../sim/constants';
 import { SpecialistJobList } from '../SpecialistJobCard';
 import { peopleList } from '../../sim/entityLists';
 import { quitGangPayroll } from '../../sim/payrollMark';
+
+const CASE_STATUS: Record<CourtCase['status'], string> = {
+  awaiting: 'Awaiting trial',
+  onTrial: 'On trial',
+  dismissed: 'Dismissed',
+  acquitted: 'Acquitted',
+  convicted: 'Convicted',
+};
 
 export function LawyerTab() {
   const sim = useGame((s) => s.sim)!;
@@ -314,7 +322,7 @@ export function LawyerTab() {
               <div className="row between">
                 <b className="tiny">{w.people[c.defendantId]?.name}</b>
                 <Pill kind={c.status === 'convicted' ? 'bad' : c.status === 'awaiting' || c.status === 'onTrial' ? 'warn' : 'good'}>
-                  {c.status}
+                  {CASE_STATUS[c.status]}
                 </Pill>
               </div>
               <div className="muted tiny">

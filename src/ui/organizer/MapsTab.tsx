@@ -53,7 +53,7 @@ export function MapsTab() {
   const knownTypes = new Map<string, number>();
   for (const b of allBuildings(w)) {
     if ((b.knowledge[gang.id] ?? 0) < 1 && b.ownerGangId !== gang.id && b.protection?.gangId !== gang.id) continue;
-    const name = BUILDING_BY_ID[b.typeId]?.name ?? b.typeId;
+    const name = BUILDING_BY_ID[b.typeId]?.name ?? 'Premises';
     if (filter && !name.toLowerCase().includes(filter.toLowerCase())) continue;
     knownTypes.set(name, (knownTypes.get(name) ?? 0) + 1);
   }

@@ -16,7 +16,7 @@ import {
   transferWeapon,
 } from '../../sim/api';
 import { ORDERS, ORDER_GROUPS, VEHICLES, VEHICLE_ORDER, WEAPONS, WEAPON_ORDER, type OrderDef } from '../../sim/constants';
-import type { ID, OrderType, Person, VehicleId, WeaponId } from '../../sim/types';
+import { ROLE_LABELS, type ID, type OrderType, type Person, type VehicleId, type WeaponId } from '../../sim/types';
 import { buildingName, money } from '../../sim/world';
 import { ConfirmDialog, Empty, Hint, Icon, Kicker, Rivets, SkillList, Stamp, Stars } from '../common';
 
@@ -432,7 +432,7 @@ function RecruitsSheet({ teamId }: { teamId: ID | null }) {
                 <div className="row between">
                   <b style={{ fontWeight: 500, fontSize: 15 }}>{p.name}</b>
                   <span className="muted">
-                    {p.role} · wants {money(p.payDemand)}/week
+                    {ROLE_LABELS[p.role]} · wants {money(p.payDemand)}/week
                   </span>
                 </div>
                 <div style={{ margin: '5px 0' }}>
@@ -497,7 +497,7 @@ function PersonSheet({ person, teamId }: { person: Person; teamId?: ID }) {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <Kicker>
-            {ROLE_ICON.has(person.role) && <Icon name={`roles/${person.role}`} size={12} />} {person.role} ·{' '}
+            {ROLE_ICON.has(person.role) && <Icon name={`roles/${person.role}`} size={12} />} {ROLE_LABELS[person.role]} ·{' '}
             {absent ? (
               <>
                 <Icon name={`status/${person.status}`} size={12} /> {absent}
@@ -600,16 +600,6 @@ function ClipboardSheet() {
     .filter((p) => p.status !== 'dead' && OFFICIAL_ROLES.includes(p.role) && eligiblePerson(p))
     .sort((a, b) => OFFICIAL_ROLES.indexOf(a.role) - OFFICIAL_ROLES.indexOf(b.role))
     .slice(0, 40);
-  const ROLE_LABEL: Record<string, string> = {
-    mayor: 'Mayor',
-    policeChief: 'Chief of Police',
-    judge: 'Judge',
-    da: 'District Attorney',
-    fbiHead: 'Bureau chief',
-    reporter: 'Reporter',
-    clergy: 'Clergy',
-    police: 'Officer',
-  };
   const sites = buildingList(w).filter((b) => (b.ownerGangId === gang.id || b.protection?.gangId === gang.id) &&
     (!jobCard || def?.target !== 'building' && def?.target !== 'area' || selectableOrderSite(w, gang.id, jobCard, b)));
 
@@ -643,7 +633,7 @@ function ClipboardSheet() {
           <button key={p.id} className={`list-row${jobCard?.personId === p.id ? ' on' : ''}`} onClick={() => pickPerson(p.id)}>
             <span className="name">{p.name}</span>
             <span className="muted">
-              {w.gangs[p.gangId!]?.name} · {p.role}
+              {w.gangs[p.gangId!]?.name} · {ROLE_LABELS[p.role]}
             </span>
           </button>
         ))
@@ -655,7 +645,7 @@ function ClipboardSheet() {
             <Icon name={`roles/${p.role}`} size={13} /> {p.name}
           </span>
           <span className="muted">
-            {ROLE_LABEL[p.role] ?? p.role}
+            {ROLE_LABELS[p.role]}
             {p.bribedBy === gang.id ? ' · on your payroll' : ''}
           </span>
         </button>
