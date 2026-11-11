@@ -222,6 +222,20 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## v1.2.16 decisions
+
+Items marked *(my call)* are choices made while building, not asked for.
+
+1. Recruits. New hoods are rolled from eighteen weighted types (poor, average, superhood, recruiter, and a hood and a lieutenant type each for business, extortion, arson, explosives, firearms and fighting), tuned to original-game values. Each type gives a base and a range per skill, on the original scale (intelligence 0..255, other skills 0..63), mapped to our half stars through the same bands the wage code uses. Every skill row is read as the skill it really sets; the shipped table read them one place off, which is why arsonists were common and business hoods rare. Every weekly top-up brings at least one business hood (business 2½ stars or more) unless one is already standing free, a gang's first starting hood is a business type (he runs the front), and a varied city's first two street hoods are business types. *(my call: the 2½-star line and the starting front manager.)* Accountants, lawyers and officials keep the old roll.
+2. Economy, tuned to original-game values:
+   - Market share: a gang's own same-type legal shops share one market. With n of a type each earns 100, 95, 90, 85, 80, 75, 71 … 37% (40 or more). The original row climbs back to 87% at eight; we keep it from rising. *(my call)*
+   - Illegal saturation: an illegal trade earns less the more of it trade in the city, on three original curves (slow for speakeasies, loan sharks and prizefights; fast for small games and rackets; steep for the casino). Our catalogue profits are set for four of a trade in the city, and a lone one earns at most 1.5×. Stills, presses and offices are not affected. *(my call: the four-trade reference point and the 1.5× cap.)*
+   - Closed sites: a ceased business pays the original weekly running cost for its size and the block's land value ($40–$340 for a small shop, up to $200–$1,700 for a large store; industrial, residential and warehouse rates between), instead of 0.5% of its fit-out cost.
+   - Empty land costs $40 per land-value band, $40 to $640.
+   - Land value: a block loses land value to the crime committed on it (fire and kidnap and robbery 6, bombing and killing 13 on our 0..100 scale) instead of 4 when a building is destroyed.
+   - Fronts: cover quality follows the original front-fit grade for each legal type and illegal trade (good 95%, fair 70%, poor 40%) where the type is tabled; industrial and untabled fronts keep the old rule.
+3. Auto Test. "Until victory or loss" has no week cap. A fixed run stops at 52 weeks (one year) at most; the weeks box allows 1–52.
+
 ## v1.2.15 decisions
 
 Items marked *(my call)* are choices made while building, not asked for.

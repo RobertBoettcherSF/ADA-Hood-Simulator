@@ -167,8 +167,60 @@ export const ESTABLISHABLE_TYPES = [
   BUILDING_BY_ID.soupKitchen,
 ];
 
+/** Front suitability tuned to original-game values: per front type, one digit
+ * per illegal trade (0 poor, 1 fair, 2 good) in the order of FRONT_FIT_TRADES. */
+const FRONT_FIT_TRADES = ["cardGames", "casino", "counterfeitPress", "diceGame", "gamblingDen", "grifters", "insiderTrading", "loanShark", "moonshineStill", "numbersRacket", "office", "prizeFight", "speakeasy", "teamsters", "whorehouse"];
+const FRONT_FIT: Record<string, string> = {
+  accountancy: '100020220020020',
+  autoShop: '211221021021020',
+  bakers: '000010001120120',
+  bankLarge: '122121220020220',
+  bankSmall: '112121221020220',
+  barbers: '100211001120120',
+  bookStore: '200200000120020',
+  breakfastBar: '100211001120020',
+  butchers: '000010001120120',
+  cafe: '100111001120220',
+  convenienceStore: '100121001220220',
+  danceStudio: '200210000121022',
+  departmentStore: '122120222020220',
+  drugStore: '000011112120120',
+  financeCompany: '101110220020020',
+  furrier: '000000120020022',
+  grocers: '000001001120120',
+  gym: '200211000122020',
+  hardwareStore: '100100001020020',
+  healthCenter: '000000001020022',
+  hotelLarge: '221221101021222',
+  hotelSmall: '112121101020222',
+  jewellers: '000012110020021',
+  laundry: '100100002120020',
+  lawFirm: '000000120020020',
+  library: '200210000220020',
+  massageParlor: '000000000120022',
+  milkBar: '000000001120120',
+  pawnbroker: '200202010220020',
+  plumbers: '000000002020020',
+  poolHall: '200212000122120',
+  printers: '202200000120020',
+  restaurant: '110120001121221',
+  shoeStore: '000000000120020',
+  tailors: '100100000120020',
+  tradeUnion: '000000110020020',
+};
+const FIT_COVER = [0.4, 0.7, 0.95];
+
+/** The original grade for `illegal` behind `front`, or undefined when not tabled. */
+export function frontFitGrade(illegalId: string, frontTypeId: string): number | undefined {
+  const col = FRONT_FIT_TRADES.indexOf(illegalId);
+  const row = FRONT_FIT[frontTypeId];
+  return col < 0 || !row ? undefined : Number(row[col]);
+}
+
 /** How convincing `front` is as cover for `illegal`. 0.35 (poor) .. 0.95 (ideal). */
 export function coverQuality(illegalId: string, frontTypeId: string): number {
+  const grade = frontFitGrade(illegalId, frontTypeId);
+  if (grade != null) return FIT_COVER[grade];
   const t = BUILDING_BY_ID[illegalId];
   if (!t || !t.fronts) return 0.35;
   if (t.fronts.includes(frontTypeId)) return 0.95;

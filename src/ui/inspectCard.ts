@@ -162,7 +162,7 @@ function ownedWeek(w: WorldState, building: Building): InspectRow[] {
   // A trading week's stored result is already net of running the site. A gain is
   // income; a loss is the cost. A closed site still pays its carrying cost.
   const net = building.lastProfit;
-  const carrying = building.state === 'ceased' ? businessCarryingCost(building) : 0;
+  const carrying = building.state === 'ceased' ? businessCarryingCost(building, w.blocks[building.blockId]?.landValue) : 0;
   const income = Math.max(0, net);
   const costs = Math.max(0, -net) + carrying;
   const hidden = building.hidesId != null ? w.buildings[building.hidesId] : null;
