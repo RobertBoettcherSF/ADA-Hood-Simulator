@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is Saint Volstead in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.10.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.11.
 
 ## Decisions
 
@@ -174,6 +174,10 @@ The eleven Hall names were the old default table. Their scores are unchanged, so
 
 1. The wooden info card approved with 1.2.8 is on the street and the city plan. Right-click, or a long press on a phone, opens it at the cursor. Escape or another click closes it.
 2. The loading reel's nine street shots of the seed-1908 city are drawn again. The renderer was left at a one-pixel viewport, so each frame cleared the sky and the city never appeared: a flat grey-blue, then black, while the title, the tips, and Smoky Night Order kept going. The reel now takes the size of its canvas. The debug report's Music section names that reel player as well as the ordinary score. The reel city is not the open game, so the report still says no city is open until a game starts.
+
+## v1.2.11 decisions
+
+1. When a song ends, the same player starts the next one. Menu, planner, street, action, win, loss, credits, and tutorial all do this, including after a screen change, End Week, and the return from the street to the planner. A track that fails to load, or a play() the browser blocks, is skipped. The score does not stop. The loading reel still repeats its one theme.
 
 ## 1. Current state
 
