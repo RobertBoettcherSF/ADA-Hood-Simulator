@@ -228,6 +228,8 @@ Items marked *(my call)* are choices made while building, not asked for.
 
 1. Memory stop. Auto Test now measures used heap (`usedJSHeapSize`), not the larger of used and reserved. If used heap reaches 60% of the tab's limit, it yields for 3 seconds so the browser can collect garbage, then checks again. It stops only if used heap is still at least 80% of the limit. The Auto Test timeline logs used/reserved heap after every week, and the debug report lists the same series. *(my call: the 60% pause line and the 3-second yield. The 80% stop line was asked for.)* Robert's 1.2.14 run stopped at week 6 because reserved heap was 67% of the limit; after a reload, used heap was 230 MB.
 2. Recruiting. When a crew finds nobody worth hiring, the order now keeps the empty site and the "looking for work" tip as IDs, not only as a sentence. Auto Test sends the next recruiters to that tip first, and skips a venue that came up empty for four weeks, unless every venue is still cooling down. *(my call: four weeks.)* Robert's 1.2.14 run kept sending men to the Cafe on Laflin Ave every week, even though the result pointed at the Pool Hall on Carpenter Ave.
+3. End Week speed is part 2 of this build.
+4. Loading. City photographs still start at the menu. At most six picture files are fetched at a time, street surfaces and facades first, then signs and extras. URLs have no cache-busting query string, and both the texture loads and the copy into the city folder ask the browser to reuse a cached file (`force-cache`). Robert's 1.2.14 report had facade and pavement files taking about 217 s on githack, which drops a page that asks for many files at once. *(my call: six at a time.)*
 
 ## 1. Current state
 

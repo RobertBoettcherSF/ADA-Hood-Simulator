@@ -4,7 +4,7 @@
  * pictures stay on the network and are fetched when first shown.
  * The game never waits for this copy.
  */
-import { loadAssetManifest, type AssetFile } from './assetCache';
+import { fetchAsset, loadAssetManifest, type AssetFile } from './assetCache';
 import { deviceIsPhone, resolvedGraphics } from './device';
 import { activeWorldStore } from './worldFolder';
 
@@ -99,7 +99,7 @@ export async function syncWorldAssets(onProgress?: (progress: AssetProgress) => 
       // The browser's own cache is fine: a file the reel just fetched is not fetched twice.
       let body: Uint8Array;
       try {
-        const response = await fetch(`${import.meta.env.BASE_URL}${file.path}`);
+        const response = await fetchAsset(`${import.meta.env.BASE_URL}${file.path}`);
         if (!response.ok) { failed += 1; continue; }
         body = new Uint8Array(await response.arrayBuffer());
       } catch {

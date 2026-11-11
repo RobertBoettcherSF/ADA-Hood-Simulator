@@ -1,5 +1,5 @@
 import type { Person } from '../sim/types';
-import { assetUrl } from '../app/assetCache';
+import { assetUrl, enqueueAssetLoad } from '../app/assetCache';
 import { resolvedGraphics } from '../app/device';
 import { noteAssetLoad } from '../app/assetTiming';
 import thickenedIcons from '../../public/art/icons-small/index.json';
@@ -101,7 +101,7 @@ function keepImage(src: string, img: HTMLImageElement): void {
 export function loadImage(src: string): Promise<HTMLImageElement> {
   let p = cache.get(src);
   if (!p) {
-    p = new Promise((resolve, reject) => {
+    p = enqueueAssetLoad(() => new Promise((resolve, reject) => {
       const img = new Image();
       const started = performance.now();
       img.onload = () => {
@@ -111,7 +111,7 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
       };
       img.onerror = () => { noteAssetLoad(src, performance.now() - started, false); cache.delete(src); reject(new Error(`missing ${src}`)); };
       img.src = src;
-    });
+    }));
     cache.set(src, p);
   }
   return p;
