@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is Saint Volstead in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.12.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.13.
 
 ## Decisions
 
@@ -192,6 +192,25 @@ The eleven Hall names were the old default table. Their scores are unchanged, so
 9. Walkers in view use the detailed models together. If the street stays slow, every walker switches to the simple figure together, and back only after a run of quick frames. A Simple figures badge sits to the left of the clock while that is on.
 10. Street view keeps asking for the street score if nothing is playing, and a blocked play() starts on the next click.
 11. Street photographs begin loading with the menu. Once the city is on screen they replace the painted colours in place, instead of hiding the street until the files arrive.
+
+## v1.2.13 decisions
+
+Items marked *(my call)* are choices made while building, not asked for.
+
+1. Detailed figures stay on. The loading reel keeps about 40% of the free citizens (1,385 down to 847 people) and plays at 3× speed (2× on a phone, 1× for the dusk shot), so it can draw everyone with the detailed models. *(my call: the 40% share and the speeds.)* The street has no cap on detailed figures. If the frame time stays slow, everyone switches to the simple figure together and the Simple figures badge shows left of the clock, as in 1.2.12.
+2. Street photographs still start loading at the menu. Nothing in that path changed.
+3. End Week is faster. Every person now has the same fields in the same order, and a cleared field is set to nothing rather than deleted, which keeps the JavaScript engine on its fast path. Lists of people and buildings are cached between calls. Office doors, car counts, territory blocks and running civilians are worked out once per need instead of every minute. Measured headless on seed 1934, 40×32, with the Auto Test strategy: week 3 went from 19.1 s to 12.6 s; weeks 40 to 42 went from about 19.6 s to about 13.6 s; ambient time from about 11.9 s to about 8.7 s a week. The city plays out exactly as before. Saves list the person fields in a new order, so the raw seed-1934 two-week hash changed from `12c150e7e5be1d35b52ebae02317c9efa0f57a79bb648def1defe7cb4dbbc16f` to `0498e0bd5f4a1cd993149fa5d51e4ff91d3692126a00def7dd87144a7610aa58`. The key-sorted hash, `34c60a34eae9631cd159a9f4d4f1bc5e8a71fc24aeecfb297d3bbb7d22981174`, is the same before and after. The test checks both.
+4. The four newspaper plates keep the eagle, rules and ornaments. Their names are now set in Playfair Display Black capitals in the same dark brown ink, in place of the blackletter. *(my call: the typeface.)*
+5. A car keeps one body and one paint colour. Police cars, police heroes and paddy wagons are always white-tinted. Before this they took the previous car's paint. Each car remembers whether it was drawn as a detailed model or a plain box, so it no longer swaps when the detailed models finish loading.
+6. Night: street lamps glow at full strength and throw a warm pool of light on the pavement. Sun, sky and fill light drop much further after dusk, and windows light up stronger. The pools are drawn on desktop only. *(my call: phones skip the pools to save fill rate.)*
+7. The reel camera frames only points at least 2.6 blocks inside the map. The shop, the fire and the cars it follows are picked nearest the city centre first, so the map edge and the gaps behind the last houses no longer show.
+8. The reel theme is one audio element for the whole reel, so it keeps playing across shots and when the reel hands over to the Loading card. It fades out when the game's own music starts. Old reel shots and their renderer are released when the reel ends.
+9. Auto Test gives orders to every lieutenant, not just the first. It promotes one lieutenant for every six hoods (at least two, at most eight), fills the newest crews from the pool and the biggest crew, and gives each order to the crew with the most time left this week. A crew with nothing to do is named in the report.
+10. Auto Test's expansion order: guard the office; hire the accountant and lawyer; collect from every protected shop, split across crews; hire until the target; then every crew extorts the nearest unclaimed block at the edge of the territory, so the turf grows outward from the office as a ring; set up rackets behind owned fronts; bribe the chief; buy premises nearest the office; hit rivals only when the strategy's violence weight asks for it. The hiring target also grows with the territory (1.2 men per block, up to 48). *(my call: Robert's playbook message could not be read while building, so this order was written from the brief.)* In the first 14 headless weeks it held 14 blocks and $66,946 by week 14, against 6 blocks and $17,761 for 1.2.12.
+11. While Auto Test runs, each music track plays to its end. Switching between the desk, the street and a fight no longer changes the track; the next track comes from whatever is on screen when the song ends. Win and loss music still cut in.
+12. Memory. A 12-week browser Auto Test held 80 MB of live JavaScript at the start and 94 MB at the end, measured after a forced garbage collection. The growth is the city's own records. The 951 / 1022 MB in the 1.2.12 debug report is the browser's figure before it collects garbage. It is mostly the large save strings each week makes. Auto Test no longer makes an extra encoded copy of the save every week, and the debug report now says that its heap figure counts garbage not yet collected.
+13. Buttons on the desk show a tip on hover: the section tabs, the lieutenant strip, the left page, the map bar, the street HUD and the corner tools. The tip replaces the browser's own tooltip. A right-click opens a card that says what the button does, its key, and whether it is on or unavailable. On a lieutenant's tab the card shows his crew, headcount, share of the week given out, orders, loyalty and status. Right-click there no longer opens the browser menu. The message buttons keep their own right-click, which jumps to the latest event. *(my call: the card wording.)*
+14. Existing test failures on main that 1.2.13 did not change: two order-outcome tests (export with a truck, and smash up), the number-key cycling test (E#61), and the late sculpt-load cleanup test.
 
 ## 1. Current state
 
