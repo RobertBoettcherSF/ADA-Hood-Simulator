@@ -4,6 +4,7 @@ import { defaultGameOptions } from '../src/app/newGame';
 import { issueOrder, interrogatePrisoner, releasePrisoner, type IssueOrderInput } from '../src/sim/api';
 import { MINUTES_PER_WEEK } from '../src/sim/constants';
 import { Sim, MINUTES_PER_SECOND } from '../src/sim/sim';
+import { setRecruitJoin } from '../src/sim/recruitDestination';
 import { presentationEvents } from '../src/sim/presentationEvents';
 import { expandTargets } from '../src/sim/execution';
 import { allBuildings, buildingDoor, dist, placeName, typeOf } from '../src/sim/world';
@@ -92,6 +93,21 @@ describe('planned orders produce real gameplay outcomes', () => {
     expect(refused.ok).toBe(false);
   });
 
+  it('puts a recruited hood on the hiring crew when that option is on', () => {
+    setRecruitJoin('crew');
+    try {
+      const s = fixture();
+      const candidate = Object.values(s.w.people).find(p => p.gangId == null && p.role === 'hood' && p.status === 'active' &&
+        p.buildingId != null && typeOf(s.w.buildings[p.buildingId])?.recruit === 'hood')!;
+      run(s, { type: 'recruit', buildingIds: [candidate.buildingId!], opts: { recruitAs: 'hood' } });
+      expect(s.w.people[candidate.id].gangId).toBe(s.gang.id);
+      expect(s.team.memberIds).toContain(candidate.id);
+      expect(s.gang.poolIds).not.toContain(candidate.id);
+    } finally {
+      setRecruitJoin('pool');
+    }
+  });
+
   it.each(['hood', 'accountant', 'lawyer'] as const)('recruit finds a real available %s at the correct premises', role => {
     const s = fixture();
     const available = () => Object.values(s.w.people).find(p => p.gangId == null && p.role === role && p.status === 'active' &&
@@ -111,8 +127,15 @@ describe('planned orders produce real gameplay outcomes', () => {
       run(s, { type: 'recruit', buildingIds: [candidate.buildingId!], opts: { recruitAs: role } });
     }
     expect(signed()).toBe(true);
-    // A hood who agrees joins the crew or the pool. An accountant or a lawyer
-    // is only willing: hiring them is a separate decision.
+    // A hood who agrees joins the gang and, unless Game Options says otherwise, waits in the pool.
+    if (role === 'hood') {
+      for (const id of asked) {
+        if (s.w.people[id]?.gangId !== s.gang.id) continue;
+        expect(s.gang.poolIds).toContain(id);
+        expect(s.team.memberIds).not.toContain(id);
+      }
+    }
+    // An accountant or a lawyer is only willing: hiring them is a separate decision.
     if (role !== 'hood') for (const id of asked) expect(s.w.people[id].gangId).not.toBe(s.gang.id);
   });
 

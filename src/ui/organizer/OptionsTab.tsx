@@ -10,6 +10,29 @@ import { gangAssets, gangWealth, money, powerRating, territoryCount } from '../.
 import { ConfirmDialog, Empty, Panel } from '../common';
 import { UI_SCALES, uiScaleAvailable, uiScaleInUse } from '../../app/uiScale';
 
+function RecruitJoinOption() {
+  const join = useGame((s) => s.recruitJoin);
+  const setJoin = useGame((s) => s.setRecruitJoin);
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div className="tiny">New recruits join</div>
+      <div className="row" role="group" aria-label="New recruits join" style={{ gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+        <button type="button" aria-pressed={join === 'pool'} className={`btn sm${join === 'pool' ? ' on' : ''}`} onClick={() => setJoin('pool')}>
+          Pool
+        </button>
+        <button type="button" aria-pressed={join === 'crew'} className={`btn sm${join === 'crew' ? ' on' : ''}`} onClick={() => setJoin('crew')}>
+          Recruiting crew
+        </button>
+      </div>
+      <div className="muted tiny" style={{ marginTop: 6 }}>
+        {join === 'pool'
+          ? 'They wait with the idle hoods until you put them on a crew. This is the default.'
+          : 'They join the crew that recruited them, when that crew has room.'}
+      </div>
+    </div>
+  );
+}
+
 function ReelSound() {
   const [muted, setMuted] = useState(readLocalData().audio.reelMuted === true);
   return (
@@ -185,6 +208,7 @@ export function OptionsTab() {
           onClick={() => useGame.getState().setMouseReversal(!mouseReversal)}>
           {mouseReversal ? 'Mouse reversal: on' : 'Mouse reversal: off'}
         </button>
+        <RecruitJoinOption />
         <div className="muted tiny" style={{ marginTop: 6 }}>
           The original's Advanced Options: with it on, dragging moves the view the other way.
         </div>

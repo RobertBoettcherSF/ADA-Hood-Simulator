@@ -13,8 +13,9 @@ import { planGang } from '../sim/ai';
 import { markTiming, noteAutoplay, noteError } from './debugReport';
 import { recordAction } from './actionLog';
 import { resetSystemTimings } from '../sim/simTimings';
-import type { GraphicsChoice } from './localData';
+import type { GraphicsChoice, RecruitJoin } from './localData';
 import { patchLocalData, readLocalData } from './localData';
+import { setRecruitJoin as applyRecruitJoin } from '../sim/recruitDestination';
 import { stampRivalPlaybook } from './diary';
 import { activeWorldStore, livingCityOnFile } from './worldFolder';
 import type { GameOptions, ID, MessageCategory, OrderOptions, OrderType, SpecialistJob, Vec2 } from '../sim/types';
@@ -106,6 +107,8 @@ interface GameState {
   roadNames: boolean;
   /** The original's Mouse Reversal (Advanced Options): dragging moves the view the other way. */
   mouseReversal: boolean;
+  /** New hoods from Recruit. Pool waits idle; crew joins the lieutenant who hired them. */
+  recruitJoin: RecruitJoin;
   /** Model texture quality; applies when the city next loads (A20). */
   textureQuality: TextureQuality;
   /** Interface scale chosen in Options (desktop app; see uiScale.ts). */
@@ -191,6 +194,7 @@ interface GameState {
   setAutoLowerRoofs: (on: boolean) => void;
   setRoadNames: (on: boolean) => void;
   setMouseReversal: (on: boolean) => void;
+  setRecruitJoin: (join: RecruitJoin) => void;
   setTextureQuality: (quality: TextureQuality) => void;
   setGraphics: (choice: GraphicsChoice) => void;
   setCityDemo: (on: boolean) => void;
@@ -304,6 +308,7 @@ export const useGame = create<GameState>((set, get) => ({
   autoLowerRoofs: readAutoLower(),
   roadNames: readRoadNames(),
   mouseReversal: readMouseReversal(),
+  recruitJoin: readLocalData().recruitJoin,
   textureQuality: readTextureQuality(),
   graphics: readLocalData().graphics,
   cityDemo: readLocalData().cityDemo,
@@ -612,6 +617,12 @@ export const useGame = create<GameState>((set, get) => ({
   setMouseReversal: (mouseReversal) => {
     patchLocalData({ mouseReversal });
     set({ mouseReversal });
+  },
+  setRecruitJoin: (recruitJoin) => {
+    const join = recruitJoin === 'crew' ? 'crew' : 'pool';
+    patchLocalData({ recruitJoin: join });
+    applyRecruitJoin(join);
+    set({ recruitJoin: join });
   },
   setRoadNames: (roadNames) => {
     patchLocalData({ roadNames });
