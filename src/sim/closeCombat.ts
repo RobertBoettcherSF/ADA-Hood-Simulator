@@ -158,5 +158,5 @@ export function spendLostTurn(p: Person): boolean {
 
 /** The fight is over for this person: he gets back on his feet. */
 export function endCloseCombat(p: Person): void {
-  delete p.closeCombat;
+  p.closeCombat = undefined;
 }

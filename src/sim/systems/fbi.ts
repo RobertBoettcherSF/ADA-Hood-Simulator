@@ -109,7 +109,7 @@ function assignmentValid(w: WorldState, p: Person): boolean {
 }
 
 function releaseAssignment(p: Person): void {
-  delete p.fbiAssignment;
+  p.fbiAssignment = undefined;
   if (!p.streetOrder && p.orderId == null && !p.emergencyResponse && !p.shockReaction) clearDestination(p);
 }
 
@@ -458,7 +458,7 @@ export function serveAccountantWarrants(w: WorldState, rng: Rng): void {
       const kind = accountant ? 'taxEvasion' : latestCrimeKind(w, p);
       for (const q of [p, ...mates]) {
         takeIntoCustody(w, q, gang.id, kind, null, agent);
-        delete q.fbiWarrant;
+        q.fbiWarrant = undefined;
       }
       w.weekLog.push(`Federal agents arrested ${p.name}, ${who === 'man' ? 'of' : 'accountant to'} ${gang.name}, for ${describeCrime(kind)}.`);
       if (gang.isPlayer) addMessage(w, 'police', `Federal agents arrested your ${who}, ${p.name}.`, p.pos, agent.id);
@@ -514,10 +514,10 @@ export function payrollCrackdown(w: WorldState, rng: Rng): void {
 }
 
 function dismissOfficer(w: WorldState, gang: Gang, o: Person): void {
-  o.employedBy = null; o.weeklyRetainer = 0; delete o.retainerShort;
+  o.employedBy = null; o.weeklyRetainer = 0; o.retainerShort = undefined;
   gang.employedPoliceIds = gang.employedPoliceIds.filter(id => id !== o.id);
   w.policeIds = w.policeIds.filter(id => id !== o.id);
-  delete o.emergencyResponse;
+  o.emergencyResponse = undefined;
   if (o.role === 'police') o.role = 'citizen';
   if (!o.streetOrder && o.orderId == null) clearDestination(o);
 }
@@ -644,7 +644,7 @@ export function decayCrimeSuspicion(w: WorldState): void {
   for (const p of peopleList(w)) {
     if (!p.crimeSuspicion) continue;
     const s = p.crimeSuspicion - Math.trunc(p.crimeSuspicion / 10);
-    if (s > 0) p.crimeSuspicion = s; else delete p.crimeSuspicion;
+    if (s > 0) p.crimeSuspicion = s; else p.crimeSuspicion = undefined;
   }
 }
 
@@ -819,7 +819,7 @@ export function raidHeadquarters(w: WorldState, rng: Rng, b: Building, agent?: P
     // man wanted by the member pass, with the latest crime on his record.
     const kind = !p.fbiWarrant ? 'extort' : p.role === 'accountant' ? 'taxEvasion' : latestCrimeKind(w, p);
     takeIntoCustody(w, p, gang.id, kind, b.id, agent);
-    delete p.fbiWarrant;
+    p.fbiWarrant = undefined;
     taken.push(p);
   };
   let resisted = 0, escaped = 0;

@@ -169,7 +169,7 @@ function catchTram(w: WorldState, p: Person, trams: Tram[], frames: (Frame | nul
 function setDown(w: WorldState, p: Person, f: Frame, t: Tram, ride: TramRide): void {
   const s = alongOf(f, t), side = Math.sign(ride.kerb - f.centre) || 1, kerb = point(f, s, ride.kerb);
   p.pos = door(f, t, ride.kerb);
-  delete p.tram;
+  p.tram = undefined;
   const path: PathPoint[] = [];
   if (Math.abs(ride.kerb - f.centre) > CELL / 2) {
     const foot = medianFootway(w, f, side);
@@ -221,11 +221,11 @@ function holdTrams(lines: TramLine[], trams: Tram[], boarding: boolean[]): boole
  */
 function rideOn(w: WorldState, p: Person, ride: TramRide, trams: Tram[], frames: (Frame | null)[], now: number): boolean {
   const t = trams[ride.tram], f = t && frames[t.line];
-  if (!t || !f) { delete p.tram; return false; }
+  if (!t || !f) { p.tram = undefined; return false; }
   if (!tramRideable(w, p)) {
     // Taken up by something else: a rider steps off where the tram is.
     if (ride.phase === 'riding') p.pos = door(f, t, ride.kerb);
-    delete p.tram;
+    p.tram = undefined;
     return false;
   }
   if (ride.phase === 'boarding') {
@@ -233,7 +233,7 @@ function rideOn(w: WorldState, p: Person, ride: TramRide, trams: Tram[], frames:
     const there = door(f, t, ride.kerb);
     if (p.dest || Math.hypot(p.pos.x - there.x, p.pos.y - there.y) > 1) {
       // He never got there: he walks on to where he was going.
-      delete p.tram;
+      p.tram = undefined;
       setDestination(w, p, ride.dest);
       return false;
     }

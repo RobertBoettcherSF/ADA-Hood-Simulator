@@ -26,7 +26,7 @@ export function resetBusinessInvestigation(w: WorldState, b: Building): void {
   for (const id of w.fbiIds) {
     const p = w.people[id];
     if (p?.fbiAssignment?.buildingId !== b.id) continue;
-    delete p.fbiAssignment;
+    p.fbiAssignment = undefined;
     if (!p.streetOrder && p.orderId == null && !p.emergencyResponse) clearDestination(p);
   }
 }

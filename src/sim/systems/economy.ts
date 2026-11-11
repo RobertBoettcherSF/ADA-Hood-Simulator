@@ -223,7 +223,7 @@ export function payOfficialRetainers(w: WorldState, gang: Gang): void {
     if (stage === 0) {
       total += o.weeklyRetainer;
       if (gang.cash - total >= 0) {
-        if (o.retainerShort) { shiftAttitude(o, gang.id, -(hostilityOf(o, gang.id) >> 1), 0); delete o.retainerShort; }
+        if (o.retainerShort) { shiftAttitude(o, gang.id, -(hostilityOf(o, gang.id) >> 1), 0); o.retainerShort = undefined; }
         continue;
       }
       total -= o.weeklyRetainer - half;
@@ -248,7 +248,7 @@ export function payOfficialRetainers(w: WorldState, gang: Gang): void {
 }
 
 function letGo(w: WorldState, gang: Gang, o: Person, why: string): void {
-  o.employedBy = null; o.weeklyRetainer = 0; delete o.retainerShort;
+  o.employedBy = null; o.weeklyRetainer = 0; o.retainerShort = undefined;
   gang.employedPoliceIds = gang.employedPoliceIds.filter(id => id !== o.id);
   if (gang.isPlayer) w.weekLog.push(`${o.name} ${why} (${gang.name}).`);
   if (gang.isPlayer) addMessage(w, 'police', `${o.name} ${why}.`, o.pos, o.id);

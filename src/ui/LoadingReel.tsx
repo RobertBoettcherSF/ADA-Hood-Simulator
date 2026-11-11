@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { audio } from '../audio/audio';
-import { applyMusicMix, playReelQueue } from '../audio/musicPool';
+import { applyMusicMix, fadeOutReel, playReelQueue, reelAudioElement } from '../audio/musicPool';
 import { deviceIsPhone } from '../app/device';
 import { CityRenderer } from '../render/scene';
 import { VIEW_ZOOM } from '../render/viewModes';
 import { yieldForInput } from '../yieldForInput';
 import { LOADING_TIPS } from './StreetLoading';
 import {
+  REEL_DUSK_MINUTE,
+  REEL_DUSK_SPEED,
+  REEL_SPEED,
+  REEL_SPEED_PHONE,
   REEL_TRACK_SECONDS,
   buildReel,
   createReelSim,
@@ -20,6 +24,9 @@ import {
  * component. The track is an &lt;audio&gt; element so the browser streams it
  * and nothing is written into the city folder.
  */
+/** Longest the first shot waits for the detailed figures. */
+const REEL_MODEL_WAIT_MS = 8000;
+
 export function LoadingReel({ percent, ready, onSkip, onFallback }: {
   percent: number;
   ready: boolean;
@@ -27,7 +34,8 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
   onFallback: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  // The theme's player lives in the music module, so the theme outlasts this picture.
+  const audioRef = useRef<HTMLAudioElement>(reelAudioElement());
   const [tip, setTip] = useState(0);
   const [logo, setLogo] = useState(false);
   const [muted, setMuted] = useState(() => audio.musicMuted);
@@ -64,6 +72,7 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
     let frames: ReelFrame[] = [];
     let sim: ReturnType<typeof createReelSim> | null = null;
     let unmix = () => {};
+    let handedOff = false;
 
     const time = () => {
       if (music.currentTime > 0 && !music.paused) return music.currentTime;
@@ -74,15 +83,7 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
       if (!alive || skipLock.current) return;
       skipLock.current = true;
       setLeaving(true);
-      const from = music.volume;
-      const fadeStarted = performance.now();
-      const fade = () => {
-        const t = Math.min(1, (performance.now() - fadeStarted) / 400);
-        music.volume = from * (1 - t);
-        if (t < 1 && alive) requestAnimationFrame(fade);
-        else music.pause();
-      };
-      fade();
+      fadeOutReel(400);
       onSkipRef.current();
     };
     finishRef.current = finish;
@@ -143,9 +144,11 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
       renderer.setStreetsOpen(true);
       const firstStreet = frames.find((frame) => frame.kind === 'street');
       if (firstStreet) renderer.centerOn(firstStreet.x, firstStreet.y);
-      // Painted colours are enough to show the street. Photographs replace
-      // them when they arrive; the reel does not wait on that download.
-      void renderer.prepare().catch(() => {});
+      // The detailed figures and cars come first, so no shot starts on the
+      // plain stand-ins and swaps them part way through (a car changed body
+      // and colour). Painted colours are enough for the buildings; the
+      // photographs replace them when they arrive.
+      await Promise.race([renderer.prepare().catch(() => {}), new Promise((resolve) => window.setTimeout(resolve, REEL_MODEL_WAIT_MS))]);
       if (!alive) return;
       renderedAt = performance.now();
       const bootStart = performance.getEntriesByName('hood-boot-start')[0]?.startTime ?? renderedAt;
@@ -159,7 +162,8 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
         if (renderedAt && now - renderedAt > 12000) {
           if (dt > 0.05) slow += dt;
           else slow = 0;
-          if (slow > 1.5) { onFallbackRef.current(); return; }
+          // The picture gives way to the Loading card; the theme plays on.
+          if (slow > 1.5) { handedOff = true; onFallbackRef.current(); return; }
         }
         const at = time();
         const index = frameAt(at, frames.length);
@@ -169,17 +173,18 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
           shot = index;
           setLogo(frame.kind === 'logo');
           if (frame.kind === 'street') renderer.centerOn(frame.x, frame.y);
-          if (frame.pace === 'dusk') sim.world.minute = 400;
+          if (frame.pace === 'dusk') sim.world.minute = REEL_DUSK_MINUTE;
           else if (sim.world.minute > 450) sim.world.minute = 90;
           if (frame.fireId != null) cueReelFire(sim, frame.fireId, brigade);
         }
+        // Slower than before, with fewer people about, so every figure stays detailed.
+        const speed = frame.pace === 'still' ? 0 : frame.pace === 'dusk' ? REEL_DUSK_SPEED : phone ? REEL_SPEED_PHONE : REEL_SPEED;
         if (frame.pace !== 'still' && sim.world.phase === 'week') {
           if (sim.world.minute > 2000) sim.world.minute = 120;
-          const speed = frame.pace === 'dusk' ? 1.5 : phone ? 4 : 8;
           sim.advance(dt, speed, phone ? 3 : 6);
         }
         renderer.setSubMinute(sim.subMinute);
-        renderer.setTimeScale(frame.pace === 'still' ? 0 : frame.pace === 'dusk' ? 1.5 : phone ? 4 : 8);
+        renderer.setTimeScale(speed);
         renderer.update();
         if (frame.kind === 'street') renderer.render();
       };
@@ -192,8 +197,12 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
       window.removeEventListener('keydown', skip, true);
       unmix();
       cancelAnimationFrame(raf);
-      music.pause();
+      if (!handedOff && !skipLock.current) music.pause();
+      // Free the reel's city and its picture: nothing else holds them.
       renderer?.dispose();
+      renderer = null;
+      sim = null;
+      frames = [];
     };
   }, []);
 
@@ -221,7 +230,6 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
       finishRef.current();
     }} role="presentation">
       <canvas ref={canvasRef} className="loading-reel-canvas" aria-hidden="true" />
-      <audio ref={audioRef} data-audio-slot="loading-reel" preload="none" playsInline />
       {!logo && <h1 className="reel-logo">Hood Simulator</h1>}
       {!logo && <p className="reel-tip">{LOADING_TIPS[tip]}</p>}
       {logo && (

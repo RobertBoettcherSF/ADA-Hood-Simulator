@@ -1,4 +1,5 @@
 import { rollOriginalProfile, startingHostility, stanceOfHostility } from './aiStance';
+import { shapePerson } from './personShape';
 import { BLOCK_SIZE, CITIZENS_PER_BLOCK, MAYOR_INITIAL_TERM_WEEKS, SNITCH_COUNT } from './constants';
 import { BUILDING_BY_ID, BUILDING_TYPES, coverQuality } from './data/buildings';
 import {
@@ -119,8 +120,9 @@ export function createPerson(
     streetOrder: null,
   };
   if (rolled?.heritage) p.face = bossFace(rolled.heritage, female, sitterFromSeed(p.id));
-  w.people[p.id] = p;
-  return p;
+  const shaped = shapePerson(p);
+  w.people[p.id] = shaped;
+  return shaped;
 }
 
 /** Pay demand for a hood scales with their overall quality. */

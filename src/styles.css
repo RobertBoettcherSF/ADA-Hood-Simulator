@@ -4791,3 +4791,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .inspect-card dl div { display: flex; gap: 10px; justify-content: space-between; }
 .inspect-card dt { color: #6a5434; }
 .inspect-card dd { margin: 0; text-align: right; }
+
+/* 1.2.13: hover tips and right-click cards for the desk's buttons. */
+.control-tip {
+  position: fixed;
+  z-index: 2260;
+  max-width: 300px;
+  padding: 4px 8px 5px;
+  pointer-events: none;
+  color: #f3e6c8;
+  background: rgba(36, 26, 14, 0.94);
+  border: 1px solid #8d7350;
+  border-radius: 2px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
+  font: 500 13px/1.3 var(--font-body);
+}
+.control-card { max-width: 300px; }
+.control-card p { margin: 0 0 6px; font: 400 13px/1.35 var(--font-body); }

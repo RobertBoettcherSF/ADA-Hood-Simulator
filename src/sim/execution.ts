@@ -526,7 +526,7 @@ function rejoinPlannedOrders(w: WorldState): void {
   for (const p of peopleList(w)) {
     if (p.resumeOrderId == null || p.streetOrder) continue;
     const order = w.orders[p.resumeOrderId];
-    delete p.resumeOrderId;
+    p.resumeOrderId = undefined;
     if (p.status !== 'active' || p.orderId != null || !order || !order.assignedIds.includes(p.id) ||
       !['travelling', 'executing', 'waiting'].includes(order.state)) continue;
     p.orderId = order.id;

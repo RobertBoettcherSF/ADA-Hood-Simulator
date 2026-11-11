@@ -1,5 +1,6 @@
 import type { Block, Building, ID, Vec2, WorldState } from './types';
 import { blockRect } from './cityLayout';
+import { buildingList } from './entityLists';
 
 export function canonicalAreaBlocks(w: WorldState, ids: ID[]): ID[] {
   return [...new Set(ids.filter(id => w.blocks[id]).map(id => w.blocks[id].layout?.mergedInto ?? id))];
@@ -18,10 +19,19 @@ export function buildingClaimants(w: WorldState, b: Building): ID[] {
 }
 
 export function claimedTerritoryBlocks(w: WorldState, gangId: ID): Set<ID> {
-  if (!w.gangs[gangId] || w.gangs[gangId].eliminated) return new Set();
-  return new Set(canonicalAreaBlocks(w, Object.values(w.buildings)
-    .filter(b => standingTerritorySite(b) && (b.ownerGangId === gangId || b.protection?.gangId === gangId))
-    .map(b => b.blockId)));
+  const claims = new Set<ID>();
+  if (!w.gangs[gangId] || w.gangs[gangId].eliminated) return claims;
+  // One pass, no lists in between: asked every minute for the score peaks.
+  // Same blocks in the same order as filtering the buildings and then the blocks.
+  const blocks = w.blocks;
+  for (const b of buildingList(w)) {
+    if (b.ownerGangId !== gangId && b.protection?.gangId !== gangId) continue;
+    if (!standingTerritorySite(b)) continue;
+    const block = blocks[b.blockId];
+    if (!block) continue;
+    claims.add(block.layout?.mergedInto ?? b.blockId);
+  }
+  return claims;
 }
 
 /** Distance from the edge of the current territory, including merged blocks.

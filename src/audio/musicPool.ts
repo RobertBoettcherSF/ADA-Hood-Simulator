@@ -218,6 +218,40 @@ export async function playReelQueue(node: HTMLAudioElement): Promise<void> {
   announce(theme.title);
 }
 
+let reelElement: HTMLAudioElement | null = null;
+
+/**
+ * The loading theme's player. It belongs to this module, not to the reel's
+ * picture, so the theme keeps going when the picture gives way to the
+ * Loading card, and only stops when the player skips or the menu's score
+ * takes over.
+ */
+export function reelAudioElement(): HTMLAudioElement {
+  if (!reelElement) {
+    reelElement = new Audio();
+    reelElement.preload = 'none';
+    reelElement.dataset.audioSlot = 'loading-reel';
+    (reelElement as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
+  }
+  return reelElement;
+}
+
+/** Fade the loading theme out (the menu's score is starting, or the player skipped). */
+export function fadeOutReel(ms = 600): void {
+  const node = reelNode;
+  if (!node || node.paused) return;
+  fading.add(node);
+  const from = node.volume, t0 = performance.now();
+  const step = () => {
+    const t = Math.min(1, (performance.now() - t0) / ms);
+    node.volume = from * (1 - t);
+    if (t < 1 && !node.paused) requestAnimationFrame(step);
+    else { node.pause(); fading.delete(node); applyMusicMix(node); }
+  };
+  if (typeof requestAnimationFrame === 'undefined') { node.pause(); fading.delete(node); return; }
+  step();
+}
+
 function ensureNodes(): void {
   if (nodes.length || typeof Audio === 'undefined') return;
   nodes = [0, 1].map(() => {
@@ -422,9 +456,32 @@ function ramp(prev: HTMLAudioElement, next: HTMLAudioElement, goal: number, toke
 }
 
 /** Start the score for a screen. The same screen does not cut off a song already playing. */
+/** Game scenes that may share one running track while the music is held. */
+const HELD_SCENES = new Set<MusicScene>(['planner', 'street', 'action']);
+let holding = false;
+
+/**
+ * Auto Test flips between the desk and the street every few seconds. While it
+ * runs, the playing track is held: each song plays to its end, and the next
+ * one comes from whichever game scene is current then. Win and loss still cut in.
+ */
+export function setMusicHold(on: boolean): void {
+  holding = on;
+}
+
 export async function playScene(cue: MusicCue): Promise<void> {
   const scene = SCENE[cue];
+  if (holding && HELD_SCENES.has(scene) && currentScene && HELD_SCENES.has(currentScene) && (musicPoolPlaying() || starting != null)) {
+    if (currentScene !== scene) {
+      currentScene = scene;
+      pending = scene;
+      if (nodes[active]) bindEnd(nodes[active], scene);
+    }
+    return;
+  }
   pending = scene;
+  // The loading theme hands over to the screen's own score.
+  fadeOutReel();
   await loadMusicPool();
   if (pending !== scene) return;
   const list = tracksFor(scene, tracks);
@@ -470,6 +527,7 @@ export async function playScene(cue: MusicCue): Promise<void> {
 }
 
 export function stopMusicPool(): void {
+  fadeOutReel();
   fadeToken++;
   pending = null;
   pausedScene = currentScene;

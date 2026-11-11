@@ -957,7 +957,7 @@ export function dismissPoliceOfficer(w: WorldState, gangId: ID, personId: ID): A
   const gang = w.gangs[gangId];
   const p = w.people[personId];
   if (!gang || !p || p.role !== 'police' || p.employedBy !== gangId) return fail('That officer is not on your payroll.');
-  p.employedBy = null; delete p.retainerShort;
+  p.employedBy = null; p.retainerShort = undefined;
   p.weeklyRetainer = 0;
   opinionSet(p, gangId, (p.opinion[gangId] ?? 0) - 25, NO_ORIGINAL_CHANNEL);
   gang.employedPoliceIds = gang.employedPoliceIds.filter((id) => id !== personId);
@@ -1249,7 +1249,7 @@ export function returnToBase(w: WorldState, gangId: ID, personId: ID): ApiResult
     if (order && !order.assignedIds.length) recoverExportGoods(w, order, false);
     p.orderId = null;
   }
-  delete p.resumeOrderId;
+  p.resumeOrderId = undefined;
   p.streetOrder = null;
   const office = nearestOffice(w, gangId, p.pos);
   if (!office) return fail('You have no office to return to.');

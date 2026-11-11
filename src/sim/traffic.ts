@@ -14,6 +14,7 @@ import { h2, r01, rint } from './hash';
 import { C as OC } from './originalCityGen';
 import type { Vec2, WorldState } from './types';
 import { peopleSlice } from './peopleSlices';
+import { peopleList } from './entityLists';
 
 export const MAX_CARS = 320;
 
@@ -136,8 +137,16 @@ function byStreet<T extends { axisX: boolean; line: number }>(items: T[]): Map<n
  */
 const CARS_PER_STREET = 0.06;
 
+const carCounts = new WeakMap<object, number>();
 export function carCount(w: WorldState): number {
   const graph = streetGraph(w);
+  const known = carCounts.get(graph);
+  if (known !== undefined) return known;
+  const n = countCars(graph);
+  carCounts.set(graph, n);
+  return n;
+}
+function countCars(graph: ReturnType<typeof streetGraph>): number {
   let ends = 0;
   for (const n of graph.neighbours) ends += n.length;
   if (!ends) return 0;
@@ -499,7 +508,7 @@ export function crossingsInUse(w: WorldState): OccupiedCrossing[] {
  */
 function scanStreets(w: WorldState, index = 0, count = 1): { crossings: OccupiedCrossing[]; drivers: Driver[] } {
   const crossings: OccupiedCrossing[] = [], drivers: Driver[] = [];
-  for (const p of count > 1 ? peopleSlice(w, index, count) : Object.values(w.people)) {
+  for (const p of count > 1 ? peopleSlice(w, index, count) : peopleList(w)) {
     if (!p.dest || p.status !== 'active') continue;
     if (p.inVehicle) {
       if (!p.vehicleKey || w.vehicleFleet?.[p.vehicleKey]?.driverId === p.id) drivers.push(p);
