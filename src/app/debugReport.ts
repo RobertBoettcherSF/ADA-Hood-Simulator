@@ -167,7 +167,7 @@ export function buildDebugReport(world: WorldState | null, version: string, comm
   lines.push('');
   lines.push(`Graphics: ${resolvedGraphics(readLocalData().graphics)} (choice ${readLocalData().graphics})`);
   const heap = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
-  if (heap) lines.push(`JS heap: ${Math.round(heap.usedJSHeapSize / 1048576)} / ${Math.round(heap.totalJSHeapSize / 1048576)} MB`);
+  if (heap) lines.push(`JS heap: ${Math.round(heap.usedJSHeapSize / 1048576)} / ${Math.round(heap.totalJSHeapSize / 1048576)} MB (counts garbage the browser has not collected yet)`);
   if (typeof navigator !== 'undefined') {
     const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
     if (deviceMemory) lines.push(`Device memory: ${deviceMemory} GB`);

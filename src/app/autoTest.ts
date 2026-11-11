@@ -97,6 +97,19 @@ function heatOf(sim: Sim): number {
   return Math.round(blocks.reduce((sum, block) => sum + block.crimeHeat, 0) / blocks.length);
 }
 
+/** UTF-8 size without encoding a 14 MB copy of the save every week. */
+function utf8Length(text: string): number {
+  let bytes = text.length;
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code < 0x80) continue;
+    if (code < 0x800) bytes += 1;
+    else if (code >= 0xd800 && code <= 0xdbff) { bytes += 2; i++; }
+    else bytes += 2;
+  }
+  return bytes;
+}
+
 function snapshot(sim: Sim, ms: number): AutoTestWeek {
   const gang = sim.playerGang;
   const owned = buildingList(sim.world).filter((b) => b.ownerGangId === gang.id && b.state !== 'destroyed').length;
@@ -113,7 +126,7 @@ function snapshot(sim: Sim, ms: number): AutoTestWeek {
     suspicion: Math.round(gang.suspicion),
     standings,
     ms,
-    saveBytes: new TextEncoder().encode(JSON.stringify(sim.world)).length,
+    saveBytes: utf8Length(JSON.stringify(sim.world)),
   };
 }
 
