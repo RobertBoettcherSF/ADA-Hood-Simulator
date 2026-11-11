@@ -112,7 +112,11 @@ export function streetEdgeOpen(w: WorldState, ax: number, ay: number, bx: number
   return !a || !b || a.id !== b.id;
 }
 
-type StreetGraph = { points: Vec2[]; neighbours: number[][]; throughX: number[]; throughY: number[]; paths: Map<string, Vec2[]> };
+type StreetGraph = {
+  points: Vec2[]; neighbours: number[][]; throughX: number[]; throughY: number[]; paths: Map<string, Vec2[]>;
+  /** Reused by the route search so a fast clock does not wipe a full-size array on every errand. */
+  seen: Int32Array; parent: Int32Array; seenGen: number;
+};
 const graphs = new WeakMap<WorldState, StreetGraph>();
 export function streetGraph(w: WorldState): StreetGraph {
   const old = graphs.get(w);
@@ -127,7 +131,11 @@ export function streetGraph(w: WorldState): StreetGraph {
     .filter(y => Array.from({ length: w.gridW }, (_, x) => streetEdgeOpen(w, x, y, x + 1, y)).every(Boolean));
   const throughY = Array.from({ length: w.gridW + 1 }, (_, x) => x)
     .filter(x => Array.from({ length: w.gridH }, (_, y) => streetEdgeOpen(w, x, y, x, y + 1)).every(Boolean));
-  const graph = { points, neighbours, throughX, throughY, paths: new Map<string, Vec2[]>() }; graphs.set(w, graph); return graph;
+  const graph = {
+    points, neighbours, throughX, throughY, paths: new Map<string, Vec2[]>(),
+    seen: new Int32Array(points.length), parent: new Int32Array(points.length), seenGen: 1,
+  };
+  graphs.set(w, graph); return graph;
 }
 
 /** Shortest route through the remaining streets, including T-junctions. */
@@ -148,17 +156,26 @@ export function streetRouteNodes(w: WorldState, from: Vec2, to: Vec2, zig = fals
   };
   const start = nearest(from), end = nearest(to), key = `${start}:${end}:${zig}`;
   const cached = g.paths.get(key); if (cached) return cached;
-  const previous = new Int32Array(g.points.length).fill(-1);
-  const queue = [start]; previous[start] = start;
-  for (let cursor = 0; cursor < queue.length && previous[end] === -1; cursor++) {
+  // A generation stamp marks the nodes of this search. Filling the parent
+  // array on every errand walked the whole lattice, and a fast clock asks
+  // for a new errand every minute.
+  let gen = ++g.seenGen;
+  if (gen >= 0x7fffffff) { g.seen.fill(0); gen = g.seenGen = 1; }
+  const seen = g.seen, previous = g.parent;
+  const queue = [start];
+  seen[start] = gen;
+  previous[start] = start;
+  for (let cursor = 0; cursor < queue.length && seen[end] !== gen; cursor++) {
     const at = queue[cursor], ns = g.neighbours[at];
     for (let i = 0; i < ns.length; i++) {
       const next = ns[zig ? ns.length - 1 - i : i];
-      if (previous[next] !== -1) continue;
-      previous[next] = at; queue.push(next);
+      if (seen[next] === gen) continue;
+      seen[next] = gen;
+      previous[next] = at;
+      queue.push(next);
     }
   }
-  if (previous[end] === -1) throw new Error('Disconnected city streets');
+  if (seen[end] !== gen) throw new Error('Disconnected city streets');
   const route = [g.points[end]];
   for (let at = end; at !== start;) { at = previous[at]; route.push(g.points[at]); }
   route.reverse();

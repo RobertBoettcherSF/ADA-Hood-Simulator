@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { persistentBytes, persistentFiles } from '../src/app/assetSync';
-import { runAutoTest } from '../src/app/autoTest';
+import { runAutoTest, takeAutoTestStopped, toggleAutoTestStop } from '../src/app/autoTest';
 import { memoryDiary, parseDiary } from '../src/app/diary';
 import { defaultGameOptions } from '../src/app/newGame';
 import { balanceAnomalies, defaultStrategy, planRun, plateauNote, playbookForNewCity, type Diary, type DiaryEntry } from '../src/app/strategy';
@@ -25,6 +25,37 @@ describe('phone artwork copy', () => {
 });
 
 describe('auto test', () => {
+  it('stops after the week that is settling, and a second click keeps going', async () => {
+    const book = memoryDiary();
+    const stopped = new Sim({ ...defaultGameOptions(), seed: 7, citySize: 8, cityLayout: 'classic', era: '1932' });
+    let calls = 0;
+    const report = await runAutoTest(stopped, { weeks: 3, seed: 7, speed: 1, learn: false }, (current) => {
+      calls += 1;
+      if (calls === 1) {
+        expect(toggleAutoTestStop()).toBe(true);
+        expect(toggleAutoTestStop()).toBe(false);
+        expect(toggleAutoTestStop()).toBe(true);
+      }
+      current.launchWeek();
+      current.finishWeek();
+    }, book.sink);
+    expect(calls).toBe(1);
+    expect(takeAutoTestStopped()).toBe(true);
+    expect(report).toContain('Stopped after this week');
+    expect(stopped.world.phase).toBe('planning');
+
+    const kept = new Sim({ ...defaultGameOptions(), seed: 7, citySize: 8, cityLayout: 'classic', era: '1932' });
+    let more = 0;
+    await runAutoTest(kept, { weeks: 2, seed: 7, speed: 1, learn: false }, (current) => {
+      more += 1;
+      if (more === 1) { toggleAutoTestStop(); toggleAutoTestStop(); }
+      current.launchWeek();
+      current.finishWeek();
+    }, book.sink);
+    expect(more).toBe(2);
+    expect(takeAutoTestStopped()).toBe(false);
+  }, 120000);
+
   it('finishes two weeks on the small map and writes a report', async () => {
     const book = memoryDiary();
     const sim = smallCity();

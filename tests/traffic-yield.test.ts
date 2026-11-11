@@ -8,7 +8,7 @@ import { carsAt, crossingBlocked, FOLLOW_GAP, roadAheadRoom, tickTraffic, type C
 import { driveFrom, previewPosition, stepPerson } from '../src/sim/movement';
 
 const car = (over: Partial<Car>): Car => ({ axisX: true, line: 1, dir: 1, truck: false, speed: 1, s: 0, x: 0, y: CELL + LANE_OFFSET,
-  color: 0, halted: false, waited: 0, ...over });
+  color: 0, halted: false, waited: 0, id: 0, heading: 0, ...over });
 const context = (cars: Car[], drivers: TrafficContext['drivers'] = []): TrafficContext => {
   const carsByStreet = new Map<number, Car[]>();
   for (const c of cars) {

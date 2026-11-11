@@ -74,6 +74,10 @@ export interface Car {
   halted: boolean;
   /** How many minutes it has been stopped. */
   waited: number;
+  /** Stable timetable index. The paint job stays with the car, not the kerb it is passing. */
+  id: number;
+  /** Nose direction for this leg, in the renderer's yaw. Visual only. */
+  heading: number;
   /** The junction it drives to next: its middle, how far off its corner is, and the heading out of it. */
   junction?: { x: number; y: number; ahead: number; exit: number };
 }
@@ -451,9 +455,13 @@ export function carsAt(w: WorldState, time: number): Car[] {
     const head = drive.head[hi], axisX = (head & 1) === 0, dir: 1 | -1 = head < 2 ? 1 : -1;
     const j = drive.junction[hi], jp = j >= 0 ? g.points[j] : null;
     const exit = drive.head[hi + 1] ?? head;
+    const dx = drive.x[hi] - drive.x[lo], dy = drive.y[hi] - drive.y[lo];
+    const heading = dx * dx + dy * dy > 1e-8
+      ? -Math.atan2(dy, dx)
+      : (axisX ? (dir > 0 ? 0 : Math.PI) : dir > 0 ? -Math.PI / 2 : Math.PI / 2);
     cars.push({
       axisX, line: Math.round((axisX ? y : x) / CELL), dir, truck, speed: AMBIENT_SPEED, s: axisX ? x : y, x, y, color, halted,
-      waited: st.waited[k],
+      waited: st.waited[k], id: k, heading,
       junction: jp ? { x: jp.x, y: jp.y, ahead: drive.at[hi] - distance, exit } : undefined,
     });
   }

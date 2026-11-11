@@ -100,7 +100,7 @@ export async function playLesson(hooks: LessonHooks) {
         else {
           const candidate = Object.values(w.people).filter(p => p.role === role && p.gangId == null && p.status === 'active' && p.buildingId != null)
             .sort((a,b) => dist(a.pos, boss.pos) - dist(b.pos, boss.pos))[0];
-          if (candidate) await order(`Recruit at the ${role}'s workplace`, { type: 'recruit', buildingIds: [candidate.buildingId!] });
+          if (candidate) await order(`Recruit at the ${role}'s workplace`, { type: 'recruit', buildingIds: [candidate.buildingId!], opts: { recruitAs: role } });
         }
       }
       sim = hooks.sim(); w = sim.world; gang = sim.playerGang;

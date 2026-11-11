@@ -39,6 +39,7 @@ import type {
   Gang,
   ID,
   Order,
+  OrderOptions,
   OrderType,
   Person,
   Skills,
@@ -236,6 +237,7 @@ export function expandTargets(
   type: OrderType,
   blockIds: ID[],
   buildingIds: ID[],
+  opts?: Partial<OrderOptions>,
 ): ID[] {
   const def = ORDERS[type];
   if (def.target === 'building') return buildingIds.slice(0, 1);
@@ -250,7 +252,7 @@ export function expandTargets(
     if (!blk) continue;
     for (const b of buildingsOfBlock(w, blk)) {
       if (seen.has(b.id)) continue;
-      if (!isValidAreaTarget(w, gangId, type, b)) continue;
+      if (!isValidAreaTarget(w, gangId, type, b, opts)) continue;
       seen.add(b.id);
       out.push(b.id);
     }
@@ -263,6 +265,7 @@ export function isValidAreaTarget(
   gangId: ID,
   type: OrderType,
   b: Building,
+  opts?: Partial<OrderOptions>,
 ): boolean {
   if (b.state === 'destroyed') return false;
   switch (type) {
@@ -282,7 +285,7 @@ export function isValidAreaTarget(
     case 'explore':
       return b.cls !== 'empty';
     case 'recruit':
-      return !!typeOf(b)?.recruit;
+      return typeOf(b)?.recruit === (opts?.recruitAs ?? 'hood');
     case 'patrol':
     case 'ambush':
       return b.lotId >= 0;

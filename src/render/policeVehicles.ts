@@ -157,10 +157,15 @@ export function paddyWagonGeometry(fine: boolean): THREE.BufferGeometry {
 
 export type TrafficLivery = 'civilian' | 'police' | 'police-hero' | 'paddy' | 'truck';
 
-/** Which body a traffic car wears. Derived from where it is, not from the saved city. */
-export function trafficLivery(x: number, y: number, truck: boolean): TrafficLivery {
+/**
+ * Which body a traffic car wears. The timetable index keeps one car in one
+ * body for the whole drive. A paint job taken from the moving coordinates
+ * swapped sedan, wagon and civilian mesh every few metres.
+ * Callers that only have a place still get a stable answer from that place.
+ */
+export function trafficLivery(x: number, y: number, truck: boolean, id?: number): TrafficLivery {
   if (truck) return 'truck';
-  const n = Math.abs(Math.round(x * 3 + y * 7));
+  const n = Math.abs(Math.round(id == null ? x * 3 + y * 7 : id * 17 + 3));
   if (n % 9 !== 0) return 'civilian';
   if (n % 45 === 0) return 'paddy';
   if (n % 23 === 0) return 'police-hero';

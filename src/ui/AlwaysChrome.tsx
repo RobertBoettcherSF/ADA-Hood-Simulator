@@ -6,7 +6,7 @@ import { Modal } from './common';
 import { InterfaceButton } from './InterfaceControls';
 import './interface.css';
 import { recordAction } from '../app/actionLog';
-import { runAutoTest, campaignOf, type AutoTestSettings } from '../app/autoTest';
+import { runAutoTest, campaignOf, autoTestRunState, onAutoTestRun, takeAutoTestStopped, toggleAutoTestStop, type AutoTestSettings } from '../app/autoTest';
 import { folderDiary } from '../app/diary';
 import { campaignLabel, isDefaultCampaign } from '../app/strategy';
 import { installCrashReports, noteAutoTestStopped, setReportWish, setReportWorld, writeDebugReport } from '../app/debugReport';
@@ -93,6 +93,7 @@ export function AlwaysChrome() {
       <InterfaceButton label="Debug report" glyph="✎" caption={busy ? 'Writing' : 'Debug'} disabled={busy}
         title="Debug — write a report of this session (F9)"
         onClick={() => { setAutoOpen(false); setAsking(true); }} />
+      <StopAutoTest />
       {asking && (
         <Modal title="Debug report" kicker="09 Reports" onClose={() => setAsking(false)} width={480}
           footer={<>
@@ -153,6 +154,7 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
     setRunning(true);
     try {
       await runAutoTest(current, settings, () => useGame.getState().endWeekNow());
+      if (takeAutoTestStopped() && useGame.getState().sim?.world.phase === 'planning') useGame.getState().setTab('lieutenants');
       useGame.getState().notify('Auto test report written to 09 Reports.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Auto test failed.';
@@ -206,6 +208,27 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
         </Modal>
       )}
     </span>
+  );
+}
+
+/** Below Debug. Lit while a test runs. One click stops after the week now settling; the next click takes that back. */
+function StopAutoTest() {
+  const [state, setState] = useState(autoTestRunState);
+  useEffect(() => onAutoTestRun(() => setState(autoTestRunState())), []);
+  const stopping = state.running && state.stopping;
+  return (
+    <>
+      <InterfaceButton
+        label={stopping ? 'Stopping after this week' : 'Stop Auto Test'}
+        glyph={stopping ? '↩' : '■'}
+        caption={stopping ? 'Stopping' : 'Stop'}
+        aria-pressed={state.running}
+        disabled={!state.running}
+        title={stopping ? 'Stopping after this week. Click again to keep going.' : 'Stop Auto Test when the week now settling is done. Click again before then to cancel.'}
+        onClick={() => toggleAutoTestStop()}
+      />
+      {stopping && <p className="always-note" role="status">Stopping after this week</p>}
+    </>
   );
 }
 
