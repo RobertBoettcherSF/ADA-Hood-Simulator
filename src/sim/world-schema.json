@@ -5714,6 +5714,32 @@
           }
         ],
         [
+          "recruitHintId",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "emptyRecruitIds",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "ref": "T3"
+                }
+              ]
+            }
+          }
+        ],
+        [
           "isStreetOrder",
           {
             "optional": false,

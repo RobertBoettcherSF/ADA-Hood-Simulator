@@ -186,7 +186,10 @@ export function streetRouteNodes(w: WorldState, from: Vec2, to: Vec2, zig = fals
   const route = [g.points[end]];
   for (let at = end; at !== start;) { at = previous[at]; route.push(g.points[at]); }
   route.reverse();
-  if (g.paths.size >= 4096) g.paths.delete(g.paths.keys().next().value!);
+  // 40×32 has about 1,350 junctions; 4,096 pair-and-style keys were not
+  // enough and the queue kept recomputing the same short errands. 65,536
+  // covers a week of local wandering (about 25 MB at the longest routes).
+  if (g.paths.size >= 65536) g.paths.delete(g.paths.keys().next().value!);
   g.paths.set(key, route);
   return route;
 }

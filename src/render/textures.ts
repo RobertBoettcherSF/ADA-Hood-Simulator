@@ -12,7 +12,7 @@
 
 import * as THREE from 'three';
 import { noteAssetLoad } from '../app/assetTiming';
-import { assetUrl } from '../app/assetCache';
+import { assetUrl, enqueueAssetLoad } from '../app/assetCache';
 import { BUILDING_TYPES } from '../sim/data/buildings';
 import { TILE_BAYS, TILE_STOREYS, mulberry32 } from './util';
 
@@ -806,29 +806,52 @@ const FACADE_FILES: Record<string, string> = {
 const SIGN_FILES = ['sign-green', 'sign-oxblood', 'sign-navy', 'sign-walnut', 'sign-olive', 'sign-plum'];
 
 function loadTexture(file: string, repeat = true): Promise<THREE.Texture | null> {
-  const started = performance.now();
-  return new THREE.TextureLoader()
-    .loadAsync(cityFile(file))
-    .then((t) => {
+  return enqueueAssetLoad(async () => {
+    const started = performance.now();
+    try {
+      const t = await new THREE.TextureLoader().loadAsync(cityFile(file));
       noteAssetLoad(file, performance.now() - started, true);
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = 8;
       t.wrapS = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
       t.wrapT = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
       return t;
-    })
-    .catch(() => { noteAssetLoad(file, performance.now() - started, false); return null; });
+    } catch {
+      noteAssetLoad(file, performance.now() - started, false);
+      return null;
+    }
+  });
 }
 
 function loadImageFile(file: string): Promise<HTMLImageElement | null> {
-  const started = performance.now();
-  return new Promise((resolve) => {
+  return enqueueAssetLoad(() => new Promise((resolve) => {
+    const started = performance.now();
     const img = new Image();
     img.onload = () => { noteAssetLoad(file, performance.now() - started, true); resolve(img); };
     img.onerror = () => { noteAssetLoad(file, performance.now() - started, false); resolve(null); };
     img.src = cityFile(file);
-  });
+  }));
 }
+
+/** Street surfaces and facades the camera needs first, then signs and extras. */
+export const CITY_ART_FIRST_FILES = [
+  'pavement.jpg',
+  'kerb.jpg',
+  'plinth.jpg',
+  'roof-asphalt.jpg',
+  'storefront.jpg',
+  'storefront-lit.png',
+  ...Object.values(FACADE_FILES).flatMap((stem) => [`${stem}.jpg`, `${stem}-lit.png`]),
+];
+
+export const CITY_ART_LATER_FILES = [
+  'awning.png',
+  'sawtooth-glazing.jpg',
+  'road-asphalt.jpg',
+  ...SIGN_FILES.map((file) => `${file}.jpg`),
+  'sign-civic.jpg',
+  'sign-industrial.jpg',
+];
 
 async function loadPair(stem: string, ext: string): Promise<{ map: THREE.Texture; lights: THREE.Texture } | null> {
   const [map, lights] = await Promise.all([loadTexture(`${stem}.${ext}`), loadTexture(`${stem}-lit.png`)]);
@@ -845,7 +868,9 @@ let artLoading: Promise<CityArt> | null = null;
 export function loadCityArt(): Promise<CityArt> {
   if (artLoading) return artLoading;
   artLoading = (async () => {
-    const [facades, roof, storefront, plinth, pavement, kerb, awning, sawtooth, road, ...boards] = await Promise.all([
+    // Queue the street and facade files first so they take the first slots.
+    // The later files join the same queue and start as those slots free.
+    const first = Promise.all([
       Promise.all(FACADE_PALETTES.map((p) => p.name === 'church' ? Promise.resolve(null)
         : loadPair(FACADE_FILES[p.name] ?? p.name, 'jpg'))),
       loadTexture('roof-asphalt.jpg'),
@@ -853,6 +878,8 @@ export function loadCityArt(): Promise<CityArt> {
       loadTexture('plinth.jpg'),
       loadTexture('pavement.jpg'),
       loadTexture('kerb.jpg'),
+    ]);
+    const later = Promise.all([
       loadTexture('awning.png'),
       loadTexture('sawtooth-glazing.jpg'),
       loadImageFile('road-asphalt.jpg'),
@@ -860,6 +887,7 @@ export function loadCityArt(): Promise<CityArt> {
       loadImageFile('sign-civic.jpg'),
       loadImageFile('sign-industrial.jpg'),
     ]);
+    const [[facades, roof, storefront, plinth, pavement, kerb], [awning, sawtooth, road, ...boards]] = await Promise.all([first, later]);
     const styles = boards.slice(0, SIGN_FILES.length) as (HTMLImageElement | null)[];
     const civic = boards[SIGN_FILES.length] as HTMLImageElement | null;
     const industrial = boards[SIGN_FILES.length + 1] as HTMLImageElement | null;

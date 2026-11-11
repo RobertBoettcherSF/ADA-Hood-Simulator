@@ -152,6 +152,8 @@ describe('planned orders produce real gameplay outcomes', () => {
     expect(Object.values(s.w.people).some(p => p.gangId == null && p.buildingId === ownerOnly.id && p.role !== 'hood')).toBe(true);
     const order = run(s, { type: 'recruit', buildingIds: [empty.id] });
     expect(order.results.join(' ')).toContain(`people looking for work at ${placeName(s.w, tipped)}`);
+    expect(order.recruitHintId).toBe(tipped.id);
+    expect(order.emptyRecruitIds).toEqual([empty.id]);
   });
 
   // Bribes and intimidation are real rolls that a skilled crew can still lose;

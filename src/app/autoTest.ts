@@ -4,7 +4,7 @@
  * city's random stream until the week itself runs.
  */
 import { lastSavedBytes, utf8Length } from './save';
-import { noteAutoTestRunning, noteAutoTestStopped, noteLastAutoTest, writeReportFile } from './debugReport';
+import { clearWeekHeaps, noteAutoTestRunning, noteAutoTestStopped, noteLastAutoTest, noteWeekHeap, writeReportFile } from './debugReport';
 
 let autoTestRunning = false;
 let stopAfterThisWeek = false;
@@ -86,23 +86,76 @@ export interface AutoTestWeek {
   standings: string;
   ms: number;
   saveBytes: number;
+  /** Used and reserved heap in bytes, when Chrome reports them. */
+  heapUsed?: number;
+  heapTotal?: number;
 }
 
 const UNTIL_END_CAP = 40;
 
 /**
- * Share of the browser's JavaScript memory limit at which Auto Test stops
- * between weeks. Measured on the larger of used and reserved heap: a healthy
- * 20-week run in Chrome reserves under a fifth of the limit.
+ * Used-heap share that first triggers a pause so the browser can collect
+ * garbage. Auto Test only stops if the used share is still at least
+ * MEMORY_STOP_SHARE after that pause.
  */
-export const MEMORY_STOP_SHARE = 0.6;
+export const MEMORY_CHECK_SHARE = 0.6;
+/** Used-heap share of the tab's limit at which Auto Test stops after a pause. */
+export const MEMORY_STOP_SHARE = 0.8;
+/** Idle time given to the browser's garbage collector before the second check. */
+export const MEMORY_YIELD_MS = 3000;
+
+export interface HeapFigures {
+  used: number;
+  total: number;
+  limit: number;
+}
+
 let memoryStopped = false;
 
-/** The browser's heap figures, where it reports them (Chrome). */
-export function heapShare(): number | null {
-  const memory = (globalThis.performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } } | undefined)?.memory;
+type ChromeMemory = { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number };
+
+function chromeMemory(): ChromeMemory | undefined {
+  return (globalThis.performance as Performance & { memory?: ChromeMemory } | undefined)?.memory;
+}
+
+/** Chrome's heap figures, where it reports them. */
+export function readHeap(): HeapFigures | null {
+  const memory = chromeMemory();
   if (!memory || !memory.jsHeapSizeLimit) return null;
-  return Math.max(memory.usedJSHeapSize, memory.totalJSHeapSize || 0) / memory.jsHeapSizeLimit;
+  return { used: memory.usedJSHeapSize, total: memory.totalJSHeapSize || 0, limit: memory.jsHeapSizeLimit };
+}
+
+/** Used heap as a share of the tab's limit. Reserved heap is ignored. */
+export function heapShare(): number | null {
+  const heap = readHeap();
+  return heap ? heap.used / heap.limit : null;
+}
+
+export function formatHeapMb(heap: Pick<HeapFigures, 'used' | 'total'>): string {
+  return `${Math.round(heap.used / 1048576)}/${Math.round(heap.total / 1048576)} MB`;
+}
+
+function yieldIdle(ms: number): Promise<void> {
+  if (ms <= 0) return Promise.resolve();
+  return new Promise((resolve) => {
+    const until = Date.now() + ms;
+    const tick = () => { if (Date.now() >= until) resolve(); else setTimeout(tick, 250); };
+    setTimeout(tick, Math.min(250, ms));
+  });
+}
+
+/**
+ * If used heap is at least MEMORY_CHECK_SHARE of the limit, yield so garbage
+ * can be collected, then stop only if used heap is still at least
+ * MEMORY_STOP_SHARE of the limit.
+ */
+export async function checkMemoryStop(yieldMs = MEMORY_YIELD_MS): Promise<{ stop: boolean; heap: HeapFigures | null }> {
+  const first = readHeap();
+  if (!first) return { stop: false, heap: null };
+  if (first.used / first.limit < MEMORY_CHECK_SHARE) return { stop: false, heap: first };
+  await yieldIdle(yieldMs);
+  const after = readHeap() ?? first;
+  return { stop: after.used / after.limit >= MEMORY_STOP_SHARE, heap: after };
 }
 
 /** True once, after a run that stopped because memory was nearly full. */
@@ -110,6 +163,59 @@ export function takeAutoTestMemoryStop(): boolean {
   const was = memoryStopped;
   memoryStopped = false;
   return was;
+}
+
+/** Weeks a recruiting venue is skipped after a crew found nobody there. */
+export const EMPTY_VENUE_SKIP_WEEKS = 4;
+
+export interface RecruitMemory {
+  hintIds: number[];
+  /** Building id → first week the venue may be tried again. */
+  emptyUntil: Map<number, number>;
+}
+
+export function newRecruitMemory(): RecruitMemory {
+  return { hintIds: [], emptyUntil: new Map() };
+}
+
+let recruitMemory = newRecruitMemory();
+
+/** Prefer last week's "looking for work" tip; skip venues that just came up empty. */
+export function chooseHoodRecruitSites<T extends { id: number }>(
+  sites: T[],
+  memory: RecruitMemory = recruitMemory,
+  week = 0,
+): T[] {
+  const open = (site: T) => (memory.emptyUntil.get(site.id) ?? 0) <= week;
+  const hinted: T[] = [];
+  const seen = new Set<number>();
+  for (const id of memory.hintIds) {
+    const site = sites.find((entry) => entry.id === id);
+    if (!site || seen.has(id) || !open(site)) continue;
+    hinted.push(site);
+    seen.add(id);
+  }
+  const rest = sites.filter((site) => !seen.has(site.id) && open(site));
+  const picked = [...hinted, ...rest];
+  // If every known venue is still cooling down, try them anyway rather than hiring nowhere.
+  return picked.length ? picked : sites;
+}
+
+export function rememberRecruitResults(
+  orders: { type: string; recruitHintId?: number | null; emptyRecruitIds?: number[] }[],
+  week: number,
+  memory: RecruitMemory = recruitMemory,
+): void {
+  for (const order of orders) {
+    if (order.type !== 'recruit') continue;
+    if (order.recruitHintId != null) {
+      memory.hintIds = [order.recruitHintId, ...memory.hintIds.filter((id) => id !== order.recruitHintId)];
+    }
+    for (const id of order.emptyRecruitIds ?? []) {
+      memory.emptyUntil.set(id, week + EMPTY_VENUE_SKIP_WEEKS);
+      memory.hintIds = memory.hintIds.filter((hint) => hint !== id);
+    }
+  }
 }
 
 function hqCenter(w: Sim['world'], gangId: number): { x: number; y: number } {
@@ -269,7 +375,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
 
   const origin = hqCenter(w, gang.id);
   const nearer = (a: { lotId: number }, b: { lotId: number }) => dist(w.lots[a.lotId].center, origin) - dist(w.lots[b.lotId].center, origin);
-  const hoodSites = buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood' && b.state !== 'destroyed').sort(nearer);
+  const hoodSites = chooseHoodRecruitSites(
+    buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood' && b.state !== 'destroyed').sort(nearer),
+    recruitMemory,
+    w.week,
+  );
 
   const hq = buildingList(w).find((b) => b.isHQ && b.ownerGangId === gang.id);
   if (w.week >= 2 && gangManpower(w, gang) >= 8 && hq) {
@@ -338,6 +448,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         // Two sites at most, with two men: a longer list ran out of week before the last door.
         const count = Math.min(2, Math.max(1, Math.round(1 + weight.hiring)));
         const team = freest();
+        if (recruitMemory.hintIds.includes(hoodSites[0].id)) {
+          actions.push('NOTE recruit following last week\'s tip');
+        }
         give('recruit', team, { type: 'recruit', buildingIds: hoodSites.slice(0, count).map((b) => b.id), opts: { manpower: team ? manpowerFor(team, 2) : 1 } });
       } else if (hoodSites.length === 0) {
         actions.push('NOTE no hoods standing at a hiring place');
@@ -489,7 +602,8 @@ function reportText(parts: {
   ];
   if (!parts.weeks.length) lines.push('(no week finished)');
   for (const week of parts.weeks) {
-    lines.push(`Week ${week.week}: cash ${week.cash} men ${week.men} territory ${week.territory} heat ${week.heat} buildings ${week.buildings} suspicion ${week.suspicion} end-week ${week.ms} ms save ${week.saveBytes} bytes`);
+    const heap = week.heapUsed != null && week.heapTotal != null ? ` heap ${formatHeapMb({ used: week.heapUsed, total: week.heapTotal })}` : '';
+    lines.push(`Week ${week.week}: cash ${week.cash} men ${week.men} territory ${week.territory} heat ${week.heat} buildings ${week.buildings} suspicion ${week.suspicion} end-week ${week.ms} ms save ${week.saveBytes} bytes${heap}`);
     lines.push(`  ${week.standings}`);
   }
   lines.push('', 'Actions');
@@ -507,6 +621,8 @@ function reportText(parts: {
 
 /** Run the bot, append the diary, then write 09 Reports. Returns the report text either way. */
 export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: (sim: Sim) => Promise<void> | void, sink: DiarySink = folderDiary()): Promise<string> {
+  recruitMemory = newRecruitMemory();
+  clearWeekHeaps();
   noteAutoTestRunning(
     `seed ${settings.seed} learn ${settings.learn === false ? 'off' : 'on'}`,
     settings.weeks == null ? 'until victory or loss' : `${settings.weeks} weeks`,
@@ -564,7 +680,20 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       notes.push('End Week returned while the week was still running.');
       break;
     }
-    weeks.push(snapshot(sim, ms));
+    const weekSnap = snapshot(sim, ms);
+    // The week is saved by now. Pause if used heap looks high, then stop
+    // only if it is still above 80% of the limit after garbage collection.
+    const memory = await checkMemoryStop();
+    if (memory.heap) {
+      weekSnap.heapUsed = memory.heap.used;
+      weekSnap.heapTotal = memory.heap.total;
+      noteWeekHeap(weekSnap.week, memory.heap.used, memory.heap.total);
+    }
+    weeks.push(weekSnap);
+    rememberRecruitResults(
+      sim.world.lastWeekOrders.filter((order) => order.gangId === sim.playerGang.id),
+      sim.world.week,
+    );
     for (const order of sim.world.lastWeekOrders) {
       if (order.gangId !== sim.playerGang.id || order.type !== 'recruit') continue;
       const reason = order.failReason || order.results.join(' ');
@@ -576,12 +705,11 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     if (flatRecruit >= 2) notes.push(`Stuck: men stayed ${men} and the pool stayed empty for ${flatRecruit} weeks.`);
     if (phase === 'gameOver') break;
     if (settings.weeks == null && sim.world.outcome) break;
-    // The week is saved by now. Stop before the tab runs out of memory.
-    const share = heapShare();
-    if (share != null && share >= MEMORY_STOP_SHARE) {
+    if (memory.stop && memory.heap) {
       memoryStopped = true;
       stoppedThisRun = true;
-      notes.push(`Stopped: the browser's memory was ${Math.round(share * 100)}% full after week ${sim.world.week - 1}. The city is saved; reload the page before running more weeks.`);
+      const share = memory.heap.used / memory.heap.limit;
+      notes.push(`Stopped: the browser's memory was ${Math.round(share * 100)}% full after week ${sim.world.week - 1} (used ${formatHeapMb(memory.heap)}). The city is saved; reload the page before running more weeks.`);
       break;
     }
     if (stopAfterThisWeek) { stoppedThisRun = true; notes.push('Stopped after this week. The desk is yours.'); break; }

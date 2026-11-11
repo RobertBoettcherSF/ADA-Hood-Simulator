@@ -53,6 +53,19 @@ export interface LastAutoTest {
 
 let lastAutoTest: LastAutoTest | null = null;
 
+const weekHeaps: { week: number; used: number; total: number }[] = [];
+
+/** Start of an Auto Test run: drop the previous run's weekly heap lines. */
+export function clearWeekHeaps(): void {
+  weekHeaps.length = 0;
+}
+
+/** Used and reserved heap after a finished Auto Test week, in bytes. */
+export function noteWeekHeap(week: number, used: number, total: number): void {
+  weekHeaps.push({ week, used, total });
+  if (weekHeaps.length > 80) weekHeaps.shift();
+}
+
 type AutoTestSession =
   | { kind: 'none' }
   | { kind: 'running'; settings: string; weeks: string }
@@ -89,6 +102,7 @@ export function clearAutoTestSession(): void {
   autoTestSession = { kind: 'none' };
   lastAutoTest = null;
   autoplay.splice(0, autoplay.length);
+  weekHeaps.length = 0;
   persistAutoTest();
 }
 
@@ -168,6 +182,12 @@ export function buildDebugReport(world: WorldState | null, version: string, comm
   lines.push(`Graphics: ${resolvedGraphics(readLocalData().graphics)} (choice ${readLocalData().graphics})`);
   const heap = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
   if (heap) lines.push(`JS heap: ${Math.round(heap.usedJSHeapSize / 1048576)} / ${Math.round(heap.totalJSHeapSize / 1048576)} MB (counts garbage the browser has not collected yet)`);
+  if (weekHeaps.length) {
+    lines.push('Heap after each week (used / reserved)');
+    for (const entry of weekHeaps) {
+      lines.push(`Week ${entry.week}: ${Math.round(entry.used / 1048576)}/${Math.round(entry.total / 1048576)} MB`);
+    }
+  }
   if (typeof navigator !== 'undefined') {
     const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
     if (deviceMemory) lines.push(`Device memory: ${deviceMemory} GB`);

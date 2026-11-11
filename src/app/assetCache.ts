@@ -18,6 +18,39 @@ interface Manifest {
   files: AssetFile[];
 }
 
+/** In-flight network picture loads. Githack drops a page that asks for dozens at once. */
+export const ASSET_LOAD_CONCURRENCY = 6;
+/** Prefer a cached copy when the URL is unchanged. */
+export const ASSET_FETCH_CACHE: RequestCache = 'force-cache';
+
+let assetLoadsActive = 0;
+const assetLoadWait: Array<() => void> = [];
+
+/** Run a fetch or image load when a slot is free, in the order they were queued. */
+export function enqueueAssetLoad<T>(work: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const start = () => {
+      assetLoadsActive += 1;
+      work().then(resolve, reject).finally(() => {
+        assetLoadsActive -= 1;
+        const next = assetLoadWait.shift();
+        if (next) next();
+      });
+    };
+    if (assetLoadsActive < ASSET_LOAD_CONCURRENCY) start();
+    else assetLoadWait.push(start);
+  });
+}
+
+/** How many loads are running or waiting. Tests use this. */
+export function assetLoadBacklog(): { active: number; waiting: number } {
+  return { active: assetLoadsActive, waiting: assetLoadWait.length };
+}
+
+export function fetchAsset(url: string, init?: RequestInit): Promise<Response> {
+  return fetch(url, { cache: ASSET_FETCH_CACHE, ...init });
+}
+
 const cache = new Map<string, string>();
 const lru: { path: string; bytes: number }[] = [];
 let remembered = 0;
@@ -31,13 +64,14 @@ let manifestPromise: Promise<Manifest | null> | null = null;
 
 export function loadAssetManifest(): Promise<Manifest | null> {
   if (!manifestPromise) {
-    manifestPromise = fetch(`${import.meta.env.BASE_URL}asset-manifest.json`)
+    manifestPromise = fetchAsset(`${import.meta.env.BASE_URL}asset-manifest.json`)
       .then((response) => response.ok ? response.json() as Promise<Manifest> : null)
       .catch(() => null);
   }
   return manifestPromise;
 }
 
+/** A stable URL: no cache-busting query string, so the browser can reuse the file. */
 export function assetUrl(path: string): string {
   return cache.get(path) ?? `${import.meta.env.BASE_URL}${path}`;
 }
