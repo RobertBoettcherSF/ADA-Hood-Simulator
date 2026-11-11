@@ -12,7 +12,7 @@ import { onRoad } from '../src/sim/vehicleNavigation';
 import { buildingDoor, dist } from '../src/sim/world';
 
 function fixture() {
-  const sim = new Sim({ ...defaultGameOptions(), seed: 404, citySize: 10, startMoney: 500_000 });
+  const sim = new Sim({ ...defaultGameOptions(), seed: 405, citySize: 10, startMoney: 500_000 });
   const w = sim.world, gang = sim.playerGang;
   // Separate unrelated AI orders from the action under test, without modifying movement/rolls.
   w.orders = {}; w.specialistJobs = {};

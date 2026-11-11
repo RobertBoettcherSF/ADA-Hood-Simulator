@@ -18,9 +18,13 @@ import { Sim } from '../src/sim/sim';
  * recruit order, so Auto Test can follow the tip. A two-week Friday that
  * includes an AI recruit order now lists those fields, and both hashes change.
  * The 1.2.15 walking work keeps this same canonical hash.
+ *
+ * 1.2.16 rolls recruits from the hood-generation types (a different random
+ * draw for every hood), reprices empty land, charges running costs on closed
+ * sites and lowers land value per crime, so both hashes change again.
  */
-const TWO_WEEKS = 'd2144b280522ce609b3f8c955808f26402bf4cbf16afea657713d13bc10f03b6';
-const TWO_WEEKS_CANONICAL = 'bf088cf9d88034dea7b799dd86d14101b88e21f1ff0088e4e86eca62d8c6a97f';
+const TWO_WEEKS = '61c8cf1c6a78e0288affcc7d32a15b124e8de6a5c868e8596206fca635186185';
+const TWO_WEEKS_CANONICAL = '291bd835eb247a23bee86f7db03d267695247d80264472ff69d26f917ec03e35';
 
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map((item) => (item === undefined ? null : canonical(item)));
