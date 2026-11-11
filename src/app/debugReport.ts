@@ -174,6 +174,10 @@ async function writeCrashReport(): Promise<void> {
   await saveReport(`crash-${stamp()}.txt`, text, false);
 }
 
+export async function writeReportFile(filename: string, text: string): Promise<void> {
+  await saveReport(filename, text, true);
+}
+
 async function saveReport(filename: string, text: string, alwaysDownload: boolean): Promise<void> {
   const store = activeWorldStore();
   let wrote = false;

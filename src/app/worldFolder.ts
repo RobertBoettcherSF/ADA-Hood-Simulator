@@ -16,6 +16,7 @@ export interface WorldStore {
   write(name: string, body: string): Promise<void>;
   readBytes(name: string): Promise<Uint8Array | null>;
   writeBytes(name: string, body: Uint8Array): Promise<void>;
+  remove(name: string): Promise<void>;
   writeReport(filename: string, body: string): Promise<void>;
   exists(name: string): Promise<boolean>;
 }
@@ -104,6 +105,7 @@ export async function resumeDirectoryAfterGesture(): Promise<WorldStore | null> 
 }
 
 export function downloadText(filename: string, body: string): void {
+  if (typeof document === 'undefined') return;
   const blob = new Blob([body], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -136,6 +138,7 @@ function directoryStore(handle: DirHandle): WorldStore {
     write: (name, body) => writeNamed(handle, name, body),
     readBytes: (name) => readBytesNamed(handle, name),
     writeBytes: (name, body) => writeBytesNamed(handle, name, body),
+    remove: (name) => removeNamed(handle, name),
     writeReport: (filename, body) => writeIn(handle, REPORTS_DIR, filename, body),
     exists: (name) => fileExists(handle, name),
   };
@@ -152,6 +155,7 @@ async function opfsStore(): Promise<WorldStore | null> {
     write: (name, body) => writeNamed(handle, name, body),
     readBytes: (name) => readBytesNamed(handle, name),
     writeBytes: (name, body) => writeBytesNamed(handle, name, body),
+    remove: (name) => removeNamed(handle, name),
     writeReport: (filename, body) => writeIn(handle, REPORTS_DIR, filename, body),
     exists: (name) => fileExists(handle, name),
   };
@@ -165,6 +169,7 @@ async function idbStore(): Promise<WorldStore> {
     write: (name, body) => idbPut(name, body),
     readBytes: (name) => idbGetBytes(name),
     writeBytes: (name, body) => idbPutBytes(name, body),
+    remove: (name) => idbDelete(name),
     writeReport: (filename, body) => idbPut(`${REPORTS_DIR}/${filename}`, body),
     exists: async (name) => (await idbGet(name)) != null || (await idbGetBytes(name)) != null,
   };
@@ -217,6 +222,13 @@ async function writeBytesNamed(dir: DirHandle, name: string, body: string | Uint
   const payload = typeof body === 'string' ? body : new Blob([new Uint8Array(body)]);
   await writer.write(payload);
   await writer.close();
+}
+
+async function removeNamed(dir: DirHandle, name: string): Promise<void> {
+  try {
+    const { dir: folder, file } = await nestedDir(dir, name, false);
+    await (folder as DirHandle & { removeEntry(name: string): Promise<void> }).removeEntry(file);
+  } catch { /* already gone */ }
 }
 
 async function writeIn(dir: DirHandle, folder: string, name: string, body: string): Promise<void> {
@@ -278,6 +290,22 @@ async function idbPutBytes(key: string, body: Uint8Array): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction('files', 'readwrite');
       tx.objectStore('files').put(copy.buffer, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function idbDelete(key: string): Promise<void> {
+  const db = await openDb(FILE_DB, 1, (database) => {
+    if (!database.objectStoreNames.contains('files')) database.createObjectStore('files');
+  });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('files', 'readwrite');
+      tx.objectStore('files').delete(key);
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });

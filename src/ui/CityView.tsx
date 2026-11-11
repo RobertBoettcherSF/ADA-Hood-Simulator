@@ -35,6 +35,7 @@ export function CityView() {
   const readyForInput = useRef(false);
   const [cityStatus, setCityStatus] = useState<'opening' | 'ready' | 'failed'>('opening');
   const [openingMessage, setOpeningMessage] = useState('Preparing the city…');
+  const [loadPercent, setLoadPercent] = useState(8);
   const [renderAttempt, setRenderAttempt] = useState(0);
   const dragging = useRef(false);
   const dragMoved = useRef(false);
@@ -53,6 +54,7 @@ export function CityView() {
     if (!canvasRef.current || !sim) return;
     readyForInput.current = false;
     setCityStatus('opening');
+    setLoadPercent(12);
     const canvas = canvasRef.current;
     let alive = true;
     let ownedRenderer: CityRenderer | null = null;
@@ -64,6 +66,7 @@ export function CityView() {
       const renderer = await CityRenderer.create(canvas, sim.world,
         () => alive && useGame.getState().sim === sim);
       if (!renderer) return;
+      setLoadPercent(70);
       ownedRenderer = renderer;
       rendererRef.current = renderer;
       cameraApi.ref = renderer;
@@ -254,6 +257,7 @@ export function CityView() {
         // planning desk to close the streets, and would wait on its card forever.
         if (!readyForInput.current || state.streetLoading && s.world.phase === 'week') {
           readyForInput.current = true;
+          setLoadPercent(100);
           setCityStatus('ready');
           if (s.world.phase === 'week') useGame.getState().setStreetLoading(false);
         }
@@ -436,6 +440,7 @@ export function CityView() {
     />
     {showStreetLoading ? <StreetLoading
       demo={attract}
+      percent={loadPercent}
       message={sim?.world.phase === 'planning' ? 'Saving your orders and getting the week ready…' : openingMessage}
       failed={cityStatus === 'failed'} onRetry={() => setRenderAttempt(n => n + 1)} onExit={() => useGame.getState().setScreen('menu')} /> :
     cityStatus !== 'ready' && <div className="city-opening">
