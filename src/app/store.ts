@@ -14,6 +14,7 @@ import { recordAction } from './actionLog';
 import { resetSystemTimings } from '../sim/simTimings';
 import type { GraphicsChoice } from './localData';
 import { patchLocalData, readLocalData } from './localData';
+import { stampRivalPlaybook } from './diary';
 import { activeWorldStore, livingCityOnFile } from './worldFolder';
 import type { GameOptions, ID, MessageCategory, OrderOptions, OrderType, SpecialistJob, Vec2 } from '../sim/types';
 import { specialistTargetEligible } from '../sim/specialistJobs';
@@ -355,7 +356,11 @@ export const useGame = create<GameState>((set, get) => ({
   startGame: (options) => {
     get().cancelLoad();
     if (livingCityOnFile() && typeof window !== 'undefined' && !window.confirm('Start a new city in this folder? The city already here will be replaced when the new one is saved.')) return;
+    void (async () => {
     const sim = new Sim({ ...options, era: '1932' });
+    if (options.tutorialId == null && options.scenarioId == null) {
+      try { await stampRivalPlaybook(sim.world); } catch { /* a missing diary leaves rivals as they are */ }
+    }
     const player = sim.playerGang;
     set({
       ...freshWorldUi(),
@@ -370,6 +375,7 @@ export const useGame = create<GameState>((set, get) => ({
       attract: false,
     });
     if (activeWorldStore()) void get().autosave(true);
+    })();
   },
 
   // Attract mode (the original's demo, byte_7C0084): left idle on the menu, the

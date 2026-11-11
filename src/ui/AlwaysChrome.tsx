@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../app/store';
 import { recordAction } from '../app/actionLog';
-import { runAutoTest, type AutoTestSettings } from '../app/autoTest';
+import { runAutoTest, campaignOf, type AutoTestSettings } from '../app/autoTest';
+import { folderDiary } from '../app/diary';
+import { campaignLabel, isDefaultCampaign } from '../app/strategy';
 import { installCrashReports, setReportWish, setReportWorld, writeDebugReport } from '../app/debugReport';
 import { checkForUpdate, type UpdateOffer } from '../app/versionCheck';
 import { activeWorldStore } from '../app/worldFolder';
@@ -112,7 +114,9 @@ function AutoTest() {
   const [weeks, setWeeks] = useState(4);
   const [seed, setSeed] = useState(sim?.world.options.seed ?? 1932);
   const [speed, setSpeed] = useState(4);
+  const [learn, setLearn] = useState(true);
   const [running, setRunning] = useState(false);
+  const campaign = sim ? campaignOf(sim) : null;
   const start = async () => {
     const current = useGame.getState().sim;
     if (!current || running) return;
@@ -120,10 +124,10 @@ function AutoTest() {
       weeks: untilEnd ? null : Math.max(1, Math.round(weeks) || 1),
       seed: Math.round(seed) || current.world.options.seed,
       speed: Math.max(1, Math.round(speed) || 1),
+      learn,
     };
     setOpen(false);
     setRunning(true);
-    useGame.getState().setSpeed(settings.speed);
     try {
       await runAutoTest(current, settings, () => useGame.getState().endWeekNow());
       useGame.getState().notify('Auto test report written to 09 Reports.');
@@ -133,6 +137,11 @@ function AutoTest() {
       setRunning(false);
     }
   };
+  const resetDiary = async () => {
+    if (!window.confirm('Erase the auto-test diary? New games will stop learning from it.')) return;
+    await folderDiary().remove();
+    useGame.getState().notify('Auto test diary erased.');
+  };
   return (
     <span className="always-autoplay">
       <button type="button" className="always-debug" disabled={resolving || running} onClick={() => setOpen(true)}>
@@ -140,7 +149,11 @@ function AutoTest() {
       </button>
       {open && (
         <form className="always-update" role="dialog" aria-label="Auto Test" onSubmit={(event) => { event.preventDefault(); void start(); }}>
-          <p>A simulated player uses the same actions as the desk.</p>
+          <p>A simulated player uses the same actions as the desk. The diary learns the default campaign: normal opponents, normal economy, 40×32. This city is {campaign ? campaignLabel(campaign) : 'not open'}{campaign && isDefaultCampaign(campaign) ? ', the default.' : '. It is kept separate.'}</p>
+          <label>
+            <input type="checkbox" checked={learn} onChange={(event) => setLearn(event.target.checked)} />
+            Learn from diary
+          </label>
           <label>
             <input type="checkbox" checked={untilEnd} onChange={(event) => setUntilEnd(event.target.checked)} />
             Until victory or loss
@@ -158,9 +171,11 @@ function AutoTest() {
           <label>
             Speed
             <input type="number" min={1} max={10} value={speed} aria-label="Auto test speed" onChange={(event) => setSpeed(Number(event.target.value))} />
+            <span>Written on the report. The test runs flat out.</span>
           </label>
           <button type="submit">Start</button>
           <button type="button" onClick={() => setOpen(false)}>Cancel</button>
+          <button type="button" onClick={() => void resetDiary()}>Reset diary</button>
         </form>
       )}
     </span>

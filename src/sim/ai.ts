@@ -49,6 +49,7 @@ import {
 } from './world';
 import { peopleList } from './entityLists';
 import { quitGangPayroll } from './payrollMark';
+import { applyRivalPlaybook } from './rivalPlaybook';
 
 /** Blocks within `radius` of anywhere the gang already has a presence. */
 function homeBlocks(w: WorldState, gang: Gang, radius: number): Block[] {
@@ -278,6 +279,7 @@ export function planGang(w: WorldState, rng: Rng, gang: Gang, autopilot = false)
 
   manageProperty(w, rng, gang, teams.map((t) => t.id));
   if (autopilot) issueRemainingHumanOrders(w, gang);
+  if (!gang.isPlayer && w.rivalPlaybook) applyRivalPlaybook(w, gang);
 }
 
 /** Every order a human can give. Autoplay may issue any of them; rivals keep the planner above. */

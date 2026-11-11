@@ -869,11 +869,20 @@ export interface GameOptions {
   era?: '1932' | '2032';
 }
 
+/** Spending mix copied from the auto-test diary when a city is created.
+ * Absent on a city that was not given one. Rivals read it; nothing updates it later. */
+export interface RivalPlaybook {
+  weights: { hiring: number; rackets: number; bribes: number; buying: number; violence: number };
+  priority: ('hiring' | 'rackets' | 'bribes' | 'buying' | 'violence')[];
+}
+
 export interface WorldState {
   schemaVersion?: number;
   sequences: { message: number; crime: number; court: number };
   tutorialProgress?: { lessonId: number; completed: number[] };
   options: GameOptions;
+  /** Set once, at creation, from the default-campaign diary. Older cities omit it. */
+  rivalPlaybook?: RivalPlaybook;
   /** Player actions recorded during lessons; optional for older saves. */
   tutorialActions?: {
     weaponBought?: boolean;
