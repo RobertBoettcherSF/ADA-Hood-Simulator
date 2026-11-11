@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { dealTrack, tracksFor, type PoolTrack } from '../src/audio/musicPool';
+import { dealTrack, musicStatusLines, tracksFor, type PoolTrack } from '../src/audio/musicPool';
 import { streetActionHot } from '../src/audio/streetAction';
 import { presentAttack } from '../src/sim/presentationEvents';
 import type { Person, WorldState } from '../src/sim/types';
@@ -62,6 +62,15 @@ describe('music pool', () => {
       previous = dealt.previousId;
       bag = dealt.remaining;
     }
+  });
+});
+
+describe('music status', () => {
+  it('names the category and says when nothing is playing', () => {
+    const lines = musicStatusLines();
+    expect(lines[0]).toBe('Category: (none)');
+    expect(lines.join('\n')).toContain('Playing: no');
+    expect(lines.join('\n')).toContain('Error: (none)');
   });
 });
 

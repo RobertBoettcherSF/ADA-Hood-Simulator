@@ -7,6 +7,7 @@ import { readLocalData } from './localData';
 import { systemTimings } from '../sim/simTimings';
 import type { WorldState } from '../sim/types';
 import { gangManpower, money, territoryCount } from '../sim/world';
+import { musicStatusLines } from '../audio/musicPool';
 
 let wish = '';
 
@@ -171,6 +172,9 @@ export function buildDebugReport(world: WorldState | null, version: string, comm
     const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
     if (deviceMemory) lines.push(`Device memory: ${deviceMemory} GB`);
   }
+  lines.push('');
+  lines.push('Music');
+  for (const line of musicStatusLines()) lines.push(line);
   lines.push('');
   lines.push('Timings (ms)');
   if (!timings.length) lines.push('(none)');
