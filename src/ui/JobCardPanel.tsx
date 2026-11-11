@@ -12,6 +12,7 @@ import { crewPeople, orderStaffing, readyForPlanning } from '../sim/orderStaffin
 import { orderCashCost, spendableCash } from '../sim/orderCost';
 import { buildingName, buildingsOfBlock, money } from '../sim/world';
 import { Icon, Kicker, Rivets, Stars } from './common';
+import { preferredCrewLabel, preferredCrewOrder } from './preferredCrew';
 
 /** The job card occupies the journal page, leaving the map available for targets. */
 export function JobCardPanel() {
@@ -377,12 +378,11 @@ export function JobCardPanel() {
               <Kicker style={{ marginBottom: 6 }}>Send somebody in particular?</Kicker>
               <select aria-label="Preferred crew member" className="text-input" value={jc.opts.preferredHoodId ?? ''} onChange={(e) => updateOpts({ preferredHoodId: e.target.value ? Number(e.target.value) : null })}>
                 <option value="">Let the lieutenant choose</option>
-                {people
-                  .map((p) => (
-                    <option key={p.id} value={p.id} disabled={!readyForPlanning(w, p)}>
-                      {p.name}{!readyForPlanning(w, p) ? ' — unavailable' : ''}
-                    </option>
-                  ))}
+                {preferredCrewOrder(people, def.skills).map((p) => (
+                  <option key={p.id} value={p.id} disabled={!readyForPlanning(w, p)}>
+                    {preferredCrewLabel(p, def.skills)}{!readyForPlanning(w, p) ? ' — unavailable' : ''}
+                  </option>
+                ))}
               </select>
             </div>
           )}
