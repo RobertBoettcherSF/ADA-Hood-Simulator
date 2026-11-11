@@ -61,6 +61,8 @@ let lastError = '';
 let reelNode: HTMLAudioElement | null = null;
 
 const MEDIA_ERROR = ['', 'aborted', 'network', 'decode', 'source not supported'];
+/** Pauses before each fetch of a music file: now, then two retries. */
+const MEDIA_RETRY_MS = [0, 2000, 8000];
 
 function noteMusicError(message: string): void {
   lastError = message;
@@ -81,13 +83,30 @@ function formatMediaError(node: HTMLAudioElement | null | undefined): string {
 async function mediaUrl(src: string): Promise<string> {
   const cached = objectUrls.get(src);
   if (cached) return cached;
-  const response = await fetch(`${import.meta.env.BASE_URL}${src}`);
-  if (!response.ok) throw new Error(`HTTP ${response.status} for ${src}`);
-  const type = src.endsWith('.m4a') ? 'audio/mp4' : 'audio/mpeg';
-  const blob = new Blob([await response.arrayBuffer()], { type });
-  const url = URL.createObjectURL(blob);
-  objectUrls.set(src, url);
-  return url;
+  const direct = `${import.meta.env.BASE_URL}${src}`;
+  // Githack hands binary files on to raw.githubusercontent.com, which drops
+  // requests when a page asks for a lot at once ("Failed to fetch"). Try
+  // again after a pause before giving up on the track.
+  let failure: unknown = null;
+  for (const wait of MEDIA_RETRY_MS) {
+    if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
+    try {
+      const response = await fetch(direct);
+      if (!response.ok) throw new Error(`HTTP ${response.status} for ${src}`);
+      const type = src.endsWith('.m4a') ? 'audio/mp4' : 'audio/mpeg';
+      const blob = new Blob([await response.arrayBuffer()], { type });
+      const url = URL.createObjectURL(blob);
+      objectUrls.set(src, url);
+      if (lastError) lastError = '';
+      return url;
+    } catch (error) {
+      failure = error;
+    }
+  }
+  // GitHub now sends mp3 files as audio/mpeg, so the element can stream the
+  // file itself. Keep the reason for the debug report.
+  noteMusicError(`${failure instanceof Error ? failure.message : 'fetch failed'} (${src}); streaming it instead`);
+  return direct;
 }
 
 function watchNode(node: HTMLAudioElement): void {
@@ -180,7 +199,11 @@ export async function loadMusicPool(): Promise<PoolTrack[]> {
   if (!loading) {
     loading = (async () => {
       try {
-        const response = await fetch(`${import.meta.env.BASE_URL}audio/music-pool.json`);
+        let response = await fetch(`${import.meta.env.BASE_URL}audio/music-pool.json`).catch(() => null);
+        if (!response?.ok) {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          response = await fetch(`${import.meta.env.BASE_URL}audio/music-pool.json`);
+        }
         if (!response.ok) return tracks;
         const body = await response.json() as { tracks?: PoolTrack[] };
         tracks = (body.tracks ?? []).filter((track) => track.id && track.src);

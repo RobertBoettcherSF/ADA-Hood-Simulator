@@ -9,12 +9,12 @@ import { onRoad, vehiclePathOnRoad } from './vehicleNavigation';
 import { peopleList, buildingList } from './entityLists';
 
 type Shape = { ref?: string; type?: string; literal?: unknown; union?: Shape[];
-  array?: Shape; object?: Record<string, { optional: boolean; shape: Shape }>; values?: Shape };
-const defs: Record<string, Shape> = schema.defs;
+  array?: Shape; object?: [string, { optional: boolean; shape: Shape }][]; values?: Shape };
+const defs = schema.defs as unknown as Record<string, Shape>;
 export const SAVE_SCHEMA_VERSION = 2;
 
 type Failure = { path: string; message: string };
-type Property = NonNullable<Shape['object']>[string];
+type Property = NonNullable<Shape['object']>[number][1];
 const propertyEntries = new WeakMap<Shape, [string, Property][]>();
 // Union branches only need success/failure: their detailed errors are discarded.
 const invalidBranch: Failure = { path: '', message: '' };
@@ -24,7 +24,7 @@ function properties(shape: Shape): [string, Property][] {
   let entries = propertyEntries.get(shape);
   if (!entries) {
     // The generated schema is immutable during a page's lifetime.
-    entries = Object.entries(shape.object ?? {});
+    entries = shape.object ?? [];
     propertyEntries.set(shape, entries);
   }
   return entries;

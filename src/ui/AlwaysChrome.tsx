@@ -6,7 +6,7 @@ import { Modal } from './common';
 import { InterfaceButton } from './InterfaceControls';
 import './interface.css';
 import { recordAction } from '../app/actionLog';
-import { runAutoTest, campaignOf, autoTestRunState, onAutoTestRun, takeAutoTestStopped, toggleAutoTestStop, type AutoTestSettings } from '../app/autoTest';
+import { runAutoTest, campaignOf, autoTestRunState, onAutoTestRun, takeAutoTestStopped, takeAutoTestMemoryStop, toggleAutoTestStop, type AutoTestSettings } from '../app/autoTest';
 import { folderDiary } from '../app/diary';
 import { campaignLabel, isDefaultCampaign } from '../app/strategy';
 import { installCrashReports, noteAutoTestStopped, setReportWish, setReportWorld, writeDebugReport } from '../app/debugReport';
@@ -156,7 +156,8 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
     try {
       await runAutoTest(current, settings, () => useGame.getState().endWeekNow());
       if (takeAutoTestStopped() && useGame.getState().sim?.world.phase === 'planning') useGame.getState().setTab('lieutenants');
-      useGame.getState().notify('Auto test report written to 09 Reports.');
+      if (takeAutoTestMemoryStop()) useGame.getState().notify({ ok: false, error: 'Auto Test stopped: the browser is nearly out of memory. The city is saved and the report is in 09 Reports. Reload the page before running more weeks.' });
+      else useGame.getState().notify('Auto test report written to 09 Reports.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Auto test failed.';
       noteAutoTestStopped(message);

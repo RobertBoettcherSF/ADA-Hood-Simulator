@@ -126,8 +126,12 @@ let installed = false;
 /** Once a delivered tile has loaded, it takes over from the painted one. */
 function swapIn(root: CSSStyleDeclaration, variable: string, file: string): void {
   const src = art(file);
+  // A relative URL in a custom property resolves against the stylesheet that
+  // uses it (assets/), not the page, so the play/ build asked for
+  // assets/art/desk/… and got 404s. Hand the stylesheet an absolute URL.
+  const absolute = typeof document !== 'undefined' ? new URL(src, document.baseURI).href : src;
   loadImage(src)
-    .then(() => root.setProperty(variable, `url(${src})`))
+    .then(() => root.setProperty(variable, `url("${absolute}")`))
     .catch(() => {
       /* the painted material stays */
     });

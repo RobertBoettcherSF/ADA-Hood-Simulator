@@ -12,7 +12,7 @@ import { MINUTES_PER_SECOND } from './constants';
 import { CELL, LANE_OFFSET, MINUTES_PER_WEEK, STREET_WIDTH } from './constants';
 import { h2, r01, rint } from './hash';
 import { C as OC } from './originalCityGen';
-import type { Vec2, WorldState } from './types';
+import type { Person, Vec2, WorldState } from './types';
 import { peopleSlice } from './peopleSlices';
 import { peopleList } from './entityLists';
 
@@ -530,6 +530,32 @@ function scanStreets(w: WorldState, index = 0, count = 1): { crossings: Occupied
  * and scans everyone itself otherwise.
  */
 let slices: { world: WorldState; minute: number; count: number; parts: (ReturnType<typeof scanStreets> | undefined)[] } | null = null;
+
+/**
+ * The same scan, one person at a time, while the ambient walk has him in
+ * hand: a second pass over 8,000 people a minute cost more than the checks.
+ */
+export function streetScanCollector(w: WorldState): { part: ReturnType<typeof scanStreets>; add: (p: Person) => void } {
+  const part: ReturnType<typeof scanStreets> = { crossings: [], drivers: [] };
+  const add = (p: Person) => {
+    if (!p.dest || p.status !== 'active') return;
+    if (p.inVehicle) {
+      if (!p.vehicleKey || w.vehicleFleet?.[p.vehicleKey]?.driverId === p.id) part.drivers.push(p);
+      return;
+    }
+    const next = p.path[0];
+    if (!next?.cross) return;
+    const d = Math.hypot(next.x - p.pos.x, next.y - p.pos.y);
+    if (d < next.cross - 0.75) part.crossings.push(crossingOf(p.pos, next));
+  };
+  return { part, add };
+}
+
+export function storeStreetSlice(w: WorldState, index: number, count: number, part: ReturnType<typeof scanStreets>): void {
+  if (!slices || slices.world !== w || slices.minute !== w.minute || slices.count !== count)
+    slices = { world: w, minute: w.minute, count, parts: new Array(count) };
+  slices.parts[index] = part;
+}
 
 export function scanStreetSlice(w: WorldState, index: number, count: number): void {
   if (!slices || slices.world !== w || slices.minute !== w.minute || slices.count !== count)
