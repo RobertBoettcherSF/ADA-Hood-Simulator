@@ -54,7 +54,7 @@ export function StreetLoading({ message, failed, onRetry, onExit, demo = false, 
   return <DialogFrame title={title} onClose={demo ? endAttract : () => {}} width={460} className="street-loading">
     <div className="paper street-loading-card" onClick={demo ? () => endAttract() : undefined}>
       <Rivets />
-      <div className="kicker">{demo ? 'Demonstration' : 'New Temperance · Working week'}</div>
+      <div className="kicker">{demo ? 'Demonstration' : 'Saint Volstead · Working week'}</div>
       <h2>{title}</h2>
       {!failed && (
         <div className="loading-anim" data-anim-slot="street-loading" aria-hidden="true">

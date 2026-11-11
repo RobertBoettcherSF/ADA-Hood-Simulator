@@ -2,15 +2,15 @@
 
 This document describes the game as the code stands, and the shape of the browser game to build on top of it. It does not change any rules. The playable entry today is the repository root (`index.html` → `src/main.tsx`). This page is the design. Later, this page or the root `index.html` becomes the game the player opens.
 
-The setting in the code is New Temperance in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The city still needs a name from the owner.
+The setting in the code is Saint Volstead in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.6.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.7.
 
 ## Decisions
 
 The owner answered the open questions in §8. These decisions override anything later in this document that still describes the earlier proposal.
 
-1. **2032** is a pair of inert flags (`era` on the city, `ERA_2032_ENABLED` in `src/app/era.ts`). There is no 2032 content. A later merge can turn the flag on. The game that ships is New Temperance in 1932.
+1. **2032** is a pair of inert flags (`era` on the city, `ERA_2032_ENABLED` in `src/app/era.ts`). There is no 2032 content. A later merge can turn the flag on. The game that ships is Saint Volstead in 1932.
 2. The default map is the original 40×32 grid. New Game also offers a small test map, 8×8.
 3. End Week and autoplay run the existing minute-by-minute sim (`Sim.finishWeekSlice`) and do not mount the 3D city. One rule set. Autoplay may issue every order a person can give, then resolves that turn the same way. The default run is 4 weeks. The box accepts any whole number of weeks from 1 upward.
 4. One living world per folder, in the manner of Dwarf Fortress. The folder holds `world.json` (the city, which is also the current save) and `manifest.json`. The save keeps running in that folder.
@@ -102,6 +102,53 @@ The owner answered the open questions in §8. These decisions override anything 
 
 After the first week the clock stays near 21 seconds. The save stays near 13.7 MB and does not climb week after week. Robert's 1.2.4 run, with the old test player, rose from 20.7 s to 33.2 s; that rise is not repeated here.
 8. Police traffic is a black sedan with POLICE on the hood, a star and POLICE DEPT on the door, and a red roof lamp. One of those sedans has red wheel hubs. Arrests and a share of the police traffic use a black box wagon with POLICE PATROL on the side and bars on the rear glass. The phone mesh uses fewer wheel segments. They are drawn by the game, not stored as extra artwork, so a phone does not copy them. The reel's police shot aims at one of those sedans. Later-year two-tone Fords are not in this set.
+
+## v1.2.7 decisions
+
+1. The score follows the screen. The main menu picks one of four menu songs at random and loops it. The week planner shuffles six planner songs plus five general songs. The street shuffles six street songs plus the same five generals. A shuffle does not play the same song twice in a row. Every file is an `<audio>` element. None of them are in the artwork manifest, and none are copied into the city folder. Mute, the M key, and the Game Options music slider apply to every category.
+2. The five general songs are the previous pool under new names: Back Door Knock, Swing for the Alderman, Gin Joint Jitterbug, Curtain for Capone, and Last Round on the House. Smoky Night Order stays the reel theme and is not part of those shuffles.
+3. While a shootout, raid, or chase is happening on the street, the score crossfades to one of the six action songs and holds it. About ten seconds after that action ends, the street song that was paused comes back. A lesson returns to the tutorial pair instead. The check only reads orders and the presentation stream. It does not roll the city's random stream, and the seed-1934 hash is unchanged.
+4. The win paper picks one of the two win songs and loops it. The loss paper does the same with the two loss songs. Credits is a sheet on the main menu, not its own screen: opening it plays both credits songs back to back, and the pair repeats while the sheet stays open. Closing it returns to the menu loop. A running lesson loops the two tutorial songs. The tutorial list on the main menu stays on the menu song, because that list is still the menu.
+5. The loading reel loops Smoky Night Order only, so the cuts stay on that track's beats. When the theme ends it starts again. It does not draw the next song from the pool.
+6. When the song changes, a small "Now playing" line shows the title for a few seconds. It does not take clicks.
+7. The thirty new recordings were already 128 kb/s with no cover picture, so they were not re-encoded.
+8. Mute, the M key, and the music slider already covered the pool. They cover the new categories the same way, because every category is an `<audio>` element on that same mix.
+9. The city is Saint Volstead. That name replaces New Temperance in the game, the paper, the loading card, the title, the ending, and these notes. The credits song is Goodnight, Saint Volstead (`goodnight-saint-volstead`). The four papers are the Saint Volstead Herald, Post, Tribune, and Times.
+10. The title and the winning paper say 1932. A save with no seed recorded shows 1932, and the Wet Money scenario starts from seed 1932. The number 1928 remains only where it is a random seed in tests or a texture salt, not a calendar. The seed-1934 Friday hash changed because the city, paper, and park names are stored in the world: old `cf5f6b54291137135ea45ec2fb66a5d5025e130798495cd9ecfa219b8bd4cb4d`, new `12c150e7e5be1d35b52ebae02317c9efa0f57a79bb648def1defe7cb4dbbc16f`. Routes and the random stream were not retuned.
+11. Other names that came from the original game, and what they are now:
+
+| Old | New |
+| --- | --- |
+| New Temperance | Saint Volstead |
+| Temperance Park | Volstead Green |
+| Oak Square | Hinge Oak |
+| Lincoln Park | Lantern Park |
+| Riverside Gardens | Cinder Gardens |
+| Temperance Ave | Volstead Ave |
+| New Temperance Herald, Post, Tribune, Times | Saint Volstead Herald, Post, Tribune, Times |
+| Goodnight, New Temperance | Goodnight, Saint Volstead |
+| Gangsters and Police messages | Hoods and the Law |
+| Top Gangsters | Leading Bosses |
+| Mail Office | US Post |
+| Labor Exchange | Labour Exchange |
+| Police Department | Police Headquarters |
+| Fire Department | Fire House |
+| Union Building | Trade Union |
+| Railroad Station | Railroad Terminal |
+| FBI Headquarters | F.B.I. Headquarters |
+| Alphonse "Scarface" Capone | Amos "Ironclad" Pellham |
+| Charles "Lucky" Luciano | Calvin "Ledger" Crowe |
+| John "Johnny" Torrio | Silas "Sunday" Hart |
+| Francesco "Frankie" Yale | Edmund "The Ferry" Braddock |
+| Dion "Deanie" O'Banion | Harlan "Deacon" Voss |
+| Earl "Hymie" Weiss | Milton "Quiet" Ash |
+| George "Bugs" Moran | Nestor "Switch" Hale |
+| Vito "Don Vitone" Genovese | Rufus "Glass" Penney |
+| Arthur "Dutch" Schulz | Oscar "The Vest" Lang |
+| Tony "The Gentleman" Genna | Theo "White Gloves" Marlow |
+| Joe "The Boss" Masseria | Ellis "Last Call" Dunn |
+
+The eleven Hall names were the old default table. Their scores are unchanged, so a played game still climbs the same ladder. Chicago street names and neighborhood labels such as The Loop and Little Sicily stay; they are ordinary geography, and Little Sicily is also a song title. Period surnames and nicknames in the citizen pool stay. Curtain for Capone stays; that title was chosen for this version.
 
 ## 1. Current state
 
@@ -455,13 +502,13 @@ A mid-week save already exists for the live clock (`minute`, `settlementStage`, 
 
 ## 4. Setting
 
-New Temperance, 1932, is the world the data describes. The 2032 column is the same mechanic with a different label. Type ids (`liquor`, `speakeasy`, `policeHQ`, and the rest) stay. A city records which column it uses, once, at creation. Saves do not retitle themselves later.
+Saint Volstead, 1932, is the world the data describes. The 2032 column is the same mechanic with a different label. Type ids (`liquor`, `speakeasy`, `policeHQ`, and the rest) stay. A city records which column it uses, once, at creation. Saves do not retitle themselves later.
 
 The 2032 city has no name yet. Until the owner picks one, the UI can say "the 2032 city."
 
 Goods are the same three stock types.
 
-| 1932, New Temperance | 2032 equivalent |
+| 1932, Saint Volstead | 2032 equivalent |
 | --- | --- |
 | Liquor. Made in a still, sold in a speakeasy, stored in warehouses, drunk down by the bar. | Unlicensed spirits. Same crates, stills, bars, and export trail. The ban is a licensing wall, not a new substance. |
 | Stolen goods. Fenced through pawn shops, furriers, jewelers, tailors, and the depot. | Stolen cargo: electronics, appliances, and freight. Same fences, same warehouse cap. |
@@ -469,7 +516,7 @@ Goods are the same three stock types.
 
 Legal businesses. The id in parentheses is the one in `buildings.ts`.
 
-| 1932, New Temperance | 2032 equivalent |
+| 1932, Saint Volstead | 2032 equivalent |
 | --- | --- |
 | Bakers (`bakers`) | Bakery |
 | Butchers (`butchers`) | Butcher |
@@ -523,7 +570,7 @@ Legal businesses. The id in parentheses is the one in `buildings.ts`.
 
 Illegal businesses. Fronts stay the fronts already listed on each type.
 
-| 1932, New Temperance | 2032 equivalent |
+| 1932, Saint Volstead | 2032 equivalent |
 | --- | --- |
 | Office (`office`). The gang's desk. Any front will do, poorly. | Office. Same. |
 | Speakeasy (`speakeasy`). Sells liquor from behind a bar or a hotel. | Closed club. Sells unlicensed spirits from behind a bar or a hotel. |
@@ -543,7 +590,7 @@ Illegal businesses. Fronts stay the fronts already listed on each type.
 
 Institutions and roles. These are buildings with `special`, or people with a `PersonRole`. They are not bought on the open market except where the catalogue already sets a price (newspapers, radio, unions, docks, the railroad).
 
-| 1932, New Temperance | 2032 equivalent |
+| 1932, Saint Volstead | 2032 equivalent |
 | --- | --- |
 | City hall, the mayor | City hall, the mayor |
 | Courthouse, judges, district attorney | Courthouse, judges, district attorney |
@@ -573,7 +620,7 @@ Institutions and roles. These are buildings with `special`, or people with a `Pe
 
 Mechanics. The 2032 column is the same rule.
 
-| 1932, New Temperance | 2032 equivalent |
+| 1932, Saint Volstead | 2032 equivalent |
 | --- | --- |
 | Week planned at the desk, resolved Monday to Friday | Same clock |
 | Protection racket | Weekly payment to leave the place alone |
@@ -623,7 +670,7 @@ prefs.json        audio, scale, and the hall of fame, if those move out of the b
   "format": 1,
   "game": "ada-hood-simulator",
   "schemaVersion": 2,
-  "seed": 1928,
+  "seed": 1932,
   "created": "2032-01-01T00:00:00.000Z",
   "updated": "2032-01-01T00:00:00.000Z"
 }

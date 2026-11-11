@@ -633,7 +633,7 @@ export function Blueprint() {
       onContextMenu={(e) => e.preventDefault()}
     />
     <div ref={header} className="city-plan-header" style={{ ...panelStyle, top: chrome?.y ?? 0 }}>
-      <div className="city-plan-heading"><span>City plan · Week {sim.world.week}</span><h2>New Temperance</h2></div>
+      <div className="city-plan-heading"><span>City plan · Week {sim.world.week}</span><h2>Saint Volstead</h2></div>
       <div className="city-plan-tools" role="group" aria-label="City plan navigation">
         <button onClick={() => zoom(1 / 1.4)} aria-label="Zoom out" title="Zoom out">−</button>
         <button onClick={() => zoom(1.4)} aria-label="Zoom in" title="Zoom in">+</button>

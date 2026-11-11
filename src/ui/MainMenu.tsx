@@ -23,7 +23,7 @@ function describeSlot(slot: SaveSlot): { cash: number; blocks: number; men: numb
     cash: gang?.cash ?? 0,
     blocks: gang ? territoryCount(w, gang.id) : 0,
     men: gang ? gangManpower(w, gang) : 0,
-    seed: w.options?.seed ?? 1928,
+    seed: w.options?.seed ?? 1932,
     finished: w.phase === 'gameOver',
   };
 }
@@ -106,8 +106,8 @@ export function MainMenu() {
   ];
   const entries = plaques;
 
-  // The closing-time ballad at the casino table (it starts with the first gesture).
-  useEffect(() => { audio.music('menu'); }, []);
+  // One menu song, looped. The credits sheet plays its two tracks back to back.
+  useEffect(() => { audio.music(sheet === 'credits' ? 'credits' : 'menu'); }, [sheet]);
 
   // The table answers the keyboard as the original's menus did.
   useEffect(() => {
@@ -274,7 +274,7 @@ export function MainMenu() {
             <p>The score and the city's sounds were made for this game; synthesised Web Audio stands in until they load.</p>
             <h4>Type and tools</h4>
             <p>Barlow, Barlow Condensed, Special Elite and Cinzel from Google Fonts (Open Font License) · Three.js · React · Vite · Zustand · Electron · Vitest.</p>
-            <p className="muted">New Temperance is fictional. Any resemblance to a Chicago of the 1920s is entirely the point.</p>
+            <p className="muted">Saint Volstead is fictional. Any resemblance to a Chicago of the early 1930s is entirely the point.</p>
             <p className="muted">Version {__APP_VERSION__}</p>
           </div>
         </Modal>

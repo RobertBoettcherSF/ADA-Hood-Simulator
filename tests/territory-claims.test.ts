@@ -135,7 +135,7 @@ describe('ordinary territory follows owned/protected businesses, manual p.12', (
     restored.finishWeek();
     expect(restored.world.phase).toBe('gameOver');
     expect(restored.world.outcome?.won).toBe(playerWins);
-    expect(restored.world.outcome?.reason).toContain('1 block of New Temperance');
+    expect(restored.world.outcome?.reason).toContain('1 block of Saint Volstead');
     expect(restored.world.targetRace?.gangId).toBe(playerWins ? gang.id : rival.id);
     expect(sim.world.settlementStage).toBe(14);
   });

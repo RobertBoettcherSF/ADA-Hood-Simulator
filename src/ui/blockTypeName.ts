@@ -23,18 +23,18 @@ export function originalBlockTypeName(content: number): string | null {
 
 const ORIGINAL_NAMES: Record<number, string> = {
   4: 'Radio Station', 6: 'Power Station', 7: 'Newspaper', 8: 'Water Works', 9: 'Docks', 10: 'Warehouse',
-  38: 'Railroad Station', 40: 'Railroad bridge', 41: 'Tram crossing', 42: 'City Hall', 43: 'Hospital',
-  44: 'Police Department', 45: 'Labor Exchange', 46: 'Fire Department', 47: 'Mail Office', 48: 'Museum',
-  49: 'Department Store', 50: 'Bank', 51: 'Courthouse', 52: 'Public Baths', 53: 'Union Building',
-  54: 'FBI Headquarters', 55: 'Hotel', 56: 'Orphanage', 57: 'School',
+  38: 'Railroad Terminal', 40: 'Railroad bridge', 41: 'Tram crossing', 42: 'City Hall', 43: 'Hospital',
+  44: 'Police Headquarters', 45: 'Labour Exchange', 46: 'Fire House', 47: 'US Post', 48: 'Museum',
+  49: 'Department Store', 50: 'Bank', 51: 'Courthouse', 52: 'Public Baths', 53: 'Trade Union',
+  54: 'F.B.I. Headquarters', 55: 'Hotel', 56: 'Orphanage', 57: 'School',
 };
 
 /** The original's names for the landmark building types, for cities without original content ids. */
 const LANDMARK_NAMES: Record<string, string> = {
-  church: 'Church', cityHall: 'City Hall', hospital: 'Hospital', policeHQ: 'Police Department',
-  labourExchange: 'Labor Exchange', firehouse: 'Fire Department', usPost: 'Mail Office', museum: 'Museum',
-  courthouse: 'Courthouse', publicBaths: 'Public Baths', fbiHQ: 'FBI Headquarters', orphanage: 'Orphanage',
-  school: 'School', powerPlant: 'Power Station', waterPlant: 'Water Works', railroad: 'Railroad Station',
+  church: 'Church', cityHall: 'City Hall', hospital: 'Hospital', policeHQ: 'Police Headquarters',
+  labourExchange: 'Labour Exchange', firehouse: 'Fire House', usPost: 'US Post', museum: 'Museum',
+  courthouse: 'Courthouse', publicBaths: 'Public Baths', fbiHQ: 'F.B.I. Headquarters', orphanage: 'Orphanage',
+  school: 'School', powerPlant: 'Power Station', waterPlant: 'Water Works', railroad: 'Railroad Terminal',
   radioStation: 'Radio Station', newspaper: 'Newspaper', docks: 'Docks',
 };
 

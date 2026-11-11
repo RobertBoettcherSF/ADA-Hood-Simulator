@@ -67,7 +67,7 @@ describe('newspaper delivery and editions', () => {
     const s = fixture();
     addNews(s.w, { section: 'business', headline: 'Unfinished week', body: 'Not published yet', gangId: null });
     const before = structuredClone(s.w);
-    expect(newspaperEdition(s.w, s.g.id).items.map(n => n.headline)).toEqual(['WELCOME TO NEW TEMPERANCE']);
+    expect(newspaperEdition(s.w, s.g.id).items.map(n => n.headline)).toEqual(['WELCOME TO SAINT VOLSTEAD']);
     expect(s.w).toEqual(before);
     s.w.week = 2;
     expect(newspaperEdition(s.w, s.g.id).items.map(n => n.headline)).toEqual(['Unfinished week']);
@@ -194,7 +194,7 @@ describe('accurate weekly summaries', () => {
     expect(fire.body).toContain('2 injured, 1 dead');
     expect(fire.body).toContain('closed pending repairs');
     expect(s.w.news.filter(n => n.photo === 'fire')).toHaveLength(1);
-    expect(s.w.news.find(n => n.headline === 'A QUIET WEEK IN NEW TEMPERANCE')).toBeUndefined();
+    expect(s.w.news.find(n => n.headline === 'A QUIET WEEK IN SAINT VOLSTEAD')).toBeUndefined();
     expect(s.w.news.some(n => n.body.includes('premises were destroyed'))).toBe(false);
   });
 

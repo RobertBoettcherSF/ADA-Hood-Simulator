@@ -12,7 +12,7 @@ import { Portrait } from './Portrait';
 export const TOP_GANGSTERS = 3;
 export const NEXT_BEST_PAGE = 8;
 
-/** The pages of the Hall: page 0 is the Top Gangsters; later pages are Next Best. */
+/** The pages of the Hall: page 0 is the Leading Bosses; later pages are Next Best. */
 export function hallPages(entries: readonly HallEntry[]): HallEntry[][] {
   const pages = [entries.slice(0, TOP_GANGSTERS)];
   for (let i = TOP_GANGSTERS; i < entries.length; i += NEXT_BEST_PAGE) pages.push(entries.slice(i, i + NEXT_BEST_PAGE));
@@ -61,12 +61,12 @@ export function HallOfFame({ onClose }: { onClose: () => void }) {
   return (
     <Modal
       title="Hall of Fame"
-      kicker={page === 0 ? 'Top Gangsters' : `Next Best · ${first + 1}–${first + shown.length}`}
+      kicker={page === 0 ? 'Leading Bosses' : `Next Best · ${first + 1}–${first + shown.length}`}
       onClose={onClose}
       width={760}
       footer={
         <>
-          <button className="btn" disabled={page === 0} onClick={() => setPage(0)}>Top Gangsters</button>
+          <button className="btn" disabled={page === 0} onClick={() => setPage(0)}>Leading Bosses</button>
           <button className="btn" disabled={pages.length < 2}
             onClick={() => setPage(page + 1 < pages.length ? page + 1 : 1)}>Next Best</button>
           <button className="btn red-text" disabled={ownResults === 0} onClick={() => { clearHallOfFame(); setEntries(hallOfFameTable()); setPage(0); }}>Clear</button>
@@ -82,7 +82,7 @@ export function HallOfFame({ onClose }: { onClose: () => void }) {
             <Rivets />
             <div className="plaque-head">
               <ArtImage src={art('endings/plaque-header.png')} alt="" />
-              <span>{page === 0 ? 'Top Gangsters' : 'Next Best'}</span>
+              <span>{page === 0 ? 'Leading Bosses' : 'Next Best'}</span>
             </div>
             {shown.map((h, i) => (
               <div key={h.resultId ?? `${h.name}-${h.at}`} className={`plaque-row hall-row${page === 0 ? ' top' : ''}${h.legend ? ' hall-legend' : ''}`}>

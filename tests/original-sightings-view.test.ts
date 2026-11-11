@@ -176,7 +176,7 @@ describe('a protected business sees a rival walk past it (0x5A3C90, event 9 from
     tickSightings(w, new Rng(3), new Map([[theirs.id, far]]));       // walked in from four cells off
     expect(player.knownPeople).toContain(theirs.id);
     const tip = tips(w).at(-1)!;
-    expect(tip.category).toBe('police');                             // type 7: Gangsters and Police
+    expect(tip.category).toBe('police');                             // type 7: Hoods and the Law
     expect(tip.text).toMatch(/^The .*: "I've just seen .* moving round here!" /);
     expect(tip.personId).toBe(theirs.id);
   });

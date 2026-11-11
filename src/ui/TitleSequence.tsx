@@ -33,7 +33,7 @@ export function TitleSequence({ onDone }: { onDone: () => void }) {
       <div className="title-city" style={{ backgroundImage: `url(${art('brand/key-art-city.jpg')})` }} aria-hidden="true" />
       <div className="title-veil" aria-hidden="true" />
       <div className="title-stack">
-        <div className="title-year">New Temperance · 1928</div>
+        <div className="title-year">Saint Volstead · 1932</div>
         <h1 className="scene-wordmark title-plate">Hood Simulator</h1>
         <p className="title-line">Prohibition is the law. The city is anybody's.</p>
       </div>

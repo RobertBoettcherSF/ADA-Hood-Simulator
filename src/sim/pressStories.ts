@@ -85,9 +85,9 @@ export function pressStories(w: WorldState): void {
 
 /** Period colour, after the original's table of era headlines. */
 export const ERA_STORIES: [string, string][] = [
-  ['GANG WARFARE COMES TO TOWN!', 'Citizens fear the troubles of the big cities have followed the railroad to New Temperance.'],
+  ['GANG WARFARE COMES TO TOWN!', 'Citizens fear the troubles of the big cities have followed the railroad to Saint Volstead.'],
   ['THE WAVE ACROSS AMERICA!', 'Speakeasies open faster than the agents can close them, a federal report concedes.'],
-  ['THE WOMEN OF AMERICA MARCH!', 'Temperance campaigners parade past City Hall, demanding the law be enforced in earnest.'],
+  ['THE WOMEN OF AMERICA MARCH!', 'Dry-law campaigners parade past City Hall, demanding the law be enforced in earnest.'],
   ['DRY LAW, WET CITY', 'A survey of the wards finds liquor on sale within a stone\'s throw of every precinct house.'],
   ['JAZZ HALLS PACKED NIGHTLY', 'Bandleaders report record crowds; clergy warn of the moral peril of syncopation.'],
   ['STOCKS CLIMB AGAIN', 'Brokers on Exchange Street predict good times without end. "Buy now," says one.'],

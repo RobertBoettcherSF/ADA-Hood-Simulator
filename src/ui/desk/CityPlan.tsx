@@ -19,7 +19,7 @@ function rng(seed: number): () => number {
   };
 }
 
-const STREETS = ['Fourth St', 'Canal St', 'Market St', 'Temperance Ave', 'Harbour Rd', 'Union St', 'Elm St', 'Mercer St'];
+const STREETS = ['Fourth St', 'Canal St', 'Market St', 'Volstead Ave', 'Harbour Rd', 'Union St', 'Elm St', 'Mercer St'];
 
 /** The foxed drafting paper the plan is drawn on, once it has loaded. */
 let parchment: HTMLImageElement | null = null;

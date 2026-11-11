@@ -150,7 +150,7 @@ export async function saveGame(name: string, world: WorldState, frozen = false):
   const boss = Object.values(world.gangs).find((g) => g.isPlayer);
   const summary: SaveSummary = {
     cash: Math.round(boss?.cash ?? 0), blocks: boss ? territoryCount(world, boss.id) : 0,
-    men: boss ? gangManpower(world, boss) : 0, seed: world.options?.seed ?? 1928, finished: world.phase === 'gameOver',
+    men: boss ? gangManpower(world, boss) : 0, seed: world.options?.seed ?? 1932, finished: world.phase === 'gameOver',
   };
   const metadata = {
     id: name,
@@ -249,7 +249,7 @@ export function decodeSlot(raw: unknown, responsive = false): SaveSlot | Promise
     savedAt: typeof slot.savedAt === 'number' && Number.isFinite(slot.savedAt) ? slot.savedAt : 0,
     week: typeof slot.week === 'number' ? slot.week : 0,
     bossName: typeof slot.bossName === 'string' ? slot.bossName : 'Unknown',
-    ...(s ? { summary: { cash: num(s.cash), blocks: num(s.blocks), men: num(s.men), seed: num(s.seed) || 1928, finished: s.finished === true } } : {}),
+    ...(s ? { summary: { cash: num(s.cash), blocks: num(s.blocks), men: num(s.men), seed: num(s.seed) || 1932, finished: s.finished === true } } : {}),
   };
   const accept = (world: WorldState): SaveSlot => {
     campaignIds.set(world, typeof slot.campaignId === 'string' && slot.campaignId
@@ -315,23 +315,21 @@ export interface HallEntry {
 }
 
 /**
- * The original's default Hall (Data\DefaultHST.xtx): eleven legends of the
- * era with its scores, territory, manpower, money and kills. They stand in
- * the table for new names to climb past; Clear keeps them, as the original's
- * reset rewrote the file from these defaults.
+ * Eleven invented bosses who stand in the Hall until a played game climbs
+ * past them. Clear keeps them. The scores are the old table's shape.
  */
 const LEGENDS: [first: string, nick: string, last: string, score: number, blocks: number, men: number, cash: number, kills: number][] = [
-  ['Alphonse', 'Scarface', 'Capone', 80, 400, 60, 650_000, 37],
-  ['Charles', 'Lucky', 'Luciano', 70, 300, 55, 400_000, 28],
-  ['John', 'Johnny', 'Torrio', 60, 200, 35, 300_000, 28],
-  ['Francesco', 'Frankie', 'Yale', 40, 200, 33, 280_000, 21],
-  ['Dion', 'Deanie', "O'Banion", 35, 175, 30, 200_000, 15],
-  ['Earl', 'Hymie', 'Weiss', 30, 120, 25, 150_000, 14],
-  ['George', 'Bugs', 'Moran', 25, 80, 16, 100_000, 12],
-  ['Vito', 'Don Vitone', 'Genovese', 20, 50, 12, 80_000, 9],
-  ['Arthur', 'Dutch', 'Schulz', 15, 40, 10, 50_000, 7],
-  ['Tony', 'The Gentleman', 'Genna', 10, 30, 7, 15_000, 4],
-  ['Joe', 'The Boss', 'Masseria', 5, 20, 6, 10_000, 1],
+  ['Amos', 'Ironclad', 'Pellham', 80, 400, 60, 650_000, 37],
+  ['Calvin', 'Ledger', 'Crowe', 70, 300, 55, 400_000, 28],
+  ['Silas', 'Sunday', 'Hart', 60, 200, 35, 300_000, 28],
+  ['Edmund', 'The Ferry', 'Braddock', 40, 200, 33, 280_000, 21],
+  ['Harlan', 'Deacon', 'Voss', 35, 175, 30, 200_000, 15],
+  ['Milton', 'Quiet', 'Ash', 30, 120, 25, 150_000, 14],
+  ['Nestor', 'Switch', 'Hale', 25, 80, 16, 100_000, 12],
+  ['Rufus', 'Glass', 'Penney', 20, 50, 12, 80_000, 9],
+  ['Oscar', 'The Vest', 'Lang', 15, 40, 10, 50_000, 7],
+  ['Theo', 'White Gloves', 'Marlow', 10, 30, 7, 15_000, 4],
+  ['Ellis', 'Last Call', 'Dunn', 5, 20, 6, 10_000, 1],
 ];
 
 export const HALL_LEGENDS: readonly HallEntry[] = LEGENDS.map(([first, nick, last, score, blocks, men, cash, kills], i) => ({

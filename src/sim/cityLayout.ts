@@ -205,9 +205,9 @@ export function layOutCity(w: WorldState, rng: Rng): void {
       b.gx + sx < w.gridW && b.gy + sy < w.gridH && pred(b)));
     return candidates.some(b => reserve(b.gx, b.gy, sx, sy, use, name, landmark));
   };
-  find(2, 2, 'park', 'Temperance Park', undefined, b => b.district !== 'industrial');
-  find(1, 2, 'park', 'Riverside Gardens');
-  if (w.gridW >= 12) find(2, 1, 'park', 'Oak Square');
+  find(2, 2, 'park', 'Volstead Green', undefined, b => b.district !== 'industrial');
+  find(1, 2, 'park', 'Cinder Gardens');
+  if (w.gridW >= 12) find(2, 1, 'park', 'Hinge Oak');
   find(1, 2, 'civic', 'St. Michael’s', 'church');
   find(1, 1, 'civic', 'City Hall', 'cityHall', b => b.district === 'civic' || b.district === 'downtown');
   find(1, 1, 'civic', 'Courthouse Square', 'courthouse');

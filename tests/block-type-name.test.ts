@@ -8,10 +8,10 @@ describe('organizer map block tag names', () => {
     [6, 'Power Station'], [7, 'Newspaper'], [8, 'Water Works'], [9, 'Docks'], [10, 'Warehouse'],
     [11, 'Industrial'], [14, 'Industrial'], [15, 'Commercial'], [18, 'Commercial'], [19, 'River'], [24, 'River'],
     [25, 'Park'], [33, 'Park'], [62, 'Park'], [67, 'Park'], [34, 'Tramway'], [37, 'Tramway'],
-    [38, 'Railroad Station'], [40, 'Railroad bridge'], [41, 'Tram crossing'], [42, 'City Hall'], [43, 'Hospital'],
-    [44, 'Police Department'], [45, 'Labor Exchange'], [46, 'Fire Department'], [47, 'Mail Office'],
+    [38, 'Railroad Terminal'], [40, 'Railroad bridge'], [41, 'Tram crossing'], [42, 'City Hall'], [43, 'Hospital'],
+    [44, 'Police Headquarters'], [45, 'Labour Exchange'], [46, 'Fire House'], [47, 'US Post'],
     [48, 'Museum'], [49, 'Department Store'], [50, 'Bank'], [51, 'Courthouse'], [52, 'Public Baths'],
-    [53, 'Union Building'], [54, 'FBI Headquarters'], [55, 'Hotel'], [56, 'Orphanage'], [57, 'School'],
+    [53, 'Trade Union'], [54, 'F.B.I. Headquarters'], [55, 'Hotel'], [56, 'Orphanage'], [57, 'School'],
     [68, 'Church'], [70, 'Church'],
   ])('content %i is "%s"', (content, name) => {
     expect(originalBlockTypeName(content)).toBe(name);

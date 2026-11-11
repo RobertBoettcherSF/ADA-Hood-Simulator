@@ -1,10 +1,221 @@
 {
   "tracks": [
-    { "id": "smoky-night-order", "title": "Smoky Night Order", "src": "audio/reel-theme.mp3", "reel": true },
-    { "id": "smoky-bar-stabs", "title": "Smoky Bar Stabs", "src": "audio/smoky-bar-stabs.mp3" },
-    { "id": "smoky-saloon-swing", "title": "Smoky Saloon Swing", "src": "audio/smoky-saloon-swing.mp3" },
-    { "id": "dance-bar", "title": "Dance Bar", "src": "audio/dance-bar.mp3" },
-    { "id": "the-final-brass-hit", "title": "The Final Brass Hit", "src": "audio/the-final-brass-hit.mp3" },
-    { "id": "the-last-order", "title": "The Last Order", "src": "audio/the-last-order.mp3" }
+    {
+      "id": "velvet-rope",
+      "title": "Velvet Rope",
+      "src": "audio/velvet-rope.mp3",
+      "category": "menu"
+    },
+    {
+      "id": "after-the-last-call",
+      "title": "After the Last Call",
+      "src": "audio/after-the-last-call.mp3",
+      "category": "menu"
+    },
+    {
+      "id": "fedora-in-the-rain",
+      "title": "Fedora in the Rain",
+      "src": "audio/fedora-in-the-rain.mp3",
+      "category": "menu"
+    },
+    {
+      "id": "marble-steps-of-city-hall",
+      "title": "Marble Steps of City Hall",
+      "src": "audio/marble-steps-of-city-hall.mp3",
+      "category": "menu"
+    },
+    {
+      "id": "the-ledger-never-lies",
+      "title": "The Ledger Never Lies",
+      "src": "audio/the-ledger-never-lies.mp3",
+      "category": "planner"
+    },
+    {
+      "id": "cigar-ash-and-carbon-copies",
+      "title": "Cigar Ash and Carbon Copies",
+      "src": "audio/cigar-ash-and-carbon-copies.mp3",
+      "category": "planner"
+    },
+    {
+      "id": "behind-the-barbershop",
+      "title": "Behind the Barbershop",
+      "src": "audio/behind-the-barbershop.mp3",
+      "category": "planner"
+    },
+    {
+      "id": "cooking-the-books",
+      "title": "Cooking the Books",
+      "src": "audio/cooking-the-books.mp3",
+      "category": "planner"
+    },
+    {
+      "id": "five-chairs-one-lamp",
+      "title": "Five Chairs, One Lamp",
+      "src": "audio/five-chairs-one-lamp.mp3",
+      "category": "planner"
+    },
+    {
+      "id": "who-sits-at-the-head",
+      "title": "Who Sits at the Head",
+      "src": "audio/who-sits-at-the-head.mp3",
+      "category": "planner"
+    },
+    {
+      "id": "shoeshine-on-fifth",
+      "title": "Shoeshine on Fifth",
+      "src": "audio/shoeshine-on-fifth.mp3",
+      "category": "street"
+    },
+    {
+      "id": "newsboys-holler",
+      "title": "Newsboy's Holler",
+      "src": "audio/newsboys-holler.mp3",
+      "category": "street"
+    },
+    {
+      "id": "streetcar-to-little-sicily",
+      "title": "Streetcar to Little Sicily",
+      "src": "audio/streetcar-to-little-sicily.mp3",
+      "category": "street"
+    },
+    {
+      "id": "bootleg-boogie",
+      "title": "Bootleg Boogie",
+      "src": "audio/bootleg-boogie.mp3",
+      "category": "street"
+    },
+    {
+      "id": "two-bits-a-dance",
+      "title": "Two Bits a Dance",
+      "src": "audio/two-bits-a-dance.mp3",
+      "category": "street"
+    },
+    {
+      "id": "dry-town-wet-nights",
+      "title": "Dry Town, Wet Nights",
+      "src": "audio/dry-town-wet-nights.mp3",
+      "category": "street"
+    },
+    {
+      "id": "tommy-gun-tango",
+      "title": "Tommy Gun Tango",
+      "src": "audio/tommy-gun-tango.mp3",
+      "category": "action"
+    },
+    {
+      "id": "paddy-wagon-pursuit",
+      "title": "Paddy Wagon Pursuit",
+      "src": "audio/paddy-wagon-pursuit.mp3",
+      "category": "action"
+    },
+    {
+      "id": "hot-lead-waltz",
+      "title": "Hot Lead Waltz",
+      "src": "audio/hot-lead-waltz.mp3",
+      "category": "action"
+    },
+    {
+      "id": "running-the-roadblock",
+      "title": "Running the Roadblock",
+      "src": "audio/running-the-roadblock.mp3",
+      "category": "action"
+    },
+    {
+      "id": "bathtub-gin-getaway",
+      "title": "Bathtub Gin Getaway",
+      "src": "audio/bathtub-gin-getaway.mp3",
+      "category": "action"
+    },
+    {
+      "id": "raid-at-the-speakeasy",
+      "title": "Raid at the Speakeasy",
+      "src": "audio/raid-at-the-speakeasy.mp3",
+      "category": "action"
+    },
+    {
+      "id": "keys-to-the-city",
+      "title": "Keys to the City",
+      "src": "audio/keys-to-the-city.mp3",
+      "category": "win"
+    },
+    {
+      "id": "ticker-tape-on-main-street",
+      "title": "Ticker Tape on Main Street",
+      "src": "audio/ticker-tape-on-main-street.mp3",
+      "category": "win"
+    },
+    {
+      "id": "rain-on-the-casket",
+      "title": "Rain on the Casket",
+      "src": "audio/rain-on-the-casket.mp3",
+      "category": "loss"
+    },
+    {
+      "id": "nobody-comes-to-the-wake",
+      "title": "Nobody Comes to the Wake",
+      "src": "audio/nobody-comes-to-the-wake.mp3",
+      "category": "loss"
+    },
+    {
+      "id": "goodnight-saint-volstead",
+      "title": "Goodnight, Saint Volstead",
+      "src": "audio/goodnight-saint-volstead.mp3",
+      "category": "credits"
+    },
+    {
+      "id": "lights-out-on-fifth-avenue",
+      "title": "Lights Out on Fifth Avenue",
+      "src": "audio/lights-out-on-fifth-avenue.mp3",
+      "category": "credits"
+    },
+    {
+      "id": "first-day-on-the-job",
+      "title": "First Day on the Job",
+      "src": "audio/first-day-on-the-job.mp3",
+      "category": "tutorial"
+    },
+    {
+      "id": "learning-the-ropes",
+      "title": "Learning the Ropes",
+      "src": "audio/learning-the-ropes.mp3",
+      "category": "tutorial"
+    },
+    {
+      "id": "back-door-knock",
+      "title": "Back Door Knock",
+      "src": "audio/back-door-knock.mp3",
+      "category": "general"
+    },
+    {
+      "id": "swing-for-the-alderman",
+      "title": "Swing for the Alderman",
+      "src": "audio/swing-for-the-alderman.mp3",
+      "category": "general"
+    },
+    {
+      "id": "gin-joint-jitterbug",
+      "title": "Gin Joint Jitterbug",
+      "src": "audio/gin-joint-jitterbug.mp3",
+      "category": "general"
+    },
+    {
+      "id": "curtain-for-capone",
+      "title": "Curtain for Capone",
+      "src": "audio/curtain-for-capone.mp3",
+      "category": "general"
+    },
+    {
+      "id": "last-round-on-the-house",
+      "title": "Last Round on the House",
+      "src": "audio/last-round-on-the-house.mp3",
+      "category": "general"
+    },
+    {
+      "id": "smoky-night-order",
+      "title": "Smoky Night Order",
+      "src": "audio/reel-theme.mp3",
+      "category": "reel",
+      "reel": true
+    }
   ]
 }

@@ -1,5 +1,5 @@
 /**
- * Every texture in New Temperance is painted here, into 2D canvases, at start
+ * Every texture in Saint Volstead is painted here, into 2D canvases, at start
  * up, so the city can draw before a single file has arrived. Textures are
  * shared: a small fixed set of facades, one roof, one storefront strip, one
  * sign atlas and a handful of ground surfaces serve the whole city, with

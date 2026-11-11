@@ -162,7 +162,7 @@ const SHOP_PAINT = [0x4a6b52, 0x8c5a4a, 0x50607e, 0x9a8656, 0x6d5a48, 0x7a6f62, 
 // their existing response. These are linear colour multipliers.
 const FACADE_ALBEDO_GAIN = [1.8, 2.5, 1, 1, 1.3] as const;
 
-/** Renders New Temperance: streets, skyline, traffic, people and overlays. */
+/** Renders Saint Volstead: streets, skyline, traffic, people and overlays. */
 /** The original's avenues are double-width: the two flanking streets are its
  * carriageways and the cell between them is a raised central island with
  * lamps and trees (it was drawn as 50 m of open asphalt). Only a bridge, where

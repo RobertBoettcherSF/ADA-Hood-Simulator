@@ -187,7 +187,7 @@ function pickFront(
   }
   if (crimeCount === 0 && fires === 0) {
     return {
-      headline: 'A QUIET WEEK IN NEW TEMPERANCE',
+      headline: 'A QUIET WEEK IN SAINT VOLSTEAD',
       body: 'Police report an unusually peaceful week. Business leaders welcomed the calm.',
       gangId: null,
       photo: 'calm',
@@ -195,7 +195,7 @@ function pickFront(
   }
   return {
     headline: 'POLICE INVESTIGATE CITY CRIME',
-    body: `Police received ${crimeCount} crime report${crimeCount === 1 ? '' : 's'} this week. Investigations continue across New Temperance.`,
+    body: `Police received ${crimeCount} crime report${crimeCount === 1 ? '' : 's'} this week. Investigations continue across Saint Volstead.`,
     gangId: null,
     photo: 'courthouse',
   };

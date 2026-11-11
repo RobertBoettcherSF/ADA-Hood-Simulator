@@ -1,7 +1,7 @@
 import type { BuildingType } from '../types';
 
 /**
- * Every building type in New Temperance. Legal sites provide income, launder
+ * Every building type in Saint Volstead. Legal sites provide income, launder
  * money and act as fronts; illegal sites earn far more but need a front and
  * attract the FBI. Only the city can create municipal buildings.
  */

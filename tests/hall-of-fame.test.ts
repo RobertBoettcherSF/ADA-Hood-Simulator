@@ -121,11 +121,11 @@ describe('Hall of Fame terminal reloads', () => {
   });
 });
 
-describe("the era's legends (DefaultHST.xtx)", () => {
-  it('stand in the table from the first run, Capone at the head', () => {
+describe("the era's standing legends", () => {
+  it('stand in the table from the first run, Pellham at the head', () => {
     const table = hallOfFameTable();
     expect(table).toHaveLength(11);
-    expect(table[0].name).toBe('Alphonse "Scarface" Capone');
+    expect(table[0].name).toBe('Amos "Ironclad" Pellham');
     expect(table.map(e => e.score)).toEqual([80, 70, 60, 40, 35, 30, 25, 20, 15, 10, 5]);
     expect(loadHallOfFame()).toEqual([]);
   });
@@ -133,7 +133,7 @@ describe("the era's legends (DefaultHST.xtx)", () => {
   it('a new name takes its place among them, and Clear keeps the legends', () => {
     addHallOfFame({ resultId: 'r1', name: 'Johnny Moretti', score: 40, weeks: 52, reason: 'Mayor', won: true, at: 1 });
     const table = hallOfFameTable();
-    expect(table.map(e => e.name).slice(2, 5)).toEqual(['John "Johnny" Torrio', 'Johnny Moretti', 'Francesco "Frankie" Yale']);
+    expect(table.map(e => e.name).slice(2, 5)).toEqual(['Silas "Sunday" Hart', 'Johnny Moretti', 'Edmund "The Ferry" Braddock']);
     clearHallOfFame();
     expect(hallOfFameTable()).toEqual([...HALL_LEGENDS]);
   });

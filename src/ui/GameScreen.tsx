@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useGame } from '../app/store';
 import { audio } from '../audio/audio';
+import { streetActionHot } from '../audio/streetAction';
 import { ORDERS } from '../sim/constants';
 import { AttractMode } from './AttractMode';
 import { Blueprint } from './Blueprint';
@@ -37,9 +38,36 @@ export function GameScreen() {
     preloadLoadingArt();
     return () => audio.stopMusic();
   }, []);
-  // The score follows the phase: the speakeasy band to plan by, tension through the week.
+  // Planner and street each have their own shuffle. A lesson loops the tutorial pair instead.
   const phase = useGame((s) => s.sim?.world.phase);
-  useEffect(() => { if (phase === 'week') audio.music('week'); else if (phase === 'planning') audio.music('planning'); }, [phase]);
+  const tutorial = useGame((s) => s.sim?.world.options.tutorialId != null);
+  useEffect(() => {
+    if (tutorial) { audio.music('tutorial'); return; }
+    if (phase === 'week') audio.music('week');
+    else if (phase === 'planning') audio.music('planning');
+  }, [phase, tutorial]);
+  // A shootout, raid, or chase on the street crossfades to an action song, then back about 10s later.
+  useEffect(() => {
+    if (phase !== 'week') return;
+    let hot = false;
+    let timer = 0;
+    const id = window.setInterval(() => {
+      const world = useGame.getState().sim?.world;
+      if (!world) return;
+      const now = streetActionHot(world);
+      if (now) {
+        window.clearTimeout(timer);
+        if (!hot) audio.music('action');
+        hot = true;
+        return;
+      }
+      if (!hot) return;
+      hot = false;
+      const back = world.options.tutorialId != null ? 'tutorial' : 'week';
+      timer = window.setTimeout(() => audio.music(back), 10_000);
+    }, 500);
+    return () => { window.clearInterval(id); window.clearTimeout(timer); };
+  }, [phase]);
 
   useGameKeyboard();
 

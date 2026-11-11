@@ -720,7 +720,7 @@ export class Sim {
     if (!race) return false;
     const winner = w.gangs[race.gangId], won = winner.isPlayer;
     const objective = race.mode === 'wealth'
-      ? `${money(race.target)} in total wealth` : `${race.target} block${race.target === 1 ? '' : 's'} of New Temperance`;
+      ? `${money(race.target)} in total wealth` : `${race.target} block${race.target === 1 ? '' : 's'} of Saint Volstead`;
     const reason = race.tiedGangIds.length > 1
       ? `${won ? 'You' : winner.name} won the tie-break for the ${objective} target.`
       : race.basis === 'legacy'
@@ -760,7 +760,7 @@ export class Sim {
 
     // ---- winning
     if (w.options.mode === 'normal' && w.electionWinnerGangId === player.id) {
-      return this.makeOutcome(true, 'You were elected Mayor of New Temperance.', 35);
+      return this.makeOutcome(true, 'You were elected Mayor of Saint Volstead.', 35);
     }
 
     const rivals = Object.values(w.gangs).filter((g) => !g.isPlayer && !g.eliminated);
