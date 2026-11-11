@@ -23,7 +23,7 @@ import { Rng } from './rng';
 import { allocateWeapons } from './weapons';
 import { tickAmbient } from './systems/ambient';
 import { shapePeople } from './personShape';
-import { scanStreetSlice, tickTraffic, trafficContext } from './traffic';
+import { scanStreetSlice, storeStreetSlice, streetScanCollector, tickTraffic, trafficContext } from './traffic';
 import { TRAM_RIDING, tickTramRiding } from './tramRiding';
 import { capturePeaceFireExclusions, tickCombat } from './systems/combat';
 import { sightingCells, tickSightings } from './systems/sightings';
@@ -289,8 +289,11 @@ export class Sim {
       // The rest of this minute's ambient walking: the slices the clock had not
       // reached before the tick (the others ran ahead, on this minute's clock).
       for (let index = w.ambientSlicesDone ?? 0; index < AMBIENT_SLICES; index++) {
-        tickAmbient(w, this.rng, 1, { index, count: AMBIENT_SLICES, early: false, traffic: closingTraffic });
-        scanStreetSlice(w, index, AMBIENT_SLICES);
+        const born = w.nextId, scan = streetScanCollector(w);
+        tickAmbient(w, this.rng, 1, { index, count: AMBIENT_SLICES, early: false, traffic: closingTraffic }, scan.add);
+        // Somebody new in the city mid-slice: scan the slice as it now stands.
+        if (w.nextId === born) storeStreetSlice(w, index, AMBIENT_SLICES, scan.part);
+        else scanStreetSlice(w, index, AMBIENT_SLICES);
       }
     });
     w.ambientSlicesDone = 0;

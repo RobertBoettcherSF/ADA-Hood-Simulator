@@ -14,20 +14,21 @@ import { allBuildings, buildingDoor, dist } from '../world';
  * agents make their way toward whatever they are investigating.
  */
 export function tickAmbient(w: WorldState, rng: Rng, minutes: number,
-  slice?: { index: number; count: number; early: boolean; traffic?: ReturnType<typeof trafficContext>; vehicles?: 'skip' | 'only' }): void {
+  slice?: { index: number; count: number; early: boolean; traffic?: ReturnType<typeof trafficContext>; vehicles?: 'skip' | 'only' },
+  scan?: (p: Person) => void): void {
   // Slices take the closing minute's traffic, already built: the coming
   // minute's is not settled until its tick runs tickTraffic.
   const traffic = slice?.traffic ?? trafficContext(w);
   const meeting = specialistParticipants(w), awaited = specialistVisitTargets(w);
   // One slice of the city at a time (sim.ts), or everyone; both in id order.
   const people = slice ? peopleSlice(w, slice.index, slice.count) : Object.values(w.people);
-  for (const p of people) {
-    if (p.status !== 'active' || p.burningEscape?.week===w.week || p.emergencyResponse || p.shockReaction) continue;
+  const one = (p: Person): void => {
+    if (p.status !== 'active' || p.burningEscape?.week===w.week || p.emergencyResponse || p.shockReaction) return;
     // Cars are drawn along the minute they drove since the tick, so they drive
     // in the tick: an early slice leaves them for it (sim.ts) — stepping them
     // part way through the minute made them stand, then jump, every minute.
-    if (slice?.vehicles === 'skip' && p.inVehicle) continue;
-    if (slice?.vehicles === 'only' && !p.inVehicle) continue;
+    if (slice?.vehicles === 'skip' && p.inVehicle) return;
+    if (slice?.vehicles === 'only' && !p.inVehicle) return;
     if (slice?.early) {
       // Pinned if he moved or only chose where to go next: one given a new
       // route was otherwise drawn heading off along it, then put back at the
@@ -36,10 +37,12 @@ export function tickAmbient(w: WorldState, rng: Rng, minutes: number,
       const x = p.pos.x, y = p.pos.y, path = p.path;
       ambientPerson(w, rng, p, minutes, traffic, meeting, awaited);
       if (p.pos.x !== x || p.pos.y !== y || p.path !== path) earlySteps.set(p, { x, y });
-      continue;
+      return;
     }
     ambientPerson(w, rng, p, minutes, traffic, meeting, awaited);
-  }
+  };
+  if (scan) for (const p of people) { one(p); scan(p); }
+  else for (const p of people) one(p);
 }
 
 /** One person's ambient minute (everyone not on an order). */
