@@ -3,7 +3,12 @@ import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
 import { useGame } from './app/store';
 import { installUiScale } from './app/uiScale';
+import { loadCityArt } from './render/textures';
 import './styles.css';
+
+// Street photographs start while the menu is up, so the painted city is
+// already waiting and the files are not a surprise when the week begins.
+void loadCityArt();
 
 // The desktop app's interface scale, before the first frame is drawn.
 installUiScale(() => useGame.getState().uiScale);

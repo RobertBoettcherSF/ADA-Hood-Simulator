@@ -95,6 +95,7 @@
 .interface-window-tabs button[aria-pressed="true"] { background: #8f7d5c; color: #fff2d1; box-shadow: inset 1px 1px #5e5037; }
 
 .week-clock { position: absolute; right: 10px; bottom: 10px; width: 116px; pointer-events: auto; border: 3px ridge #a79e89; border-radius: 19px 19px 7px 7px; background: linear-gradient(100deg,#716b5b,#b6ad95 45%,#827968); box-shadow: 1px 3px 6px #0007,inset 0 0 0 1px #d9cfb5; padding: 3px 5px 5px; }
+.simple-figures { position: absolute; right: calc(100% + 8px); bottom: 8px; white-space: nowrap; padding: 4px 8px; border: 2px solid #6b4c10; border-radius: 4px; background: #c9b58a; color: #2a2418; font: 600 11px/1.2 'Barlow Condensed', 'Barlow', sans-serif; letter-spacing: 0.04em; text-transform: uppercase; }
 .clock-shoulders { display: flex; align-items: center; justify-content: space-between; height: 27px; margin: -1px -3px 2px; }
 .clock-shoulders > button { flex: 0 0 24px; padding: 0; height: 27px; font: 22px/22px Georgia,serif; color: #302c24; border: 1px solid #655e4e; border-radius: 12px 3px 2px 2px; background: linear-gradient(#c9c0a8,#978b72); box-shadow: inset 1px 1px #e0d7be; }
 .clock-shoulders > button:last-child { border-radius: 3px 12px 2px 2px; }

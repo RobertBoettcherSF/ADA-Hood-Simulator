@@ -113,10 +113,11 @@ export function streetEdgeOpen(w: WorldState, ax: number, ay: number, bx: number
 }
 
 type StreetGraph = {
-  points: Vec2[]; neighbours: number[][]; throughX: number[]; throughY: number[]; paths: Map<string, Vec2[]>;
-  /** Reused by the route search so a fast clock does not wipe a full-size array on every errand. */
-  seen: Int32Array; parent: Int32Array; seenGen: number;
+  points: Vec2[]; neighbours: number[][]; throughX: number[]; throughY: number[]; paths: Map<number, Vec2[]>;
+  /** Reused by the route search so a fast clock does not allocate a new queue for every errand. */
+  seen: Int32Array; parent: Int32Array; queue: Int32Array; seenGen: number;
 };
+
 const graphs = new WeakMap<WorldState, StreetGraph>();
 export function streetGraph(w: WorldState): StreetGraph {
   const old = graphs.get(w);
@@ -132,8 +133,9 @@ export function streetGraph(w: WorldState): StreetGraph {
   const throughY = Array.from({ length: w.gridW + 1 }, (_, x) => x)
     .filter(x => Array.from({ length: w.gridH }, (_, y) => streetEdgeOpen(w, x, y, x, y + 1)).every(Boolean));
   const graph = {
-    points, neighbours, throughX, throughY, paths: new Map<string, Vec2[]>(),
-    seen: new Int32Array(points.length), parent: new Int32Array(points.length), seenGen: 1,
+    points, neighbours, throughX, throughY, paths: new Map<number, Vec2[]>(),
+    seen: new Int32Array(points.length), parent: new Int32Array(points.length),
+    queue: new Int32Array(points.length), seenGen: 1,
   };
   graphs.set(w, graph); return graph;
 }
@@ -147,32 +149,37 @@ export function streetRouteNodes(w: WorldState, from: Vec2, to: Vec2, zig = fals
     const rounded = y * (w.gridW + 1) + x;
     if (g.neighbours[rounded].length) return rounded;
     let best = 0, distance = Infinity;
-    g.points.forEach((n, i) => {
-      if (!g.neighbours[i].length) return;
+    const pts = g.points;
+    for (let i = 0; i < pts.length; i++) {
+      if (!g.neighbours[i].length) continue;
+      const n = pts[i];
       const d = (p.x - n.x) ** 2 + (p.y - n.y) ** 2;
       if (d < distance) { best = i; distance = d; }
-    });
+    }
     return best;
   };
-  const start = nearest(from), end = nearest(to), key = `${start}:${end}:${zig}`;
+  const start = nearest(from), end = nearest(to);
+  const key = (start * g.points.length + end) * 2 + (zig ? 1 : 0);
   const cached = g.paths.get(key); if (cached) return cached;
   // A generation stamp marks the nodes of this search. Filling the parent
   // array on every errand walked the whole lattice, and a fast clock asks
-  // for a new errand every minute.
+  // for a new errand every minute. The queue is the graph's own buffer:
+  // a fresh array on every miss was the late-week cost.
   let gen = ++g.seenGen;
   if (gen >= 0x7fffffff) { g.seen.fill(0); gen = g.seenGen = 1; }
-  const seen = g.seen, previous = g.parent;
-  const queue = [start];
+  const seen = g.seen, previous = g.parent, queue = g.queue;
+  let head = 0, tail = 0;
+  queue[tail++] = start;
   seen[start] = gen;
   previous[start] = start;
-  for (let cursor = 0; cursor < queue.length && seen[end] !== gen; cursor++) {
-    const at = queue[cursor], ns = g.neighbours[at];
+  while (head < tail && seen[end] !== gen) {
+    const at = queue[head++], ns = g.neighbours[at];
     for (let i = 0; i < ns.length; i++) {
       const next = ns[zig ? ns.length - 1 - i : i];
       if (seen[next] === gen) continue;
       seen[next] = gen;
       previous[next] = at;
-      queue.push(next);
+      queue[tail++] = next;
     }
   }
   if (seen[end] !== gen) throw new Error('Disconnected city streets');
@@ -180,7 +187,8 @@ export function streetRouteNodes(w: WorldState, from: Vec2, to: Vec2, zig = fals
   for (let at = end; at !== start;) { at = previous[at]; route.push(g.points[at]); }
   route.reverse();
   if (g.paths.size >= 4096) g.paths.delete(g.paths.keys().next().value!);
-  g.paths.set(key, route); return route;
+  g.paths.set(key, route);
+  return route;
 }
 
 /** Called before buildings or people exist. Existing saved cities are never repartitioned. */

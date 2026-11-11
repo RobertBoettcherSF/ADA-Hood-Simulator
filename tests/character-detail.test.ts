@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { characterInView, characterNeedsDetail, characterPixelHeight } from '../src/render/characterDetail';
+import { characterInView, characterNeedsDetail, characterPixelHeight, noteStreetFrame, resetSimpleFigures, simpleFigures } from '../src/render/characterDetail';
 
 function camera(zoom: number, flipped = false) {
   const h = 240 / zoom;
@@ -34,5 +34,21 @@ describe('character detail at city viewing sizes', () => {
     expect(characterInView({ x: 1.2, y: 0, z: 0 })).toBe(false);
     expect(characterInView({ x: 0, y: -1.3, z: 0 })).toBe(false);
     expect(characterInView({ x: 0, y: 0, z: 1.1 })).toBe(false);
+  });
+  it('drops every figure together after a run of slow frames, and brings them back only after a run of quick ones', () => {
+    resetSimpleFigures();
+    expect(simpleFigures()).toBe(false);
+    for (let i = 0; i < 14; i++) noteStreetFrame(60);
+    expect(simpleFigures()).toBe(false);
+    noteStreetFrame(60);
+    expect(simpleFigures()).toBe(true);
+    for (let i = 0; i < 119; i++) noteStreetFrame(16);
+    expect(simpleFigures()).toBe(true);
+    noteStreetFrame(16);
+    expect(simpleFigures()).toBe(false);
+    noteStreetFrame(60);
+    noteStreetFrame(16);
+    expect(simpleFigures()).toBe(false);
+    resetSimpleFigures();
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useGame } from '../app/store';
 import { audio } from '../audio/audio';
+import { musicPoolPlaying } from '../audio/musicPool';
 import { streetActionHot } from '../audio/streetAction';
 import { ORDERS } from '../sim/constants';
 import { AttractMode } from './AttractMode';
@@ -46,6 +47,15 @@ export function GameScreen() {
     if (tutorial) { audio.music('tutorial'); return; }
     if (phase === 'week') audio.music('week');
     else if (phase === 'planning') audio.music('planning');
+  }, [phase, tutorial]);
+  // A blocked play(), or a track that never opened, must not leave the street silent.
+  useEffect(() => {
+    if (tutorial || (phase !== 'week' && phase !== 'planning')) return;
+    const id = window.setInterval(() => {
+      if (audio.musicMuted || !audio.gameMusic) return;
+      if (!musicPoolPlaying()) audio.music(phase === 'week' ? 'week' : 'planning');
+    }, 2500);
+    return () => window.clearInterval(id);
   }, [phase, tutorial]);
   // A shootout, raid, or chase on the street crossfades to an action song, then back about 10s later.
   useEffect(() => {

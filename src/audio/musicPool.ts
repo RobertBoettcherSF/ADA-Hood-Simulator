@@ -185,6 +185,7 @@ export async function loadMusicPool(): Promise<PoolTrack[]> {
         const body = await response.json() as { tracks?: PoolTrack[] };
         tracks = (body.tracks ?? []).filter((track) => track.id && track.src);
       } catch { /* the procedural band stands in */ }
+      if (!tracks.length) loading = null;
       return tracks;
     })();
   }
@@ -276,12 +277,32 @@ function still(scene: MusicScene, token: number): boolean {
   return token === fadeToken && (pending === scene || currentScene === scene);
 }
 
+let unlockScene: MusicScene | null = null;
+let unlockArmed = false;
+
+function armUnlock(scene: MusicScene): void {
+  unlockScene = scene;
+  if (unlockArmed || typeof window === 'undefined') return;
+  unlockArmed = true;
+  const go = () => {
+    const scene = unlockScene;
+    if (!scene) return;
+    unlockScene = null;
+    const cue: MusicCue = scene === 'planner' ? 'planning' : scene === 'street' ? 'week' : scene === 'reel' ? 'menu' : scene;
+    void playScene(cue);
+  };
+  window.addEventListener('pointerdown', go, true);
+  window.addEventListener('keydown', go, true);
+}
+
 async function startNode(node: HTMLAudioElement): Promise<boolean> {
   try {
     await node.play();
+    unlockScene = null;
     return true;
   } catch (error) {
     noteMusicError(formatMediaError(node) || (error instanceof Error ? error.message : 'play was blocked'));
+    if (currentScene) armUnlock(currentScene);
     return false;
   }
 }

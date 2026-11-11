@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is Saint Volstead in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.11.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.12.
 
 ## Decisions
 
@@ -178,6 +178,20 @@ The eleven Hall names were the old default table. Their scores are unchanged, so
 ## v1.2.11 decisions
 
 1. When a song ends, the same player starts the next one. Menu, planner, street, action, win, loss, credits, and tutorial all do this, including after a screen change, End Week, and the return from the street to the planner. A track that fails to load, or a play() the browser blocks, is skipped. The score does not stop. The loading reel still repeats its one theme.
+
+## v1.2.12 decisions
+
+1. New recruits for the player's gang wait in the pool unless Game Options says Recruiting crew. The report line says they are waiting in the pool. Auto Test still moves pool hoods onto crews. Other gangs are unchanged. The seed-1934 two-week hash stays `12c150e7e5be1d35b52ebae02317c9efa0f57a79bb648def1defe7cb4dbbc16f`.
+2. The round dial beside a lieutenant's name says what percentage of that crew's week is already assigned.
+3. End Week on seed 1934, 40×32, costs about 14 to 15 seconds of ambient time a week from the second week onward (about 6,400 people walking, 2,400 calls). It does not climb again at week 41. A fresh search array on every missed street route was removed; the same routes are returned from a reused queue. Week 42 before that change: ambient 15170 ms, orders 1331, combat 1666, street 418, traffic 1093, wall 23.0 s. After: ambient 13909 ms, orders 1294, combat 1457, street 395, traffic 1031, wall 21.4 s. A week played at normal speed records a much smaller ambient figure, because most of the walking is timed outside that bucket.
+4. The job card's crew list shows each hood's stars for the skills that job uses, best first. A half step is ½.
+5. The loading reel draws the painted street before the photographs arrive, and a blocked theme starts on the first click.
+6. The four newspaper plates read St. Volstead Times, Herald, Post, and Tribune. The only pictures that still said New Temperance were those four plates.
+7. A right-click card on a building the player owns shows last week's income, costs, and profit or loss, and names a hidden illegal business. Other buildings still show protection.
+8. The City Plan price hint uses the catalogue name (Book Store), and roles, court states, and person states are written in plain words.
+9. Walkers in view use the detailed models together. If the street stays slow, every walker switches to the simple figure together, and back only after a run of quick frames. A Simple figures badge sits to the left of the clock while that is on.
+10. Street view keeps asking for the street score if nothing is playing, and a blocked play() starts on the next click.
+11. Street photographs begin loading with the menu. Once the city is on screen they replace the painted colours in place, instead of hiding the street until the files arrive.
 
 ## 1. Current state
 

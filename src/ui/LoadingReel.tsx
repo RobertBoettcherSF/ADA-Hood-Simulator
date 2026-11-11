@@ -31,6 +31,8 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
   const [tip, setTip] = useState(0);
   const [logo, setLogo] = useState(false);
   const [muted, setMuted] = useState(() => audio.musicMuted);
+  const [needsTap, setNeedsTap] = useState(false);
+  const needsTapRef = useRef(false);
   const [leaving, setLeaving] = useState(false);
   const skipLock = useRef(false);
   const finishRef = useRef<() => void>(() => {});
@@ -102,16 +104,21 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
       await yieldForInput();
       if (!alive) return;
       frames = buildReel(sim);
-      await playReelQueue(music);
-      setMuted(music.muted);
-      unmix = audio.onMix(() => { applyMusicMix(music); setMuted(music.muted); });
-      try {
-        await music.play();
-      } catch {
-        music.muted = true;
-        setMuted(true);
-        try { await music.play(); } catch { clockOrigin = performance.now(); }
-      }
+      void playReelQueue(music).then(async () => {
+        if (!alive) return;
+        unmix = audio.onMix(() => { applyMusicMix(music); setMuted(music.muted); });
+        applyMusicMix(music);
+        setMuted(music.muted);
+        try {
+          await music.play();
+          needsTapRef.current = false;
+          setNeedsTap(false);
+        } catch {
+          needsTapRef.current = true;
+          setNeedsTap(true);
+          clockOrigin = performance.now();
+        }
+      });
       if (!alive) return;
       const created = await CityRenderer.create(canvas, sim.world, () => alive);
       if (!created || !alive) { created?.dispose(); return; }
@@ -134,7 +141,11 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
       renderer.setZoom(VIEW_ZOOM.street);
       renderer.setHiddenRoofs(true);
       renderer.setStreetsOpen(true);
-      await renderer.prepare();
+      const firstStreet = frames.find((frame) => frame.kind === 'street');
+      if (firstStreet) renderer.centerOn(firstStreet.x, firstStreet.y);
+      // Painted colours are enough to show the street. Photographs replace
+      // them when they arrive; the reel does not wait on that download.
+      void renderer.prepare().catch(() => {});
       if (!alive) return;
       renderedAt = performance.now();
       const bootStart = performance.getEntriesByName('hood-boot-start')[0]?.startTime ?? renderedAt;
@@ -145,7 +156,7 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
         raf = requestAnimationFrame(loop);
         const dt = Math.min(0.1, (now - last) / 1000);
         last = now;
-        if (renderedAt && now - renderedAt > 2500) {
+        if (renderedAt && now - renderedAt > 12000) {
           if (dt > 0.05) slow += dt;
           else slow = 0;
           if (slow > 1.5) { onFallbackRef.current(); return; }
@@ -200,7 +211,15 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
 
   const label = ready ? 'Ready, click to start' : `Loading ${Math.max(0, Math.min(100, Math.round(percent)))}%`;
   return (
-    <div className={`loading-reel${leaving ? ' leaving' : ''}${logo ? ' logo-card' : ''}`} onPointerDown={() => finishRef.current()} role="presentation">
+    <div className={`loading-reel${leaving ? ' leaving' : ''}${logo ? ' logo-card' : ''}`} onPointerDown={() => {
+      const node = audioRef.current;
+      if (needsTapRef.current && node) {
+        applyMusicMix(node);
+        void node.play().then(() => { needsTapRef.current = false; setNeedsTap(false); }).catch(() => {});
+        return;
+      }
+      finishRef.current();
+    }} role="presentation">
       <canvas ref={canvasRef} className="loading-reel-canvas" aria-hidden="true" />
       <audio ref={audioRef} data-audio-slot="loading-reel" preload="none" playsInline />
       {!logo && <h1 className="reel-logo">Hood Simulator</h1>}
@@ -210,7 +229,7 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
           <h1>Hood Simulator</h1>
         </div>
       )}
-      <div className="reel-status" role="status">{label}</div>
+      <div className="reel-status" role="status">{needsTap ? 'Click to start the theme' : label}</div>
       <button
         type="button"
         className="reel-sound"

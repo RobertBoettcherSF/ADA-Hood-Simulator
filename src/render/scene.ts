@@ -63,8 +63,8 @@ import {fireDamageStage} from '../sim/buildingDamage';
 import {FireDamageDecor} from './fireDamageDecor';
 import {rubbleGeometry,ruinRubble} from './rubble';
 import {SculptRubble,rubblePiles,type RubblePlacement} from './sculptRubble';
-import { bossInsideOffice, characterPriority, streetPersonVisible, useDetailedModels, carriesExplosives, workingInside } from './characterPresentation';
-import { characterInView, characterNeedsDetail, characterPixelHeight, DETAIL_KEEP_METRES, MAX_DETAILED_STREET_CHARACTERS } from './characterDetail';
+import { bossInsideOffice, streetPersonVisible, useDetailedModels, carriesExplosives, workingInside } from './characterPresentation';
+import { characterInView, characterNeedsDetail, characterPixelHeight, simpleFigures } from './characterDetail';
 import { previewActorMotion, previewStreetPosition, type PreviewActorMotion } from './previewActorMotion';
 import { kerbside, roadHeading } from '../sim/vehicleNavigation';
 import { previewVehicle } from '../sim/movement';
@@ -369,7 +369,6 @@ export class CityRenderer {
   private sculptModelsActive = false;
   private characterDetailStats = { bodyPixels: 0, inView: 0, eligible: 0, detailed: 0, simplified: 0 };
   /** Last frame's fully animated figures (see DETAIL_KEEP_METRES). */
-  private lastDetailedIds: ReadonlySet<number> = new Set();
 
   private selectionRing!: THREE.Mesh;
   private buildingOutline!: BuildingOutline;
@@ -566,8 +565,10 @@ export class CityRenderer {
 
   /** Swap the delivered textures into the materials that are already in use. */
   private applyArt(art: CityArt): void {
-    // Any pending upload list may now contain wrappers that are being replaced.
-    this.preparationRevision++;
+    // Photographs replace the painted colours in place once the street is up.
+    // Bumping the revision before that hides the city behind the loader for
+    // as long as the files take to arrive.
+    if (!this.isPrepared()) this.preparationRevision++;
     art.facades.forEach((f, i) => {
       const m = this.facadeMats[i];
       if (!f || !m) return;
@@ -2010,9 +2011,7 @@ export class CityRenderer {
     this.camera.updateMatrixWorld(true);
     const bodyPixels = characterPixelHeight(this.camera, this.height);
     this.characterDetailStats = { bodyPixels, inView: 0, eligible: 0, detailed: 0, simplified: 0 };
-    if (this.sculptModelsActive) {
-      const lastDetailed = this.lastDetailedIds;
-      const detailDistance = (p: Person) => Math.hypot(p.pos.x - cx, p.pos.y - cz) - (lastDetailed.has(p.id) ? DETAIL_KEEP_METRES : 0);
+    if (this.sculptModelsActive && !simpleFigures()) {
       const candidates = people.filter(p => {
         if(p.inVehicle && !loadingShuttle(w, p, this.simClock)) return false;
         // A cheap reach test first: exact preview positions for all 8,000+
@@ -2026,11 +2025,7 @@ export class CityRenderer {
         if (inMainView) visibleIds.add(p.id);
         return inTaggedView || inMainView && characterNeedsDetail(bodyPixels, p.id === this.selectedPersonId || watchedIds.has(p.id));
       });
-      candidates.sort((a,b)=>Number(!!burning(b))-Number(!!burning(a)) || Number(watchedIds.has(b.id))-Number(watchedIds.has(a.id)) || Number(this.characterActions.get(b.id)?.kind==='throw')-Number(this.characterActions.get(a.id)?.kind==='throw') || (this.actionsEnabled?Number(this.characterActions.has(b.id))-Number(this.characterActions.has(a.id)):0) || characterPriority(a,this.selectedPersonId,null,viewer?.id??null)-
-        characterPriority(b,this.selectedPersonId,null,viewer?.id??null) ||
-        detailDistance(a)-detailDistance(b) || a.id-b.id);
-      candidates.slice(0,MAX_DETAILED_STREET_CHARACTERS).forEach(p=>hdIds.add(p.id));
-      this.lastDetailedIds = hdIds;
+      for (const p of candidates) hdIds.add(p.id);
       this.characterDetailStats.inView = visibleIds.size;
       this.characterDetailStats.eligible = candidates.length;
     }
@@ -2038,7 +2033,7 @@ export class CityRenderer {
     const deliveryDrivers = Object.values(w.goodsDeliveries ?? {}).flatMap(d => {
       const driver = deliveryDriver(w, d, this.simClock);
       if (!driver || Math.abs(driver.pos.x - cx) > reach || Math.abs(driver.pos.y - cz) > reach) return [];
-      if (this.sculptModelsActive) hdIds.add(driver.id);
+      if (this.sculptModelsActive && !simpleFigures()) hdIds.add(driver.id);
       return [driver];
     });
     this.sculptModels?.retainCharacters(hdIds);
