@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is Saint Volstead in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.14.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.15.
 
 ## Decisions
 
@@ -228,7 +228,7 @@ Items marked *(my call)* are choices made while building, not asked for.
 
 1. Memory stop. Auto Test now measures used heap (`usedJSHeapSize`), not the larger of used and reserved. If used heap reaches 60% of the tab's limit, it yields for 3 seconds so the browser can collect garbage, then checks again. It stops only if used heap is still at least 80% of the limit. The Auto Test timeline logs used/reserved heap after every week, and the debug report lists the same series. *(my call: the 60% pause line and the 3-second yield. The 80% stop line was asked for.)* Robert's 1.2.14 run stopped at week 6 because reserved heap was 67% of the limit; after a reload, used heap was 230 MB.
 2. Recruiting. When a crew finds nobody worth hiring, the order now keeps the empty site and the "looking for work" tip as IDs, not only as a sentence. Auto Test sends the next recruiters to that tip first, and skips a venue that came up empty for four weeks, unless every venue is still cooling down. *(my call: four weeks.)* Robert's 1.2.14 run kept sending men to the Cafe on Laflin Ave every week, even though the result pointed at the Pool Hall on Carpenter Ave.
-3. End Week speed is part 2 of this build.
+3. End Week. A CPU profile of a headless Auto Test End Week (`node --cpu-prof`, seed 1934, 40×32) spent about 36% of the week in `stepRoute`, almost all of it mid-block pedestrians taking one short step. Those walkers now take that step without the vehicle and waypoint-drop bookkeeping; along a footway the distance is |dx| or |dy|, which matches `Math.hypot` when the other side is exactly 0. Street routes are remembered for 65,536 junction pairs instead of 4,096. Walkers with no car skip the after-transport hook, which already returned at once for them. Measured headless on this machine with the Auto Test strategy, two runs: week 3 wall time went from about 12.2 s to about 11.5 s, and ambient time from about 7.7 s to about 7.0 s (about 8%). That is not under 10 s, and on Robert's machine (17–22 s, ambient 11.9 s in 1.2.14) the same ratio would still be well above 10 s. The mid-block step is already a small amount of maths per person, and further cuts would have changed who arrives when. The two-week Friday canonical hash is `bf088cf9…` rather than 1.2.14's `34c60a34…`, because a recruit order now stores the empty site and the tip as IDs; the walking work keeps that same canonical hash.
 4. Loading. City photographs still start at the menu. At most six picture files are fetched at a time, street surfaces and facades first, then signs and extras. URLs have no cache-busting query string, and both the texture loads and the copy into the city folder ask the browser to reuse a cached file (`force-cache`). Robert's 1.2.14 report had facade and pavement files taking about 217 s on githack, which drops a page that asks for many files at once. *(my call: six at a time.)*
 
 ## 1. Current state
