@@ -18,6 +18,7 @@ export interface AudioPrefs {
 }
 
 export type GraphicsChoice = 'auto' | 'phone' | 'desktop';
+export type RecruitJoin = 'pool' | 'crew';
 
 export interface LocalData {
   audio: AudioPrefs;
@@ -29,6 +30,8 @@ export interface LocalData {
   mouseReversal: boolean;
   roadNames: boolean;
   autoLowerRoofs: boolean;
+  /** New hoods from a Recruit order. Pool is the default; crew puts them on the crew that hired them. */
+  recruitJoin: RecruitJoin;
   hall: HallEntry[];
 }
 
@@ -45,6 +48,7 @@ function defaults(): LocalData {
     mouseReversal: false,
     roadNames: false,
     autoLowerRoofs: true,
+    recruitJoin: 'pool',
     hall: [],
   };
 }
@@ -86,6 +90,7 @@ function sanitize(value: unknown): LocalData {
     mouseReversal: raw.mouseReversal === true,
     roadNames: raw.roadNames === true,
     autoLowerRoofs: raw.autoLowerRoofs !== false,
+    recruitJoin: raw.recruitJoin === 'crew' ? 'crew' : 'pool',
     hall: Array.isArray(raw.hall) ? raw.hall as HallEntry[] : [],
   };
 }
