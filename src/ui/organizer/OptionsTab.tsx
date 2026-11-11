@@ -3,11 +3,22 @@ import { SAVE_NAME_MAX, useGame } from '../../app/store';
 import { slotLoadable } from '../../app/save';
 import { cameraApi } from '../CityView';
 import { describeMode } from '../../app/newGame';
+import { patchLocalData, readLocalData } from '../../app/localData';
 import { audio } from '../../audio/audio';
 import { GO_STRAIGHT_ASSETS } from '../../sim/constants';
 import { gangAssets, gangWealth, money, powerRating, territoryCount } from '../../sim/world';
 import { ConfirmDialog, Empty, Panel } from '../common';
 import { UI_SCALES, uiScaleAvailable, uiScaleInUse } from '../../app/uiScale';
+
+function ReelSound() {
+  const [muted, setMuted] = useState(readLocalData().audio.reelMuted === true);
+  return (
+    <button className={`btn sm${muted ? '' : ' on'}`} aria-pressed={!muted}
+      onClick={() => { const next = !muted; setMuted(next); patchLocalData({ audio: { reelMuted: next } }); }}>
+      {muted ? 'Loading reel: Muted' : 'Loading reel: On'}
+    </button>
+  );
+}
 
 /** Interface size: zooms the whole desktop window; a browser has its own zoom. */
 function InterfaceSize() {
@@ -252,6 +263,7 @@ export function OptionsTab() {
             onClick={() => { audio.setMusicPlaces({ gameMusic: !gameMusic }); setGameMusic(!gameMusic); }}>
             {gameMusic ? 'Game music: On' : 'Game music: Off'}
           </button>
+          <ReelSound />
         </div>
       </Panel>
 

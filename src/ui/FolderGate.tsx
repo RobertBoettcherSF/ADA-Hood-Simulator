@@ -17,7 +17,12 @@ import {
 } from '../app/worldFolder';
 
 /** Ask where the one living city is kept before the desk opens. */
-export function FolderGate({ onReady }: { onReady: () => void }) {
+export function FolderGate({ onReady, onProgress, onChoice }: {
+  onReady: () => void;
+  onProgress?: (percent: number) => void;
+  /** The folder question is on screen, so the reel must get out of the way. */
+  onChoice?: () => void;
+}) {
   const [error, setError] = useState('');
   const [needsGesture, setNeedsGesture] = useState(false);
   const [busy, setBusy] = useState(true);
@@ -26,23 +31,28 @@ export function FolderGate({ onReady }: { onReady: () => void }) {
 
   useEffect(() => {
     let cancel = false;
+    onProgress?.(12);
     void resumeWorldStore().then((result) => {
       if (cancel) return;
       if (result && result !== 'needs-gesture') {
+        onProgress?.(48);
         void refreshCityOnFile().then(() => applyPrefs()).then(() => readyRef.current());
         return;
       }
       setNeedsGesture(result === 'needs-gesture');
       setBusy(false);
+      onChoice?.();
     }).catch((reason: unknown) => {
       if (cancel) return;
       setError(reason instanceof Error ? reason.message : 'Storage could not be opened.');
       setBusy(false);
+      onChoice?.();
     });
     return () => { cancel = true; };
   }, []);
 
   const applyPrefs = async () => {
+    onProgress?.(72);
     await loadLocalData();
     audio.loadStored();
     const stored = readLocalData();
