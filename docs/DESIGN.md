@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is New Temperance in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.4.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.5.
 
 ## Decisions
 
@@ -67,6 +67,15 @@ The owner answered the open questions in §8. These decisions override anything 
 2. The built-in weights are hiring 0.70, rackets 0.58, bribes 0.40, buying 0.48, violence 0.12, in that priority. A learning run mutates the best matching strategy: two weights move by 0.08, and sometimes two neighbours in the priority list swap. The seed plus the number of matching runs chooses the nudge. If the run scores no higher than the best, the next learning run starts from the best again. Score is cash/1000 + territory×25 + men×8 − heat×4, plus 500 for a win and minus 500 for a loss.
 3. The three rivals keep the ordinary planner. The copied playbook only adds an order the planner did not already queue, and only when that weight is at least 0.35 (0.45 for violence). The personality bias is +0.08 on one weight: the first rival violence, the second bribes, the third rackets. It does not reorder priority. Those extra orders use their own random stream, so a city with no playbook rolls the same dice as before.
 4. The Auto Test dialog shows the open city's settings and says the diary's job is the default campaign. Learn from diary starts on. Reset diary asks first. Speed is written on the report; the test runs flat out, because a real-time week is about twelve minutes. The report names the strategy, what changed since the last matching run, whether it beat the best, and whether the best score has sat still for the last 4 matching runs. It also lists balance anomalies: impossible cash, men, territory, heat, or suspicion, a cash jump of eight times and at least $25,000, an action refused twice, a win on the first finished week, a loss while still rich, and a gang with no men that has not lost.
+
+## v1.2.5 decisions
+
+1. The reel is a second city, seed 1908, 8×8, built only after the storage probe has finished. It is not saved and it never reads the player's world. Its random stream is its own. The seed-1934 hash is unchanged.
+2. The theme is 136 beats a minute, first downbeat at 0.11 s. Street cuts fall on four-bar lines. Nine street shots (8 or 4 bars, about 7 or 14 seconds) run until 113.05 s. The full logo on black then holds through the last hit at 117.81 s and the end of the file at 119.7 s, and the picture and the track loop together. The camera does not pan or zoom inside a shot. The faint title is type, not the 3.4 MB wordmark file. The 25 loading tips rotate underneath.
+3. Escape, click, or tap skips and fades the theme out over 0.4 s. The speaker control does not skip. If the probe is still going, the skip lands on the ordinary Loading card. If the probe has finished, it lands on the main menu, and the old title sequence does not play again on top. Reduced motion, `?noreel=1`, and `?audit` use no reel. A folder question dismisses the reel so it can be answered.
+4. Phones use the same cut times, because the cuts belong to the music. The city is the 8×8 demo, not the 40×32 campaign, and the clock is advanced with a smaller frame budget. If the picture stays under 20 frames a second for 1.5 s after a 2.5 s grace, the reel drops to the Loading card. The theme is an `<audio>` element (`data-audio-slot="loading-reel"`). It is not in the artwork manifest and not in the sample loader, so it is streamed and not copied into the city folder.
+5. The supplied m4a is Opus inside an MP4 box, 2,034,599 bytes, about 136 kb/s, not AAC. Browsers that can play it take that file first. Safari and iOS cannot play Opus, so they fall through to the MP3. That fallback was re-encoded at 128 kb/s with the cover picture removed, 1,916,016 bytes, down from the 2.7 MB original. No AAC file was made. Volume is 0.42. If the browser blocks sound, the track still runs muted so the cuts stay on the beat, and a Sound button unmutes without skipping. The choice is `reelMuted` in the city settings, next to the other music switches.
+6. On a returning browser the storage probe was 89 ms with the reel off and 84 ms with it on. A first visit was 37 ms off and 55 ms on. The first drawn street frame arrived 8.5 s after the probe had already finished, so the menu was not waiting on the picture.
 
 ## 1. Current state
 

@@ -11,6 +11,8 @@ export interface AudioPrefs {
   sfx: number;
   menuMusic: boolean;
   gameMusic: boolean;
+  /** The loading reel's theme. Absent in older settings, which means play it. */
+  reelMuted?: boolean;
 }
 
 export type GraphicsChoice = 'auto' | 'phone' | 'desktop';
@@ -63,6 +65,7 @@ function audioPrefs(value: unknown, fallback: AudioPrefs): AudioPrefs {
     sfx: typeof saved.sfx === 'number' && saved.sfx >= 0 && saved.sfx <= 1 ? saved.sfx : fallback.sfx,
     menuMusic: typeof saved.menuMusic === 'boolean' ? saved.menuMusic : fallback.menuMusic,
     gameMusic: typeof saved.gameMusic === 'boolean' ? saved.gameMusic : fallback.gameMusic,
+    reelMuted: typeof saved.reelMuted === 'boolean' ? saved.reelMuted : false,
   };
 }
 

@@ -9,7 +9,10 @@ import { DialogFrame } from './DialogFrame';
 import { TitleSequence } from './TitleSequence';
 import { AlwaysChrome } from './AlwaysChrome';
 import { FolderGate } from './FolderGate';
-import { useState } from 'react';
+import { LoadingReel } from './LoadingReel';
+import { StreetLoading } from './StreetLoading';
+import { markBootReady, markBootStart } from '../app/bootTiming';
+import { useEffect, useState } from 'react';
 
 /** The title plays once a session, and not under automated checks (?audit). */
 function titleWanted(): boolean {
@@ -20,15 +23,53 @@ function titleWanted(): boolean {
 // The desk's wood and paper are painted once, before anything is drawn on them.
 installDeskTextures();
 
+function openingReel(): 'play' | 'card' | 'off' {
+  if (typeof window === 'undefined') return 'off';
+  const query = window.location.search;
+  if (/[?&](?:noreel|audit)(?:=|&|$)/.test(query)) return 'off';
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return 'card';
+  return 'play';
+}
+
 export function App() {
   const [title, setTitle] = useState(titleWanted);
   const [storageReady, setStorageReady] = useState(false);
+  const [bootPercent, setBootPercent] = useState(8);
+  const [reel, setReel] = useState(openingReel);
   const done = () => { try { sessionStorage.setItem('og.titleSeen', '1'); } catch { /* session only */ } setTitle(false); };
+  if (typeof performance !== 'undefined') markBootStart();
+  const finishBoot = () => {
+    setBootPercent(100);
+    markBootReady();
+    setStorageReady(true);
+  };
+  useEffect(() => {
+    if (!(storageReady && reel === 'card')) return;
+    try { sessionStorage.setItem('og.titleSeen', '1'); } catch { /* session only */ }
+    setTitle(false);
+    setReel('off');
+  }, [storageReady, reel]);
+  const skipReel = () => {
+    if (!storageReady) setReel('card');
+    else { done(); setReel('off'); }
+  };
   return <>
     <AlwaysChrome />
-    {storageReady
-      ? <><ScreenContent />{title && <TitleSequence onDone={done} />}<Toast /><LoadingSave /></>
-      : <FolderGate onReady={() => setStorageReady(true)} />}
+    <Toast />
+    {!storageReady && (
+      <div hidden={reel !== 'off'}>
+        <FolderGate onReady={finishBoot} onProgress={setBootPercent} onChoice={() => { markBootReady(); setReel('off'); }} />
+      </div>
+    )}
+    {storageReady && reel === 'off' && <>
+      <ScreenContent />
+      {title && <TitleSequence onDone={done} />}
+      <LoadingSave />
+    </>}
+    {reel === 'play' && <LoadingReel percent={bootPercent} ready={storageReady} onSkip={skipReel} onFallback={() => setReel('card')} />}
+    {reel === 'card' && !storageReady && (
+      <StreetLoading message="The streets are being put in order." failed={false} percent={bootPercent} onRetry={() => {}} onExit={() => {}} />
+    )}
   </>;
 }
 

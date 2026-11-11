@@ -4639,3 +4639,85 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .scene-foot, .page-foot { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
   .journal .page { top: 92px; }
 }
+
+/* Loading reel. The theme is streamed by the audio element; it is not copied into the city folder. */
+.loading-reel {
+  position: fixed;
+  inset: 0;
+  z-index: 1900;
+  background: #070604;
+  cursor: pointer;
+}
+.loading-reel.leaving { opacity: 0; transition: opacity 0.4s linear; }
+.loading-reel-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.loading-reel.logo-card { background: #000; }
+.loading-reel.logo-card .loading-reel-canvas { visibility: hidden; }
+.reel-logo, .reel-end h1 {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  font-family: 'Cinzel', 'Times New Roman', serif;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #f0d489;
+  text-align: center;
+  pointer-events: none;
+}
+.reel-logo {
+  opacity: 0.42;
+  font-size: clamp(28px, 5vw, 64px);
+  text-shadow: 0 2px 18px #000;
+}
+.reel-end {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #000;
+}
+.reel-end h1 {
+  position: static;
+  transform: none;
+  opacity: 1;
+  font-size: clamp(36px, 7vw, 84px);
+  text-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+.reel-tip {
+  position: absolute;
+  left: 50%;
+  bottom: max(28px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 32px));
+  margin: 0;
+  color: #f4ead7;
+  text-align: center;
+  font: 600 16px/1.4 'Barlow', sans-serif;
+  text-shadow: 0 1px 4px #000;
+  pointer-events: none;
+}
+.reel-status {
+  position: absolute;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(10px, env(safe-area-inset-left));
+  padding: 6px 10px;
+  background: rgba(12, 9, 6, 0.72);
+  color: #f0d489;
+  border: 1px solid #8a7044;
+  font: 600 13px/1.2 'Barlow', sans-serif;
+  pointer-events: none;
+}
+.reel-sound {
+  position: absolute;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #8a7044;
+  background: rgba(12, 9, 6, 0.82);
+  color: #f0d489;
+  font: 600 14px/1 'Barlow', sans-serif;
+  touch-action: manipulation;
+}
