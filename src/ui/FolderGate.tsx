@@ -21,7 +21,6 @@ export function FolderGate({ onReady }: { onReady: () => void }) {
   const [error, setError] = useState('');
   const [needsGesture, setNeedsGesture] = useState(false);
   const [busy, setBusy] = useState(true);
-  const [copying, setCopying] = useState('');
   const readyRef = useRef(onReady);
   readyRef.current = onReady;
 
@@ -44,11 +43,6 @@ export function FolderGate({ onReady }: { onReady: () => void }) {
   }, []);
 
   const applyPrefs = async () => {
-    await syncWorldAssets((progress) => {
-      const pct = progress.total ? Math.round(progress.done / progress.total * 100) : 0;
-      setCopying(`Copying artwork ${pct}%`);
-    });
-    setCopying('');
     await loadLocalData();
     audio.loadStored();
     const stored = readLocalData();
@@ -62,6 +56,7 @@ export function FolderGate({ onReady }: { onReady: () => void }) {
       autoLowerRoofs: stored.autoLowerRoofs,
     });
     applyUiScale(stored.uiScale);
+    void syncWorldAssets(undefined, (text) => useGame.getState().notify(text));
   };
 
   const ready = async (run: () => Promise<unknown>) => {
@@ -83,7 +78,7 @@ export function FolderGate({ onReady }: { onReady: () => void }) {
   };
 
   if (busy && !error) {
-    return <main className="folder-gate"><p>{copying || 'Opening the place this city is kept…'}</p>{copying && <div className="week-bar" role="progressbar"><i style={{ width: copying.replace(/\D/g, '') + '%' }} /></div>}</main>;
+    return <main className="folder-gate"><p>Opening the place this city is kept…</p></main>;
   }
 
   return (

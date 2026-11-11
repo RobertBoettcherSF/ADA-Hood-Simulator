@@ -4546,6 +4546,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   background: #1c1610;
 }
 .week-bar i { display: block; height: 100%; background: #c4a15a; }
+.loading-anim { height: 72px; margin: 8px 0 12px; position: relative; overflow: hidden; background: linear-gradient(#c4b49a, #8d7348); border: 1px solid #8a7044; }
+.loading-walker {
+  position: absolute; left: 8%; bottom: 10px; width: 18px; height: 36px;
+  background: #1c1610; border-radius: 8px 8px 2px 2px;
+  animation: loading-walk 2.4s linear infinite;
+}
+.loading-walker::before { content: ''; position: absolute; left: 2px; top: -10px; width: 14px; height: 14px; border-radius: 50%; background: #1c1610; }
+@keyframes loading-walk { from { left: 8%; } to { left: 78%; } }
 .portrait.sepia-face { background: #c4b49a; position: relative; overflow: hidden; }
 .portrait.painted img { filter: sepia(0.65) contrast(1.08) saturate(0.7); }
 .portrait-initial {

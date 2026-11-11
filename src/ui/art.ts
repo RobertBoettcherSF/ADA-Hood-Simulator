@@ -1,5 +1,6 @@
 import type { Person } from '../sim/types';
 import { assetUrl } from '../app/assetCache';
+import { resolvedGraphics } from '../app/device';
 import { noteAssetLoad } from '../app/assetTiming';
 import thickenedIcons from '../../public/art/icons-small/index.json';
 
@@ -75,6 +76,26 @@ export function thumbUrl(cls: string, state: string): string {
 }
 
 const cache = new Map<string, Promise<HTMLImageElement>>();
+const imageBytes = new Map<string, number>();
+const imageOrder: string[] = [];
+let imageUsed = 0;
+/** Decoded pictures kept on a phone. Oldest are dropped first. */
+const PHONE_IMAGE_CAP = 24 * 1024 * 1024;
+
+function keepImage(src: string, img: HTMLImageElement): void {
+  if (resolvedGraphics() !== 'phone' || imageBytes.has(src)) return;
+  const bytes = Math.max(48_000, Math.max(1, img.naturalWidth) * Math.max(1, img.naturalHeight) * 4);
+  imageBytes.set(src, bytes);
+  imageOrder.push(src);
+  imageUsed += bytes;
+  while (imageUsed > PHONE_IMAGE_CAP && imageOrder.length > 1) {
+    const oldest = imageOrder.shift();
+    if (!oldest) break;
+    imageUsed -= imageBytes.get(oldest) ?? 0;
+    imageBytes.delete(oldest);
+    cache.delete(oldest);
+  }
+}
 
 /** Load an image once and share it; rejects if the file is not there. */
 export function loadImage(src: string): Promise<HTMLImageElement> {
@@ -83,7 +104,11 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
     p = new Promise((resolve, reject) => {
       const img = new Image();
       const started = performance.now();
-      img.onload = () => { noteAssetLoad(src, performance.now() - started, true); resolve(img); };
+      img.onload = () => {
+        noteAssetLoad(src, performance.now() - started, true);
+        keepImage(src, img);
+        resolve(img);
+      };
       img.onerror = () => { noteAssetLoad(src, performance.now() - started, false); cache.delete(src); reject(new Error(`missing ${src}`)); };
       img.src = src;
     });

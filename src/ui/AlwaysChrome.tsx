@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGame } from '../app/store';
 import { recordAction } from '../app/actionLog';
+import { runAutoTest, type AutoTestSettings } from '../app/autoTest';
 import { installCrashReports, setReportWish, setReportWorld, writeDebugReport } from '../app/debugReport';
 import { checkForUpdate, type UpdateOffer } from '../app/versionCheck';
 import { activeWorldStore } from '../app/worldFolder';
@@ -98,32 +99,70 @@ export function AlwaysChrome() {
           <button type="button" onClick={() => setOffer(null)}>Keep this one</button>
         </div>
       )}
-      {sim?.world.phase === 'planning' && <Autoplay />}
+      {sim?.world.phase === 'planning' && <AutoTest />}
     </div>
   );
 }
 
-function Autoplay() {
-  const autoplayWeeks = useGame((s) => s.autoplayWeeks);
+function AutoTest() {
   const resolving = useGame((s) => s.resolvingHeadless);
+  const sim = useGame((s) => s.sim);
+  const [open, setOpen] = useState(false);
+  const [untilEnd, setUntilEnd] = useState(false);
   const [weeks, setWeeks] = useState(4);
-  const count = Math.max(1, Math.round(weeks) || 1);
+  const [seed, setSeed] = useState(sim?.world.options.seed ?? 1932);
+  const [speed, setSpeed] = useState(4);
+  const [running, setRunning] = useState(false);
+  const start = async () => {
+    const current = useGame.getState().sim;
+    if (!current || running) return;
+    const settings: AutoTestSettings = {
+      weeks: untilEnd ? null : Math.max(1, Math.round(weeks) || 1),
+      seed: Math.round(seed) || current.world.options.seed,
+      speed: Math.max(1, Math.round(speed) || 1),
+    };
+    setOpen(false);
+    setRunning(true);
+    useGame.getState().setSpeed(settings.speed);
+    try {
+      await runAutoTest(current, settings, () => useGame.getState().endWeekNow());
+      useGame.getState().notify('Auto test report written to 09 Reports.');
+    } catch (error) {
+      useGame.getState().notify({ ok: false, error: error instanceof Error ? error.message : 'Auto test failed.' });
+    } finally {
+      setRunning(false);
+    }
+  };
   return (
     <span className="always-autoplay">
-      <label>
-        Weeks
-        <input
-          type="number"
-          min={1}
-          step={1}
-          value={weeks}
-          aria-label="Autoplay weeks"
-          onChange={(event) => setWeeks(Number(event.target.value))}
-        />
-      </label>
-      <button type="button" className="always-debug" disabled={resolving} onClick={() => void autoplayWeeks(count)} title="The same orders and the same week resolver as a turn at the desk">
-        Autoplay
+      <button type="button" className="always-debug" disabled={resolving || running} onClick={() => setOpen(true)}>
+        {running ? 'Testing…' : 'Auto Test'}
       </button>
+      {open && (
+        <form className="always-update" role="dialog" aria-label="Auto Test" onSubmit={(event) => { event.preventDefault(); void start(); }}>
+          <p>A simulated player uses the same actions as the desk.</p>
+          <label>
+            <input type="checkbox" checked={untilEnd} onChange={(event) => setUntilEnd(event.target.checked)} />
+            Until victory or loss
+          </label>
+          {!untilEnd && (
+            <label>
+              Weeks
+              <input type="number" min={1} value={weeks} aria-label="Auto test weeks" onChange={(event) => setWeeks(Number(event.target.value))} />
+            </label>
+          )}
+          <label>
+            Seed
+            <input type="number" value={seed} aria-label="Auto test seed" onChange={(event) => setSeed(Number(event.target.value))} />
+          </label>
+          <label>
+            Speed
+            <input type="number" min={1} max={10} value={speed} aria-label="Auto test speed" onChange={(event) => setSpeed(Number(event.target.value))} />
+          </label>
+          <button type="submit">Start</button>
+          <button type="button" onClick={() => setOpen(false)}>Cancel</button>
+        </form>
+      )}
     </span>
   );
 }

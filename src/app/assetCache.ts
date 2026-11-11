@@ -19,8 +19,10 @@ interface Manifest {
 }
 
 const cache = new Map<string, string>();
+const lru: { path: string; bytes: number }[] = [];
 let remembered = 0;
-const PHONE_CAP = 48 * 1024 * 1024;
+/** In-memory pictures on a phone. Oldest leave first. Nothing here is written to storage. */
+const PHONE_LAZY_CAP = 24 * 1024 * 1024;
 
 const MENU_PREFIXES = ['art/brand/', 'art/portraits/', 'art/press/', 'art/icons/', 'art/icons-small/', 'art/endings/'];
 const STREET_PREFIXES = ['art/city/'];
@@ -45,10 +47,28 @@ export function assetMemoryBytes(): number {
 }
 
 function fits(bytes: number): boolean {
-  return resolvedGraphics() !== 'phone' || remembered + bytes <= PHONE_CAP;
+  return resolvedGraphics() !== 'phone' || remembered + bytes <= PHONE_LAZY_CAP;
 }
 
-/** Turn stored bytes into blob URLs. Missing files stay on the network. */
+/** A picture that was just decoded. On a phone, drop the oldest until the cap fits. */
+export function noteLazyImage(src: string, width: number, height: number): void {
+  if (resolvedGraphics() !== 'phone') return;
+  const bytes = Math.max(48_000, Math.max(1, width) * Math.max(1, height) * 4);
+  const path = src;
+  if (lru.some((entry) => entry.path === path)) return;
+  lru.push({ path, bytes });
+  remembered += bytes;
+  while (remembered > PHONE_LAZY_CAP && lru.length > 1) {
+    const oldest = lru.shift();
+    if (!oldest) break;
+    remembered -= oldest.bytes;
+    const url = cache.get(oldest.path);
+    if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+    cache.delete(oldest.path);
+  }
+}
+
+/** Turn stored bytes into blob URLs. Missing files stay on the network. Phones only warm the phone-tier models. */
 export async function preloadAssets(which: 'all' | 'menu' | 'street'): Promise<void> {
   const manifest = await loadAssetManifest();
   const store = activeWorldStore();
@@ -56,7 +76,7 @@ export async function preloadAssets(which: 'all' | 'menu' | 'street'): Promise<v
   const tier = resolvedGraphics();
   const prefixes = which === 'menu' ? MENU_PREFIXES : which === 'street' ? STREET_PREFIXES : null;
   for (const file of manifest.files) {
-    if (file.tier !== 'shared' && file.tier !== tier) continue;
+    if (tier === 'phone' ? file.tier !== 'phone' : file.tier !== 'desktop' && file.tier !== 'shared') continue;
     if (prefixes && !prefixes.some((prefix) => file.path.startsWith(prefix))) continue;
     if (cache.has(file.path) || !fits(file.bytes)) continue;
     const bytes = await store.readBytes(`assets/${file.path}`);
@@ -65,5 +85,6 @@ export async function preloadAssets(which: 'all' | 'menu' | 'street'): Promise<v
     copy.set(bytes);
     cache.set(file.path, URL.createObjectURL(new Blob([copy])));
     remembered += file.bytes;
+    lru.push({ path: file.path, bytes: file.bytes });
   }
 }
