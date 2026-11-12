@@ -801,7 +801,10 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
     // Manual p.31: one front manager, a two-person team, then reserves in the pool.
     const hoodCount = Math.max(3, Math.min(10, options.startHoods));
     const hoods: Person[] = [];
-    for (let i = 0; i < hoodCount; i++) {
+    // 1.2.21: the lieutenant comes on top of the chosen hoods (the boss is not
+    // a hood either), so ten hoods means ten hoods plus a lieutenant and three
+    // hoods still leave one in the pool after the manager and the crew man.
+    for (let i = 0; i < hoodCount + 1; i++) {
       const p = createPerson(w, rng, 'hood', w.lots[office.lotId].center, {
         businessType: i === 0,
         gangId,
