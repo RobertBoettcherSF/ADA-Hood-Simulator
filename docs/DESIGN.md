@@ -222,6 +222,37 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## v1.2.22 decisions
+
+Only Auto Test's behaviour changes. Game rules, prices, estimates and the rival AI are unchanged. The Auto Test log and the new "Auto Test desk" section of the debug report record every step below.
+
+Why: in Robert's 1.2.21 continuation (seed 2407541768, territory game, target 500 blocks, random opponents, normal economy, 40 × 32), the gang had $1.04M, 88 men and 109 blocks by week 100. It still owned only 7 buildings. About 120 accepted "reinvest: buy legal iceHouse" orders never completed: each needed about 900 minutes, the crews had 190–390 left, and the same ice house was picked every week. Moves such as "move … to … (out of time last week)" were refused up to nine times.
+
+1. **Goal-aware spending.** Auto Test already reads the game type (full game, power, wealth, territory, or a scenario's mode) as its goal.
+   - Territory:
+     - beyond the three weeks' payroll reserve, cash pays for men: new hoods are hired while the money above the reserve carries their wages for ten weeks, up to the 80-man crew cap;
+     - each crew gets a car (two a week);
+     - buying prefers sites in blocks we do not hold (counted double in the value);
+     - the weakest rival (lowest on the power graph) with an identified site beside our blocks loses one such site each week: bombed if the muscle has dynamite, otherwise torched.
+   - Wealth: as before, plus up to six premises a week instead of four.
+2. **Business crew (Robert's method).**
+   - The crew given the business job takes hoods with more than three business stars (two a week), and gets a car.
+   - It does the buying: legal premises and empty lots, ranked by profit per dollar.
+   - Then it sets up the best-paying legal business it can afford on each empty lot we own (centre lots stay for rackets).
+   - A building already ordered this week is not ordered again.
+   - Every buy or set-up is sized to the week. The game's own minutes estimate is multiplied by a factor the desk learns (it starts at 2.5, rises 15% after an order that never completed, falls 5% after one that did, kept between 1.2 and 5). Only targets that fit the crew's free minutes are given. Among those that fit, a cheaper and closer one beats a slightly better one that would eat the week.
+   - The orders go out as priority orders, so they run before the crew's other work.
+   - A target that fails twice is dropped for six weeks. A crew is never sent again to a target it failed.
+   - The log shows the business crew's stars and each target chosen (estimate against free minutes), plus every failure and drop.
+3. **No repeated refused moves.**
+   - A crew move refused once (crew full or out of time) is not tried again for four weeks: neither that man, nor any man into that crew.
+   - A full crew that ran out of time gets nobody.
+4. **Rival HQ strike.** In-game knowledge only: an HQ counts as known only when our own scouting has identified it (the map's rule).
+   - Target rival: in a territory game the weakest on the power graph; otherwise the one strongest per man we know of (rich and thinly manned).
+   - From week 6, the scout crew searches for that rival's HQ: first the blocks where it has identified sites, then any rival's identified blocks, then unexplored offices outside our turf (HQs are offices), nearest first. Without a scout crew, the freest crew does it every other week.
+   - "Strike a rival HQ" is a new action in the ranked table. It starts at rank 0.6, can be rolled at most every four weeks from week 8, and is judged like the others.
+   - The strike crew is armed first (two tommy guns and dynamite). It then bombs the HQ, or kills a man inside, or smashes it up.
+
 ## v1.2.21 decisions
 
 1. **Name.** The game is called Hood Simulator everywhere: README, package description, menus, credits, docs and code comments. The package and save-database name `original-gangster` stays so existing cities still load.

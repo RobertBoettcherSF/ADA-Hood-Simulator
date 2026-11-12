@@ -17,9 +17,13 @@ import type { Gang, Order, Person, WorldState } from '../sim/types';
 import { gangHoldings, gangManpower, powerRating, territoryCount, teamsOf } from '../sim/world';
 
 const weeks: string[] = [];
+/** 1.2.22: the Auto Test desk's own notes for the week (business crew, buy targets, drops, HQ scouting and strikes). */
+const deskLines: string[] = [];
+export function noteDevDesk(line: string): void { deskLines.push(line); }
 
 export function clearDevJournal(): void {
   weeks.length = 0;
+  deskLines.length = 0;
   takeStopTraces();
 }
 
@@ -185,6 +189,10 @@ export function captureDevWeek(w: WorldState): void {
     const list = visitsByBuilding.get(t.buildingId) ?? [];
     if (!list.includes(t.orderId)) list.push(t.orderId);
     visitsByBuilding.set(t.buildingId, list);
+  }
+  if (deskLines.length) {
+    lines.push('', 'Auto Test desk (planning notes for this week)');
+    for (const l of deskLines.splice(0)) lines.push(`  ${l}`);
   }
   lines.push('', 'Crews and orders (every gang), with each round stop by stop');
   for (const gang of Object.values(w.gangs)) {
