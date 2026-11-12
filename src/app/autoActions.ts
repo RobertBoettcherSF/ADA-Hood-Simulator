@@ -10,7 +10,7 @@ import type { Rng } from '../sim/rng';
 import type { Building, Gang, ID, Order, Person, Team, WorldState } from '../sim/types';
 
 export const ACTION_KEYS = ['raid', 'pressRefuser', 'torchRival', 'bombRival', 'kidnapRival', 'killRival', 'snitch',
-  'bribeJudge', 'bribeDA', 'bribeWitness', 'scareWitness', 'bribeJuror', 'strikeFbi'] as const;
+  'bribeJudge', 'bribeDA', 'bribeWitness', 'scareWitness', 'bribeJuror', 'strikeFbi', 'strikeHQ'] as const;
 /** Answers to a trial: chosen only while one of the gang's men is up before a court. */
 export const TRIAL_KEYS: readonly ActionKey[] = ['bribeJudge', 'bribeDA', 'bribeWitness', 'scareWitness', 'bribeJuror'];
 export type ActionKey = (typeof ACTION_KEYS)[number];
@@ -23,6 +23,7 @@ export const ACTION_LABELS: Record<ActionKey, string> = {
   bribeJudge: 'bribe the judge on a case', bribeDA: 'bribe the DA for the witness and juror lists',
   bribeWitness: 'pay a witness to forget', scareWitness: 'rough up a witness', bribeJuror: 'pay a juror',
   strikeFbi: 'strike the FBI: kill its director',
+  strikeHQ: 'strike a rival HQ our scouts found',
 };
 
 export const RANK_MIN = 0.2;
@@ -30,7 +31,7 @@ export const RANK_MAX = 4;
 
 export function defaultActionRanks(): ActionRanks {
   return { raid: 1.2, pressRefuser: 1.4, torchRival: 0.8, bombRival: 0.7, kidnapRival: 0.8, killRival: 0.5, snitch: 1,
-    bribeJudge: 1.5, bribeDA: 1.2, bribeWitness: 1, scareWitness: 0.8, bribeJuror: 1, strikeFbi: RANK_MIN };
+    bribeJudge: 1.5, bribeDA: 1.2, bribeWitness: 1, scareWitness: 0.8, bribeJuror: 1, strikeFbi: RANK_MIN, strikeHQ: 0.6 };
 }
 
 /** Ranks from an earlier run, filled in and clamped. */
@@ -122,6 +123,10 @@ export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, o
       break;
     case 'killRival': case 'strikeFbi':
       if (victim && victim.status === 'dead') return { ok: true, why: `${victim.name} dead` };
+      break;
+    case 'strikeHQ':
+      if (target && target.state !== 'trading') return { ok: true, why: `rival HQ ${target.state}` };
+      if (victim && victim.status === 'dead') return { ok: true, why: `${victim.name} dead at the HQ` };
       break;
     case 'raid':
       if (order.completedTargets > 0 || order.targetPaid) return { ok: true, why: 'got away with the takings' };
