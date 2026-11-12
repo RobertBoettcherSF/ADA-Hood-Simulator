@@ -136,15 +136,37 @@ export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, o
 
 export type CrewRole = 'business' | 'extortion' | 'collect' | 'muscle' | 'recruit' | 'scout';
 
-/** Crew names after their main job (only crews still on a default or earlier auto name are renamed). */
-export const CREW_NAMES: Record<CrewRole, string> = {
-  collect: 'Collect Protection', recruit: 'Recruiting', extortion: 'Extortion', business: 'Business', muscle: 'Strike', scout: 'Scouting',
+/** The job word in a crew's name: "Eddie's Protection", "Eddie's Strike" (1.2.18). */
+export const CREW_JOBS: Record<CrewRole, string> = {
+  collect: 'Protection', recruit: 'Recruiting', extortion: 'Extortion', business: 'Business', muscle: 'Strike', scout: 'Scouting',
 };
-const AUTO_NAME = new RegExp(`^(.+'s Crew|(${Object.values(CREW_NAMES).join('|')})( \\d+)?)$`);
-/** The name a crew should carry for its role, numbering extra collection crews; null when the player named it. */
-export function crewNameFor(current: string, role: CrewRole, index: number): string | null {
-  if (!AUTO_NAME.test(current)) return null;
-  return index > 1 ? `${CREW_NAMES[role]} ${index}` : CREW_NAMES[role];
+/** Names Auto Test (or the game) gave: the default "X's Crew", 1.2.17's bare job names, and "X's <Job>". */
+const OLD_NAMES = ['Collect Protection', 'Recruiting', 'Extortion', 'Business', 'Strike', 'Scouting'];
+const AUTO_NAME = new RegExp(`^(.+'s (Crew|${Object.values(CREW_JOBS).join('|')})|${OLD_NAMES.join('|')})( \\d+)?$`);
+/** Whether a crew still carries a name the player did not choose. */
+export const isAutoCrewName = (name: string) => AUTO_NAME.test(name.trim());
+/** The lieutenant's first name and the crew's job; null when the player named the crew. */
+export function crewNameFor(current: string, role: CrewRole, lieutenantName: string): string | null {
+  if (!isAutoCrewName(current)) return null;
+  const first = lieutenantName.trim().split(/\s+/)[0] || 'The';
+  return `${first}'s ${CREW_JOBS[role]}`;
+}
+/** Names for every crew, numbered only where two would otherwise share a name; player names are left alone. */
+export function crewNames(crews: { id: number; name: string; role: CrewRole; lieutenantName: string }[]): Map<number, string> {
+  const out = new Map<number, string>();
+  const taken = new Set(crews.filter((c) => !isAutoCrewName(c.name)).map((c) => c.name));
+  const base = crews.map((c) => ({ c, name: crewNameFor(c.name, c.role, c.lieutenantName) }));
+  const seen = new Map<string, number>();
+  for (const { c, name } of base) {
+    if (!name) continue;
+    let n = (seen.get(name) ?? 0) + 1;
+    let candidate = n > 1 ? `${name} ${n}` : name;
+    while (taken.has(candidate)) { n += 1; candidate = `${name} ${n}`; }
+    seen.set(name, n);
+    taken.add(candidate);
+    out.set(c.id, candidate);
+  }
+  return out;
 }
 export const recruitTalent = (p: Person) => p.skills.intelligence * 2 + p.skills.organization;
 export const scoutTalent = (p: Person) => p.skills.stealth * 2 + p.skills.intelligence + p.skills.driving * 0.5;
