@@ -33,6 +33,7 @@ const HELP: Record<string, ControlHelpEntry> = {
   pay: { body: 'Set this lieutenant’s weekly pay against what he wants.' },
   territory: { body: 'The blocks this crew looks after. Pick them on the plan.' },
   'business orders': { body: 'Collect protection, buy premises, set up and run businesses.' },
+  // The lieutenant panel's badges and lines (data-help names them).
   'personnel orders': { body: 'Recruit, patrol, guard, explore and other jobs for the men.' },
   'minor crimes': { body: 'Extort, intimidate, raid and kidnap.' },
   'violent crimes': { body: 'Assault, smash up, arson and bombing. Loud, and the police notice.' },
@@ -47,6 +48,30 @@ const HELP: Record<string, ControlHelpEntry> = {
   'open the journal': { body: 'Bring the journal back over the city.' },
   'fold the journal': { body: 'Fold the journal away to see the whole city.' },
   'empty crew': { body: 'An empty crew. Open the pool to promote a hood, or drop one here.' },
+  team: { body: 'Swap the paper back from the lieutenant’s skills to the men in his crew.' },
+  'crew name': { body: 'The crew’s name. Click to rename it.' },
+  loyalty: { body: 'How loyal the lieutenant is, 0 to 100. Under 30 he may skim, talk to the police or walk out; fair pay and success keep it up.' },
+  wanted: { body: 'How hard the FBI is after this man, 0 to 100. It rises with the crimes he is seen at; a high figure puts him on the Most Wanted list and risks an arrest.' },
+  absent: { body: 'The lieutenant is not at work this week: his crew cannot carry out orders until he is back.' },
+  'crew size': { body: 'The lieutenant and the hoods under him. Drag hoods here from the pool to add them.' },
+  'crew weapons': { body: 'Weapons this crew carries. Drag one from the cache onto the crew to add it.' },
+  'crew vehicles': { body: 'Cars and trucks this crew can use. They save walking time on long runs.' },
+  'week assigned': { body: 'How much of this crew’s working week the orders already take. Orders past 100% will not get done.' },
+  'pay line': { body: 'What the lieutenant is paid a week against what he wants. Paid less than he wants, his loyalty falls.' },
+  'crew roster': { body: 'Open or close the list of the crew’s men (or the lieutenant’s skills). Click a man for his card.' },
+  'crew member': { body: 'One of the crew. Click for his card; drag him to another crew or the pool.' },
+  'skill stars': { body: 'Skills in half stars, up to five: business, intimidation, firearms, stealth and the rest. They decide how well he does each job.' },
+  'order queue': { body: 'The orders this crew has for the week. Edit one to change it, × to cancel.' },
+  edit: { body: 'Open the job card for this order again.' },
+  'repeat order': { body: 'Give the same order again this week.' },
+  interrogate: { body: 'Question the prisoner for names. Each time he is less willing to talk.' },
+  assault: { body: 'Beat the prisoner. He talks more readily, and may not survive.' },
+  release: { body: 'Let the prisoner go home.' },
+  'gang boss': { body: 'The boss. Lose him and the game is over.' },
+  'gang assets': { body: 'Premises, weapons and vehicles at their value, cash not counted. Going straight needs $250,000 of it.' },
+  'gang blocks': { body: 'Blocks the gang controls. Standing for mayor needs enough of them.' },
+  'gang men': { body: 'Lieutenants, hoods and specialists on the payroll, and the weekly wage bill.' },
+  'last week': { body: 'What this crew did last week, order by order.' },
 
   // The map bar under the plan and the street HUD.
   'city plan': { body: 'The street plan with building types and the holdings you know of.', keys: 'Insert' },
@@ -104,6 +129,12 @@ export function controlLabel(el: Element): string {
   return (el.getAttribute('data-tip') ?? el.getAttribute('title') ?? '').trim();
 }
 
+/** A badge or line names its help entry in data-help; a button is matched by its label. */
+export function controlHelpFor(el: Element, label: string): ControlHelpEntry | undefined {
+  const named = el.getAttribute('data-help');
+  return (named ? HELP[normal(named)] : undefined) ?? controlHelp(label);
+}
+
 export function controlHelp(label: string): ControlHelpEntry | undefined {
   const key = normal(label);
   if (HELP[key]) return HELP[key];
@@ -120,5 +151,5 @@ export function keyFromTip(tip: string): string | undefined {
 
 /** Buttons that get a tip and a card. Dialogs and the city canvas keep their own. */
 export const CONTROL_SCOPE = '.game-shell, .always-chrome';
-export const CONTROL_SELECTOR = 'button, [role="tab"]';
+export const CONTROL_SELECTOR = 'button, [role="tab"], [data-help]';
 export const CONTROL_EXCLUDE = '.modal-back, .modal, [role="dialog"], .inspect-card, canvas';

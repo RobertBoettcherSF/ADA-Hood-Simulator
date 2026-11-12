@@ -163,7 +163,7 @@ export function LieutenantsTab() {
     <div className="lieutenant-planning">
       {/* ------------------------------------------------ team details panel */}
       {lt && (
-        <section className={`team-panel${dropOver ? ' drop-over' : ''}`} aria-label="Selected lieutenant" {...dropProps}>
+        <section className={`team-panel${dropOver ? ' drop-over' : ''}`} aria-label="Selected lieutenant" data-team-id={team.id} {...dropProps}>
           <input aria-label="Crew name" className="team-name" value={team.name} onChange={(e) => rename(e.target.value)} title="Click to rename the team" spellCheck={false} />
           <div className="team-head">
             <button
@@ -181,33 +181,38 @@ export function LieutenantsTab() {
             <div style={{ minWidth: 0 }}>
               <div className="row" style={{ gap: 12, alignItems: 'center' }}>
                 <h3 className={lt.pay < lt.payDemand ? 'unhappy' : ''}>{lt.name}</h3>
+                <span data-help="week assigned" aria-label="Week assigned" title={`${Math.round(timePct)}% of this crew's week assigned`}>
                 <Dial pct={timePct} size={36} title={`${Math.round(timePct)}% of this crew's week assigned`} />
+                </span>
               </div>
               <div className="counters">
-                <span title="The lieutenant leads this crew; the hoods serve under them">
+                <span data-help="crew size" title="The lieutenant leads this crew; the hoods serve under them">
                   <Icon name="groups/personnel" size={16} />
                   1 lieutenant + <b>{members.length}</b> {members.length === 1 ? 'hood' : 'hoods'}
                 </span>
-                <span title="Weapons in the team's possession">
+                <span data-help="crew weapons" title="Weapons in the team's possession">
                   <Icon name="skills/firearms" size={16} />
                   <b>{guns}</b> {guns === 1 ? 'weapon' : 'weapons'}
                 </span>
-                <span title="Vehicles at the team's disposal">
+                <span data-help="crew vehicles" title="Vehicles at the team's disposal">
                   <Icon name="vehicles/coupe" size={16} />
                   <b>{cars}</b> {cars === 1 ? 'vehicle' : 'vehicles'}
                 </span>
               </div>
               <div className="row" style={{ gap: 6, marginTop: 8 }}>
-                <span className={`tag ${lt.loyalty > 60 ? 'good' : lt.loyalty > 30 ? 'warn' : 'bad'}`}>Loyalty {Math.round(lt.loyalty)}</span>
-                <span className="tag">Wanted {Math.round(lt.wanted)}</span>
+                <span data-help="loyalty" className={`tag ${lt.loyalty > 60 ? 'good' : lt.loyalty > 30 ? 'warn' : 'bad'}`}
+                  title={`Loyalty ${Math.round(lt.loyalty)} of 100: ${lt.loyalty > 60 ? 'loyal' : lt.loyalty > 30 ? 'wavering — watch his pay' : 'disloyal — he may skim, talk or walk out'}.`}>Loyalty {Math.round(lt.loyalty)}</span>
+                <span data-help="wanted" className="tag"
+                  title={`Wanted ${Math.round(lt.wanted)} of 100: ${lt.wanted >= 60 ? 'high — keep him away from crimes' : lt.wanted >= 25 ? 'the FBI knows his face' : 'little known to the FBI'}.`}>Wanted {Math.round(lt.wanted)}</span>
                 {lt.status !== 'active' && (
-                  <span className="tag bad">
+                  <span className="tag bad" data-help="absent">
                     <Icon name={`status/${lt.status}`} size={12} /> {ABSENT[lt.status] ?? STATUS_LABELS[lt.status]}
                   </span>
                 )}
               </div>
             </div>
-            <div className={`pay-lines${lt.pay < lt.payDemand ? ' unhappy' : ''}`}>
+            <div className={`pay-lines${lt.pay < lt.payDemand ? ' unhappy' : ''}`} data-help="pay line" aria-label="Pay"
+              title={`Paid ${money(lt.pay)} a week; wants ${money(lt.payDemand)}${lt.pay < lt.payDemand ? ' — underpaid, his loyalty will fall' : ''}.`}>
               <Kicker>Wants {money(lt.payDemand)}</Kicker>
               <b>{money(lt.pay)}</b>
               <Kicker>a week</Kicker>
@@ -217,10 +222,10 @@ export function LieutenantsTab() {
           {payOpen && <PayRoll person={lt} onClose={() => setPayOpen(false)} />}
 
           <div className="team-buttons">
-            <button className="btn" onClick={() => setConfirm({ text: `Sack ${lt.name}? The team goes back to the pool, and he goes back on the street with a grudge.`, go: () => notify(act((s) => sackPerson(s.world, gang.id, lt.id))!) })}>
+            <button className="btn" title="Let this lieutenant go for good. His crew goes to the pool and he leaves with a grudge." onClick={() => setConfirm({ text: `Sack ${lt.name}? The team goes back to the pool, and he goes back on the street with a grudge.`, go: () => notify(act((s) => sackPerson(s.world, gang.id, lt.id))!) })}>
               Sack
             </button>
-            <button className="btn danger" onClick={() => setConfirm({ text: `Have ${lt.name} killed? The police will not look into it, but your other lieutenants will want more money.`, go: () => notify(act((s) => killMember(s.world, gang.id, lt.id))!) })}>
+            <button className="btn danger" title="Have this lieutenant killed. There is no undoing it, and the others will want more money." onClick={() => setConfirm({ text: `Have ${lt.name} killed? The police will not look into it, but your other lieutenants will want more money.`, go: () => notify(act((s) => killMember(s.world, gang.id, lt.id))!) })}>
               Kill
             </button>
             <button className="btn" title="Send the lieutenant and the team back to the pool" onClick={() => setConfirm({ text: `Demote ${lt.name}? His crew goes back to the pool, its orders are cancelled, and its weapons and cars go back to the cache.`, go: () => notify(act((s) => demote(s.world, gang.id, team.id))!) })}>
@@ -229,11 +234,12 @@ export function LieutenantsTab() {
             <button aria-pressed={showSkills} className={`btn${showSkills ? ' on' : ''}`} onClick={() => { setShowSkills(!showSkills); setTeamDetailsOpen(true); }} title="Swap the paper between the team and the lieutenant's skills">
               {showSkills ? 'Team' : 'Skills'}
             </button>
-            <button aria-expanded={payOpen} className={`btn${payOpen ? ' on' : ''}`} onClick={() => setPayOpen(!payOpen)}>
+            <button aria-expanded={payOpen} className={`btn${payOpen ? ' on' : ''}`} title={`Set this lieutenant's weekly pay (now ${money(lt.pay)}, wants ${money(lt.payDemand)})`} onClick={() => setPayOpen(!payOpen)}>
               Pay
             </button>
             <button
               className={`btn${pickMode?.kind === 'lieutenantArea' ? ' on' : ''}`}
+              title={pickMode?.kind === 'lieutenantArea' ? 'Finish picking this crew’s blocks' : `The ${team.allocatedBlockIds.length} block${team.allocatedBlockIds.length === 1 ? '' : 's'} this crew looks after. Click to pick them on the plan.`}
               onClick={() => {
                 const on = pickMode?.kind === 'lieutenantArea';
                 useGame.getState().selectTeam(team.id);
@@ -246,12 +252,14 @@ export function LieutenantsTab() {
           </div>
 
           <details className="team-roster" open={teamDetailsOpen} onToggle={e => setTeamDetailsOpen(e.currentTarget.open)}>
-            <summary>{showSkills ? 'Lieutenant skills' : `Crew · ${members.length+1} people · view ${members.length} hood${members.length===1?'':'s'}`}{members.some(m => m.status !== 'active') && ' · members absent'}</summary>
+            <summary data-help="crew roster" aria-label={showSkills ? 'Lieutenant skills' : 'Crew roster'}>{showSkills ? 'Lieutenant skills' : `Crew · ${members.length+1} people · view ${members.length} hood${members.length===1?'':'s'}`}{members.some(m => m.status !== 'active') && ' · members absent'}</summary>
           <div className={`paper-strip${showSkills ? ' skills-strip' : ''}`} tabIndex={0} role="region" aria-label={showSkills ? "Lieutenant skills" : "Team members"}>
             {showSkills ? (
               <>
                 <Kicker style={{ marginBottom: 6 }}>{lt.name}'s skills</Kicker>
-                <SkillList skills={lt.skills} columns={2} />
+                <div data-help="skill stars" aria-label="Skill stars" title={`${lt.name}'s skills in half stars, up to five`}>
+                  <SkillList skills={lt.skills} columns={2} />
+                </div>
               </>
             ) : (
               <>
@@ -270,6 +278,7 @@ export function LieutenantsTab() {
                         className={`row-line${m.pay < m.payDemand ? ' unhappy' : ''}`}
                         onClick={() => setSheet(sheet?.kind === 'person' && sheet.id === m.id ? null : { kind: 'person', id: m.id })}
                         {...resourceDragProps({ kind: 'hood', id: m.id })}
+                        data-help="crew member"
                         title="Click for his details; drag onto another lieutenant or the pool to move him"
                       >
                         <span className="nm">{m.name}</span>
@@ -300,14 +309,14 @@ export function LieutenantsTab() {
       <section className="list-box planning-orders" aria-label="Weekly orders and reports">
         <div className="lb-head">
           <div className="sub-tabs">
-            <button aria-pressed={mode === 'orders'} className={mode === 'orders' ? 'on' : ''} onClick={() => setMode('orders')}>
+            <button aria-pressed={mode === 'orders'} className={mode === 'orders' ? 'on' : ''} title="This crew's orders for the week" onClick={() => setMode('orders')}>
               Orders
             </button>
-            <button aria-pressed={mode === 'reports'} className={mode === 'reports' ? 'on' : ''} onClick={() => setMode('reports')}>
+            <button aria-pressed={mode === 'reports'} className={mode === 'reports' ? 'on' : ''} title="What this crew did last week" onClick={() => setMode('reports')}>
               Reports
             </button>
           </div>
-          <span className="planning-time">{Math.round(timePct)}% of this crew’s week assigned</span>
+          <span className="planning-time" data-help="week assigned" aria-label="Week assigned">{Math.round(timePct)}% of this crew’s week assigned</span>
         </div>
         <div className="lb-body">
           {mode === 'orders' ? (
@@ -315,7 +324,7 @@ export function LieutenantsTab() {
               <p className="order-instruction">Choose an order group, then an order and its map target.</p>
               <div className="planning-groups">
                 {ORDER_GROUPS.map((g) => (
-                  <button key={g.id} aria-pressed={sheet?.kind === 'orders' && sheet.group === g.id} className={`group-btn${sheet?.kind === 'orders' && sheet.group === g.id ? ' on' : ''}`} onClick={() => setSheet({ kind: 'orders', group: g.id })}>
+                  <button key={g.id} aria-pressed={sheet?.kind === 'orders' && sheet.group === g.id} className={`group-btn${sheet?.kind === 'orders' && sheet.group === g.id ? ' on' : ''}`} title={`${g.name}: ${GROUP_BLURB[g.id]}`} onClick={() => setSheet({ kind: 'orders', group: g.id })}>
                     <span className="gb-name">
                       <Icon name={`groups/${g.id}`} size={20} /> {g.name}
                     </span>
@@ -326,9 +335,11 @@ export function LieutenantsTab() {
               {orders.length === 0 && <p className="orders-empty">No orders for this crew yet.</p>}
               {orders.length > 0 && (
                 <div className="queued-orders" tabIndex={0} role="region" aria-label="This week's orders">
+                  <span data-help="order queue" aria-label="Order queue" title="This crew's orders, in the order the men take them">
                   <Kicker style={{ marginBottom: 4 }}>
                     This week · {orders.length} order{orders.length === 1 ? '' : 's'}
                   </Kicker>
+                  </span>
                   {orders.map((o) => (
                     <div key={o.id} className="row between report-item">
                       <span>
@@ -374,7 +385,7 @@ export function LieutenantsTab() {
           <button title="Vehicles (V)" className={`btn sm${sheet?.kind === 'vehicles' ? ' on' : ''}`} onClick={() => setSheet({ kind: 'vehicles' })}>
             <Icon name="vehicles/coupe" size={13} /> Vehicles
           </button>
-          <button className={`btn sm${sheet?.kind === 'recruits' ? ' on' : ''}`} onClick={() => setSheet({ kind: 'recruits' })}>
+          <button title="People your crews found this week, waiting for an answer" className={`btn sm${sheet?.kind === 'recruits' ? ' on' : ''}`} onClick={() => setSheet({ kind: 'recruits' })}>
             <Icon name="orders/recruit" size={13} /> Recruitment · {gang.recruitIds.length}
           </button>
         </div>
@@ -530,7 +541,7 @@ function ReportsPanel({ teamId }: { teamId: ID }) {
             {w.orders[o.id]?.state === 'queued' ? (
               <div className="muted tiny" style={{ marginTop: 6 }}>Repeats this week.</div>
             ) : (
-              <button className="btn sm" style={{ marginTop: 6 }} onClick={() => notify(act((s) => repeatOrder(s.world, s.playerGang.id, o))!)}>
+              <button className="btn sm" style={{ marginTop: 6 }} title="Give the same order again this week" onClick={() => notify(act((s) => repeatOrder(s.world, s.playerGang.id, o))!)}>
                 Repeat order
               </button>
             )}
@@ -548,16 +559,16 @@ function ReportsPanel({ teamId }: { teamId: ID }) {
                 <span className="muted">will talk: {Math.round(p.interrogationValue)}%</span>
               </div>
               <div className="row wrap" style={{ gap: 4, marginTop: 4 }}>
-                <button className="btn sm" onClick={() => notify(act((s) => interrogatePrisoner(s.world, s.rng, gang.id, p.id))!)}>
+                <button className="btn sm" title="Question him for names" onClick={() => notify(act((s) => interrogatePrisoner(s.world, s.rng, gang.id, p.id))!)}>
                   Interrogate
                 </button>
-                <button className="btn sm" onClick={() => notify(act((s) => assaultPrisoner(s.world, s.rng, gang.id, p.id))!)}>
+                <button className="btn sm" title="Beat him so he talks; he may not survive" onClick={() => notify(act((s) => assaultPrisoner(s.world, s.rng, gang.id, p.id))!)}>
                   Assault
                 </button>
-                <button className="btn sm danger" onClick={() => notify(act((s) => killPrisoner(s.world, gang.id, p.id))!)}>
+                <button className="btn sm danger" title="Kill the prisoner" onClick={() => notify(act((s) => killPrisoner(s.world, gang.id, p.id))!)}>
                   Kill
                 </button>
-                <button className="btn sm" onClick={() => notify(act((s) => releasePrisoner(s.world, gang.id, p.id))!)}>
+                <button className="btn sm" title="Let him go home" onClick={() => notify(act((s) => releasePrisoner(s.world, gang.id, p.id))!)}>
                   Release
                 </button>
               </div>
@@ -584,7 +595,7 @@ function ReportsPanel({ teamId }: { teamId: ID }) {
         <Empty>You know nothing of your rivals' people. Explore, or buy from a snitch.</Empty>
       ) : (
         seen.map((p) => (
-          <button key={p.id} className="list-row" onClick={() => centreOnPerson(p.id)}>
+          <button key={p.id} className="list-row" title={`Centre the view on ${p.name}`} onClick={() => centreOnPerson(p.id)}>
             <span className="name">{p.name}</span>
             <span className="muted">{w.gangs[p.gangId!]?.name}</span>
           </button>

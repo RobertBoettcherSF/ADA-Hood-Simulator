@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useGame } from '../app/store';
 import { MINUTES_PER_WEEK } from '../sim/constants';
-import { CONTROL_EXCLUDE, CONTROL_SCOPE, CONTROL_SELECTOR, controlHelp, controlLabel, keyFromTip } from './controlHelp';
+import { CONTROL_EXCLUDE, CONTROL_SCOPE, CONTROL_SELECTOR, controlHelp, controlHelpFor, controlLabel, keyFromTip } from './controlHelp';
 
 interface Shown {
   kind: 'tip' | 'card';
@@ -52,7 +52,7 @@ function crewRows(teamId: number): { title: string; rows: Shown['rows'] } | null
 function describe(el: HTMLElement, kind: Shown['kind'], x: number, y: number): Shown | null {
   const tip = tipOf(el);
   const label = controlLabel(el);
-  const help = controlHelp(label) ?? (tip ? controlHelp(tip) : undefined);
+  const help = controlHelpFor(el, label) ?? (tip ? controlHelp(tip) : undefined);
   if (kind === 'tip') {
     // A bare key ("F2") reads better with the name; a bare name with what it does.
     const text = tip && label && tip.length <= 12 && !tip.toLowerCase().includes(label.toLowerCase()) ? `${label} (${tip})`
@@ -67,6 +67,8 @@ function describe(el: HTMLElement, kind: Shown['kind'], x: number, y: number): S
   const pressed = el.getAttribute('aria-pressed') ?? el.getAttribute('aria-selected');
   if (pressed === 'true' || pressed === 'false') rows.push({ label: 'Now', value: pressed === 'true' ? 'On' : 'Off' });
   if ((el as HTMLButtonElement).disabled) rows.push({ label: 'Now', value: 'Not available' });
+  // A badge's own tip carries this man's figures; the help entry explains them.
+  if (help && tip && tip !== label && tip !== help.body && el.hasAttribute('data-help')) rows.push({ label: 'Here', value: tip });
   const body = help?.body ?? (tip && tip !== label ? tip : undefined);
   const title = crew?.title ?? (label || tip);
   if (!title) return null;
