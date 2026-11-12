@@ -52,7 +52,7 @@ import type { Building, WeaponId } from '../sim/types';
 import { BUILDING_BY_ID, ILLEGAL_TYPES } from '../sim/data/buildings';
 import { isValidAreaTarget } from '../sim/execution';
 import type { Sim } from '../sim/sim';
-import { buildingDoor, dist, gangAssets, gangManpower, gangMembers, protectedBuildings, territoryBlocks, territoryCount } from '../sim/world';
+import { buildingDoor, dist, gangAssets, gangManpower, gangMembers, powerRating, protectedBuildings, territoryBlocks, territoryCount } from '../sim/world';
 import { effectiveHostility } from '../sim/attitudes';
 import { buildingList, peopleList } from '../sim/entityLists';
 import { MINUTES_PER_WEEK } from '../sim/constants';
@@ -317,7 +317,11 @@ function snapshot(sim: Sim, ms: number): AutoTestWeek {
   const gang = sim.playerGang;
   const owned = buildingList(sim.world).filter((b) => b.ownerGangId === gang.id && b.state !== 'destroyed').length;
   const standings = Object.values(sim.world.gangs)
-    .map((other) => `${other.name} $${Math.round(other.cash)} men ${gangManpower(sim.world, other)}${other.eliminated ? ' out' : ''}`)
+    // 1.2.21: in-game knowledge only — our own books; for rivals what the desk
+    // shows (blocks on the map, the power graph). Their cash is in the debug report.
+    .map((other) => other.id === gang.id
+      ? `${other.name} $${Math.round(other.cash)} men ${gangManpower(sim.world, other)}`
+      : `${other.name} blocks ${territoryCount(sim.world, other.id)} power ${powerRating(sim.world, other)}${other.eliminated ? ' out' : ''}`)
     .join('; ');
   return {
     week: sim.world.week,
