@@ -40,7 +40,7 @@ export function takeAutoTestStopped(): boolean {
 }
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
-import { BUY_REACH_BLOCKS, buySnitchInfo, canGoStraight, sellBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, moveToTeam, nearTerritory, promote, transferWeapon, type ApiResult, type IssueOrderInput } from '../sim/api';
+import { BUY_REACH_BLOCKS, buySnitchInfo, canGoStraight, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, moveToTeam, nearTerritory, promote, transferWeapon, type ApiResult, type IssueOrderInput } from '../sim/api';
 import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, carMinutesSaved, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, talentSwaps, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
 import { DRIVE_SPEED, GO_STRAIGHT_ASSETS, VEHICLES, WALK_SPEED, WEAPONS } from '../sim/constants';
 import type { Building, WeaponId } from '../sim/types';
@@ -50,7 +50,7 @@ import type { Sim } from '../sim/sim';
 import { dist, gangAssets, gangManpower, gangMembers, protectedBuildings, territoryCount } from '../sim/world';
 import { buildingList } from '../sim/entityLists';
 import { MINUTES_PER_WEEK } from '../sim/constants';
-import { chooseGoal, formatGoalScores, GOAL_LABELS, GOAL_POLICY, GOAL_REVIEW_WEEKS, GOAL_STALL_PENALTY, goalScores, type VictoryGoal } from './autoGoals';
+import { chooseGoal, formatGoalScores, GOAL_LABELS, GOAL_POLICY, GOAL_DROP_WEEKS, GOAL_REVIEW_WEEKS, GOAL_STALL_DROP, GOAL_STALL_PENALTY, goalScores, type VictoryGoal } from './autoGoals';
 import { canRunForOffice, electionBlocksRequired } from '../sim/systems/politics';
 
 const UNAVAILABLE = new Set(['dead', 'arrested', 'onTrial', 'jailed', 'kidnapped']);
@@ -86,7 +86,7 @@ export function lostLines(w: Sim['world'], gangId: number, before: Map<number, s
 }
 
 /** The win Auto Test is playing for in each city, when it last looked, and every change of mind. */
-const goalOf = new WeakMap<Sim['world'], { goal: VictoryGoal; reviewedWeek: number; history: string[]; progress: number[] }>();
+const goalOf = new WeakMap<Sim['world'], { goal: VictoryGoal; reviewedWeek: number; history: string[]; progress: number[]; stalls: number; dropped: { goal: VictoryGoal; until: number }[] }>();
 /** The goal and its switches so far, for the report and the diary. */
 export function autoTestGoal(w: Sim['world']): { goal: VictoryGoal; history: string[] } | undefined {
   const state = goalOf.get(w);
@@ -322,6 +322,8 @@ const MEN_PER_CREW = 5;
 
 /** What last Monday learned, per city: whether the crews ran out of week. */
 const lastMonday = new WeakMap<Sim['world'], { timeShort: boolean }>();
+/** Men at the start of last Monday, per city. */
+const menLastWeek = new WeakMap<Sim['world'], number>();
 /** A racket the gang is saving for: other premises wait until its cost is in hand. */
 const savingFor = new WeakMap<Sim['world'], { name: string; cost: number }>();
 
@@ -361,10 +363,17 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // Stalled: the goal's own score has not risen over the last two reviews.
     const progress = goalState?.progress ?? [];
     const stalled = progress.length >= 2 && before != null && goalScores(w, gang)[before] <= progress[progress.length - 2];
-    const { goal, scores } = chooseGoal(w, gang, before, stalled);
-    if (stalled) actions.push(`NOTE goal ${before} has stalled — it counts ${GOAL_STALL_PENALTY} less this review`);
+    const stalls = stalled ? (goalState?.stalls ?? 0) + 1 : 0;
+    // Stalled two reviews running: drop it for a while and play for the next best.
+    if (goalState && before && stalls >= GOAL_STALL_DROP) {
+      goalState.dropped.push({ goal: before, until: w.week + GOAL_DROP_WEEKS });
+      actions.push(`GOAL dropped ${before} — stalled ${stalls} reviews running; off the list until week ${w.week + GOAL_DROP_WEEKS}`);
+    }
+    const excluded = (goalState?.dropped ?? []).filter((d) => d.until > w.week).map((d) => d.goal);
+    const { goal, scores } = chooseGoal(w, gang, before, stalled, excluded);
+    if (stalled && stalls < GOAL_STALL_DROP) actions.push(`NOTE goal ${before} has stalled — it counts ${GOAL_STALL_PENALTY} less this review`);
     if (!goalState) {
-      goalState = { goal, reviewedWeek: w.week, history: [`week ${w.week}: ${goal} (${formatGoalScores(scores)})`], progress: [] };
+      goalState = { goal, reviewedWeek: w.week, history: [`week ${w.week}: ${goal} (${formatGoalScores(scores)})`], progress: [], stalls: 0, dropped: [] };
       goalOf.set(w, goalState);
       actions.push(`GOAL ${goal} — ${GOAL_LABELS[goal]} (${formatGoalScores(scores)})`);
     } else {
@@ -375,13 +384,17 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       } else {
         actions.push(`GOAL kept ${goal} (${formatGoalScores(scores)})`);
       }
-      if (goal !== goalState.goal) goalState.progress = [];
+      if (goal !== goalState.goal) { goalState.progress = []; goalState.stalls = 0; }
+      else goalState.stalls = stalls;
       goalState.goal = goal;
     }
     goalState.progress.push(goalScores(w, gang)[goal]);
   }
   const goal = goalState.goal;
-  const policy = GOAL_POLICY[goal];
+  // Few men and plenty of cash: rebuild the gang first, whatever the goal.
+  const rebuild = gangManpower(w, gang) < 10 && gang.cash > 50000;
+  const policy = rebuild ? { ...GOAL_POLICY[goal], violence: 'low' as const, expansion: Math.min(0.6, GOAL_POLICY[goal].expansion) } : GOAL_POLICY[goal];
+  if (rebuild) actions.push(`NOTE rebuilding the gang first: ${gangManpower(w, gang)} men and $${Math.round(gang.cash)} — recruiting comes before everything, no rough work`);
 
   for (const id of [...gang.recruitIds]) {
     const person = w.people[id];
@@ -389,6 +402,26 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const result = hireRecruit(w, gang.id, id, room ? 'team' : 'pool', room?.id);
     logResult(actions, `hire ${person?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
   }
+
+  // Wages: everyone gets what he asks while the takings (or a year's cash) can
+  // carry it — underpaid men lose loyalty and walk out, lieutenants with their crews.
+  const payroll = gangMembers(w, gang).filter((p) => p.role !== 'boss');
+  const wageBill = payroll.reduce((sum, p) => sum + p.pay, 0);
+  const averageWage = payroll.length ? wageBill / payroll.length : 100;
+  const income = gang.lastWeekIncome;
+  const weeklyNet = income.legal + income.illegal + income.protection + income.other - gang.lastWeekCosts.wages - gang.lastWeekCosts.upkeep;
+  const short = payroll.filter((p) => p.pay < p.payDemand);
+  const raise = short.reduce((sum, p) => sum + p.payDemand - p.pay, 0);
+  if (short.length && (weeklyNet >= raise || gang.cash >= (wageBill + raise) * 26)) {
+    for (const p of short) setPay(w, p.id, p.payDemand);
+    actions.push(`NOTE pay raised to what they ask for ${short.length} m${short.length === 1 ? 'an' : 'en'} (+$${raise} a week)`);
+  } else if (short.length) {
+    actions.push(`NOTE ${short.length} underpaid m${short.length === 1 ? 'an' : 'en'} ($${raise} a week short) — the books cannot carry the raise`);
+  }
+  const lastMen = menLastWeek.get(w);
+  const menNow = gangManpower(w, gang);
+  const shrinking = rebuild || menNow < 12 || (lastMen != null && menNow < lastMen);
+  menLastWeek.set(w, menNow);
 
   // Enough lieutenants for the men: one crew per five hoods, at least two, at most eight.
   if (weight.hiring >= 0.2) {
@@ -587,6 +620,41 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       give('bribe chief', freest(), { type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: Math.round(400 + gang.suspicion * 10) } });
     }
   }
+  // Going straight: say every week what still stands in the way, and turn
+  // cash into legal premises first thing, before the crews' week fills up.
+  if (goal === 'straight' && !gang.goingStraight && w.options.mode === 'normal') {
+    const check = canGoStraight(w, gang.id);
+    const assetsNow = gangAssets(w, gang);
+    const illegalNow = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.cls === 'illegal' && b.typeId !== 'office');
+    if (!check.can) {
+      actions.push(`NOTE going straight blocked: ${check.reason} [assets $${assetsNow.toLocaleString('en-US')} of $${GO_STRAIGHT_ASSETS.toLocaleString('en-US')} (cash does not count); ${illegalNow.length} illegal business(es); ${openCases.length} on trial; lawyer ${lawyer ? 'ready' : gang.lawyerId == null ? 'none hired' : 'not available'}]`);
+    }
+    if (assetsNow < GO_STRAIGHT_ASSETS * 1.2 && gang.cash > 20000) {
+      let budget = gang.cash - 20000;
+      let projected = assetsNow;
+      const value = (b: Building) => (BUILDING_BY_ID[b.typeId]?.cost ?? 0) * (0.6 + (w.blocks[b.blockId]?.landValue ?? 0) / 100);
+      const picks = buildingList(w).filter((b) => b.ownerGangId == null && b.state === 'trading' && ['commercial', 'industrial', 'tenement'].includes(b.cls) &&
+        (BUILDING_BY_ID[b.typeId]?.cost ?? 0) > 0 && nearTerritory(w, gang.id, b.blockId, BUY_REACH_BLOCKS))
+        .sort((a, b) => value(b) / (BUILDING_BY_ID[b.typeId]!.cost) - value(a) / (BUILDING_BY_ID[a.typeId]!.cost) || value(b) - value(a));
+      const chosen: Building[] = [];
+      for (const b of picks) {
+        if (projected >= GO_STRAIGHT_ASSETS * 1.2 || chosen.length >= 8) break;
+        const cost = BUILDING_BY_ID[b.typeId]!.cost;
+        if (cost > budget) continue;
+        chosen.push(b); budget -= cost; projected += value(b);
+      }
+      // One site to an order (a purchase takes a single site), spread over the crews.
+      const used = new Set<number>();
+      for (const b of chosen) {
+        const team = freest(used, 'business') ?? freest();
+        if (!team) break;
+        if (ready.length > used.size + 1) used.add(team.id);
+        give(`go straight: buy ${b.typeId}`, team, { type: 'buyPremises', buildingIds: [b.id] });
+      }
+      if (!chosen.length) actions.push('NOTE going straight: no legal premises for sale within reach');
+    }
+  }
+
   // Close to standing for mayor: push for the last blocks, whatever the heat.
   const blocksNeeded = electionBlocksRequired(w);
   const officeClose = goal === 'office' && territoryCount(w, gang.id) >= blocksNeeded * 0.8 && territoryCount(w, gang.id) < blocksNeeded;
@@ -597,22 +665,28 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
 
   const spend = (key: PlayStrategy['priority'][number]) => {
     if (key === 'hiring') {
-      // More streets need more collectors: the target grows with the territory.
-      // Crews that ran out of week last Monday need more men, whatever the target says.
-      const base = Math.max(18, Math.round(10 + weight.hiring * 12), Math.min(60, Math.round(territoryCount(w, gang.id) * 2)));
-      const target = Math.min(64, base + (shortLastWeek ? 6 : 0));
-      if (gangManpower(w, gang) < target && hoodSites.length) {
-        // Two sites at most, with two men: a longer list ran out of week before the last door.
-        const count = Math.min(2, Math.max(1, Math.round(1 + weight.hiring)));
-        const team = freest();
-        if (recruitMemory.hintIds.includes(hoodSites[0].id)) {
-          actions.push('NOTE recruit following last week\'s tip');
+      // The rule of thumb: keep hiring while the week's takings cover the
+      // extra wages (or the cash would carry them for a year); below the
+      // floor, hire whatever the books say. No fixed cap on men.
+      const men = gangManpower(w, gang);
+      const floor = Math.max(18, Math.round(10 + weight.hiring * 12), Math.min(60, Math.round(territoryCount(w, gang.id) * 2)));
+      const newMen = shrinking ? 4 : 2;
+      const pays = men < floor || (shortLastWeek && weeklyNet >= averageWage) || weeklyNet >= averageWage * newMen || gang.cash >= (wageBill + averageWage * newMen) * 52;
+      if (pays && hoodSites.length) {
+        // Several venues, one man each: a two-man order waits for a second free hand.
+        const venues = Math.min(hoodSites.length, shrinking || men < floor ? 4 : 2, ready.length);
+        if (recruitMemory.hintIds.includes(hoodSites[0].id)) actions.push('NOTE recruit following last week\'s tip');
+        const sentTo = new Set<number>();
+        for (let i = 0; i < venues; i++) {
+          const team = freest(sentTo);
+          if (!team) { actions.push('NOTE recruit skipped — every crew\'s week is full'); timeShort = true; break; }
+          sentTo.add(team.id);
+          give('recruit', team, { type: 'recruit', buildingIds: [hoodSites[i].id], opts: { manpower: 1 } });
         }
-        give('recruit', team, { type: 'recruit', buildingIds: hoodSites.slice(0, count).map((b) => b.id), opts: { manpower: team ? manpowerFor(team, 2) : 1 } });
       } else if (hoodSites.length === 0) {
         actions.push('NOTE no hoods standing at a hiring place');
       } else {
-        actions.push(`NOTE recruit held — ${gangManpower(w, gang)} men already meets the hiring target ${target}`);
+        actions.push(`NOTE recruit held — ${men} men; last week netted $${Math.round(weeklyNet)}, not enough for ${newMen} more at about $${Math.round(averageWage)} each`);
       }
     }
     if (key === 'rackets') {
@@ -708,7 +782,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
   };
 
-  for (const key of strategy.priority) spend(key);
+  // A shrinking gang hires before it collects; the collecting areas then fit what time is left.
+  const order = shrinking ? ['hiring' as const, ...strategy.priority.filter((key) => key !== 'hiring')] : strategy.priority;
+  if (shrinking) actions.push(`NOTE ${rebuild ? 'rebuilding' : lastMen != null && menNow < lastMen ? `gang shrinking (${menNow} men, ${lastMen} last week)` : `only ${menNow} men`} — recruiting first`);
+  for (const key of order) spend(key);
 
   // ---- reinvest spare cash: legal premises first, then a still or a press
   // behind one of them, a speakeasy to pour the liquor, and a warehouse with
@@ -902,8 +979,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // Close the rackets only once the legal holdings carry the threshold with room to spare.
     if (!check.can && illegal.length && !openCaseCount && gangAssets(w, gang) >= GO_STRAIGHT_ASSETS * 1.15) {
       for (const b of illegal) {
-        const result = sellBuilding(w, gang.id, b.id);
-        logResult(actions, `sell ${b.typeId} to go straight`, result.ok, result.ok ? result.message ?? '' : result.error);
+        // An illegal business cannot be sold, only shut down (1.2.16 tried to sell and was refused every week).
+        const typeId = b.typeId;
+        const result = shutdownBuilding(w, gang.id, b.id);
+        logResult(actions, `shut down ${typeId} to go straight`, result.ok, result.ok ? result.message ?? '' : result.error);
       }
     }
     if (canGoStraight(w, gang.id).can) {

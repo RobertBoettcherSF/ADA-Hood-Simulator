@@ -45,8 +45,9 @@ export function goalScores(w: WorldState, gang: Gang): Record<VictoryGoal, numbe
   const blocks = territoryCount(w, gang.id) / Math.max(1, electionBlocksRequired(w));
   const office = full ? Math.min(1, blocks) * 0.85 + (lawyer ? 0.1 : 0) + (w.election.active && blocks >= 1 ? 0.3 : 0) : 0;
   const openCases = Object.values(w.cases ?? {}).filter((c) => c.gangId === gang.id && (c.status === 'awaiting' || c.status === 'onTrial')).length;
-  // Cash can still be turned into premises, so half of it counts.
-  const holdings = (gangAssets(w, gang) + Math.max(0, gang.cash) * 0.5) / GO_STRAIGHT_ASSETS;
+  // Assets are what count; cash only says premises could be bought, so it
+  // adds a little and never on its own makes the goal look nearly done.
+  const holdings = Math.min(1.1, gangAssets(w, gang) / GO_STRAIGHT_ASSETS) * 0.75 + Math.min(1, Math.max(0, gang.cash) / GO_STRAIGHT_ASSETS) * 0.3;
   const straight = full ? Math.max(0, Math.min(1.1, holdings) * 0.95 + (lawyer ? 0.05 : 0) - openCases * 0.1) : 0;
   const rivals = Object.values(w.gangs).filter((g) => g.id !== gang.id);
   const alive = rivals.filter((g) => !g.eliminated);
@@ -62,10 +63,17 @@ export function goalScores(w: WorldState, gang: Gang): Record<VictoryGoal, numbe
 /** A goal that has not come any closer over the last two reviews scores this much less. */
 export const GOAL_STALL_PENALTY = 0.25;
 
-export function chooseGoal(w: WorldState, gang: Gang, current?: VictoryGoal, stalled = false): { goal: VictoryGoal; scores: Record<VictoryGoal, number> } {
+/** Reviews in a row a goal may stall before it is dropped for the next best. */
+export const GOAL_STALL_DROP = 2;
+/** Weeks a dropped goal stays off the list. */
+export const GOAL_DROP_WEEKS = 12;
+
+export function chooseGoal(w: WorldState, gang: Gang, current?: VictoryGoal, stalled = false, excluded: readonly VictoryGoal[] = []): { goal: VictoryGoal; scores: Record<VictoryGoal, number> } {
   const scores = goalScores(w, gang);
   if (current && stalled) scores[current] = Math.max(0, Math.round((scores[current] - GOAL_STALL_PENALTY) * 100) / 100);
-  const best = [...VICTORY_GOALS].sort((a, b) => scores[b] - scores[a] || VICTORY_GOALS.indexOf(a) - VICTORY_GOALS.indexOf(b))[0];
+  const open = VICTORY_GOALS.filter((g) => !excluded.includes(g));
+  if (current && excluded.includes(current)) current = undefined;
+  const best = [...(open.length ? open : VICTORY_GOALS)].sort((a, b) => scores[b] - scores[a] || VICTORY_GOALS.indexOf(a) - VICTORY_GOALS.indexOf(b))[0];
   if (current && scores[best] - scores[current] < GOAL_SWITCH_MARGIN) return { goal: current, scores };
   return { goal: best, scores };
 }

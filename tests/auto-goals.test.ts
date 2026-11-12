@@ -43,4 +43,12 @@ describe('Auto Test victory goals', () => {
     expect(GOAL_POLICY.straight).toEqual({ expansion: 0.6, violence: 'low', illegal: false });
     expect(GOAL_POLICY.eliminate.violence).toBe('high');
   });
+
+  it('cash alone never makes going straight look done, and a dropped goal is skipped', () => {
+    const sim = city();
+    sim.playerGang.cash = 750_000;
+    expect(goalScores(sim.world, sim.playerGang).straight).toBeLessThan(0.5);
+    const { goal } = chooseGoal(sim.world, sim.playerGang, 'straight', true, ['straight']);
+    expect(goal).not.toBe('straight');
+  });
 });
