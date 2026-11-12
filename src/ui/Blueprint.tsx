@@ -22,7 +22,7 @@ import { PLAN, SITE_COLORS, drawCityLandscape, drawElevatedRail, drawPlanLot, dr
 import { peopleList, buildingList } from '../sim/entityLists';
 import { cityTramLines } from '../sim/trams';
 import { blockTypeName } from './blockTypeName';
-import { personOnPlan, PressWatch, showInspect } from './inspectCard';
+import { personOnPlan, PressWatch, cycleInspect } from './inspectCard';
 
 /**
  * The City Plan, after the original organizer map: dark streets, rooftops seen
@@ -517,7 +517,7 @@ export function Blueprint() {
         return { x: f.ox + pos.x * f.scale, y: f.oy + pos.y * f.scale };
       }, p.x, p.y);
       if (person != null) hit.personId = person;
-      showInspect(e.clientX, e.clientY, current.world, current.playerGang.id, hit);
+      cycleInspect(e.clientX, e.clientY, current.world, current.playerGang.id, hit);
     });
     drag.current = { x0: p.x, y0: p.y, x1: p.x, y1: p.y, button: e.button, moved: false, panX: view.current.panX, panY: view.current.panY };
     composite.current();
@@ -575,7 +575,7 @@ export function Blueprint() {
           return { x: f.ox + pos.x * f.scale, y: f.oy + pos.y * f.scale };
         }, p.x, p.y);
         if (person != null) hit.personId = person;
-        showInspect(e.clientX, e.clientY, current.world, current.playerGang.id, hit);
+        cycleInspect(e.clientX, e.clientY, current.world, current.playerGang.id, hit);
       }
       return;
     }
@@ -672,7 +672,7 @@ export function Blueprint() {
       <p className={jobCard || isBoxing(0) ? 'target-hint' : undefined}>{jobCard ? `${ORDERS[jobCard.type].name} · ${targetHint}${jobCard.type === 'buyPremises' ? (priceTip ? ` · ${priceTip}` : ' · hover a building for its price') : ''}`
         : pickMode?.kind === 'lieutenantArea' ? 'Allocate your territory · click or drag · repeat to remove · right-drag to pan'
         : isBoxing(0) ? 'Click or drag to select · repeat over a selected area to clear it · right-drag to pan'
-        : 'Scroll to zoom · drag to move · hold the button on a block for its type · right-click, or press and hold, for a card'}</p>
+        : 'Scroll to zoom · drag to move · hold the button on a block for its type · right-click, or press and hold, for a card · again for the owner'}</p>
     </div>
     <div ref={key} className="city-plan-key" style={{ ...panelStyle, top: chrome?.footerY ?? 0 }} aria-label="City plan key">
       <div className="city-plan-key-row">

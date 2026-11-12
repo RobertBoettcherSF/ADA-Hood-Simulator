@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { defaultGameOptions } from '../src/app/newGame';
 import { BUILDING_BY_ID } from '../src/sim/data/buildings';
 import { Sim } from '../src/sim/sim';
-import { closeInspect, inspectFacts, inspectPlacement, openInspect, PressWatch, showInspect } from '../src/ui/inspectCard';
+import { closeInspect, cycleInspect, inspectFacts, inspectPlacement, openInspect, PressWatch, resetInspectCycle, showInspect } from '../src/ui/inspectCard';
 
 function city(): Sim {
   return new Sim({ ...defaultGameOptions(), seed: 1934, citySize: 8, cityLayout: 'classic', era: '1932' });
@@ -113,6 +113,29 @@ describe('inspect card', () => {
     openInspect(4, 4, { buildingId: site.id, blockId: site.blockId, personId: null, point: lot.center });
     showInspect(8, 8, sim.world, sim.playerGang.id, { buildingId: null, blockId: null, personId: null, point: { x: -20, y: -20 } });
     expect(inspectPlacement()).toBeNull();
+    closeInspect();
+  });
+
+  it('cycles business card, owner card, business card on the same premises', () => {
+    const sim = city();
+    const w = sim.world;
+    const gang = sim.playerGang;
+    const site = Object.values(w.buildings).find((b) => b.cls === 'tenement' && b.ownerGangId == null && b.ownerPersonId != null)!;
+    site.knowledge[gang.id] = 3;
+    const other = Object.values(w.buildings).find((b) => b.id !== site.id && b.cls === 'tenement')!;
+    resetInspectCycle();
+    const hit = { buildingId: site.id, blockId: site.blockId, personId: null, point: { x: 0, y: 0 } };
+    const facts = () => { const p = inspectPlacement()!; return inspectFacts(w, gang.id, p.hit, p.view)!; };
+    cycleInspect(1, 1, w, gang.id, hit);
+    expect(facts().rows[0].label).toBe('Business');
+    cycleInspect(1, 1, w, gang.id, hit);
+    expect(facts().title).toBe(w.people[site.ownerPersonId!].name);
+    expect(facts().rows[0]).toEqual({ label: 'Owner of', value: BUILDING_BY_ID[site.typeId].name });
+    cycleInspect(1, 1, w, gang.id, hit);
+    expect(facts().rows[0].label).toBe('Business');
+    cycleInspect(1, 1, w, gang.id, hit);
+    cycleInspect(1, 1, w, gang.id, { ...hit, buildingId: other.id });
+    expect(facts().rows[0].label).toBe('Business');
     closeInspect();
   });
 });
