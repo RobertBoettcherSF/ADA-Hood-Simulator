@@ -39,3 +39,16 @@ export function finalScore(current: ScoreMeasures, best: ScoreMeasures, won: boo
     contribution(current.manpower, best.manpower, .7, 15) + contribution(current.cash, best.cash, 1 / 30_000, 20);
   return Math.max(0, Math.min(100, Math.round(score)));
 }
+
+/** The game's score as the ending screen shows it: the outcome's when the game is over, otherwise the same sum without a win bonus or loss penalty. */
+export function gameScoreNow(w: WorldState): number {
+  if (w.outcome) return w.outcome.score;
+  const gang = Object.values(w.gangs).find(g => g.isPlayer);
+  if (!gang) return 0;
+  const current = scoreMeasures(w, gang);
+  const best = { ...(gang.scorePeaks ?? current) };
+  best.cash = Math.max(best.cash, current.cash);
+  best.territory = Math.max(best.territory, current.territory);
+  best.manpower = Math.max(best.manpower, current.manpower);
+  return finalScore(current, best, true, 0);
+}
