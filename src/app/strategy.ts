@@ -41,6 +41,9 @@ export interface DiaryEntry {
   anomalies: string[];
   /** Auto Test's ranked action table at the end of the run (1.2.16+). */
   actionRanks?: Partial<Record<string, number>>;
+  /** The win Auto Test was playing for at the end, and when it changed its mind (1.2.16+). */
+  goal?: string;
+  goalHistory?: string[];
 }
 
 export interface Diary {

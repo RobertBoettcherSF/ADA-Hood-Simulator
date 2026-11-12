@@ -85,6 +85,11 @@ export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, o
     const c = pending.caseId != null ? w.cases?.[pending.caseId] : undefined;
     const official = pending.targetPersonId != null ? w.people[pending.targetPersonId] : undefined;
     const defendant = pending.defendantId != null ? w.people[pending.defendantId] : undefined;
+    // The lawyer's visit: one he never made says nothing about the bribe.
+    const job = Object.values(w.specialistJobs ?? {}).filter((j) => j.gangId === gang.id && j.type === 'bribeOfficials' && j.targetPersonId === pending.targetPersonId)
+      .sort((a, b) => b.id - a.id)[0];
+    if (job && (job.state !== 'done' && job.state !== 'failed' || /no longer available|not available/i.test(job.result))) return { ok: null, why: `the lawyer never reached ${official?.name ?? 'the official'} (${job.state})` };
+    if (job?.state === 'failed' && !official?.bribedBy && !c?.judgeBribed && !c?.knowsWitnesses) return { ok: false, why: job.result || 'the official would not take it' };
     if (pending.key === 'bribeJudge') {
       if (c?.judgeBribed || c?.status === 'dismissed' || (!c && defendant?.status === 'active')) return { ok: true, why: 'case thrown out' };
       return official?.bribedBy === gang.id ? { ok: true, why: 'judge bought' } : { ok: false, why: 'the judge did not take it' };
