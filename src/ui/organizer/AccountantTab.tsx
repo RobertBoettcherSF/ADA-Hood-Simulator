@@ -1,3 +1,4 @@
+import { hireQuote } from '../../sim/originalWages';
 import { useState } from 'react';
 import { act, useGame } from '../../app/store';
 import { financeNet } from '../../sim/finances';
@@ -117,7 +118,7 @@ export function AccountantTab() {
                     <span className="tiny">{p.name}</span>
                     <div className="row" style={{ gap: 5 }}>
                       <Stars value={p.skills.intelligence} />
-                      <span className="muted tiny mono">{money(p.payDemand)}</span>
+                      <span className="muted tiny mono">{money(hireQuote(w, p, gang.id))}</span>
                       {gang.recruitIds.includes(p.id) && (
                         <button
                           className="btn sm"

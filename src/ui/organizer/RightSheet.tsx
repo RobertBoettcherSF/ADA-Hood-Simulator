@@ -1,3 +1,4 @@
+import { hireQuote } from '../../sim/originalWages';
 import { useEffect, useRef, useState } from 'react';
 import { act, useGame } from '../../app/store';
 import {
@@ -432,7 +433,7 @@ function RecruitsSheet({ teamId }: { teamId: ID | null }) {
                 <div className="row between">
                   <b style={{ fontWeight: 500, fontSize: 15 }}>{p.name}</b>
                   <span className="muted">
-                    {ROLE_LABELS[p.role]} · wants {money(p.payDemand)}/week
+                    {ROLE_LABELS[p.role]} · wants {money(hireQuote(sim.world, p, sim.playerGang.id))}/week
                   </span>
                 </div>
                 <div style={{ margin: '5px 0' }}>

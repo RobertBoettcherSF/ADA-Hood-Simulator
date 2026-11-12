@@ -1,3 +1,4 @@
+import { traceStop } from './devTrace';
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
 import { noteMemberLoss } from './memberLosses';
 import { recruitJoin } from './recruitDestination';
@@ -723,6 +724,7 @@ export function tickOrders(w: WorldState, rng: Rng, minutes: number, loadout: Lo
           } else {
             order.state = 'executing';
           }
+          traceStop(w, order, 'arrive');
         }
         continue;
       }
@@ -755,6 +757,7 @@ export function tickOrders(w: WorldState, rng: Rng, minutes: number, loadout: Lo
           if (resolvedState !== 'failed' && !order.targetPaid && !missed) order.completedTargets++;
           delete order.targetPaid;
           if (missed) order.lastMiss = missed;
+          traceStop(w, order, missed ? 'miss' : 'done', missed || undefined);
           order.cursor++;
           const more =
             def.target === 'area' && order.cursor < order.targetBuildingIds.length;
