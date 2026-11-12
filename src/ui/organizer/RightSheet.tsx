@@ -16,7 +16,7 @@ import {
   transferWeapon,
 } from '../../sim/api';
 import { ORDERS, ORDER_GROUPS, VEHICLES, VEHICLE_ORDER, WEAPONS, WEAPON_ORDER, type OrderDef } from '../../sim/constants';
-import { ROLE_LABELS, type ID, type OrderType, type Person, type VehicleId, type WeaponId } from '../../sim/types';
+import { ROLE_LABELS, SKILLS, SKILL_LABELS, type ID, type OrderType, type Person, type VehicleId, type WeaponId } from '../../sim/types';
 import { buildingName, money } from '../../sim/world';
 import { ConfirmDialog, Empty, Hint, Icon, Kicker, Rivets, SkillList, Stamp, Stars } from '../common';
 
@@ -243,9 +243,9 @@ function PoolSheet({ teamId, newLieutenant = false }: { teamId?: ID; newLieutena
       </Hint>
       <div className="row wrap tiny" style={{ gap: 3, marginBottom: 8 }}>
         <span className="muted">Sort:</span>
-        {(['intelligence', 'organization', 'business', 'firearms', 'intimidation', 'stealth'] as const).map((k) => (
-          <button key={k} aria-pressed={sortBy === k} className={`btn sm${sortBy === k ? ' on' : ''}`} onClick={() => setSortBy(k)}>
-            {k.slice(0, 5)}
+        {SKILLS.map((k) => (
+          <button key={k} aria-pressed={sortBy === k} className={`btn sm${sortBy === k ? ' on' : ''}`} title={`Sort the pool by ${SKILL_LABELS[k]}`} onClick={() => setSortBy(k)}>
+            {SKILL_LABELS[k].slice(0, 5)}
           </button>
         ))}
       </div>
@@ -253,7 +253,7 @@ function PoolSheet({ teamId, newLieutenant = false }: { teamId?: ID; newLieutena
         <Empty>Nobody is sitting idle.</Empty>
       ) : (
         pool.map((p) => (
-          <div key={p.id} className="person-row" {...resourceDragProps({ kind: 'hood', id: p.id })} title="Drag onto a crew to add him, or onto an empty lieutenant tab to make him a lieutenant of a new crew">
+          <div key={p.id} className="person-row" data-person-id={p.id} {...resourceDragProps({ kind: 'hood', id: p.id })} title="Drag onto a crew to add him, or onto an empty lieutenant tab to make him a lieutenant of a new crew. Right-click or press and hold for all his skills and his wage.">
             <div className="avatar">
               <Portrait person={p} gang={gang} size={34} />
             </div>

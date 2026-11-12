@@ -6,6 +6,7 @@ const el = (attrs: Record<string, string>) => ({ getAttribute: (name: string) =>
 describe('left lieutenant panel help', () => {
   it('badges and lines get help through data-help', () => {
     expect(CONTROL_SELECTOR).toContain('[data-help]');
+    expect(CONTROL_SELECTOR).toContain('[data-person-id]');
     for (const name of ['loyalty', 'wanted', 'pay line', 'crew roster', 'skill stars', 'week assigned', 'order queue', 'gang details', 'gang assets'])
       expect(controlHelpFor(el({ 'data-help': name }), 'whatever')?.body, name).toBeTruthy();
   });

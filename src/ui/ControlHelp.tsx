@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useGame } from '../app/store';
 import { MINUTES_PER_WEEK } from '../sim/constants';
+import { SKILLS, SKILL_LABELS } from '../sim/types';
+import { skillStars } from './preferredCrew';
 import { CONTROL_EXCLUDE, CONTROL_SCOPE, CONTROL_SELECTOR, controlHelp, controlHelpFor, controlLabel, keyFromTip } from './controlHelp';
 
 interface Shown {
@@ -13,6 +15,8 @@ interface Shown {
 }
 
 const TIP_DELAY_MS = 350;
+/** How long a press must be held to open a person's card. */
+const HOLD_MS = 500;
 
 function controlAt(target: EventTarget | null): HTMLElement | null {
   if (!(target instanceof Element)) return null;
@@ -49,6 +53,26 @@ function crewRows(teamId: number): { title: string; rows: Shown['rows'] } | null
   };
 }
 
+/** A person's card: every skill, wage and standing (pool hoods, crew members). */
+export function personRows(personId: number): { title: string; rows: Shown['rows'] } | null {
+  const sim = useGame.getState().sim;
+  const p = sim?.world.people[personId];
+  if (!sim || !p) return null;
+  const gangId = sim.playerGang.id;
+  return {
+    title: p.name,
+    rows: [
+      { label: 'Role', value: p.role },
+      { label: 'Wage', value: `$${p.pay} a week (wants $${p.payDemand})` },
+      { label: 'Loyalty', value: String(Math.round(p.loyalty)) },
+      { label: 'Wanted', value: String(Math.round(p.wanted)) },
+      ...(p.status !== 'active' ? [{ label: 'Status', value: p.status }] : []),
+      ...(p.opinion[gangId] != null ? [{ label: 'Opinion of you', value: String(Math.round(p.opinion[gangId])) }] : []),
+      ...SKILLS.map((k) => ({ label: SKILL_LABELS[k], value: `${skillStars(p.skills[k])} ${p.skills[k]}` })),
+    ],
+  };
+}
+
 function describe(el: HTMLElement, kind: Shown['kind'], x: number, y: number): Shown | null {
   const tip = tipOf(el);
   const label = controlLabel(el);
@@ -59,6 +83,9 @@ function describe(el: HTMLElement, kind: Shown['kind'], x: number, y: number): S
       : tip || (help ? `${label} — ${help.body}` : label);
     return text ? { kind, x, y, title: text, rows: [] } : null;
   }
+  const personId = el.closest('[data-person-id]')?.getAttribute('data-person-id');
+  const person = personId ? personRows(Number(personId)) : null;
+  if (person) return { kind, x, y, title: person.title, rows: person.rows };
   const teamId = el.closest('[data-team-id]')?.getAttribute('data-team-id');
   const crew = teamId ? crewRows(Number(teamId)) : null;
   const rows: Shown['rows'] = [...(crew?.rows ?? [])];
@@ -119,10 +146,30 @@ export function ControlHelp() {
       window.clearTimeout(timer);
       setShown(el ? describe(el, 'card', event.clientX, event.clientY) : null);
     };
+    // Press and hold on a person (touch or mouse) opens his card, like a right-click.
+    let hold = 0;
+    let holdAt: { x: number; y: number } | null = null;
+    const cancelHold = () => { window.clearTimeout(hold); holdAt = null; };
+    const swallowClick = (event: MouseEvent) => { event.preventDefault(); event.stopPropagation(); };
     const onDown = (event: PointerEvent) => {
       if (event.button === 2) return;
       hideTip();
       setShown((now) => (now?.kind === 'card' ? null : now));
+      const target = event.target instanceof Element ? event.target.closest('[data-person-id]') : null;
+      if (!(target instanceof HTMLElement) || !target.closest(CONTROL_SCOPE) || target.closest(CONTROL_EXCLUDE)) return;
+      cancelHold();
+      holdAt = { x: event.clientX, y: event.clientY };
+      const { clientX, clientY } = event;
+      hold = window.setTimeout(() => {
+        holdAt = null;
+        if (!target.isConnected) return;
+        setShown(describe(target, 'card', clientX, clientY));
+        window.addEventListener('click', swallowClick, { capture: true, once: true });
+        window.setTimeout(() => window.removeEventListener('click', swallowClick, true), 600);
+      }, HOLD_MS);
+    };
+    const onHoldMove = (event: PointerEvent) => {
+      if (holdAt && Math.hypot(event.clientX - holdAt.x, event.clientY - holdAt.y) > 8) cancelHold();
     };
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
@@ -134,6 +181,9 @@ export function ControlHelp() {
     window.addEventListener('pointerover', onOver);
     window.addEventListener('pointermove', onMove, { passive: true });
     window.addEventListener('pointerdown', onDown, true);
+    window.addEventListener('pointermove', onHoldMove, { passive: true });
+    window.addEventListener('pointerup', cancelHold, true);
+    window.addEventListener('pointercancel', cancelHold, true);
     window.addEventListener('contextmenu', onMenu);
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('blur', hideTip);
@@ -142,6 +192,10 @@ export function ControlHelp() {
       window.removeEventListener('pointerover', onOver);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerdown', onDown, true);
+      window.removeEventListener('pointermove', onHoldMove);
+      window.removeEventListener('pointerup', cancelHold, true);
+      window.removeEventListener('pointercancel', cancelHold, true);
+      window.clearTimeout(hold);
       window.removeEventListener('contextmenu', onMenu);
       window.removeEventListener('keydown', onKey, true);
       window.removeEventListener('blur', hideTip);
