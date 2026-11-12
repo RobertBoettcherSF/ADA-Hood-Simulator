@@ -1,3 +1,4 @@
+import { planRoute } from './routing';
 import { instanceFile } from './instance';
 /**
  * A player made of the same actions the desk uses. The seed picks his choices
@@ -1020,13 +1021,28 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         if (sore && team) give(`campaign: ease protection at ${sore.typeId}`, team, { type: 'adjustProtection', buildingIds: [sore.id], opts: { manpower: 1, protectionLevel: 0.75 } });
       }
       if (w.week >= 2 && weight.rackets >= 0.2 && owed.length) {
+        // 1.2.21 routing: each crew's week is filled by value per minute. A crew
+        // starts from the best-paying stop left (takings over stop and travel
+        // minutes), takes the stops nearest it that fit its free week, and walks
+        // them nearest-next with crossings removed.
         const share = Math.max(3, Math.ceil(owed.length / ready.length));
+        const stopMinutes = Math.max(10, timeLedger[ledgerKey('collectProtection', false)] ?? 30);
+        const centre = (b: Building) => w.lots[b.lotId].center;
+        const perMinute = (b: Building) => (b.protection?.weekly ?? 0) / (stopMinutes + dist(centre(b), origin) / WALK_SPEED);
+        const left = [...owed].sort((a, b) => perMinute(b) - perMinute(a));
         const collected = new Set<number>();
-        for (let i = 0; i < owed.length; i += share) {
+        while (left.length) {
           const team = freest(collected, 'collect');
           if (!team) break;
           collected.add(team.id);
-          give('collect', team, { type: 'collectProtection', buildingIds: owed.slice(i, i + share).map((b) => b.id), opts: { manpower: 1 } });
+          const hasCar = Object.values(team.vehicles).some((n) => n > 0);
+          const fit = Math.max(1, Math.min(share * 2, targetsThatFit(timeLedger, ledgerKey('collectProtection', hasCar), left.length, MINUTES_PER_WEEK - team.timeUsed) || 1));
+          const seed = left.shift()!;
+          left.sort((a, b) => dist(centre(a), centre(seed)) - dist(centre(b), centre(seed)));
+          const group = [seed, ...left.splice(0, fit - 1)];
+          left.sort((a, b) => perMinute(b) - perMinute(a));
+          const route = planRoute(origin, group.map((b) => ({ item: b, ...centre(b) }))).map((s) => s.item);
+          give('collect', team, { type: 'collectProtection', buildingIds: route.map((b) => b.id), opts: { manpower: 1 } });
         }
       }
       // Expand: every crew takes the nearest unclaimed block at the edge of the territory.
