@@ -857,6 +857,17 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   } else if (hot && gang.lawyerId == null) {
     actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} and no lawyer yet`);
   }
+  // Hostile police take any of our men on sight: the lawyer puts the officers
+  // on our own beats on the payroll (a paid officer makes no arrests), the
+  // blocks nearest the office first. A bribe, so a lawyer's errand.
+  if (policeHostile && lawyer && gang.cash > 8000) {
+    const beats = territoryBlocks(w, gang.id).sort((a, b) => dist(a.center, origin) - dist(b.center, origin)).slice(0, 6).map((block) => block.id);
+    const onPayroll = police.filter((p) => p.employedBy === gang.id).length;
+    if (beats.length && onPayroll < 12) {
+      const result = queueSpecialistJob(w, gang.id, 'employPolice', null, beats);
+      logResult(actions, `lawyer puts the police on our ${beats.length} nearest blocks on the payroll (${onPayroll} already paid)`, result.ok, result.ok ? result.message ?? '' : result.error);
+    }
+  }
   if (lawyer && gang.cash > 40000) {
     const mayor = buyable(w.mayorId, 0.3);
     if (mayor) {
