@@ -223,12 +223,12 @@ export function Organizer() {
                 {gang.teamIds.map(id => <option key={id} value={id}>{w.teams[id]?.name}</option>)}
               </select></label>}
               <details className="gang-summary">
-                <summary><span>Cash <b><MoneyRoll value={spendableCash(w, gang.id)} /></b></span><span>Gang details</span></summary>
+                <summary data-help="gang details" aria-label="Gang details" title="Cash you can spend now. Click for the gang's totals."><span>Cash <b><MoneyRoll value={spendableCash(w, gang.id)} /></b></span><span>Gang details</span></summary>
                 <div className="gang-summary-body">
-                  <b>{boss?.name ?? 'The Boss'}</b>
-                  <span>Assets {money(gangAssets(w, gang))}</span>
-                  <span>{territoryCount(w, gang.id)} blocks</span>
-                  <span>{gangManpower(w, gang)} men · {money(wages)} weekly wages</span>
+                  <b data-help="gang boss" title="The boss. If he dies or is jailed for good, the game is lost.">{boss?.name ?? 'The Boss'}</b>
+                  <span data-help="gang assets" title="What the gang's premises, weapons and vehicles are worth, not counting cash">Assets {money(gangAssets(w, gang))}</span>
+                  <span data-help="gang blocks" title="Blocks the gang controls">{territoryCount(w, gang.id)} blocks</span>
+                  <span data-help="gang men" title="Everyone on the payroll, and what they cost each week">{gangManpower(w, gang)} men · {money(wages)} weekly wages</span>
                 </div>
               </details>
 

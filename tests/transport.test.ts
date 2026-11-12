@@ -122,10 +122,12 @@ describe('real crew transport',()=>{
   const s=fixture(),p=Object.values(s.w.people).find(p=>p.role===role&&p.gangId==null)!;
   expect(hireRecruit(s.w,s.g.id,p.id,'pool').ok).toBe(true);s.g.vehicles.speedster=1;
   expect(assignStaffVehicle(s.w,s.g.id,role,'speedster').ok).toBe(true);expect(p.inVehicle).toBe(false);
-  p.buildingId=null;p.pos=buildingDoor(s.w,s.hq);startStaffJourney(s.w,p,buildingDoor(s.w,s.target));
+  // Far enough that the way home from beside it is still a drive.
+  const far=Object.values(s.w.buildings).find(b=>b.ownerGangId==null&&b.cls==='commercial'&&dist(buildingDoor(s.w,b),buildingDoor(s.w,s.hq))>DRIVE_MIN_DISTANCE+80)!;
+  p.buildingId=null;p.pos=buildingDoor(s.w,s.hq);startStaffJourney(s.w,p,buildingDoor(s.w,far));
   expect(vehicleOf(s.w,p)?.kind).toBe('speedster');expect(p.inVehicle).toBe(true);
   stepPerson(p,10000,undefined,s.w);const parked={...p.pos};dismount(s.w,p);
-  p.pos=buildingDoor(s.w,s.target);p.pos.x+=30;sendHome(s.w,p);
+  p.pos=buildingDoor(s.w,far);p.pos.x+=30;sendHome(s.w,p);
   expect(p.inVehicle).toBe(false);expect(vehicleOf(s.w,p)?.boarding).toBe(true);expect(vehicleOf(s.w,p)?.pos).toEqual(parked);
   stepPerson(p,10000,undefined,s.w);expect(p.inVehicle).toBe(true);
   stepPerson(p,10000,undefined,s.w);expect(p.inVehicle).toBe(false);expect(vehicleOf(s.w,p)).toBeUndefined();

@@ -6,6 +6,7 @@ import { addMessage } from '../events';
 import { currentFinances, payCash, receiveCash, recordRiskyIncome, recordTakings, skimRate } from '../finances';
 import { ORIGINAL_DESERTION_LOYALTY, originalRetainerFloor, originalSkimFraction, originalWeeklyWage } from '../originalWages';
 import { businessCarryingCost } from '../businessState';
+import { illegalSaturationFactor, marketShareFactor } from '../originalTables';
 import { rememberAccountantTax } from './taxes';
 export { skimRate } from '../finances';
 import { reclaimStaffVehicle } from '../specialists';
@@ -39,6 +40,19 @@ export function businessProfit(w: WorldState, b: Building, rng: Rng): number {
     const mgr = w.people[b.managerId];
     if (mgr) {
       profit *= 0.45 + mgr.skills.business * 0.16 + mgr.skills.organization * 0.05;
+    }
+  }
+  // Original-game market rules: a gang's own same-type shops split one market,
+  // and an illegal trade pays less the more of it the city already has.
+  if (b.ownerGangId != null && profit > 0) {
+    if (b.cls === 'illegal') {
+      let inCity = 0;
+      for (const o of allBuildings(w)) if (o.typeId === b.typeId && o.state === 'trading') inCity++;
+      profit *= illegalSaturationFactor(b.typeId, inCity);
+    } else if (b.cls === 'commercial' || b.cls === 'industrial') {
+      let owned = 0;
+      for (const o of ownedBuildings(w, b.ownerGangId)) if (o.typeId === b.typeId && o.state === 'trading') owned++;
+      profit *= marketShareFactor(owned);
     }
   }
   // A manager recalled to base takes the week's takings with him.
@@ -135,7 +149,7 @@ export function weeklyEconomy(w: WorldState, rng: Rng): void {
     // Loss-making businesses already deducted their operating result above.
     // Charging the catalogue's negative profit here would bill it twice.
     const closedSites = ownedBuildings(w,gang.id).filter(b=>b.state==='ceased')
-      .reduce((total,b)=>total+businessCarryingCost(b),0);
+      .reduce((total,b)=>total+businessCarryingCost(b,w.blocks[b.blockId]?.landValue),0);
     gang.lastWeekCosts.upkeep += closedSites;
     // Original city: officials are paid by their own ladder after wages
     // (0x75DA90), not with the rest of the upkeep.

@@ -9,7 +9,7 @@ import { allBuildings, buildingDoor, dist } from '../src/sim/world';
 const stock = { liquor: 30, stolen: 20, counterfeit: 3 };
 const empty = { liquor: 0, stolen: 0, counterfeit: 0 };
 function fixture() {
-  const sim = new Sim({ ...defaultGameOptions(), seed: 404, citySize: 10, startMoney: 100_000 });
+  const sim = new Sim({ ...defaultGameOptions(), seed: 405, citySize: 10, startMoney: 100_000 });
   const w = sim.world, gang = sim.playerGang, team = w.teams[gang.teamIds[0]];
   // These cases isolate cargo/payment conservation from the generated crew's
   // skimming. Dishonest collection has separate ledger/audit coverage.

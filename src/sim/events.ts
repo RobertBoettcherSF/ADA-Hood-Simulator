@@ -1,3 +1,4 @@
+import { landValueLoss } from './originalTables';
 import { fearOf, hostilityOf, NO_ORIGINAL_CHANNEL, opinionSet } from './attitudes';
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
 import { cityBlockAt } from './cityLayout';
@@ -116,6 +117,15 @@ export function recordCrime(w: WorldState, rng: Rng, params: CrimeParams): Crime
   const severity =
     params.severity ??
     (params.type in ORDERS ? ORDERS[params.type as OrderType].severity : 8);
+
+  // Violent crime and robbery depress the block's land value.
+  const landLoss = landValueLoss(params.type);
+  if (landLoss > 0) {
+    const site = params.buildingId != null ? w.buildings[params.buildingId] : undefined;
+    const blockId = site ? site.blockId : blockAtPos(w, params.pos);
+    const blk = blockId != null ? w.blocks[blockId] : undefined;
+    if (blk) blk.landValue = Math.max(5, blk.landValue - landLoss);
+  }
 
   const perp = w.people[params.perpetratorId];
   const stealth = perp ? perp.skills.stealth : 2.5;

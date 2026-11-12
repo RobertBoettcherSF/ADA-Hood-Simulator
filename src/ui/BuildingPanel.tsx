@@ -41,7 +41,7 @@ export function BuildingPanel() {
   const hides = b.hidesId != null ? w.buildings[b.hidesId] : null;
   const cls = b.cls[0].toUpperCase() + b.cls.slice(1);
   const fireStage=fireDamageStage(b,w.week);
-  const carryingCost=businessCarryingCost(b);
+  const carryingCost=businessCarryingCost(b,w.blocks[b.blockId]?.landValue);
   const deliverySummary=mine?goodsDeliverySummary(w,b):null;
   const offerSale=()=>{
     const offer=quoteBuildingSale(w,gang.id,b.id);

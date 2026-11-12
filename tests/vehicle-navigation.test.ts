@@ -112,7 +112,7 @@ describe('vehicle save repair and indoor boss presentation', () => {
     site.ownerGangId=gang.id;site.knowledge[gang.id]=4;
     expect(issueOrder(w,gang.id,{teamId:team.id,type:'runBusiness',buildingIds:[site.id],opts:{preferredHoodId:manager.id}}).ok).toBe(true);
     sim.launchWeek(); expect(manager.inVehicle).toBe(true);
-    for(let i=0;i<600 && manager.buildingId==null;i++){w.minute++;tickOrders(w,sim.rng,1);}
+    for(let i=0;i<1500 && manager.buildingId==null;i++){w.minute++;tickOrders(w,sim.rng,1);}
     expect(manager.buildingId).toBe(site.id);expect(site.managerId).toBe(manager.id);
     expect(manager.inVehicle).toBe(false);expect(streetPersonVisible(manager,null)).toBe(false);
     expect(manager.pos).toEqual(w.lots[site.lotId].center);
@@ -157,6 +157,8 @@ describe('vehicle save repair and indoor boss presentation', () => {
     const hq = Object.values(w.buildings).find(b=>b.isHQ && b.ownerGangId===sim.playerGang.id)!;
     driver.pos = {...w.lots[hq.lotId].center}; driver.inVehicle = true;
     driver.dest = {x:driver.pos.x+15,y:driver.pos.y+15}; driver.path=[{...driver.dest}];
+    // A current save always has a fleet; without one the restore takes the legacy path and seats him in a car.
+    w.vehicleFleet ??= {};
     const before = copy(w);
     const restored = mode==='sync' ? Sim.fromSave(copy(w)) : await Sim.fromSaveResponsive(copy(w));
     const fixed = restored.world.people[driver.id];

@@ -61,6 +61,7 @@ import {
   typeOf,
 } from './world';
 import { peopleList, buildingList } from './entityLists';
+import { emptyLandPrice } from './originalTables';
 
 // ---------------------------------------------------------------- utilities
 
@@ -216,6 +217,8 @@ export function buildingValue(w: WorldState, b: Building): number {
   const t = typeOf(b);
   const blk = w.blocks[b.blockId];
   const base = t ? t.cost : 2000;
+  // Empty land sells at the original's price for its land value.
+  if (b.cls === 'empty') return emptyLandPrice(blk.landValue);
   // Violence depresses land values, which makes buying cheaper.
   const heatDiscount = 1 - Math.min(0.35, blk.crimeHeat / 260);
   return Math.round(base * (0.55 + blk.landValue / 100) * heatDiscount);
@@ -1821,7 +1824,6 @@ export function destroyBuilding(w: WorldState, b: Building): void {
   b.isHQ = false;
   const blk = w.blocks[b.blockId];
   blk.squalor = Math.min(100, blk.squalor + 6);
-  blk.landValue = Math.max(5, blk.landValue - 4);
 }
 
 function releaseManager(w: WorldState, b: Building): void {

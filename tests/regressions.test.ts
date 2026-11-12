@@ -1,3 +1,4 @@
+import { setAttitude } from '../src/sim/attitudes';
 import { MINUTES_PER_WEEK } from '../src/sim/constants';
 import { describe, expect, it } from 'vitest';
 import { defaultGameOptions } from '../src/app/newGame';
@@ -235,8 +236,9 @@ describe('regressions', () => {
     const rival = Object.values(w.gangs).find((g) => !g.isPlayer)!;
     const chief = w.people[w.policeChiefId];
 
-    chief.opinion[player.id] = -80;
-    chief.opinion[rival.id] = 40;
+    // Hostile but not past the manual's refusal line.
+    setAttitude(chief, player.id, { hostility: 180, fear: 0 });
+    setAttitude(chief, rival.id, { hostility: 40, fear: 40 });
     const playerPrice = bribePrice(w, chief, player.id);
     const rivalPrice = bribePrice(w, chief, rival.id);
     expect(playerPrice).toBeGreaterThan(rivalPrice);

@@ -29,6 +29,13 @@ import { heritageOfSurname, type Heritage } from './heritage';
 import type { Rng } from './rng';
 import type { Building, PersonRole, WorldState } from './types';
 import { peopleList, buildingList } from './entityLists';
+import { isBusinessHood } from './hoodGeneration';
+
+/** Each top-up round brings at least one business hood unless one is already free. */
+function needsBusinessHood(w: WorldState): boolean {
+  for (const p of peopleList(w)) if (p.role === 'hood' && p.gangId == null && p.status === 'active' && p.buildingId != null && isBusinessHood(p.skills)) return false;
+  return true;
+}
 
 type Quota = { role: Extract<PersonRole, 'hood' | 'accountant' | 'lawyer'>; count: number };
 
@@ -66,12 +73,14 @@ export function replenishOriginalRecruits(w: WorldState, rng: Rng): number {
     present.set(key, (present.get(key) ?? 0) + 1);
   }
   let added = 0;
+  let wantBusiness = needsBusinessHood(w);
   for (const b of buildingList(w)) {
     const quota = recruitQuota(b);
     if (!quota || !serving(b)) continue;
     for (let n = present.get(`${b.id}:${quota.role}`) ?? 0; n < quota.count; n++, added++) {
       const p = createPerson(w, rng, quota.role, w.lots[b.lotId].center, {
-        quality: quota.role === 'hood' ? (rng.chance(0.16) ? 1.35 : 1) : 1.1, buildingId: b.id, prefer: preferHeritage(w) });
+        quality: 1.1, businessType: quota.role === 'hood' && wantBusiness, buildingId: b.id, prefer: preferHeritage(w) });
+      if (quota.role === 'hood') wantBusiness = false;
       p.payDemand = hoodPayDemand(p, quota.role);
     }
   }
@@ -88,6 +97,7 @@ function replenishStreetRecruits(w: WorldState, rng: Rng): number {
   }
   const prefer = preferHeritage(w);
   let added = 0;
+  let wantBusiness = needsBusinessHood(w);
   for (const b of buildingList(w)) {
     if (b.state === 'destroyed') continue;
     const role = BUILDING_BY_ID[b.typeId]?.recruit;
@@ -95,7 +105,8 @@ function replenishStreetRecruits(w: WorldState, rng: Rng): number {
     const want = role === 'hood' ? 2 : 1;
     for (let n = present.get(`${b.id}:${role}`) ?? 0; n < want; n++, added++) {
       const p = createPerson(w, rng, role, w.lots[b.lotId].center, {
-        quality: role === 'hood' ? (rng.chance(0.16) ? 1.35 : 1) : 1.1, buildingId: b.id, prefer });
+        quality: 1.1, businessType: role === 'hood' && wantBusiness, buildingId: b.id, prefer });
+      if (role === 'hood') wantBusiness = false;
       p.payDemand = hoodPayDemand(p, role);
     }
   }

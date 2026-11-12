@@ -2,14 +2,15 @@ import { clearDestination } from './movement';
 import { BUILDING_BY_ID } from './data/buildings';
 import type { Building, WorldState } from './types';
 import { buildingList } from './entityLists';
+import { runningClass, runningCost } from './originalTables';
 
-/** The manual retains site costs while ceased, but supplies no numeric rate.
- * Remake tuning: 0.5% of fit-out cost/week, $10 minimum. Trading catalogue
+/** The manual retains site costs while ceased. The weekly rate follows the
+ * original running-cost table by site size and land value. Trading catalogue
  * profit is already net of site costs, so this is charged only while ceased. */
-export function businessCarryingCost(b: Building): number {
+export function businessCarryingCost(b: Building, landValue = 50): number {
   const type = BUILDING_BY_ID[b.typeId];
   if (!type || b.isHQ || type.id === 'office' || b.cls === 'empty' || b.cls === 'municipal') return 0;
-  return Math.max(10,Math.round(type.cost*.005));
+  return runningCost(runningClass(b, type), landValue);
 }
 
 export function businessFrontReady(w: WorldState, b: Building): boolean {

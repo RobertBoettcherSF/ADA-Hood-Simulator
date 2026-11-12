@@ -196,7 +196,7 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
           {!untilEnd && (
             <label className="wood-field">
               Weeks
-              <input type="number" min={1} value={weeks} aria-label="Auto test weeks" onChange={(event) => setWeeks(Number(event.target.value))} />
+              <input type="number" min={1} max={52} value={weeks} aria-label="Auto test weeks" onChange={(event) => setWeeks(Number(event.target.value))} />
             </label>
           )}
           <label className="wood-field">

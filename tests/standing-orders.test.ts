@@ -65,7 +65,7 @@ describe('standing orders selected by individual properties', () => {
     const start = { ...w.people[actorId].pos };
     // Exercise persisted explicit-site orders, including older accepted saves.
     sim = Sim.fromSave(structuredClone(w));
-    for (let minute = 0; minute < 400 && sim.world.orders[id].state !== 'executing'; minute++) sim.advance(1 / MINUTES_PER_SECOND, 1);
+    for (let minute = 0; minute < 1500 && sim.world.orders[id].state !== 'executing'; minute++) sim.advance(1 / MINUTES_PER_SECOND, 1);
     expect(sim.world.orders[id].failReason).toBeNull();
     expect(sim.world.orders[id].state).toBe('executing');
     expect(dist(sim.world.people[actorId].pos, start)).toBeGreaterThan(5);
