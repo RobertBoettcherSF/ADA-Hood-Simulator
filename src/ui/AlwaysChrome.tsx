@@ -7,7 +7,7 @@ import { InterfaceButton } from './InterfaceControls';
 import './interface.css';
 import { recordAction } from '../app/actionLog';
 import { runAutoTest, campaignOf, autoTestRunState, onAutoTestRun, takeAutoTestStopped, takeAutoTestMemoryStop, toggleAutoTestStop, type AutoTestSettings } from '../app/autoTest';
-import { folderDiary } from '../app/diary';
+import { folderDiary, importLearnedState } from '../app/diary';
 import { campaignLabel, isDefaultCampaign } from '../app/strategy';
 import { installCrashReports, noteAutoTestStopped, setReportWish, setReportWorld, writeDebugReport } from '../app/debugReport';
 import { checkForUpdate, type UpdateOffer } from '../app/versionCheck';
@@ -167,6 +167,7 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
       setRunning(false);
     }
   };
+  const importRef = useRef<HTMLInputElement>(null);
   const resetDiary = async () => {
     if (!window.confirm('Erase the auto-test diary? New games will stop learning from it.')) return;
     await folderDiary().remove();
@@ -177,6 +178,16 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
       <InterfaceButton label="Auto Test" glyph="⚑" caption={running ? 'Testing' : 'Test'} disabled={resolving || running}
         title="Auto Test — a simulated player runs the desk and writes a report"
         onClick={() => setOpen(true)} />
+      <InterfaceButton label="Import Auto Test" glyph="⇪" caption="Import" disabled={resolving || running}
+        title="Import — load an Auto Test report (all its parts) as Auto Test's learned state"
+        onClick={() => importRef.current?.click()} />
+      <input ref={importRef} type="file" accept=".txt,.json" multiple hidden onChange={(event) => {
+        const files = [...(event.target.files ?? [])];
+        event.target.value = '';
+        if (!files.length) return;
+        void importLearnedState(files).then((n) => useGame.getState().notify(n ? `Imported ${n} Auto Test run${n === 1 ? '' : 's'} into the diary; the next Auto Test learns from ${n === 1 ? 'it' : 'them'}.` : 'No Auto Test learned state found in that file.'))
+          .catch((error) => useGame.getState().notify({ ok: false, error: `Import failed: ${error instanceof Error ? error.message : String(error)}` }));
+      }} />
       {open && (
         <Modal title="Auto Test" kicker="A simulated player" onClose={() => setOpen(false)} width={520}
           footer={<>

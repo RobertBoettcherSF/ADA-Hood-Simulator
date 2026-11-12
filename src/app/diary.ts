@@ -93,3 +93,48 @@ export async function stampRivalPlaybook(world: WorldState, sink: DiarySink = fo
   const book = playbookForNewCity(diary);
   if (book) world.rivalPlaybook = book;
 }
+
+/** 1.2.21: the learned state written at the end of every Auto Test report. */
+export const LEARNED_BEGIN = '----- BEGIN AUTO TEST LEARNED STATE -----';
+export const LEARNED_END = '----- END AUTO TEST LEARNED STATE -----';
+
+export function learnedBlock(entry: DiaryEntry): string {
+  return `\n${LEARNED_BEGIN}\n${JSON.stringify(entry)}\n${LEARNED_END}\n`;
+}
+
+/**
+ * Diary entries found in an Auto Test file (its learned-state block) or a
+ * diary file. The parts of a split file are read in name order and joined.
+ */
+export function learnedEntries(text: string): DiaryEntry[] {
+  const out: DiaryEntry[] = [];
+  let at = 0;
+  for (;;) {
+    const begin = text.indexOf(LEARNED_BEGIN, at);
+    if (begin < 0) break;
+    const end = text.indexOf(LEARNED_END, begin);
+    if (end < 0) break;
+    try {
+      const entry = JSON.parse(text.slice(begin + LEARNED_BEGIN.length, end).trim()) as unknown;
+      if (isEntry(entry)) out.push(entry);
+    } catch { /* a damaged block is skipped */ }
+    at = end + LEARNED_END.length;
+  }
+  if (!out.length) {
+    try { out.push(...parseDiary(text).entries); } catch { /* not a diary either */ }
+  }
+  return out;
+}
+
+/** Load Auto Test files (any size, any number of parts) into the diary as learned state. */
+export async function importLearnedState(files: { name: string; text(): Promise<string> }[], sink: DiarySink = folderDiary()): Promise<number> {
+  const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  const texts = await Promise.all(sorted.map((f) => f.text()));
+  const entries = learnedEntries(texts.join(''));
+  if (!entries.length) return 0;
+  const loaded = await loadDiary(sink);
+  const seen = new Set(loaded.diary.entries.map((e) => `${e.at}|${e.seed}`));
+  const fresh = entries.filter((e) => !seen.has(`${e.at}|${e.seed}`));
+  await sink.write(serializeDiary({ version: 1, entries: [...loaded.diary.entries, ...fresh] }));
+  return fresh.length;
+}

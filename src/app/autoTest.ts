@@ -1,3 +1,5 @@
+import { learnedBlock } from './diary';
+import { splitReport } from './devJournal';
 import { planRoute } from './routing';
 import { instanceFile } from './instance';
 /**
@@ -1714,6 +1716,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
 
   let diaryNote = 'Diary: appended.';
   let recorded = loaded.diary.entries;
+  let learnedEntry: DiaryEntry | undefined;
   if (loaded.unreadable) {
     diaryNote = 'Diary: the file could not be read, so this run was not appended.';
   } else {
@@ -1737,6 +1740,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       goal: goalNow?.goal,
       goalHistory: goalNow?.history,
     };
+    learnedEntry = entry;
     recorded = [...loaded.diary.entries, entry];
     try {
       await sink.write(serializeDiary({ version: 1, entries: recorded }));
@@ -1753,7 +1757,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     settings, citySeed: sim.world.options.seed, campaign, strategy: planned.strategy,
     versusLast: planned.versusLast, planNote: planned.note, weeks, actions, notes, anomalies,
     outcome, score: gameScore, learningScore: score, scoreNote, beat, plateau, diaryNote,
-  });
+  }) + (learnedEntry ? learnedBlock(learnedEntry) : '');
   const filename = instanceFile(`auto-test-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`);
   const last = weeks[weeks.length - 1];
   let noted = false;
@@ -1769,7 +1773,9 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       file: filename,
     });
     noted = true;
-    await writeReportFile(filename, text);
+    // Large reports are split into parts; Import reads them back joined.
+    const parts = splitReport(text);
+    for (let i = 0; i < parts.length; i++) await writeReportFile(parts.length === 1 ? filename : filename.replace(/\.txt$/, `-part${i + 1}of${parts.length}.txt`), parts[i]);
     return text;
   } catch (error) {
     if (!noted) noteAutoTestStopped(error instanceof Error ? error.message : String(error));
