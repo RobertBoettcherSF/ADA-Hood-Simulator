@@ -5,7 +5,7 @@ import { addHallOfFame, clearHallOfFame, HALL_LEGENDS, hallOfFameTable, cloneSav
 import { clearHallEntries, failNextHallWrite } from '../src/app/localData';
 import { attachWorldStore } from '../src/app/worldFolder';
 import { Sim } from '../src/sim/sim';
-import { hallPages, NEXT_BEST_PAGE, TOP_GANGSTERS } from '../src/ui/HallOfFame';
+import { hallPages, NEXT_BEST_PAGE, TOP_BOSSES } from '../src/ui/HallOfFame';
 
 beforeEach(() => {
   vi.stubGlobal('indexedDB', new IDBFactory());
@@ -116,7 +116,7 @@ describe('Hall of Fame terminal reloads', () => {
     const entry = (i: number) => ({ name: `Boss ${i}`, score: 100 - i, weeks: 1, reason: '', won: false, at: i });
     expect(hallPages([])).toEqual([[]]);
     const pages = hallPages(Array.from({ length: 20 }, (_, i) => entry(i)));
-    expect(pages.map(p => p.length)).toEqual([TOP_GANGSTERS, NEXT_BEST_PAGE, NEXT_BEST_PAGE, 1]);
+    expect(pages.map(p => p.length)).toEqual([TOP_BOSSES, NEXT_BEST_PAGE, NEXT_BEST_PAGE, 1]);
     expect(pages[1][0].name).toBe('Boss 3');
   });
 });

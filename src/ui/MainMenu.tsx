@@ -260,12 +260,11 @@ export function MainMenu() {
         />
       )}
       {sheet === 'credits' && (
-        <Modal title="Credits" kicker="Original Gangster · an HD reimagining" onClose={() => setSheet(null)} width={640}>
+        <Modal title="Credits" kicker="Hood Simulator · an HD reimagining" onClose={() => setSheet(null)} width={640}>
           <div className="credits">
             <h4>The original</h4>
             <p>
-              <i>Gangsters: Organized Crime</i> (1998), designed by Martin Capel, developed by Hothouse Creations and
-              published by Eidos Interactive. This is a fan reimagining; the original game and its manual are
+              Hood Simulator is a fan reimagining of a 1998 crime strategy game; the original game and its manual are
               the reference for every rule here.
             </p>
             <h4>This reimagining</h4>

@@ -2,7 +2,7 @@
 
 This document describes the game as the code stands, and the shape of the browser game to build on top of it. It does not change any rules. The playable entry today is the repository root (`index.html` → `src/main.tsx`). This page is the design. Later, this page or the root `index.html` becomes the game the player opens.
 
-The setting in the code is Saint Volstead in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
+The setting in the code is Saint Volstead in 1932, a Prohibition-era city (Hood Simulator). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
 Package name in `package.json`: `original-gangster`. The playable build is version 1.2.20.
 
@@ -127,8 +127,8 @@ After the first week the clock stays near 21 seconds. The save stays near 13.7 M
 | Temperance Ave | Volstead Ave |
 | New Temperance Herald, Post, Tribune, Times | Saint Volstead Herald, Post, Tribune, Times |
 | Goodnight, New Temperance | Goodnight, Saint Volstead |
-| Gangsters and Police messages | Hoods and the Law |
-| Top Gangsters | Leading Bosses |
+| Gang and police messages | Hoods and the Law |
+| Top bosses | Leading Bosses |
 | Mail Office | US Post |
 | Labor Exchange | Labour Exchange |
 | Police Department | Police Headquarters |

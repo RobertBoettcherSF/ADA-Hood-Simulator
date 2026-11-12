@@ -8,7 +8,7 @@
  * [3] unread, [4] hostility drift, [5] hostility noise, [6] band.
  * Stances: 0 Alliance, 1 Peace, 2 Cease-fire, 3 Aggression, 4 War.
  *
- * Re-read on 27 October 2026 from the shipped gangsters.exe (GOG, SHA-256
+ * Re-read on 27 October 2026 from the shipped the original executable (GOG, SHA-256
  * 78c66b2e…): the weekly turn 0x6D6070 runs "stop the leader" (0x6D5D70) and
  * then the stance machine; docs/audit/2026-10-27/ai-leader/review.md.
  *

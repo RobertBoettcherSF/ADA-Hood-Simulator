@@ -6,7 +6,7 @@ const SHOT_MS = 9000;
 /**
  * The attract mode's overlay (the original's demo on an idle menu): the
  * wordmark and a "Demonstration" plate over the autopilot city, a camera that
- * cuts between gangsters at work, and any key or click back to the menu.
+ * cuts between hoods at work, and any key or click back to the menu.
  */
 export function AttractMode() {
   const endAttract = useGame((s) => s.endAttract);

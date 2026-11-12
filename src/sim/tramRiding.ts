@@ -1,7 +1,7 @@
 /**
  * Riding the street trams (original city).
  *
- * The original (gangsters.exe, traced 29 October 2026; see
+ * The original (the original executable, traced 29 October 2026; see
  * docs/audit/2026-10-29/trams/review.md):
  *
  * - Catching (0x5DCDF0). A walker's walk goal checks every 64 of his updates,

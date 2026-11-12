@@ -7,7 +7,7 @@
     "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
   },
   "packageManager": "npm@11.6.2",
-  "description": "An HD reimagining of Gangsters: Organized Crime (1998)",
+  "description": "Hood Simulator: an HD reimagining of a 1998 crime strategy game",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

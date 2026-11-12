@@ -9,13 +9,13 @@ import { Modal, Rivets } from './common';
 import { Portrait } from './Portrait';
 
 /** Manual p.83: the top three, then the next best eight at a time. */
-export const TOP_GANGSTERS = 3;
+export const TOP_BOSSES = 3;
 export const NEXT_BEST_PAGE = 8;
 
 /** The pages of the Hall: page 0 is the Leading Bosses; later pages are Next Best. */
 export function hallPages(entries: readonly HallEntry[]): HallEntry[][] {
-  const pages = [entries.slice(0, TOP_GANGSTERS)];
-  for (let i = TOP_GANGSTERS; i < entries.length; i += NEXT_BEST_PAGE) pages.push(entries.slice(i, i + NEXT_BEST_PAGE));
+  const pages = [entries.slice(0, TOP_BOSSES)];
+  for (let i = TOP_BOSSES; i < entries.length; i += NEXT_BEST_PAGE) pages.push(entries.slice(i, i + NEXT_BEST_PAGE));
   return pages;
 }
 
@@ -57,7 +57,7 @@ export function HallOfFame({ onClose }: { onClose: () => void }) {
   const [page, setPage] = useState(0);
   const pages = hallPages(entries);
   const shown = pages[page] ?? [];
-  const first = page === 0 ? 0 : TOP_GANGSTERS + (page - 1) * NEXT_BEST_PAGE;
+  const first = page === 0 ? 0 : TOP_BOSSES + (page - 1) * NEXT_BEST_PAGE;
   return (
     <Modal
       title="Hall of Fame"
