@@ -710,11 +710,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const result = give(`${ACTION_LABELS[key]} ${target.name}`, team, input);
     if (result.ok && team) pendingActions.push({ ...pendingBase, orderId: team.orderIds[team.orderIds.length - 1], targetPersonId: target.id });
   }
+  let chiefPaid = false;
   if (hot && lawyer) {
     const chief = buyable(w.policeChiefId, 0.3);
     if (chief) {
       const result = queueSpecialistJob(w, gang.id, 'bribeOfficials', chief.id);
       logResult(actions, `lawyer bribes ${chief.name} (police chief)`, result.ok, result.ok ? result.message ?? '' : result.error);
+      chiefPaid = result.ok;
+    } else {
+      const o = w.people[w.policeChiefId];
+      if (o && o.bribedBy !== gang.id) actions.push(`NOTE the lawyer cannot buy the police chief this week (${!isBribableOfficial(o) ? 'not available' : refusesBribe(o, gang.id) ? 'too hostile' : `$${bribePrice(w, o, gang.id)} against $${Math.round(gang.cash)} cash`}) — a crew offers a smaller sum`);
     }
   } else if (hot && gang.lawyerId == null) {
     actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} and no lawyer yet`);
@@ -726,7 +731,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       logResult(actions, `lawyer bribes ${mayor.name} (mayor: fewer police on the patch)`, result.ok, result.ok ? result.message ?? '' : result.error);
     }
   }
-  if (hot && !lawyer) {
+  if (hot && !chiefPaid) {
     const chief = w.people[w.policeChiefId];
     if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > 1500) {
       give('bribe chief', freest(), { type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: Math.round(400 + gang.suspicion * 10) } });
@@ -774,7 +779,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   if (officeClose) actions.push(`NOTE ${territoryCount(w, gang.id)} of ${blocksNeeded} blocks for the mayoralty — every crew pushes for the last ones`);
   const easing = (heat >= 1 && !officeClose) || lieLow;
   if (lieLow) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''} — lying low: collecting and legal buying only`);
-  else if (easing) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''} — extortion eased, the lawyer pays the police chief`);
+  else if (easing) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''} — extortion eased, the police chief paid, legal premises before rackets`);
 
   const spend = (key: PlayStrategy['priority'][number]) => {
     if (key === 'hiring') {
@@ -874,18 +879,21 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     // Legal takings weigh against protection money in the Bureau's sums, so
     // a suspicious gang buys shops whatever the strategy's buying weight.
+    // While suspicion is up, legal cover comes before saving for a racket.
+    if (easing) savingFor.delete(w);
     const saving = savingFor.get(w);
     if (key === 'buying' && saving && gang.cash < saving.cost * 1.5) {
       actions.push(`NOTE saving toward a ${saving.name} ($${saving.cost}) — no other premises this week`);
     } else if (key === 'buying' && w.week >= 4 && (weight.buying >= 0.3 || easing)) {
       const gate = easing ? 3000 : 8000 + (1 - weight.buying) * 8000;
-      const fraction = easing ? 0.4 : 0.15 + weight.buying * 0.5;
+      const fraction = easing ? 0.75 : 0.15 + weight.buying * 0.5;
       if (gang.cash > gate) {
         const site = buildingList(w).filter((b) => {
           const cost = BUILDING_BY_ID[b.typeId]?.cost ?? 0;
           return b.ownerGangId == null && b.state === 'trading' && cost > 0 && cost < gang.cash * fraction && nearTerritory(w, gang.id, b.blockId, BUY_REACH_BLOCKS);
         }).sort(nearer)[0];
         if (site) give(`buy ${site.typeId}`, freest(undefined, 'business'), { type: 'buyPremises', buildingIds: [site.id] });
+        else if (easing) actions.push(`NOTE no legal premises for sale within reach under $${Math.round(gang.cash * fraction)}`);
       }
     }
     if (key === 'violence' && w.week >= 8 && policy.violence !== 'low' && (weight.violence >= 0.45 || policy.violence === 'high')) {
@@ -971,8 +979,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const front = forSale((b) => !!racket.fronts?.includes(b.typeId) && (() => { const c = centreOf(b.blockId); return !!c && c.cls === 'empty' && c.ownerGangId == null; })());
       return buy(`a front for a ${racket.name.toLowerCase()}:`, front) ? 'front' as const : 'none' as const;
     };
-    if (!policy.illegal) savingFor.delete(w);
-    if (spareCash > 0 && policy.illegal) {
+    if (!policy.illegal || easing) savingFor.delete(w);
+    if (spareCash > 0 && policy.illegal && !easing) {
       const producing = ownsType('moonshineStill') || ownsType('counterfeitPress');
       if (!producing) {
         const step = behind('moonshineStill');
