@@ -6,6 +6,7 @@ import type { Rng } from '../rng';
 import type { Gang, ID, WorldState } from '../types';
 import { allBuildings, dist2, territoryCount } from '../world';
 import { peopleList } from '../entityLists';
+import { claimedTerritoryBlocks } from '../territory';
 
 /**
  * Public feeling. The mayor leans on the police chief, the chief leans on his
@@ -112,12 +113,17 @@ export function weeklyOpinion(w: WorldState, rng: Rng): void {
 
   // ---- police deployment follows the chief's mood and the crime figures
   const presencePerBlock = Math.max(1, Math.round(w.policeIds.length / Math.max(1, w.blocks.length / 6)));
+  // A bought mayor leans on the chief, who sends fewer officers to that gang's
+  // patch; a hostile chief floods it.
+  const live = Object.values(w.gangs).filter((g) => !g.eliminated);
+  const claims = new Map(live.map((g) => [g.id, claimedTerritoryBlocks(w, g.id)] as const));
   for (const blk of w.blocks) {
     let level = blk.crimeHeat / 22;
-    for (const gang of Object.values(w.gangs)) {
-      if (gang.eliminated) continue;
+    for (const gang of live) {
+      if (!claims.get(gang.id)?.has(blk.id)) continue;
       const chiefView = chief ? (chief.opinion[gang.id] ?? 0) : 0;
       if (chiefView < -20) level += 0.4;
+      if (mayor?.bribedBy === gang.id || chiefView > 20) level *= 0.6;
     }
     blk.policePresence = Math.min(10, Math.round(level * presencePerBlock * 0.5));
   }

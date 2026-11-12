@@ -184,6 +184,7 @@ describe('gang membership writers (0x6D87A0, 0x48D0B0)', () => {
     const gang = Object.values(w.gangs).find(g => g.isPlayer)!;
     const judge = w.people[w.judgeIds[0]];
     gang.cash = 100_000;
+    setAttitude(judge, gang.id, { hostility: 128, fear: 0 });   // not so hostile he refuses
     const h = hostilityOf(judge, gang.id), f = fearOf(judge, gang.id), opinion = judge.opinion[gang.id] ?? 0;
     expect(completeOfficialBribe(w, gang.id, judge, 500).ok).toBe(true);
     expect(judge.opinion[gang.id]).toBeGreaterThan(opinion);

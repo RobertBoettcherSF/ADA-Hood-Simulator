@@ -1,4 +1,4 @@
-import { hostilityOf, NO_ORIGINAL_CHANNEL, opinionSet, shiftAttitude } from './attitudes';
+import { effectiveHostility, hostilityOf, NO_ORIGINAL_CHANNEL, opinionSet, shiftAttitude } from './attitudes';
 import { originalRetainerQuote } from './originalWages';
 import { quitGangPayroll } from './payrollMark';
 import type { ApiResult } from './api';
@@ -14,10 +14,35 @@ export function isBribableOfficial(p: Person): boolean {
   return p.status === 'active' && ['mayor', 'policeChief', 'judge', 'da', 'police'].includes(p.role);
 }
 
+/** Bribe prices tuned to original-game values: a base plus a multiplier
+ * scaled by how hostile the official is (0..1 over effective hostility). An
+ * official sitting on one of the gang's cases asks the case price. */
+const BRIBE_PRICE: Record<string, { base: number; mult: number; caseBase?: number; caseMult?: number }> = {
+  mayor: { base: 10000, mult: 10000 },
+  policeChief: { base: 10000, mult: 10000 },
+  judge: { base: 4000, mult: 8000, caseBase: 10000, caseMult: 20000 },
+  da: { base: 2000, mult: 2000, caseBase: 5000, caseMult: 3000 },
+  police: { base: 500, mult: 500 },
+};
+/** Effective hostility (0..255, 128 neutral) above which an official will not take money. */
+export const BRIBE_REFUSAL_HOSTILITY = 224;
+
+function sitsOnCase(w: WorldState, p: Person, gangId: ID): boolean {
+  return Object.values(w.cases ?? {}).some((c) => c.gangId === gangId && ['awaiting', 'onTrial'].includes(c.status) &&
+    (c.judgeId === p.id || c.daId === p.id));
+}
+
 export function bribePrice(w: WorldState, p: Person, gangId: ID): number {
-  const base = p.role === 'mayor' ? 9000 : p.role === 'policeChief' ? 6000 : p.role === 'judge' ? 5000 : p.role === 'da' ? 4000 : 900;
-  void w;
-  return Math.round(base * (1 + p.skills.intelligence * .12 + Math.max(0, -(p.opinion[gangId] ?? 0)) / 120));
+  const row = BRIBE_PRICE[p.role] ?? BRIBE_PRICE.police;
+  const share = Math.max(0, Math.min(1, effectiveHostility(p, gangId) / 255));
+  const onCase = row.caseBase != null && p.role !== 'police' && sitsOnCase(w, p, gangId);
+  const base = onCase ? row.caseBase! : row.base, mult = onCase ? row.caseMult! : row.mult;
+  return Math.round((base + mult * share) / 50) * 50;
+}
+
+/** The manual: money works unless the official is very hostile towards you. */
+export function refusesBribe(p: Person, gangId: ID): boolean {
+  return effectiveHostility(p, gangId) > BRIBE_REFUSAL_HOSTILITY;
 }
 
 /** Called only after the lawyer reaches the official and completes the visit. */
@@ -25,6 +50,11 @@ export function completeOfficialBribe(w: WorldState, gangId: ID, p: Person, pric
   const gang = w.gangs[gangId];
   if (!gang || !isBribableOfficial(p)) return { ok: false, error: 'That official is no longer available.' };
   if (gang.cash < price) return { ok: false, error: 'There is no longer enough cash for the agreed bribe.' };
+  if (refusesBribe(p, gangId)) {
+    // Too hostile to be bought: he keeps his hands clean and thinks less of the gang.
+    shiftAttitude(p, gangId, 8, 0);
+    return { ok: false, error: `${p.name} is too hostile to take your money.` };
+  }
   payCash(w, gang, 'purchases', price);
   p.bribedBy = gangId;
   opinionSet(p, gangId, Math.min(100, (p.opinion[gangId] ?? 0) + 34), NO_ORIGINAL_CHANNEL);

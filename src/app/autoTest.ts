@@ -59,7 +59,7 @@ const talentPlaced = new Set<number>();
 export function currentActionRanks(): ActionRanks { return { ...actionRanks }; }
 import { availableSpecialist } from '../sim/specialists';
 import { queueSpecialistJob } from '../sim/specialistJobs';
-import { bribePrice, isBribableOfficial } from '../sim/officials';
+import { bribePrice, isBribableOfficial, refusesBribe } from '../sim/officials';
 import {
   balanceAnomalies,
   campaignLabel,
@@ -440,35 +440,68 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (desk) give('recruit lawyer', freest(), { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'lawyer' } });
   }
 
-  // Police and courts. Past SUSPICION_BRIBE, or with a case open against the
-  // gang, the lawyer pays the judges on those cases first, then the chief, the
-  // other judges and the district attorneys; a crew pays the chief as well.
+  // Police and courts, as the manual has it. A man on trial: the judge throws
+  // the case out, the DA hands over the witness and juror lists, and those
+  // people can then be paid or leaned on; dice weighted by the ranked table
+  // choose which. Past SUSPICION_BRIBE the lawyer pays the police chief, and a
+  // rich gang buys the mayor so fewer police walk its patch.
   const openCases = Object.values(w.cases ?? {}).filter((c) => c.gangId === gang.id && ['awaiting', 'onTrial'].includes(c.status));
   const hot = gang.suspicion >= SUSPICION_BRIBE || openCases.length > 0;
-  if (hot) {
-    const lawyer = availableSpecialist(w, gang, 'lawyer');
-    if (lawyer) {
-      const officials = [
-        ...openCases.map((c) => c.judgeId),
-        w.policeChiefId,
-        ...(w.judgeIds ?? []),
-        ...(w.daIds ?? []),
-      ];
-      const seen = new Set<number>();
-      let paid = 0;
-      for (const id of officials) {
-        if (paid >= 4 || id == null || seen.has(id)) continue;
-        seen.add(id);
-        const official = w.people[id];
-        if (!official || official.bribedBy === gang.id || !isBribableOfficial(official)) continue;
-        if (bribePrice(w, official, gang.id) > gang.cash * 0.3) continue;
-        const result = queueSpecialistJob(w, gang.id, 'bribeOfficials', id);
-        logResult(actions, `lawyer bribes ${official.name}`, result.ok, result.ok ? result.message ?? '' : result.error);
-        if (result.ok) paid++;
-      }
-    } else if (gang.lawyerId == null) {
-      actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} and no lawyer yet`);
+  const lawyer = availableSpecialist(w, gang, 'lawyer');
+  const buyable = (id: number | undefined, share: number) => {
+    const o = id == null ? undefined : w.people[id];
+    return !!o && o.bribedBy !== gang.id && isBribableOfficial(o) && !refusesBribe(o, gang.id) && bribePrice(w, o, gang.id) <= gang.cash * share ? o : undefined;
+  };
+  for (const c of openCases.slice(0, 2)) {
+    const defendant = w.people[c.defendantId];
+    const judge = lawyer && !c.judgeBribed ? buyable(c.judgeId, 0.6) : undefined;
+    const da = lawyer && !(c.knowsWitnesses && c.knowsJurors) ? buyable(c.daId, 0.4) : undefined;
+    const witnesses = c.knowsWitnesses ? c.witnessIds.map((id) => w.people[id]).filter((p): p is NonNullable<typeof p> => !!p && p.status === 'active' && p.bribedBy !== gang.id && (p.opinion[gang.id] ?? 0) < 40) : [];
+    const jurors = c.knowsJurors ? c.jurorIds.map((id) => w.people[id]).filter((p): p is NonNullable<typeof p> => !!p && p.status === 'active' && p.bribedBy !== gang.id && (p.opinion[gang.id] ?? 0) <= 25) : [];
+    const options: ActionKey[] = [];
+    if (judge) options.push('bribeJudge');
+    if (da) options.push('bribeDA');
+    if (witnesses.length) options.push('bribeWitness', 'scareWitness');
+    if (jurors.length) options.push('bribeJuror');
+    const key = rollAction(actionRanks, options, rng);
+    if (!key) {
+      actions.push(`NOTE ${defendant?.name ?? 'a man'} on trial — ${lawyer ? 'nobody on the case can be bought this week' : 'no lawyer to buy the court'}`);
+      continue;
     }
+    actions.push(`ROLL ${key} (${ACTION_LABELS[key]} for ${defendant?.name ?? 'a man'}, rank ${actionRanks[key]})`);
+    const pendingBase = { key, caseId: c.id, defendantId: c.defendantId, cashBefore: gang.cash };
+    if (key === 'bribeJudge' || key === 'bribeDA') {
+      const official = key === 'bribeJudge' ? judge! : da!;
+      const result = queueSpecialistJob(w, gang.id, 'bribeOfficials', official.id);
+      logResult(actions, `lawyer bribes ${official.name} (${official.role})`, result.ok, result.ok ? result.message ?? '' : result.error);
+      if (result.ok) pendingActions.push({ ...pendingBase, targetPersonId: official.id });
+      continue;
+    }
+    const target = key === 'bribeJuror' ? jurors[0] : witnesses[0];
+    const team = freest(undefined, key === 'scareWitness' ? 'muscle' : 'business');
+    const input: Omit<IssueOrderInput, 'teamId'> = key === 'scareWitness'
+      ? { type: 'assault', personId: target.id, opts: { manpower: team ? manpowerFor(team, 2) : 1 } }
+      : { type: 'bribe', personId: target.id, opts: { manpower: 1, amount: Math.round(400 + target.skills.intelligence * 300) } };
+    const result = give(`${ACTION_LABELS[key]} ${target.name}`, team, input);
+    if (result.ok && team) pendingActions.push({ ...pendingBase, orderId: team.orderIds[team.orderIds.length - 1], targetPersonId: target.id });
+  }
+  if (hot && lawyer) {
+    const chief = buyable(w.policeChiefId, 0.3);
+    if (chief) {
+      const result = queueSpecialistJob(w, gang.id, 'bribeOfficials', chief.id);
+      logResult(actions, `lawyer bribes ${chief.name} (police chief)`, result.ok, result.ok ? result.message ?? '' : result.error);
+    }
+  } else if (hot && gang.lawyerId == null) {
+    actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} and no lawyer yet`);
+  }
+  if (lawyer && gang.cash > 40000) {
+    const mayor = buyable(w.mayorId, 0.3);
+    if (mayor) {
+      const result = queueSpecialistJob(w, gang.id, 'bribeOfficials', mayor.id);
+      logResult(actions, `lawyer bribes ${mayor.name} (mayor: fewer police on the patch)`, result.ok, result.ok ? result.message ?? '' : result.error);
+    }
+  }
+  if (hot && !lawyer) {
     const chief = w.people[w.policeChiefId];
     if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > 1500) {
       give('bribe chief', freest(), { type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: Math.round(400 + gang.suspicion * 10) } });

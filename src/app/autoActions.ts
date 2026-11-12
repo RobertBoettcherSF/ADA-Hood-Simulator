@@ -9,7 +9,10 @@
 import type { Rng } from '../sim/rng';
 import type { Building, Gang, ID, Order, Person, Team, WorldState } from '../sim/types';
 
-export const ACTION_KEYS = ['raid', 'pressRefuser', 'torchRival', 'bombRival', 'kidnapRival', 'killRival', 'snitch'] as const;
+export const ACTION_KEYS = ['raid', 'pressRefuser', 'torchRival', 'bombRival', 'kidnapRival', 'killRival', 'snitch',
+  'bribeJudge', 'bribeDA', 'bribeWitness', 'scareWitness', 'bribeJuror'] as const;
+/** Answers to a trial: chosen only while one of the gang's men is up before a court. */
+export const TRIAL_KEYS: readonly ActionKey[] = ['bribeJudge', 'bribeDA', 'bribeWitness', 'scareWitness', 'bribeJuror'];
 export type ActionKey = (typeof ACTION_KEYS)[number];
 export type ActionRanks = Record<ActionKey, number>;
 
@@ -17,13 +20,16 @@ export const ACTION_LABELS: Record<ActionKey, string> = {
   raid: 'rob a rich site', pressRefuser: 'lean on an owner who refused', torchRival: 'torch rival premises',
   bombRival: 'bomb rival premises', kidnapRival: 'kidnap a rival hood', killRival: 'kill a rival hood',
   snitch: 'buy a snitch\'s names',
+  bribeJudge: 'bribe the judge on a case', bribeDA: 'bribe the DA for the witness and juror lists',
+  bribeWitness: 'pay a witness to forget', scareWitness: 'rough up a witness', bribeJuror: 'pay a juror',
 };
 
 export const RANK_MIN = 0.2;
 export const RANK_MAX = 4;
 
 export function defaultActionRanks(): ActionRanks {
-  return { raid: 1.2, pressRefuser: 1.4, torchRival: 0.8, bombRival: 0.7, kidnapRival: 0.8, killRival: 0.5, snitch: 1 };
+  return { raid: 1.2, pressRefuser: 1.4, torchRival: 0.8, bombRival: 0.7, kidnapRival: 0.8, killRival: 0.5, snitch: 1,
+    bribeJudge: 1.5, bribeDA: 1.2, bribeWitness: 1, scareWitness: 0.8, bribeJuror: 1 };
 }
 
 /** Ranks from an earlier run, filled in and clamped. */
@@ -58,6 +64,9 @@ export interface PendingAction {
   knownBefore?: number;
   targetBuildingId?: ID;
   targetPersonId?: ID;
+  /** For a trial answer: the case and its defendant. */
+  caseId?: ID;
+  defendantId?: ID;
   cashBefore: number;
 }
 
@@ -71,6 +80,17 @@ export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, o
   if (pending.key === 'snitch') {
     const named = gang.knownPeople.length - (pending.knownBefore ?? gang.knownPeople.length);
     return named > 0 ? { ok: true, why: `${named} rivals named` } : { ok: false, why: 'nobody named' };
+  }
+  if (pending.key === 'bribeJudge' || pending.key === 'bribeDA') {
+    const c = pending.caseId != null ? w.cases?.[pending.caseId] : undefined;
+    const official = pending.targetPersonId != null ? w.people[pending.targetPersonId] : undefined;
+    const defendant = pending.defendantId != null ? w.people[pending.defendantId] : undefined;
+    if (pending.key === 'bribeJudge') {
+      if (c?.judgeBribed || c?.status === 'dismissed' || (!c && defendant?.status === 'active')) return { ok: true, why: 'case thrown out' };
+      return official?.bribedBy === gang.id ? { ok: true, why: 'judge bought' } : { ok: false, why: 'the judge did not take it' };
+    }
+    if (c?.knowsWitnesses || c?.knowsJurors) return { ok: true, why: `lists revealed (${c.knowsJurors ? 'witnesses and jurors' : 'witnesses'})` };
+    return { ok: false, why: c ? 'no list' : 'case closed before the DA was seen' };
   }
   const order = orders.find((o) => o.id === pending.orderId);
   if (!order) return { ok: false, why: 'order not found' };
@@ -96,6 +116,12 @@ export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, o
       break;
     case 'raid':
       if (order.completedTargets > 0 || order.targetPaid) return { ok: true, why: 'got away with the takings' };
+      break;
+    case 'bribeWitness': case 'bribeJuror':
+      if (victim && victim.bribedBy === gang.id) return { ok: true, why: `${victim.name} took the money` };
+      return { ok: false, why: victim ? `${victim.name} refused` : 'gone' };
+    case 'scareWitness':
+      if (victim && victim.status !== 'active') return { ok: true, why: `${victim.name} ${victim.status}` };
       break;
   }
   return order.completedTargets > 0 ? { ok: true, why: 'done' } : { ok: false, why: order.lastMiss ?? 'nothing gained' };
