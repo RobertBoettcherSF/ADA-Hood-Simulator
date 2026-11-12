@@ -51,7 +51,7 @@ import { dist, gangAssets, gangManpower, protectedBuildings, territoryCount } fr
 import { buildingList } from '../sim/entityLists';
 import { MINUTES_PER_WEEK } from '../sim/constants';
 import { chooseGoal, formatGoalScores, GOAL_LABELS, GOAL_POLICY, GOAL_REVIEW_WEEKS, GOAL_STALL_PENALTY, goalScores, type VictoryGoal } from './autoGoals';
-import { canRunForOffice } from '../sim/systems/politics';
+import { canRunForOffice, electionBlocksRequired } from '../sim/systems/politics';
 
 /** The win Auto Test is playing for in each city, when it last looked, and every change of mind. */
 const goalOf = new WeakMap<Sim['world'], { goal: VictoryGoal; reviewedWeek: number; history: string[]; progress: number[] }>();
@@ -289,6 +289,8 @@ const MEN_PER_CREW = 5;
 
 /** What last Monday learned, per city: whether the crews ran out of week. */
 const lastMonday = new WeakMap<Sim['world'], { timeShort: boolean }>();
+/** A racket the gang is saving for: other premises wait until its cost is in hand. */
+const savingFor = new WeakMap<Sim['world'], { name: string; cost: number }>();
 
 /** Suspicion at which the desk starts paying officials and easing the extortion. */
 const SUSPICION_BRIBE = 40;
@@ -552,7 +554,12 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       give('bribe chief', freest(), { type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: Math.round(400 + gang.suspicion * 10) } });
     }
   }
-  const easing = gang.suspicion >= SUSPICION_EASE;
+  // Close to standing for mayor: push for the last blocks, whatever the heat.
+  const blocksNeeded = electionBlocksRequired(w);
+  const officeClose = goal === 'office' && territoryCount(w, gang.id) >= blocksNeeded * 0.8 && territoryCount(w, gang.id) < blocksNeeded;
+  const expansion = officeClose ? Math.max(2, policy.expansion) : policy.expansion;
+  if (officeClose) actions.push(`NOTE ${territoryCount(w, gang.id)} of ${blocksNeeded} blocks for the mayoralty — every crew pushes for the last ones`);
+  const easing = gang.suspicion >= SUSPICION_EASE && !officeClose;
   if (easing) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} — extortion eased, buying legal premises`);
 
   const spend = (key: PlayStrategy['priority'][number]) => {
@@ -601,8 +608,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         // The hottest quarter of the blocks is left alone while suspicion is high.
         const heats = [...byBlock.keys()].map((id) => w.blocks[id]?.crimeHeat ?? 0).sort((a, b) => a - b);
         const hotLine = heats.length ? heats[Math.floor(heats.length * 0.75)] : Infinity;
-        const cap = Math.max(2, Math.round(weight.rackets * 5 * policy.expansion));
-        const crewsToSend = easing ? Math.max(1, Math.floor(ready.length / 2)) : Math.max(1, Math.round(ready.length * Math.min(1, policy.expansion)));
+        const cap = Math.max(2, Math.round(weight.rackets * 5 * expansion));
+        const crewsToSend = easing ? Math.max(1, Math.floor(ready.length / 2)) : Math.max(1, Math.round(ready.length * Math.min(1, expansion)));
         const sent = new Set<number>();
         for (const [blockId, sites] of byBlock) {
           if (sent.size >= crewsToSend) break;
@@ -610,7 +617,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           const team = freest(sent, 'extortion');
           if (!team) { timeShort = true; break; }
           // Size the area to the crew's free week: about one site per sixth of a week.
-          const fit = Math.max(1, Math.min(cap, Math.floor(freeShare(team) * 6 * Math.max(1, policy.expansion))));
+          const fit = Math.max(1, Math.min(cap, Math.floor(freeShare(team) * 6 * Math.max(1, expansion))));
           if (freeShare(team) < 0.15) { sent.add(team.id); timeShort = true; continue; }
           sent.add(team.id);
           give('extort', team, { type: 'extort', buildingIds: sites.slice(0, fit).map((b) => b.id), opts: { manpower: manpowerFor(team, 2) } });
@@ -645,7 +652,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     // Legal takings weigh against protection money in the Bureau's sums, so
     // a suspicious gang buys shops whatever the strategy's buying weight.
-    if (key === 'buying' && w.week >= 4 && (weight.buying >= 0.3 || easing)) {
+    const saving = savingFor.get(w);
+    if (key === 'buying' && saving && gang.cash < saving.cost * 1.5) {
+      actions.push(`NOTE saving toward a ${saving.name} ($${saving.cost}) — no other premises this week`);
+    } else if (key === 'buying' && w.week >= 4 && (weight.buying >= 0.3 || easing)) {
       const gate = easing ? 3000 : 8000 + (1 - weight.buying) * 8000;
       const fraction = easing ? 0.4 : 0.15 + weight.buying * 0.5;
       if (gang.cash > gate) {
@@ -682,28 +692,51 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const forSale = (pick: (b: Building) => boolean) => buildingList(w)
       .filter((b) => b.ownerGangId == null && b.state === 'trading' && pick(b) && price(b) > 0 && price(b) <= spareCash && near(b)).sort(nearer)[0];
     const centreOf = (blockId: number) => buildingList(w).find((b) => b.blockId === blockId && w.lots[b.lotId]?.index === 4);
+    /** The business crew, with a man pulled across from the biggest crew when all of its own are already spoken for. */
+    let pulled = false;
+    const businessCrew = () => {
+      const team = freest(undefined, 'business');
+      const busy = (t: (typeof ready)[number]) => t.orderIds.filter((id) => w.orders[id]?.gangId === gang.id).reduce((n, id) => n + (w.orders[id]?.opts.manpower ?? 1), 0);
+      if (team && !pulled && busy(team) >= team.memberIds.length + 1) {
+        const donor = crewsOf().filter((t) => t.id !== team.id && t.memberIds.length >= 3).sort((a, b) => (b.memberIds.length - busy(b)) - (a.memberIds.length - busy(a)))[0];
+        const man = donor ? [...donor.memberIds].reverse().find((id) => !talentPlaced.has(id) && w.people[id]?.status === 'active') : undefined;
+        if (donor && man != null && donor.memberIds.length - busy(donor) > 0) {
+          const result = moveToTeam(w, gang.id, man, team.id);
+          logResult(actions, `reinvest: ${w.people[man]?.name ?? man} joins the business crew for the buying`, result.ok, result.ok ? '' : result.error);
+          pulled = true;
+        }
+      }
+      return team;
+    };
     const buy = (label: string, site: Building | undefined) => {
       if (!site) return false;
-      const result = give(`reinvest: buy ${label} ${site.typeId}`, freest(undefined, 'business'), { type: 'buyPremises', buildingIds: [site.id] });
+      const result = give(`reinvest: buy ${label} ${site.typeId}`, businessCrew(), { type: 'buyPremises', buildingIds: [site.id] });
       if (result.ok) spareCash -= price(site);
       return result.ok;
     };
     /** Put a racket behind an owned front: on its block's centre lot, buying the lot first if needed. */
     const behind = (racketId: string) => {
       const racket = BUILDING_BY_ID[racketId];
-      if (!racket || racket.cost > spareCash) return 'poor' as const;
+      if (!racket) return 'poor' as const;
+      // Close enough: dip into the reserve rather than wait another month.
+      if (racket.cost > spareCash + keep * 0.5) {
+        savingFor.set(w, { name: racket.name.toLowerCase(), cost: racket.cost + keep });
+        return 'poor' as const;
+      }
+      if (racket.cost > spareCash) spareCash = racket.cost;
+      savingFor.delete(w);
       const fronts = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.state !== 'destroyed' && b.hidesId == null && racket.fronts?.includes(b.typeId)).sort(nearer);
       for (const front of fronts) {
         const centre = centreOf(front.blockId);
         if (!centre || centre.id === front.id) continue;
         if (centre.ownerGangId === gang.id && centre.cls === 'empty') {
-          const result = give(`reinvest: ${racket.name} behind ${front.typeId}`, freest(undefined, 'business'), {
+          const result = give(`reinvest: ${racket.name} behind ${front.typeId}`, businessCrew(), {
             type: 'setUpBusiness', buildingIds: [centre.id], opts: { manpower: 1, businessTypeId: racket.id, frontBuildingId: front.id },
           });
           if (result.ok) spareCash -= racket.cost;
           return result.ok ? 'set' as const : 'failed' as const;
         }
-        if (centre.ownerGangId == null && centre.cls === 'empty' && price(centre) <= spareCash - racket.cost) {
+        if (centre.ownerGangId == null && centre.cls === 'empty' && price(centre) <= spareCash - racket.cost + keep * 0.5) {
           return buy('the lot behind', centre) ? 'lot' as const : 'failed' as const;
         }
       }
@@ -713,6 +746,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const front = forSale((b) => !!racket.fronts?.includes(b.typeId) && (() => { const c = centreOf(b.blockId); return !!c && c.cls === 'empty' && c.ownerGangId == null; })());
       return buy(`a front for a ${racket.name.toLowerCase()}:`, front) ? 'front' as const : 'none' as const;
     };
+    if (!policy.illegal) savingFor.delete(w);
     if (spareCash > 0 && policy.illegal) {
       const producing = ownsType('moonshineStill') || ownsType('counterfeitPress');
       if (!producing) {
@@ -735,7 +769,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (team && (team.vehicles.truck ?? 0) > 0) give('export the surplus', team, { type: 'export', buildingIds: [stocked[0].id], opts: { manpower: 1 } });
     }
     // Anything still spare buys the best-paying legal premises within reach.
-    if (spareCash > 15000) {
+    if (spareCash > 15000 && !savingFor.has(w)) {
       const legal = buildingList(w).filter((b) => b.ownerGangId == null && b.state === 'trading' && ['commercial', 'industrial', 'tenement'].includes(b.cls) &&
         price(b) > 0 && price(b) <= spareCash * 0.5 && near(b)).sort((a, b) => (BUILDING_BY_ID[b.typeId]?.profit ?? 0) / price(b) - (BUILDING_BY_ID[a.typeId]?.profit ?? 0) / price(a))[0];
       buy('legal', legal);
