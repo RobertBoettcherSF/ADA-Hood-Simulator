@@ -61,10 +61,13 @@ export interface PendingAction {
   cashBefore: number;
 }
 
+/** The order's fail reason when the crew simply ran out of week. */
+export const OUT_OF_TIME = /not enough time|out of time|ran out of (the )?week/i;
+
 const LOST = new Set<Person['status']>(['arrested', 'onTrial', 'jailed', 'dead', 'kidnapped']);
 
 /** True for a success, false for a failure, with a short reason. */
-export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, orders: readonly Order[]): { ok: boolean; why: string } {
+export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, orders: readonly Order[]): { ok: boolean | null; why: string } {
   if (pending.key === 'snitch') {
     const named = gang.knownPeople.length - (pending.knownBefore ?? gang.knownPeople.length);
     return named > 0 ? { ok: true, why: `${named} rivals named` } : { ok: false, why: 'nobody named' };
@@ -73,6 +76,8 @@ export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, o
   if (!order) return { ok: false, why: 'order not found' };
   const lost = order.assignedIds.filter((id) => LOST.has(w.people[id]?.status ?? 'active'));
   if (lost.length) return { ok: false, why: `${lost.length} man${lost.length === 1 ? '' : 'en'} lost (${lost.map((id) => w.people[id]?.status).join(', ')})` };
+  // Running out of week says nothing about the action itself: no rank change.
+  if (order.failReason && OUT_OF_TIME.test(order.failReason) && !order.completedTargets) return { ok: null, why: order.failReason };
   if (order.failReason) return { ok: false, why: order.failReason };
   const target = pending.targetBuildingId != null ? w.buildings[pending.targetBuildingId] : undefined;
   const victim = pending.targetPersonId != null ? w.people[pending.targetPersonId] : undefined;

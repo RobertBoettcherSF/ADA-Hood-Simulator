@@ -817,8 +817,8 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     );
     for (const pending of pendingActions) {
       const verdict = judgeAction(sim.world, sim.playerGang, pending, sim.world.lastWeekOrders);
-      const rank = verdict.ok ? rankUp(actionRanks, pending.key) : rankDown(actionRanks, pending.key);
-      actions.push(`OUTCOME ${pending.key} ${verdict.ok ? 'success' : 'failure'} — ${verdict.why}; rank now ${rank}`);
+      const rank = verdict.ok == null ? actionRanks[pending.key] : verdict.ok ? rankUp(actionRanks, pending.key) : rankDown(actionRanks, pending.key);
+      actions.push(`OUTCOME ${pending.key} ${verdict.ok == null ? 'neutral' : verdict.ok ? 'success' : 'failure'} — ${verdict.why}; rank ${verdict.ok == null ? 'unchanged at' : 'now'} ${rank}`);
     }
     pendingActions = [];
     for (const order of sim.world.lastWeekOrders) {

@@ -30,3 +30,12 @@ describe('Auto Test ranked action table', () => {
     expect(carMinutesSaved(300, 1, 3, 2)).toBeCloseTo(400);
   });
 });
+
+describe('judging an action', () => {
+  it('is neutral when the crew only ran out of week', async () => {
+    const { judgeAction } = await import('../src/app/autoActions');
+    const w = { people: {}, buildings: {} } as never;
+    const order = { id: 5, assignedIds: [], failReason: 'There was not enough time in the week to perform the order.', completedTargets: 0 } as never;
+    expect(judgeAction(w, { knownPeople: [] } as never, { key: 'kidnapRival', orderId: 5, cashBefore: 0 }, [order]).ok).toBeNull();
+  });
+});
