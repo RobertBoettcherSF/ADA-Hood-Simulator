@@ -1,4 +1,5 @@
 import type { BuildingType } from '../types';
+import { ORIGINAL_TRADES } from './originalTrades';
 
 /**
  * Every building type in Saint Volstead. Legal sites provide income, launder
@@ -149,6 +150,14 @@ export const BUILDING_TYPES: BuildingType[] = [
     id: 'teamsters', name: 'Teamsters', cls: 'illegal', cost: 8500, profit: 1100, storeys: 1, weight: {},
     fronts: ['tradeUnion', 'garageDepot', 'foundry', 'mill', '*'],
   },
+
+  // ------------------------------------------------------------------ the original's other trades (1.2.18)
+  // Placed by the original city layout and, now and then, in shop and works plots
+  // of the generated cities; any of them can be bought or set up on owned land.
+  ...ORIGINAL_TRADES.map((t): BuildingType => ({
+    id: t.id, name: t.name, cls: t.cls, cost: t.cost, profit: t.profit, storeys: t.storeys, weight: {},
+    ...(t.stores ? { stores: t.stores } : {}),
+  })),
 ];
 
 export const BUILDING_BY_ID: Record<string, BuildingType> = Object.fromEntries(
@@ -207,6 +216,7 @@ const FRONT_FIT: Record<string, string> = {
   shoeStore: '000000000120020',
   tailors: '100100000120020',
   tradeUnion: '000000110020020',
+  ...Object.fromEntries(ORIGINAL_TRADES.map((t) => [t.id, t.fit])),
 };
 const FIT_COVER = [0.4, 0.7, 0.95];
 

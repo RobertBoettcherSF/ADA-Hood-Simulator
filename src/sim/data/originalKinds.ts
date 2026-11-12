@@ -1,4 +1,5 @@
 import { ORIGINAL_ECONOMICS, type OriginalEconomicsRecord } from './originalEconomics';
+import { ORIGINAL_TRADE_BY_NAME } from './originalTrades';
 
 /**
  * Which of our building types plays each original economics kind. Placement
@@ -43,9 +44,9 @@ const BY_PRODUCE: Record<number, string> = {
 };
 
 export function ourTypeForOriginalKind(record: OriginalEconomicsRecord): string {
-  return BY_NAME[record.name] ?? BY_PRODUCE[record.produce] ?? (record.group === 1 ? 'mill' : 'convenienceStore');
+  return ORIGINAL_TRADE_BY_NAME[record.name] ?? BY_NAME[record.name] ?? BY_PRODUCE[record.produce] ?? (record.group === 1 ? 'mill' : 'convenienceStore');
 }
 
 /** Each record's gameplay type, and whether it is an exact or fallback match. */
 export const ORIGINAL_KIND_TYPES = ORIGINAL_ECONOMICS.map(r =>
-  ({ index: r.index, name: r.name, typeId: ourTypeForOriginalKind(r), exact: r.name in BY_NAME }));
+  ({ index: r.index, name: r.name, typeId: ourTypeForOriginalKind(r), exact: r.name in ORIGINAL_TRADE_BY_NAME || r.name in BY_NAME }));
