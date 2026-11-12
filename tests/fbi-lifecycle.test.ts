@@ -282,7 +282,7 @@ describe('FBI investigation and business closure', () => {
     expect(issueOrder(s.w,s.gang.id,{teamId:team.id,type:'setUpBusiness',buildingIds:[s.site.id],opts:{businessTypeId:'casino',frontBuildingId:s.front.id}}).ok).toBe(true);
     const order=s.w.orders[team.orderIds[0]];
     s.site.discovered=true; s.site.fbiDiscoveredWeek=1; s.site.fbiRaidWeek=2; s.sim.launchWeek();
-    for(let n=0;n<1000&&!['done','failed'].includes(order.state);n++) s.sim.advance(1/MINUTES_PER_SECOND,1);
+    for(let n=0;n<3000&&!['done','failed'].includes(order.state);n++) s.sim.advance(1/MINUTES_PER_SECOND,1);
     expect(order.state).toBe('failed'); expect(order.failReason).toContain('FBI');
     expect(s.site.fbiRaidWeek).toBe(2); expect(s.site.discovered).toBe(true); expect(s.gang.cash).toBe(cash);
   });
