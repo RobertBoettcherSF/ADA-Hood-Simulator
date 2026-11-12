@@ -4,7 +4,7 @@
  * Kept for the session only (not in the save): Auto Test's timeline and the
  * debug report read it.
  */
-import type { ID, Person, WorldState } from './types';
+import type { ID, OrderType, Person, Vec2, WorldState } from './types';
 
 export interface MemberLoss {
   week: number;
@@ -16,6 +16,10 @@ export interface MemberLoss {
   cause: string;
   /** Who did it, when known: a gang's name, "the police", "the FBI", "the courts", "his own gang". */
   by?: string;
+  /** Where he fell, and the premises his order was working at the time, when known. */
+  pos?: Vec2;
+  buildingId?: ID;
+  orderType?: OrderType;
 }
 
 const LOSSES = new WeakMap<WorldState, MemberLoss[]>();
@@ -24,7 +28,10 @@ const KEEP = 400;
 export function noteMemberLoss(w: WorldState, p: Person, cause: string, by?: string): void {
   if (p.gangId == null) return;
   const list = LOSSES.get(w) ?? [];
-  list.push({ week: w.week, personId: p.id, name: p.name, role: p.role, gangId: p.gangId, cause, by });
+  const order = p.orderId != null ? w.orders[p.orderId] : undefined;
+  const buildingId = order?.targetBuildingIds[order.cursor] ?? p.buildingId ?? undefined;
+  list.push({ week: w.week, personId: p.id, name: p.name, role: p.role, gangId: p.gangId, cause, by,
+    pos: p.pos ? { x: p.pos.x, y: p.pos.y } : undefined, buildingId: buildingId ?? undefined, orderType: order?.type });
   if (list.length > KEEP) list.splice(0, list.length - KEEP);
   LOSSES.set(w, list);
 }

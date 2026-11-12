@@ -134,7 +134,20 @@ export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, o
 
 // ------------------------------------------------------------ talent groups
 
-export type CrewRole = 'business' | 'extortion' | 'collect' | 'muscle';
+export type CrewRole = 'business' | 'extortion' | 'collect' | 'muscle' | 'recruit' | 'scout';
+
+/** Crew names after their main job (only crews still on a default or earlier auto name are renamed). */
+export const CREW_NAMES: Record<CrewRole, string> = {
+  collect: 'Collect Protection', recruit: 'Recruiting', extortion: 'Extortion', business: 'Business', muscle: 'Strike', scout: 'Scouting',
+};
+const AUTO_NAME = new RegExp(`^(.+'s Crew|(${Object.values(CREW_NAMES).join('|')})( \\d+)?)$`);
+/** The name a crew should carry for its role, numbering extra collection crews; null when the player named it. */
+export function crewNameFor(current: string, role: CrewRole, index: number): string | null {
+  if (!AUTO_NAME.test(current)) return null;
+  return index > 1 ? `${CREW_NAMES[role]} ${index}` : CREW_NAMES[role];
+}
+export const recruitTalent = (p: Person) => p.skills.intelligence * 2 + p.skills.organization;
+export const scoutTalent = (p: Person) => p.skills.stealth * 2 + p.skills.intelligence + p.skills.driving * 0.5;
 
 export const businessTalent = (p: Person) => p.skills.business * 2 + p.skills.organization + p.skills.intelligence;
 export const extortionTalent = (p: Person) => p.skills.intimidation * 2 + p.skills.fists * 0.5;
@@ -158,17 +171,21 @@ export function assignCrewRoles(w: WorldState, teams: readonly Team[]): Map<ID, 
     free.sort((a, b) => avg(b, f) - avg(a, f) || a.id - b.id);
     roles.set(free.shift()!.id, role);
   };
-  if (teams.length >= 2) take('business', businessTalent);
-  if (teams.length >= 2) take('extortion', extortionTalent);
-  if (teams.length >= 4) take('muscle', muscleTalent);
-  for (const t of free) roles.set(t.id, teams.length === 1 ? 'extortion' : 'collect');
+  // 1.2.17: three crews at least (extortion to expand, recruiting, collection),
+  // six ideally (plus business, strike and scouting); the rest collect.
+  take('extortion', extortionTalent);
+  if (teams.length >= 3) take('recruit', recruitTalent);
+  if (teams.length >= 4) take('business', businessTalent);
+  if (teams.length >= 5) take('muscle', muscleTalent);
+  if (teams.length >= 6) take('scout', scoutTalent);
+  for (const t of free) roles.set(t.id, 'collect');
   return roles;
 }
 
 /** Swap men so each crew gets the hoods its role wants. Returns the moves to make. */
 export function talentSwaps(w: WorldState, teams: readonly Team[], roles: Map<ID, CrewRole>, limit = 3): { personId: ID; toTeamId: ID }[] {
   const moves: { personId: ID; toTeamId: ID }[] = [];
-  const score: Record<CrewRole, (p: Person) => number> = { business: businessTalent, extortion: extortionTalent, muscle: muscleTalent, collect: (p) => -totalSkill(p) };
+  const score: Record<CrewRole, (p: Person) => number> = { business: businessTalent, extortion: extortionTalent, muscle: muscleTalent, recruit: recruitTalent, scout: scoutTalent, collect: (p) => -totalSkill(p) };
   const moved = new Set<ID>();
   for (const role of ['business', 'extortion', 'muscle'] as const) {
     const team = teams.find((t) => roles.get(t.id) === role);
