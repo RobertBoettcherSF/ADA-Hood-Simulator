@@ -1309,7 +1309,9 @@ function resolveTarget(
 
     case 'recruit': {
       if (!building) return;
-      const kind = typeOf(building)?.recruit;
+      // 1.2.21: role-aware — the kind the order asks for (an accountant or a
+      // lawyer visit) decides who counts and where the tip points, not the venue.
+      const kind = order.opts.recruitAs ?? typeOf(building)?.recruit;
       if (!kind) return;
       // Only people of the kind being recruited count, never the owner or staff.
       const seeking = (p: Person, at: number) => p.gangId == null && p.status === 'active' && p.buildingId === at && p.role === kind;

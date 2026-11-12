@@ -281,12 +281,14 @@ export function chooseHoodRecruitSites<T extends { id: number }>(
 }
 
 export function rememberRecruitResults(
-  orders: { type: string; recruitHintId?: number | null; emptyRecruitIds?: number[] }[],
+  orders: { type: string; recruitHintId?: number | null; emptyRecruitIds?: number[]; opts?: { recruitAs?: string } }[],
   week: number,
   memory: RecruitMemory = recruitMemory,
 ): void {
   for (const order of orders) {
-    if (order.type !== 'recruit') continue;
+    // 1.2.21: only hood recruiting feeds the hood venues' memory; an accountant's
+    // or lawyer's tip points at their own offices, never the gyms and pool halls.
+    if (order.type !== 'recruit' || (order.opts?.recruitAs != null && order.opts.recruitAs !== 'hood')) continue;
     if (order.recruitHintId != null) {
       memory.hintIds = [order.recruitHintId, ...memory.hintIds.filter((id) => id !== order.recruitHintId)];
     }
