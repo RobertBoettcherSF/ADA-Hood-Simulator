@@ -222,6 +222,44 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## Planned for 1.2.21 (notes, not yet built)
+
+1. Name scrub: the game is called Hood Simulator everywhere (README, package, menus, docs); no other game's name remains.
+2. Arrests: an arrested hood goes alone; an arrested lieutenant takes only the crew members standing with him. The same rule for FBI warrants and office raids, on every map size. Fix a man being both acquitted and convicted (double trial), a dead man being convicted, and check the near-100% conviction rate.
+3. Settings: the city size and money buttons always win over scenario defaults, Auto Test included. Starting gang fixes: the missing lieutenant and the crew hood who cannot be seen.
+4. Multi-tab safety: each browser tab gets its own save, autosave and debug-report slot, so three Auto Tests can run side by side. Orders finished mid-week (buys, bribes, collections) are settled when they finish, to shorten the end of the week. The ambient system (about 10.6 s of a 20 s end-week) is the first speed target.
+5. Debug report: the developer's full view — every rival's cash, income by source, assets, crews and orders; a collection trace (assignments, routes, minutes per stop, skips, double visits); planned against used minutes per crew; news events with their causes. Up to 25 MB, in several parts. The Auto Test log stays limited to what a player could know in the game.
+6. Auto Test:
+   - keep about three weeks' payroll as a cash reserve and reinvest the rest in buildings;
+   - fill the crews before starting new ones;
+   - wages never exceed income;
+   - protection crews unarmed by default;
+   - bribes in proportion to illegal income;
+   - stop hiring when extra men no longer add blocks;
+   - fix "order not found" when leaning on an owner who refused;
+   - bribe runs get a car and an escort;
+   - purchases go to a crew with free time;
+   - an owner who refuses to sell is leaned on, beaten or killed, so that he or the next owner sells.
+7. A grudge score per rival (kills, attacks, damage). Above a threshold Auto Test escalates: trash the businesses that rival collects protection from, kidnap its crew members to learn where things are, and bomb its most profitable businesses (those it owns first).
+8. "Ran out of time" is treated as a routing and scheduling problem. Methods, tried in order until one works and is fast:
+   1. nearest stop next, then 2-opt to remove crossings;
+   2. a value-per-minute knapsack fill of each crew's week;
+   3. one patch of the map per crew (clustering);
+   4. a time-window fit with a reserve, misfits handed to another crew or a car;
+   5. a short random local search (about 20 ms per crew), only if still needed.
+   Start with 1 and 2.
+9. Checks: rival income and asset valuation (the Delgado Gang reached $557k with 18 men in an aggressive 40 × 32 run; the Corvino Gang won Dry Season twice with under $90k cash); accountant recruitment tips that point to gyms and pool halls; the lawyer's hire-list wage ($210) against his pay ($133).
+10. Interface:
+    - a Find by Refusal button on Intimidate;
+    - drag and drop for lieutenant slots (swap or move, empty slots included);
+    - a To Pool button on the lawyer's Squealers and Crimes This Week lists;
+    - a Reports button in the Gang Organizer, left of Choose on Map: grouped by the street-view labels, in time order, and a click centres the map;
+    - "DAS" renamed District Attorneys, with a tooltip.
+11. Ideas for later:
+    - body armour: costly, reduces pistol hits, does little against tommy guns and rifles, slows the wearer, available to every gang and the police. Waiting for Robert's OK;
+    - a choice between cheap but risky and clean ways of doing things;
+    - a stronger rival AI once Auto Test wins the hard scenarios reliably.
+
 ## v1.2.20 decisions
 
 Items marked *(my call)* are choices made while building, not asked for. Only item 3 changes a game rule; the rest is Auto Test, the menu, the score and names.
