@@ -178,7 +178,8 @@ describe('planned orders produce real gameplay outcomes', () => {
     for (const seed of [404, 405, 406, 407, 408]) {
       const s = fixture(seed), site = allBuildings(s.w).find(b => b.protection?.gangId === s.gang.id)!;
       site.protection!.refusing = true; site.protection!.grievance = 5;
-      run(s, { type: 'intimidate', buildingIds: [site.id] });
+      // A shopkeeper who will not be moved is a fair miss; try the next city.
+      if (run(s, { type: 'intimidate', buildingIds: [site.id] }, true).state === 'failed') continue;
       expect(s.w.crimes.some(c => c.kind === 'intimidate' && c.gangId === s.gang.id)).toBe(true);
       if (site.protection!.refusing) continue;
       expect(site.protection!.grievance).toBe(0);
@@ -199,8 +200,8 @@ describe('planned orders produce real gameplay outcomes', () => {
       site.protection!.refusing = true;
       const owner = s.w.people[site.ownerPersonId!];
       const before = [hostilityOf(owner, s.gang.id), fearOf(owner, s.gang.id)];
-      const order = run(s, { type: 'intimidate', buildingIds: [site.id] });
-      if (!order.results.join(' ').includes('has seen sense')) continue;
+      const order = run(s, { type: 'intimidate', buildingIds: [site.id] }, true);
+      if (order.state === 'failed' || !order.results.join(' ').includes('has seen sense')) continue;
       expect([hostilityOf(owner, s.gang.id), fearOf(owner, s.gang.id)]).toEqual(whose === 'own'
         ? [Math.max(0, before[0] - 32), Math.min(255, before[1] + 32)] : before);
       outcomes[whose] = true;

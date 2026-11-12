@@ -288,13 +288,14 @@ Items marked *(my call)* are choices made while building, not asked for.
      - "assets" value each building at cost × (0.6 + land value/100), less up to 35% for crime heat, so property on good land is booked above its price.
      - Dry Season is won on its own goal, not on cash, so a winner with under $90k cash is consistent.
      - Not changed in this build.
+   - Auto Test recruiting with few crews: the hiring places are no longer capped at one per crew. With fewer crews than venues, one crew's recruit order walks several of them. The new rule that keeps a crew filling before another lieutenant is made had left a 6-man gang with one crew. That crew checked one venue a week, often an empty one, and the gang stayed at 6 men for six weeks (base build: 17). With the fix it reaches 18.
    - Recruitment tips: a recruiting order now counts and points to the kind of person it asks for (accountant, lawyer or hood), not the kind the venue usually holds. Auto Test's hood-venue memory ignores accountant and lawyer tips.
 10. **Interface.**
     - A Find by Refusal button on the Intimidate card lists only the businesses that refused us.
     - The left panel's lieutenant slots can be dragged: drop one on another lieutenant and they swap; drop him on any slot, empty ones included, and he moves there and stays. The layout is saved with the city.
     - The lawyer's lists:
       - Crimes This Week: a To pool button, with his crew's name, beside each of our hoods.
-      - Squealers: these are outsiders, shopkeepers whose opinion of us is below −40, so they would talk to the police. They get a Find on map button (centres on him or his business) and an Intimidate shortcut (starts an Intimidate order on his business). To pool appears only if the entry is one of our own men.
+      - Squealers: these are outsiders, shopkeepers whose opinion of us is below −40, so they would talk to the police. Each entry has an Intimidate button left of its Hostile badge, and an Intimidate all button sits below the list. Both open a small crew picker: every crew (lieutenant and crew name) with its free minutes this week, the crew whose lieutenant stands nearest the squealers' businesses preselected. Confirming queues an Intimidate order for that crew on their businesses, through the same order flow as the Gang Organizer. To pool appears only if the entry is one of our own men. *(Robert's call: no Find on map here.)*
     - A Reports button left of Choose on map lists all of the week's reports, grouped under the street view's labels, in time order. A click centres the map.
     - "DAs" is now "District Attorneys", with a tooltip.
 11. **Ideas for later** (unchanged):

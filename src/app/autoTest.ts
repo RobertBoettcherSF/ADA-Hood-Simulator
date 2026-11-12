@@ -1001,15 +1001,23 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         actions.push('NOTE recruit held — lying low');
       } else if (pays && hoodSites.length) {
         // Several venues, one man each: a two-man order waits for a second free hand.
-        const venues = Math.min(hoodSites.length, shrinking || men < floor ? 4 : 2, ready.length);
+        // 1.2.21: the venues no longer wait for a crew each — with fewer crews
+        // than venues one crew walks several (a hiring place is often empty by
+        // the time a man gets there, so one stop a week starved a small gang).
+        const venues = Math.min(hoodSites.length, shrinking || men < floor ? 4 : 2);
         if (recruitMemory.hintIds.includes(hoodSites[0].id)) actions.push('NOTE recruit following last week\'s tip');
         const sentTo = new Set<number>();
-        for (let i = 0; i < venues; i++) {
+        const teams: NonNullable<ReturnType<typeof freest>>[] = [];
+        for (let i = 0; i < Math.min(venues, ready.length); i++) {
           const team = freest(sentTo, 'recruit');
-          if (!team) { actions.push('NOTE recruit skipped — every crew\'s week is full'); timeShort = true; break; }
-          sentTo.add(team.id);
-          give('recruit', team, { type: 'recruit', buildingIds: [hoodSites[i].id], opts: { manpower: 1 } });
+          if (!team) break;
+          sentTo.add(team.id); teams.push(team);
         }
+        if (!teams.length) { actions.push('NOTE recruit skipped — every crew\'s week is full'); timeShort = true; }
+        teams.forEach((team, k) => {
+          const stops = hoodSites.slice(0, venues).filter((_, i) => i % teams.length === k).map((b) => b.id);
+          give('recruit', team, { type: 'recruit', buildingIds: stops, opts: { manpower: 1 } });
+        });
       } else if (hoodSites.length === 0) {
         actions.push('NOTE no hoods standing at a hiring place');
       } else {

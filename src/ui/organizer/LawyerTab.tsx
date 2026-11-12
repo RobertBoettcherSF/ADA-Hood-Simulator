@@ -1,3 +1,4 @@
+import { isValidAreaTarget } from '../../sim/execution';
 import { hireQuote } from '../../sim/originalWages';
 import { useState } from 'react';
 import { act, useGame } from '../../app/store';
@@ -7,17 +8,19 @@ import {
   canGoStraight,
   policeTourCapacity,
   hireRecruit,
+  issueOrder,
   moveToPool,
+  type ApiResult,
   sackPerson,
   setGoStraight,
   setPay,
   setRunForOffice,
 } from '../../sim/api';
-import { GO_STRAIGHT_ASSETS } from '../../sim/constants';
+import { GO_STRAIGHT_ASSETS, MINUTES_PER_WEEK } from '../../sim/constants';
 import { campaignWeeklyCost, officeEntryCheck, electionBlocksRequired } from '../../sim/systems/politics';
-import type { CourtCase, Person } from '../../sim/types';
+import type { CourtCase, Person, WorldState } from '../../sim/types';
 import { gangAssets, money, territoryCount } from '../../sim/world';
-import { Avatar, ConfirmDialog, Empty, Hint, Panel, Pill, Stars } from '../common';
+import { Avatar, ConfirmDialog, Empty, Hint, Modal, Panel, Pill, Stars } from '../common';
 import { VEHICLES, VEHICLE_ORDER } from '../../sim/constants';
 import { SpecialistJobList } from '../SpecialistJobCard';
 import { peopleList } from '../../sim/entityLists';
@@ -34,6 +37,7 @@ const CASE_STATUS: Record<CourtCase['status'], string> = {
 export function LawyerTab() {
   const sim = useGame((s) => s.sim)!;
   const notify = useGame((s) => s.notify);
+  const [intimidating, setIntimidating] = useState<number[] | null>(null);
   const beginSpecialistOrder = useGame(s => s.beginSpecialistOrder);
   const requestCamera = useGame((s) => s.requestCamera);
   useGame((s) => s.version);
@@ -362,17 +366,23 @@ export function LawyerTab() {
       </Panel>
 
       <Panel title="Squealers">
-        <Hint>Squealers are outsiders — shopkeepers so hostile to you (opinion below −40) that they would talk to the police. Find one on the map, or lean on his business.</Hint>
+        <Hint>Squealers are outsiders — shopkeepers so hostile to you (opinion below −40) that they would talk to the police. Intimidate leans on his business.</Hint>
         {squealers.length === 0 ? (
           <Empty>Nobody is talking.</Empty>
         ) : (
-          squealers.slice(0, 12).map((p) => (
-            <div key={p.id} className="list-row">
-              <span className="name tiny">{p.name}</span>
-              <Pill kind="bad">hostile</Pill>
-              {p.gangId === gang.id ? <ToPool personId={p.id} /> : <SquealerActions personId={p.id} />}
-            </div>
-          ))
+          <>
+            {squealers.slice(0, 12).map((p) => (
+              <div key={p.id} className="list-row">
+                <span className="name tiny">{p.name}</span>
+                {p.gangId !== gang.id && <button className="btn sm" title="Choose a crew to intimidate his business" onClick={() => setIntimidating([p.id])}>Intimidate</button>}
+                <Pill kind="bad">hostile</Pill>
+                {p.gangId === gang.id && <ToPool personId={p.id} />}
+              </div>
+            ))}
+            <button className="btn sm" style={{ marginTop: 6 }} title="Choose a crew to intimidate every squealer's business"
+              onClick={() => setIntimidating(squealers.filter((p) => p.gangId !== gang.id).map((p) => p.id))}>Intimidate all</button>
+            {intimidating && <CrewPicker personIds={intimidating} onClose={() => setIntimidating(null)} />}
+          </>
         )}
       </Panel>
 
@@ -412,26 +422,73 @@ function ToPool({ personId }: { personId: number }) {
   );
 }
 
-/** 1.2.21: an outsider who would squeal: centre the map on him (or his business), or start an Intimidate order on his business. */
-function SquealerActions({ personId }: { personId: number }) {
+
+/**
+ * 1.2.21: queue Intimidate on the squealers' businesses through the normal
+ * order flow: the selected crew (or the one with most of its week free), one
+ * area order over every business that can be leaned on. Shopkeepers whose
+ * business is not a valid Intimidate target (it neither refused nor stopped
+ * paying) are named in the reply.
+ */
+function squealerSites(w: WorldState, gangId: number, personIds: number[]): { sites: number[]; skipped: string[] } {
+  const sites: number[] = [], skipped: string[] = [];
+  for (const id of personIds) {
+    const p = w.people[id];
+    const site = Object.values(w.buildings).find((b) => b.ownerPersonId === id || b.managerId === id) ?? (p?.buildingId != null ? w.buildings[p.buildingId] : undefined);
+    if (site && isValidAreaTarget(w, gangId, 'intimidate', site)) { if (!sites.includes(site.id)) sites.push(site.id); }
+    else if (p) skipped.push(p.name);
+  }
+  return { sites, skipped };
+}
+
+function queueIntimidate(personIds: number[], teamId: number): ApiResult {
+  const result = act((sim) => {
+    const w = sim.world, gang = sim.playerGang;
+    const { sites, skipped } = squealerSites(w, gang.id, personIds);
+    if (!sites.length) return { ok: false as const, error: `Nothing to intimidate: ${skipped.join(', ') || 'no squealer'} has no business that refused you.` };
+    const team = w.teams[teamId];
+    if (!team) return { ok: false as const, error: 'You have no crew to send.' };
+    let r = issueOrder(w, gang.id, { type: 'intimidate', teamId: team.id, buildingIds: sites, opts: { manpower: Math.min(2, team.memberIds.length + 1) } });
+    if (!r.ok && r.suggestion?.buildingIds?.length) r = issueOrder(w, gang.id, { type: 'intimidate', teamId: team.id, buildingIds: r.suggestion.buildingIds, opts: { manpower: Math.min(2, team.memberIds.length + 1) } });
+    if (r.ok && skipped.length) return { ok: true as const, message: `Intimidate queued for ${w.people[team.lieutenantId]?.name ?? 'the crew'}. Not a valid target: ${skipped.join(', ')}.` };
+    return r;
+  });
+  return result ?? { ok: false, error: 'Orders can be given at the desk only.' };
+}
+
+/**
+ * 1.2.21: which crew leans on the squealers. Each crew with its free minutes;
+ * the crew whose lieutenant stands nearest the squealers' businesses is
+ * preselected. Confirming queues the order as the Gang Organizer would.
+ */
+function CrewPicker({ personIds, onClose }: { personIds: number[]; onClose: () => void }) {
   const sim = useGame((s) => s.sim)!;
-  const requestCamera = useGame((s) => s.requestCamera);
-  const w = sim.world, gang = sim.playerGang, p = w.people[personId];
-  if (!p) return null;
-  const site = Object.values(w.buildings).find((b) => b.ownerPersonId === p.id || b.managerId === p.id) ?? (p.buildingId != null ? w.buildings[p.buildingId] : undefined);
-  const at = site ? w.lots[site.lotId]?.center ?? p.pos : p.pos;
-  const intimidate = () => {
-    const s = useGame.getState();
-    const teamId = s.selectedTeamId ?? gang.teamIds[0];
-    if (teamId == null || !site) return;
-    s.setTab('lieutenants');
-    s.beginOrder('intimidate', teamId);
-    s.updateJobCard({ buildingIds: [site.id] });
+  const notify = useGame((s) => s.notify);
+  const w = sim.world, gang = sim.playerGang;
+  const crews = gang.teamIds.map((id) => w.teams[id]).filter(Boolean);
+  const { sites } = squealerSites(w, gang.id, personIds);
+  const spots = sites.map((id) => w.lots[w.buildings[id].lotId].center);
+  const reach = (teamId: number) => {
+    const lt = w.people[w.teams[teamId].lieutenantId];
+    if (!lt || !spots.length) return Infinity;
+    return spots.reduce((sum, at) => sum + Math.hypot(at.x - lt.pos.x, at.y - lt.pos.y), 0) / spots.length;
   };
+  const nearest = [...crews].sort((a, b) => reach(a.id) - reach(b.id))[0];
+  const [teamId, setTeamId] = useState<number | null>(nearest?.id ?? null);
   return (
-    <span className="row" style={{ gap: 4 }}>
-      <button className="btn sm" title="Centre the map on him or his business" onClick={() => requestCamera({ x: at.x, y: at.y })}>Find on map</button>
-      {site && gang.teamIds.length > 0 && <button className="btn sm" title="Start an Intimidate order on his business" onClick={intimidate}>Intimidate</button>}
-    </span>
+    <Modal title="Intimidate — choose a crew" onClose={onClose} width={460}
+      footer={<>
+        <button className="btn brass" disabled={teamId == null} onClick={() => { if (teamId != null) notify(queueIntimidate(personIds, teamId)); onClose(); }}>Queue the order</button>
+        <button className="btn" onClick={onClose}>Cancel</button>
+      </>}>
+      <p className="tiny">{personIds.length === 1 ? `Lean on ${w.people[personIds[0]]?.name ?? 'him'}` : `Lean on ${personIds.length} squealers`}: {sites.length} business{sites.length === 1 ? '' : 'es'} can be intimidated.</p>
+      {crews.length === 0 && <Empty>You have no crew.</Empty>}
+      {crews.map((t) => (
+        <label key={t.id} className="wood-field" style={{ display: 'flex', gap: 6 }}>
+          <input type="radio" name="intimidate-crew" checked={teamId === t.id} onChange={() => setTeamId(t.id)} />
+          <span>{w.people[t.lieutenantId]?.name ?? 'Crew'} — {t.name} · {Math.max(0, Math.round(MINUTES_PER_WEEK - t.timeUsed))} min free{t.id === nearest?.id ? ' · nearest' : ''}</span>
+        </label>
+      ))}
+    </Modal>
   );
 }
