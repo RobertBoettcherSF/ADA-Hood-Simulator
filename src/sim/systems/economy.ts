@@ -1,6 +1,6 @@
 import { effectiveHostility, fearOf, hostilityOf, LEFT_GANG, opinionSet, setAttitude, shiftAttitude } from '../attitudes';
 import { noteMemberLoss } from '../memberLosses';
-import { ECONOMY_MULT } from '../constants';
+import { ECONOMY_MULT, INCOME_MULT } from '../constants';
 import { goodsRetailer } from '../goodsStorage';
 import { BUILDING_BY_ID } from '../data/buildings';
 import { addMessage } from '../events';
@@ -29,7 +29,7 @@ export function businessProfit(w: WorldState, b: Building, rng: Rng): number {
   const location = 0.55 + blk.landValue / 110;
   const slum = 1 - Math.min(0.35, blk.squalor / 220);
 
-  let profit = t.profit * econ * market * location * slum;
+  let profit = t.profit * (t.profit > 0 ? INCOME_MULT : 1) * econ * market * location * slum;
 
   // A speakeasy is only worth having if there is liquor behind the bar.
   if (t.id === 'speakeasy') {

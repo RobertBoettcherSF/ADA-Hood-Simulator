@@ -477,3 +477,11 @@ export const GANG_COLORS: Record<string, { hex: string; light: string; label: st
 };
 
 export const ECONOMY_MULT = { weak: 0.68, normal: 1, strong: 1.38 };
+/**
+ * One multiplier on every business's weekly takings, legal and illegal (1.2.19),
+ * tuned to original-game values: our catalogue paid about half the original's
+ * income, while wages follow the original. Change this one number to retune.
+ */
+export const INCOME_MULT = 1.5;
+/** A trade's typical week as the player is shown it: the catalogue figure with the income multiplier. */
+export const typicalTakings = (profit: number) => Math.round(profit > 0 ? profit * INCOME_MULT : profit);
