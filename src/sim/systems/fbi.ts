@@ -1,4 +1,5 @@
 import { addMessage, addNews } from '../events';
+import { noteMemberLoss } from '../memberLosses';
 import { clearDestination, setDestination, stepPerson } from '../movement';
 import { stopBusinessGuards } from '../execution';
 import { availableSpecialist } from '../specialists';
@@ -420,6 +421,7 @@ function outOfCar(w: WorldState, p: Person): void {
 /** Arrest a gang person where he stands and charge him. */
 function takeIntoCustody(w: WorldState, p: Person, gangId: ID, kind: string, buildingId: ID | null, agent?: Person): void {
   outOfCar(w, p);
+  noteMemberLoss(w, p, `arrested (${kind})`, 'the FBI');
   p.status = 'arrested'; p.buildingId = null; p.inVehicle = false;
   p.orderId = null; p.streetOrder = null; clearDestination(p);
   w.crimes.push({id:w.sequences.crime++,week:w.week,gangId,perpetratorId:p.id,
@@ -781,6 +783,7 @@ export function streetArrest(w: WorldState, rng: Rng, officer: Person, p: Person
   if (outcome === 'arrested') {
     for (const q of [p, ...mates]) {
       outOfCar(w, q);
+      noteMemberLoss(w, q, 'arrested in the street', by);
       q.status = 'arrested'; q.buildingId = null; q.inVehicle = false;
       q.orderId = null; q.streetOrder = null; clearDestination(q);
       if (gang?.isPlayer) addMessage(w, 'police', `${q.name} has been arrested by ${by}.`, q.pos, q.id);
@@ -854,6 +857,7 @@ export function raidSite(w: WorldState, rng: Rng, b: Building, agent?: Person): 
   const gang = b.ownerGangId != null ? w.gangs[b.ownerGangId] : null;
   let arrests = 0;
   const arrest = (p: Person) => {
+    noteMemberLoss(w, p, `arrested in a raid on ${b.typeId}`, 'the FBI');
     p.status = 'arrested'; p.buildingId = null; p.inVehicle = false;
     p.orderId = null; p.streetOrder = null; clearDestination(p);
     p.wanted = Math.min(100,p.wanted+25); arrests++;

@@ -44,6 +44,8 @@ export interface DiaryEntry {
   /** The win Auto Test was playing for at the end, and when it changed its mind (1.2.16+). */
   goal?: string;
   goalHistory?: string[];
+  /** Auto Test's time ledger: minutes per target for each order type, on foot and by car (1.2.17+). */
+  timeLedger?: Record<string, number>;
 }
 
 export interface Diary {

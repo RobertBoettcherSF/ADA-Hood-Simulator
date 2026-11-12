@@ -1,4 +1,5 @@
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
+import { noteMemberLoss } from './memberLosses';
 import { recruitJoin } from './recruitDestination';
 import { originalStartingWage, originalWageQuote } from './originalWages';
 import { BLAST_DAMAGE, blastFear, effectiveHostility, fearOf, hostilityOf, MEMBER_DEATH_FEAR, NO_ORIGINAL_CHANNEL, opinionShift, ownerSquealLevel, setAttitude, shiftAttitude } from './attitudes';
@@ -1539,6 +1540,7 @@ function resolveTarget(
       if (success) {
         // 0x4DFCB0: an abducted shopkeeper (type 15) −32 hostility / +32 fear.
         if (victim.role === 'owner') shiftAttitude(victim, gang.id, -32, 32);
+        noteMemberLoss(w, victim, 'kidnapped', gang.name);
         victim.status = 'kidnapped';
         victim.capturedBy = gang.id;
         victim.interrogationValue = 100;
@@ -1841,10 +1843,19 @@ function releaseManager(w: WorldState, b: Building): void {
   }
 }
 
+/** The gang named in a death's reason ("… by The Corvino Gang", "… on the orders of …"), if any. */
+function killerOf(w: WorldState, reason: string): string | undefined {
+  const named = Object.values(w.gangs).find((g) => reason.includes(g.name));
+  if (named) return named.name;
+  if (/police|officer|fbi/i.test(reason)) return 'the police';
+  return undefined;
+}
+
 export function killPerson(w: WorldState, p: Person, reason: string): void {
   // Shot in a car, he falls on the pavement beside it, not under it in the lane.
   alight(w,p);
   if (p.status === 'dead') return;
+  noteMemberLoss(w, p, reason, killerOf(w, reason));
   if(!p.burningEscape?.fatal)presentDeath(w,p);
   p.status = 'dead';
   p.hp = 0;

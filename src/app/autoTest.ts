@@ -40,21 +40,53 @@ export function takeAutoTestStopped(): boolean {
 }
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
-import { BUY_REACH_BLOCKS, buySnitchInfo, canGoStraight, sellBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, moveToTeam, nearTerritory, promote, transferWeapon, type ApiResult, type IssueOrderInput } from '../sim/api';
-import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, carMinutesSaved, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, talentSwaps, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
+import { BUY_REACH_BLOCKS, buySnitchInfo, canGoStraight, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, moveToTeam, nearTerritory, promote, transferWeapon, type ApiResult, type IssueOrderInput } from '../sim/api';
+import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, carMinutesSaved, crewNameFor, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, talentSwaps, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
 import { DRIVE_SPEED, GO_STRAIGHT_ASSETS, VEHICLES, WALK_SPEED, WEAPONS } from '../sim/constants';
 import type { Building, WeaponId } from '../sim/types';
 import { BUILDING_BY_ID, ILLEGAL_TYPES } from '../sim/data/buildings';
 import { isValidAreaTarget } from '../sim/execution';
 import type { Sim } from '../sim/sim';
-import { dist, gangAssets, gangManpower, protectedBuildings, territoryCount } from '../sim/world';
-import { buildingList } from '../sim/entityLists';
+import { dist, gangAssets, gangManpower, gangMembers, protectedBuildings, territoryCount } from '../sim/world';
+import { buildingList, peopleList } from '../sim/entityLists';
 import { MINUTES_PER_WEEK } from '../sim/constants';
-import { chooseGoal, formatGoalScores, GOAL_LABELS, GOAL_POLICY, GOAL_REVIEW_WEEKS, GOAL_STALL_PENALTY, goalScores, type VictoryGoal } from './autoGoals';
+import { chooseGoal, formatGoalScores, GOAL_LABELS, GOAL_POLICY, GOAL_DROP_WEEKS, GOAL_REVIEW_WEEKS, GOAL_STALL_DROP, GOAL_STALL_PENALTY, goalScores, type VictoryGoal } from './autoGoals';
 import { canRunForOffice, electionBlocksRequired } from '../sim/systems/politics';
 
+const UNAVAILABLE = new Set(['dead', 'arrested', 'onTrial', 'jailed', 'kidnapped']);
+
+/**
+ * LOST lines for everyone who was in the gang and at liberty before the week
+ * and is now gone or out of action, with the cause and culprit when the sim
+ * recorded them. key groups them for the report's summary.
+ */
+export function lostLines(w: Sim['world'], gangId: number, before: Map<number, string>, sinceWeek: number): { text: string; key: string }[] {
+  const recorded = memberLosses(w, gangId, sinceWeek);
+  const out: { text: string; key: string }[] = [];
+  for (const [id, was] of before) {
+    const p = w.people[id];
+    if (!p || UNAVAILABLE.has(was)) continue;
+    const gone = p.gangId !== gangId;
+    if (!gone && !UNAVAILABLE.has(p.status)) continue;
+    const loss = [...recorded].reverse().find((l) => l.personId === id);
+    let cause = loss?.cause, by = loss?.by;
+    if (!cause) {
+      if (p.status === 'dead') cause = 'died';
+      else if (p.status === 'kidnapped') { cause = 'kidnapped'; by = p.capturedBy != null ? w.gangs[p.capturedBy]?.name : undefined; }
+      else if (p.status === 'arrested' || p.status === 'onTrial') { cause = 'arrested'; by = 'the police'; }
+      else if (p.status === 'jailed') { cause = 'jailed'; by = 'the courts'; }
+      else if (gone && p.gangId != null) { cause = 'joined another gang'; by = w.gangs[p.gangId]?.name; }
+      else cause = `left the gang (loyalty ${Math.round(p.loyalty)}, paid $${p.pay}, wanted $${p.payDemand})`;
+    }
+    const kind = /deserted|left the gang/.test(cause) ? 'deserted' : /arrest/.test(cause) ? 'arrested' : /convicted|jailed/.test(cause) ? 'jailed'
+      : /kidnap/.test(cause) ? 'kidnapped' : /sacked/.test(cause) ? 'sacked' : p.status === 'dead' ? 'killed' : 'lost';
+    out.push({ text: `LOST ${p.name} (${p.role}) — ${cause}${by ? ` [${by}]` : ''}`, key: `${kind}${by ? ` by ${by}` : ''}` });
+  }
+  return out;
+}
+
 /** The win Auto Test is playing for in each city, when it last looked, and every change of mind. */
-const goalOf = new WeakMap<Sim['world'], { goal: VictoryGoal; reviewedWeek: number; history: string[]; progress: number[] }>();
+const goalOf = new WeakMap<Sim['world'], { goal: VictoryGoal; reviewedWeek: number; history: string[]; progress: number[]; stalls: number; dropped: { goal: VictoryGoal; until: number }[] }>();
 /** The goal and its switches so far, for the report and the diary. */
 export function autoTestGoal(w: Sim['world']): { goal: VictoryGoal; history: string[] } | undefined {
   const state = goalOf.get(w);
@@ -63,10 +95,32 @@ export function autoTestGoal(w: Sim['world']): { goal: VictoryGoal; history: str
 
 /** The ranked action table for this run, and what was tried last Monday. */
 let actionRanks: ActionRanks = defaultActionRanks();
+/**
+ * The time ledger: how many minutes one target of each order type has taken,
+ * keyed "type|car" or "type|foot" (a running average, kept in the diary).
+ */
+let timeLedger: Record<string, number> = {};
+export const ledgerKey = (type: string, car: boolean) => `${type}|${car ? 'car' : 'foot'}`;
+/** Fold one order's minutes per target into the ledger. */
+export function noteLedger(ledger: Record<string, number>, key: string, minutesPerTarget: number): void {
+  if (!(minutesPerTarget > 0) || !Number.isFinite(minutesPerTarget)) return;
+  const before = ledger[key];
+  ledger[key] = Math.round(before == null ? minutesPerTarget : before * 0.7 + minutesPerTarget * 0.3);
+}
+/** How many of the targets fit in the time a crew has left, by the ledger (all of them when the ledger has no figure yet). */
+export function targetsThatFit(ledger: Record<string, number>, key: string, targets: number, freeMinutes: number): number {
+  const each = ledger[key];
+  if (each == null) return targets;
+  return Math.max(0, Math.min(targets, Math.floor(freeMinutes / each)));
+}
+export function currentTimeLedger(): Record<string, number> { return { ...timeLedger }; }
+/** Crews whose orders were refused for lack of time last week. */
+const shortCrews = new WeakMap<Sim['world'], Set<number>>();
 let pendingActions: PendingAction[] = [];
 /** Men the talent pass moved this run; the crew balancer leaves them where they are. */
 const talentPlaced = new Set<number>();
 export function currentActionRanks(): ActionRanks { return { ...actionRanks }; }
+import { memberLosses } from '../sim/memberLosses';
 import { availableSpecialist } from '../sim/specialists';
 import { queueSpecialistJob } from '../sim/specialistJobs';
 import { bribePrice, isBribableOfficial, refusesBribe } from '../sim/officials';
@@ -285,10 +339,13 @@ function logResult(actions: string[], label: string, ok: boolean, detail: string
 }
 
 /** Crews one lieutenant can run well. Used to decide when to promote another. */
-const MEN_PER_CREW = 5;
 
 /** What last Monday learned, per city: whether the crews ran out of week. */
+/** Premises suspected of hiding a rival HQ (men were killed on empty land beside them), with the week first suspected. */
+const suspectedHQ = new WeakMap<Sim['world'], Map<number, number>>();
 const lastMonday = new WeakMap<Sim['world'], { timeShort: boolean }>();
+/** Men at the start of last Monday, per city. */
+const menLastWeek = new WeakMap<Sim['world'], number>();
 /** A racket the gang is saving for: other premises wait until its cost is in hand. */
 const savingFor = new WeakMap<Sim['world'], { name: string; cost: number }>();
 
@@ -328,10 +385,17 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // Stalled: the goal's own score has not risen over the last two reviews.
     const progress = goalState?.progress ?? [];
     const stalled = progress.length >= 2 && before != null && goalScores(w, gang)[before] <= progress[progress.length - 2];
-    const { goal, scores } = chooseGoal(w, gang, before, stalled);
-    if (stalled) actions.push(`NOTE goal ${before} has stalled — it counts ${GOAL_STALL_PENALTY} less this review`);
+    const stalls = stalled ? (goalState?.stalls ?? 0) + 1 : 0;
+    // Stalled two reviews running: drop it for a while and play for the next best.
+    if (goalState && before && stalls >= GOAL_STALL_DROP) {
+      goalState.dropped.push({ goal: before, until: w.week + GOAL_DROP_WEEKS });
+      actions.push(`GOAL dropped ${before} — stalled ${stalls} reviews running; off the list until week ${w.week + GOAL_DROP_WEEKS}`);
+    }
+    const excluded = (goalState?.dropped ?? []).filter((d) => d.until > w.week).map((d) => d.goal);
+    const { goal, scores } = chooseGoal(w, gang, before, stalled, excluded);
+    if (stalled && stalls < GOAL_STALL_DROP) actions.push(`NOTE goal ${before} has stalled — it counts ${GOAL_STALL_PENALTY} less this review`);
     if (!goalState) {
-      goalState = { goal, reviewedWeek: w.week, history: [`week ${w.week}: ${goal} (${formatGoalScores(scores)})`], progress: [] };
+      goalState = { goal, reviewedWeek: w.week, history: [`week ${w.week}: ${goal} (${formatGoalScores(scores)})`], progress: [], stalls: 0, dropped: [] };
       goalOf.set(w, goalState);
       actions.push(`GOAL ${goal} — ${GOAL_LABELS[goal]} (${formatGoalScores(scores)})`);
     } else {
@@ -342,13 +406,17 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       } else {
         actions.push(`GOAL kept ${goal} (${formatGoalScores(scores)})`);
       }
-      if (goal !== goalState.goal) goalState.progress = [];
+      if (goal !== goalState.goal) { goalState.progress = []; goalState.stalls = 0; }
+      else goalState.stalls = stalls;
       goalState.goal = goal;
     }
     goalState.progress.push(goalScores(w, gang)[goal]);
   }
   const goal = goalState.goal;
-  const policy = GOAL_POLICY[goal];
+  // Few men and plenty of cash: rebuild the gang first, whatever the goal.
+  const rebuild = gangManpower(w, gang) < 10 && gang.cash > 50000;
+  const policy = rebuild ? { ...GOAL_POLICY[goal], violence: 'low' as const, expansion: Math.min(0.6, GOAL_POLICY[goal].expansion) } : GOAL_POLICY[goal];
+  if (rebuild) actions.push(`NOTE rebuilding the gang first: ${gangManpower(w, gang)} men and $${Math.round(gang.cash)} — recruiting comes before everything, no rough work`);
 
   for (const id of [...gang.recruitIds]) {
     const person = w.people[id];
@@ -357,10 +425,33 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     logResult(actions, `hire ${person?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
   }
 
+  // Wages: everyone gets what he asks while the takings (or a year's cash) can
+  // carry it — underpaid men lose loyalty and walk out, lieutenants with their crews.
+  const payroll = gangMembers(w, gang).filter((p) => p.role !== 'boss');
+  const wageBill = payroll.reduce((sum, p) => sum + p.pay, 0);
+  const averageWage = payroll.length ? wageBill / payroll.length : 100;
+  const income = gang.lastWeekIncome;
+  const weeklyNet = income.legal + income.illegal + income.protection + income.other - gang.lastWeekCosts.wages - gang.lastWeekCosts.upkeep;
+  const short = payroll.filter((p) => p.pay < p.payDemand);
+  const raise = short.reduce((sum, p) => sum + p.payDemand - p.pay, 0);
+  if (short.length && (weeklyNet >= raise || gang.cash >= (wageBill + raise) * 26)) {
+    for (const p of short) setPay(w, p.id, p.payDemand);
+    actions.push(`NOTE pay raised to what they ask for ${short.length} m${short.length === 1 ? 'an' : 'en'} (+$${raise} a week)`);
+  } else if (short.length) {
+    actions.push(`NOTE ${short.length} underpaid m${short.length === 1 ? 'an' : 'en'} ($${raise} a week short) — the books cannot carry the raise`);
+  }
+  const lastMen = menLastWeek.get(w);
+  const menNow = gangManpower(w, gang);
+  const shrinking = rebuild || menNow < 12 || (lastMen != null && menNow < lastMen);
+  menLastWeek.set(w, menNow);
+
+  const shortLastWeekCrews = lastMonday.get(w)?.timeShort ?? false;
   // Enough lieutenants for the men: one crew per five hoods, at least two, at most eight.
   if (weight.hiring >= 0.2) {
     const hoods = () => gang.poolIds.length + crewsOf().reduce((sum, team) => sum + team.memberIds.length + 1, 0);
-    const wanted = () => Math.min(8, Math.max(2, Math.ceil(hoods() / MEN_PER_CREW)));
+    // Three crews at least (collect, recruit, extort), six when the men allow, up to all eight
+    // when last week's collecting ran out of time — never more crews than pairs of men.
+    const wanted = () => Math.min(8, Math.max(2, Math.floor(hoods() / 2)), Math.max(3, Math.ceil(hoods() / 4), hoods() >= 18 ? 6 : 0) + (shortLastWeekCrews ? 1 : 0));
     for (let tries = 0; tries < 3 && gang.teamIds.length < wanted(); tries++) {
       const fromPool = gang.poolIds.length ? rng.pick(gang.poolIds) : undefined;
       const biggest = crewsOf().filter((team) => team.memberIds.length >= 4).sort((a, b) => b.memberIds.length - a.memberIds.length)[0];
@@ -399,6 +490,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (result.ok) talentPlaced.add(move.personId);
     logResult(actions, `talent: ${w.people[move.personId]?.name ?? move.personId} to the ${roles.get(move.toTeamId)} crew`, result.ok, result.ok ? '' : result.error);
   }
+  // Each crew carries the name of its job, unless the player has named it.
+  const counted = new Map<CrewRole, number>();
+  for (const team of crewsOf()) {
+    const role = roles.get(team.id);
+    if (!role) continue;
+    const index = (counted.get(role) ?? 0) + 1;
+    counted.set(role, index);
+    const name = crewNameFor(team.name, role, index);
+    if (name && name !== team.name) team.name = name;
+  }
   if (roles.size) actions.push(`NOTE crews: ${[...roles].map(([id, role]) => `${w.people[w.teams[id]?.lieutenantId]?.name ?? id} ${role}`).join(', ')}`);
   const GUNS: WeaponId[] = ['pistol', 'shotgun', 'rifle', 'tommy', 'twinPistols'];
   const roleCrew = (role: CrewRole) => crewsOf().find((team) => roles.get(team.id) === role);
@@ -436,6 +537,18 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       return { ok: false, error: 'Every crew is busy this week.' };
     }
     const name = w.people[team.lieutenantId]?.name ?? 'crew';
+    // Fit the order to the crew's free time by the ledger; hand out nothing that cannot fit.
+    const hasCar = Object.values(team.vehicles).some((n) => n > 0);
+    const key = ledgerKey(input.type, hasCar);
+    const targets = input.buildingIds?.length ?? 1;
+    const fits = targetsThatFit(timeLedger, key, targets, MINUTES_PER_WEEK - team.timeUsed);
+    if (fits === 0) {
+      actions.push(`NOTE ${label} not given to ${name} — about ${timeLedger[key]} min a target, ${Math.max(0, MINUTES_PER_WEEK - team.timeUsed)} min left`);
+      outOfTime.add(team.id); timeShort = true;
+      return { ok: false, error: 'Not enough time left this week (time ledger).' };
+    }
+    if (fits < targets && input.buildingIds) input = { ...input, buildingIds: input.buildingIds.slice(0, fits) };
+    const usedBefore = team.timeUsed;
     let result = issueOrder(w, gang.id, { ...input, teamId: team.id });
     // Undermanned for the whole area, take the part the lieutenant offers.
     if (!result.ok && result.suggestion?.buildingIds?.length) {
@@ -447,11 +560,34 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     logResult(actions, `${label} (${name})`, result.ok, result.ok ? result.message ?? '' : result.error);
     if (!result.ok && /time/i.test(result.error)) { outOfTime.add(team.id); timeShort = true; }
+    if (result.ok) {
+      const order = team.orderIds.length ? w.orders[team.orderIds[team.orderIds.length - 1]] : undefined;
+      const minutes = order?.estimatedMinutes || team.timeUsed - usedBefore;
+      noteLedger(timeLedger, key, minutes / Math.max(1, order?.targetBuildingIds.length || 1));
+    }
     return result;
   };
   /** Share of this crew's week still free. */
   const freeShare = (team: (typeof ready)[number]) => 1 - team.timeUsed / MINUTES_PER_WEEK;
   const manpowerFor = (team: (typeof ready)[number], most: number) => Math.max(1, Math.min(most, team.memberIds.length + 1));
+
+  // A crew refused for lack of time last week gets a car, or a hood moved across, before it is asked again.
+  for (const id of shortCrews.get(w) ?? []) {
+    const team = ready.find((t) => t.id === id);
+    if (!team) continue;
+    const carless = !Object.values(team.vehicles).some((n) => n > 0);
+    if (carless && gang.cash > VEHICLES.coupe.cost * 3) {
+      const result = buyVehicle(w, gang.id, 'coupe', team.id);
+      logResult(actions, `buy car for ${w.people[team.lieutenantId]?.name ?? 'crew'} (out of time last week)`, result.ok, result.ok ? '' : result.error);
+      if (result.ok) continue;
+    }
+    const donor = ready.filter((t) => t.id !== team.id && t.memberIds.length >= 3 && !(shortCrews.get(w)?.has(t.id))).sort((a, b) => b.memberIds.length - a.memberIds.length)[0];
+    const hood = donor?.memberIds.map((m) => w.people[m]).filter((p) => p && p.status === 'active' && p.orderId == null)[0];
+    if (donor && hood) {
+      const result = moveToTeam(w, gang.id, hood.id, team.id);
+      logResult(actions, `move ${hood.name} to ${w.people[team.lieutenantId]?.name ?? 'crew'} (out of time last week)`, result.ok, result.ok ? '' : result.error);
+    }
+  }
 
   const origin = hqCenter(w, gang.id);
   const nearer = (a: { lotId: number }, b: { lotId: number }) => dist(w.lots[a.lotId].center, origin) - dist(w.lots[b.lotId].center, origin);
@@ -554,6 +690,41 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       give('bribe chief', freest(), { type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: Math.round(400 + gang.suspicion * 10) } });
     }
   }
+  // Going straight: say every week what still stands in the way, and turn
+  // cash into legal premises first thing, before the crews' week fills up.
+  if (goal === 'straight' && !gang.goingStraight && w.options.mode === 'normal') {
+    const check = canGoStraight(w, gang.id);
+    const assetsNow = gangAssets(w, gang);
+    const illegalNow = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.cls === 'illegal' && b.typeId !== 'office');
+    if (!check.can) {
+      actions.push(`NOTE going straight blocked: ${check.reason} [assets $${assetsNow.toLocaleString('en-US')} of $${GO_STRAIGHT_ASSETS.toLocaleString('en-US')} (cash does not count); ${illegalNow.length} illegal business(es); ${openCases.length} on trial; lawyer ${lawyer ? 'ready' : gang.lawyerId == null ? 'none hired' : 'not available'}]`);
+    }
+    if (assetsNow < GO_STRAIGHT_ASSETS * 1.2 && gang.cash > 20000) {
+      let budget = gang.cash - 20000;
+      let projected = assetsNow;
+      const value = (b: Building) => (BUILDING_BY_ID[b.typeId]?.cost ?? 0) * (0.6 + (w.blocks[b.blockId]?.landValue ?? 0) / 100);
+      const picks = buildingList(w).filter((b) => b.ownerGangId == null && b.state === 'trading' && ['commercial', 'industrial', 'tenement'].includes(b.cls) &&
+        (BUILDING_BY_ID[b.typeId]?.cost ?? 0) > 0 && nearTerritory(w, gang.id, b.blockId, BUY_REACH_BLOCKS))
+        .sort((a, b) => value(b) / (BUILDING_BY_ID[b.typeId]!.cost) - value(a) / (BUILDING_BY_ID[a.typeId]!.cost) || value(b) - value(a));
+      const chosen: Building[] = [];
+      for (const b of picks) {
+        if (projected >= GO_STRAIGHT_ASSETS * 1.2 || chosen.length >= 8) break;
+        const cost = BUILDING_BY_ID[b.typeId]!.cost;
+        if (cost > budget) continue;
+        chosen.push(b); budget -= cost; projected += value(b);
+      }
+      // One site to an order (a purchase takes a single site), spread over the crews.
+      const used = new Set<number>();
+      for (const b of chosen) {
+        const team = freest(used, 'business') ?? freest();
+        if (!team) break;
+        if (ready.length > used.size + 1) used.add(team.id);
+        give(`go straight: buy ${b.typeId}`, team, { type: 'buyPremises', buildingIds: [b.id] });
+      }
+      if (!chosen.length) actions.push('NOTE going straight: no legal premises for sale within reach');
+    }
+  }
+
   // Close to standing for mayor: push for the last blocks, whatever the heat.
   const blocksNeeded = electionBlocksRequired(w);
   const officeClose = goal === 'office' && territoryCount(w, gang.id) >= blocksNeeded * 0.8 && territoryCount(w, gang.id) < blocksNeeded;
@@ -564,22 +735,28 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
 
   const spend = (key: PlayStrategy['priority'][number]) => {
     if (key === 'hiring') {
-      // More streets need more collectors: the target grows with the territory.
-      // Crews that ran out of week last Monday need more men, whatever the target says.
-      const base = Math.max(18, Math.round(10 + weight.hiring * 12), Math.min(60, Math.round(territoryCount(w, gang.id) * 2)));
-      const target = Math.min(64, base + (shortLastWeek ? 6 : 0));
-      if (gangManpower(w, gang) < target && hoodSites.length) {
-        // Two sites at most, with two men: a longer list ran out of week before the last door.
-        const count = Math.min(2, Math.max(1, Math.round(1 + weight.hiring)));
-        const team = freest();
-        if (recruitMemory.hintIds.includes(hoodSites[0].id)) {
-          actions.push('NOTE recruit following last week\'s tip');
+      // The rule of thumb: keep hiring while the week's takings cover the
+      // extra wages (or the cash would carry them for a year); below the
+      // floor, hire whatever the books say. No fixed cap on men.
+      const men = gangManpower(w, gang);
+      const floor = Math.max(18, Math.round(10 + weight.hiring * 12), Math.min(60, Math.round(territoryCount(w, gang.id) * 2)));
+      const newMen = shrinking ? 4 : 2;
+      const pays = men < floor || (shortLastWeek && weeklyNet >= averageWage) || weeklyNet >= averageWage * newMen || gang.cash >= (wageBill + averageWage * newMen) * 52;
+      if (pays && hoodSites.length) {
+        // Several venues, one man each: a two-man order waits for a second free hand.
+        const venues = Math.min(hoodSites.length, shrinking || men < floor ? 4 : 2, ready.length);
+        if (recruitMemory.hintIds.includes(hoodSites[0].id)) actions.push('NOTE recruit following last week\'s tip');
+        const sentTo = new Set<number>();
+        for (let i = 0; i < venues; i++) {
+          const team = freest(sentTo, 'recruit');
+          if (!team) { actions.push('NOTE recruit skipped — every crew\'s week is full'); timeShort = true; break; }
+          sentTo.add(team.id);
+          give('recruit', team, { type: 'recruit', buildingIds: [hoodSites[i].id], opts: { manpower: 1 } });
         }
-        give('recruit', team, { type: 'recruit', buildingIds: hoodSites.slice(0, count).map((b) => b.id), opts: { manpower: team ? manpowerFor(team, 2) : 1 } });
       } else if (hoodSites.length === 0) {
         actions.push('NOTE no hoods standing at a hiring place');
       } else {
-        actions.push(`NOTE recruit held — ${gangManpower(w, gang)} men already meets the hiring target ${target}`);
+        actions.push(`NOTE recruit held — ${men} men; last week netted $${Math.round(weeklyNet)}, not enough for ${newMen} more at about $${Math.round(averageWage)} each`);
       }
     }
     if (key === 'rackets') {
@@ -675,7 +852,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
   };
 
-  for (const key of strategy.priority) spend(key);
+  // A shrinking gang hires before it collects; the collecting areas then fit what time is left.
+  const order = shrinking ? ['hiring' as const, ...strategy.priority.filter((key) => key !== 'hiring')] : strategy.priority;
+  if (shrinking) actions.push(`NOTE ${rebuild ? 'rebuilding' : lastMen != null && menNow < lastMen ? `gang shrinking (${menNow} men, ${lastMen} last week)` : `only ${menNow} men`} — recruiting first`);
+  for (const key of order) spend(key);
 
   // ---- reinvest spare cash: legal premises first, then a still or a press
   // behind one of them, a speakeasy to pour the liquor, and a warehouse with
@@ -792,7 +972,54 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       actions.push(`NOTE no car bought: a car would save about ${saved} min a week`);
     }
   }
+  // ---- men killed on empty land behind buildings: a rival HQ is probably next door.
+  // (Losses on the open street keep the usual pull-back and guard response.)
+  const scoutFirst = new Set<number>();
+  const suspects = suspectedHQ.get(w) ?? new Map<number, number>();
+  suspectedHQ.set(w, suspects);
+  for (const loss of memberLosses(w, gang.id, w.week - 1)) {
+    if (loss.by && /police|FBI|courts|own gang/i.test(loss.by)) continue;
+    if (!/shot|kill|stab|beat|bomb|burn|died/i.test(loss.cause) && w.people[loss.personId]?.status !== 'dead') continue;
+    const at = loss.buildingId != null ? w.buildings[loss.buildingId] : undefined;
+    // Only a man lost while working (investigating) an empty lot: one shot on the street is not a hint.
+    const spot = at?.cls === 'empty' ? at : loss.orderType === 'explore' && loss.pos
+      ? buildingList(w).find((b) => b.cls === 'empty' && dist(w.lots[b.lotId].center, loss.pos!) < 20) : undefined;
+    if (!spot) continue;
+    const killer = loss.by ? Object.values(w.gangs).find((g) => g.name === loss.by) : undefined;
+    // The suspect is a rival's premises beside the lot (the killer's first), never a shop nobody holds.
+    const suspect = buildingList(w).filter((b) => b.blockId === spot.blockId && b.cls !== 'empty' && b.ownerGangId != null && b.ownerGangId !== gang.id && b.state !== 'destroyed')
+      .sort((a, b) => Number(b.ownerGangId === killer?.id) - Number(a.ownerGangId === killer?.id) || Number(b.isHQ) - Number(a.isHQ)
+        || dist(w.lots[a.lotId].center, w.lots[spot.lotId].center) - dist(w.lots[b.lotId].center, w.lots[spot.lotId].center))[0];
+    if (!suspect) { actions.push(`NOTE ${loss.name} killed on empty land in block ${spot.blockId} — no rival premises known there yet; scouting it`); scoutFirst.add(spot.blockId); continue; }
+    if (suspect && !suspects.has(suspect.id)) {
+      suspects.set(suspect.id, w.week);
+      actions.push(`NOTE ${loss.name} killed on empty land in block ${spot.blockId} — suspect a rival HQ at the ${suspect.typeId} (building ${suspect.id})`);
+    }
+  }
+  for (const [id, since] of suspects) {
+    const b = w.buildings[id];
+    if (!b || b.state === 'destroyed' || b.ownerGangId === gang.id || w.week - since > 8) suspects.delete(id);
+  }
   const armed = muscleCrew && ready.includes(muscleCrew) ? muscleCrew : undefined;
+  if (armed && suspects.size && policy.violence !== 'low') {
+    // A heavily armed strike crew: tommy guns and explosives, bought first.
+    for (const item of ['tommy', 'explosives'] as WeaponId[]) {
+      if ((armed.weapons[item] ?? 0) >= 1 || gang.cash < reserve * 0.5 + WEAPONS[item].cost) continue;
+      const result = buyWeapon(w, gang.id, item, armed.id);
+      logResult(actions, `buy ${item} for the strike crew`, result.ok, result.ok ? '' : result.error);
+    }
+    const [targetId] = [...suspects.keys()];
+    const target = w.buildings[targetId];
+    const men = manpowerFor(armed, 4);
+    const bombed = (armed.weapons.explosives ?? 0) > 0 || (gang.weapons.explosives ?? 0) > 0
+      ? give('strike: bomb suspected HQ', armed, { type: 'bomb', buildingIds: [targetId], opts: { manpower: Math.min(4, men) } }) : undefined;
+    if (!bombed?.ok) {
+      const inside = peopleList(w).find((p) => p.status !== 'dead' && p.gangId != null && p.gangId !== gang.id && p.buildingId === targetId);
+      if (inside) give('strike: kill at suspected HQ', armed, { type: 'kill', personId: inside.id, opts: { manpower: Math.min(4, men) } });
+      else give('strike: smash suspected HQ', armed, { type: 'smashUp', buildingIds: [targetId], opts: { manpower: men } });
+    }
+    if (target) suspects.delete(targetId);
+  }
   if (armed && w.week >= 3) {
     const shop: WeaponId[] = [];
     if ((armed.weapons.pistol ?? 0) < Math.min(3, armed.memberIds.length + 1)) shop.push('pistol');
@@ -803,6 +1030,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const result = buyWeapon(w, gang.id, item, armed.id);
       logResult(actions, `buy ${item} for ${w.people[armed.lieutenantId]?.name ?? 'crew'}`, result.ok, result.ok ? '' : result.error);
     }
+  }
+
+  // ---- scouting: the scout crew explores the nearest blocks it does not hold yet
+  const scoutCrew = roleCrew('scout');
+  if (scoutCrew && ready.includes(scoutCrew) && freeShare(scoutCrew) > 0.3) {
+    const unseen = buildingList(w).filter((b) => b.ownerGangId !== gang.id && b.protection?.gangId !== gang.id && b.state !== 'destroyed' && (b.knowledge?.[gang.id] ?? 0) < 3 &&
+      nearTerritory(w, gang.id, b.blockId, 2) && isValidAreaTarget(w, gang.id, 'explore', b)).sort(nearer);
+    const block = [...scoutFirst][0] ?? unseen[0]?.blockId;
+    const ids = [...new Set(buildingList(w).filter((b) => b.blockId === block && b.ownerGangId !== gang.id && b.state !== 'destroyed' && isValidAreaTarget(w, gang.id, 'explore', b)).sort((a, b) => (a.knowledge?.[gang.id] ?? 0) - (b.knowledge?.[gang.id] ?? 0) || nearer(a, b)).map((b) => b.id))].slice(0, 4);
+    if (block != null && ids.length) give('scout', scoutCrew, { type: 'explore', buildingIds: ids, opts: { manpower: 1 } });
   }
 
   // ---- the ranked action table: dice weighted by rank when men and cash are spare
@@ -869,8 +1106,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // Close the rackets only once the legal holdings carry the threshold with room to spare.
     if (!check.can && illegal.length && !openCaseCount && gangAssets(w, gang) >= GO_STRAIGHT_ASSETS * 1.15) {
       for (const b of illegal) {
-        const result = sellBuilding(w, gang.id, b.id);
-        logResult(actions, `sell ${b.typeId} to go straight`, result.ok, result.ok ? result.message ?? '' : result.error);
+        // An illegal business cannot be sold, only shut down (1.2.16 tried to sell and was refused every week).
+        const typeId = b.typeId;
+        const result = shutdownBuilding(w, gang.id, b.id);
+        logResult(actions, `shut down ${typeId} to go straight`, result.ok, result.ok ? result.message ?? '' : result.error);
       }
     }
     if (canGoStraight(w, gang.id).can) {
@@ -880,6 +1119,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   }
 
   lastMonday.set(w, { timeShort });
+  shortCrews.set(w, new Set(outOfTime));
   const idle = ready.filter((team) => team.orderIds.every((id) => !w.orders[id] || w.orders[id].gangId !== gang.id) && team.timeUsed === 0);
   if (idle.length) actions.push(`NOTE ${idle.length} crew${idle.length === 1 ? '' : 's'} without an order: ${idle.map((team) => w.people[team.lieutenantId]?.name ?? team.id).join(', ')}`);
   if (gangManpower(w, gang) === beforeMen && gang.poolIds.length === 0 && gang.recruitIds.length === 0 && hoodSites.length === 0) {
@@ -971,11 +1211,15 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   // The ranked action table carries on from the last matching run that kept one.
   const rankedBefore = learn && !loaded.unreadable ? [...matchingEntries(loaded.diary, campaign)].reverse().find((entry) => entry.actionRanks) : undefined;
   actionRanks = loadActionRanks(rankedBefore?.actionRanks);
+  const ledgerBefore = learn && !loaded.unreadable ? [...matchingEntries(loaded.diary, campaign)].reverse().find((entry) => entry.timeLedger) : undefined;
+  timeLedger = { ...(ledgerBefore?.timeLedger ?? {}) };
   const ranksAtStart = { ...actionRanks };
 
   const actions: string[] = [];
   const notes: string[] = [];
   const weeks: AutoTestWeek[] = [];
+  /** Men lost this run, by cause and culprit. */
+  const lostTally = new Map<string, number>();
   let flatRecruit = 0;
   let dryRecruit = 0;
   const cap = settings.weeks == null ? Infinity : Math.min(settings.weeks, AUTO_TEST_MAX_WEEKS);
@@ -988,6 +1232,8 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     if (stopAfterThisWeek) { stoppedThisRun = true; notes.push('Stopped before another week. The desk is yours.'); break; }
     if (sim.world.phase !== 'planning') break;
     const menBefore = gangManpower(sim.world, sim.playerGang);
+    const rosterBefore = new Map(gangMembers(sim.world, sim.playerGang).map((p) => [p.id, p.status] as const));
+    const weekBefore = sim.world.week;
     const poolBefore = sim.playerGang.poolIds.length;
     try {
       actions.push(`-- week ${sim.world.week}`);
@@ -1025,6 +1271,10 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       noteWeekHeap(weekSnap.week, memory.heap.used, memory.heap.total);
     }
     weeks.push(weekSnap);
+    for (const line of lostLines(sim.world, sim.playerGang.id, rosterBefore, weekBefore)) {
+      actions.push(line.text);
+      lostTally.set(line.key, (lostTally.get(line.key) ?? 0) + 1);
+    }
     rememberRecruitResults(
       sim.world.lastWeekOrders.filter((order) => order.gangId === sim.playerGang.id),
       sim.world.week,
@@ -1065,6 +1315,8 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   }
   const goalNow = autoTestGoal(sim.world);
   if (goalNow) notes.push(`Goal: ${goalNow.goal} (${GOAL_LABELS[goalNow.goal]}). History: ${goalNow.history.join('; ')}.`);
+  if (lostTally.size) notes.push(`Men lost: ${[...lostTally].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${k}`).join(', ')}.`);
+  else notes.push('Men lost: none.');
   notes.push(`Action ranks: ${ACTION_KEYS.map((key) => `${key} ${ranksAtStart[key]}→${actionRanks[key]}`).join(', ')}.`);
   const odd = weeks.filter((week) => !Number.isFinite(week.cash) || !Number.isFinite(week.men) || week.cash < 0 || week.men < 0);
   for (const week of odd) notes.push(`Suspicious: week ${week.week} cash ${week.cash} men ${week.men}.`);
@@ -1105,6 +1357,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       previousBest,
       anomalies,
       actionRanks: { ...actionRanks },
+      timeLedger: { ...timeLedger },
       goal: goalNow?.goal,
       goalHistory: goalNow?.history,
     };

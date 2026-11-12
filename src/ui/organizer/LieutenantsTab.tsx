@@ -279,6 +279,7 @@ export function LieutenantsTab() {
                         onClick={() => setSheet(sheet?.kind === 'person' && sheet.id === m.id ? null : { kind: 'person', id: m.id })}
                         {...resourceDragProps({ kind: 'hood', id: m.id })}
                         data-help="crew member"
+                        data-person-id={m.id}
                         title="Click for his details; drag onto another lieutenant or the pool to move him"
                       >
                         <span className="nm">{m.name}</span>

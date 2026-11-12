@@ -151,5 +151,5 @@ export function keyFromTip(tip: string): string | undefined {
 
 /** Buttons that get a tip and a card. Dialogs and the city canvas keep their own. */
 export const CONTROL_SCOPE = '.game-shell, .always-chrome';
-export const CONTROL_SELECTOR = 'button, [role="tab"], [data-help]';
+export const CONTROL_SELECTOR = 'button, [role="tab"], [data-help], [data-person-id]';
 export const CONTROL_EXCLUDE = '.modal-back, .modal, [role="dialog"], .inspect-card, canvas';
