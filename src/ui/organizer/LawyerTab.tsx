@@ -362,20 +362,16 @@ export function LawyerTab() {
       </Panel>
 
       <Panel title="Squealers">
-        <Hint>Squealers are shopkeepers who would talk. One of your own men among them can be sent to the pool from here.</Hint>
+        <Hint>Squealers are outsiders — shopkeepers so hostile to you (opinion below −40) that they would talk to the police. Find one on the map, or lean on his business.</Hint>
         {squealers.length === 0 ? (
           <Empty>Nobody is talking.</Empty>
         ) : (
           squealers.slice(0, 12).map((p) => (
-            <button
-              key={p.id}
-              className="list-row"
-              onClick={() => requestCamera({ x: p.pos.x, y: p.pos.y })}
-            >
+            <div key={p.id} className="list-row">
               <span className="name tiny">{p.name}</span>
               <Pill kind="bad">hostile</Pill>
-              <ToPool personId={p.id} />
-            </button>
+              {p.gangId === gang.id ? <ToPool personId={p.id} /> : <SquealerActions personId={p.id} />}
+            </div>
           ))
         )}
       </Panel>
@@ -412,6 +408,30 @@ function ToPool({ personId }: { personId: number }) {
     <span className="row" style={{ gap: 4 }} onClick={(e) => e.stopPropagation()}>
       <span className="muted tiny">{team.name}</span>
       <button className="btn sm" title="Take him off his crew into the pool so he stays off the streets" onClick={() => notify(act((s) => moveToPool(s.world, gang.id, p.id))!)}>To pool</button>
+    </span>
+  );
+}
+
+/** 1.2.21: an outsider who would squeal: centre the map on him (or his business), or start an Intimidate order on his business. */
+function SquealerActions({ personId }: { personId: number }) {
+  const sim = useGame((s) => s.sim)!;
+  const requestCamera = useGame((s) => s.requestCamera);
+  const w = sim.world, gang = sim.playerGang, p = w.people[personId];
+  if (!p) return null;
+  const site = Object.values(w.buildings).find((b) => b.ownerPersonId === p.id || b.managerId === p.id) ?? (p.buildingId != null ? w.buildings[p.buildingId] : undefined);
+  const at = site ? w.lots[site.lotId]?.center ?? p.pos : p.pos;
+  const intimidate = () => {
+    const s = useGame.getState();
+    const teamId = s.selectedTeamId ?? gang.teamIds[0];
+    if (teamId == null || !site) return;
+    s.setTab('lieutenants');
+    s.beginOrder('intimidate', teamId);
+    s.updateJobCard({ buildingIds: [site.id] });
+  };
+  return (
+    <span className="row" style={{ gap: 4 }}>
+      <button className="btn sm" title="Centre the map on him or his business" onClick={() => requestCamera({ x: at.x, y: at.y })}>Find on map</button>
+      {site && gang.teamIds.length > 0 && <button className="btn sm" title="Start an Intimidate order on his business" onClick={intimidate}>Intimidate</button>}
     </span>
   );
 }

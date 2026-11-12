@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is Saint Volstead in 1932, a Prohibition-era city (Hood Simulator). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.20.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.21.
 
 ## Decisions
 
@@ -222,43 +222,87 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
-## Planned for 1.2.21 (notes, not yet built)
+## v1.2.21 decisions
 
-1. Name scrub: the game is called Hood Simulator everywhere (README, package, menus, docs); no other game's name remains.
-2. Arrests: an arrested hood goes alone; an arrested lieutenant takes only the crew members standing with him. The same rule for FBI warrants and office raids, on every map size. Fix a man being both acquitted and convicted (double trial), a dead man being convicted, and check the near-100% conviction rate.
-3. Settings: the city size and money buttons always win over scenario defaults, Auto Test included. Starting gang fixes: the missing lieutenant and the crew hood who cannot be seen.
-4. Multi-tab safety: each browser tab gets its own save, autosave and debug-report slot, so three Auto Tests can run side by side. Orders finished mid-week (buys, bribes, collections) are settled when they finish, to shorten the end of the week. The ambient system (about 10.6 s of a 20 s end-week) is the first speed target.
-5. Debug report: the developer's full view — every rival's cash, income by source, assets, crews and orders; a collection trace (assignments, routes, minutes per stop, skips, double visits); planned against used minutes per crew; news events with their causes. Up to 25 MB, in several parts. The Auto Test log stays limited to what a player could know in the game.
-6. Auto Test:
-   - keep about three weeks' payroll as a cash reserve and reinvest the rest in buildings;
-   - fill the crews before starting new ones;
-   - wages never exceed income;
-   - protection crews unarmed by default;
-   - bribes in proportion to illegal income;
-   - stop hiring when extra men no longer add blocks;
-   - fix "order not found" when leaning on an owner who refused;
-   - bribe runs get a car and an escort;
-   - purchases go to a crew with free time;
-   - an owner who refuses to sell is leaned on, beaten or killed, so that he or the next owner sells.
-7. A grudge score per rival (kills, attacks, damage). Above a threshold Auto Test escalates: trash the businesses that rival collects protection from, kidnap its crew members to learn where things are, and bomb its most profitable businesses (those it owns first).
-8. "Ran out of time" is treated as a routing and scheduling problem. Methods, tried in order until one works and is fast:
-   1. nearest stop next, then 2-opt to remove crossings;
-   2. a value-per-minute knapsack fill of each crew's week;
-   3. one patch of the map per crew (clustering);
-   4. a time-window fit with a reserve, misfits handed to another crew or a car;
-   5. a short random local search (about 20 ms per crew), only if still needed.
-   Start with 1 and 2.
-9. Checks: rival income and asset valuation (the Delgado Gang reached $557k with 18 men in an aggressive 40 × 32 run; the Corvino Gang won Dry Season twice with under $90k cash); accountant recruitment tips that point to gyms and pool halls; the lawyer's hire-list wage ($210) against his pay ($133).
-10. Interface:
-    - a Find by Refusal button on Intimidate;
-    - drag and drop for lieutenant slots (swap or move, empty slots included);
-    - a To Pool button on the lawyer's Squealers and Crimes This Week lists;
-    - a Reports button in the Gang Organizer, left of Choose on Map: grouped by the street-view labels, in time order, and a click centres the map;
-    - "DAS" renamed District Attorneys, with a tooltip.
-11. Ideas for later:
-    - body armour: costly, reduces pistol hits, does little against tommy guns and rifles, slows the wearer, available to every gang and the police. Waiting for Robert's OK;
-    - a choice between cheap but risky and clean ways of doing things;
-    - a stronger rival AI once Auto Test wins the hard scenarios reliably.
+1. **Name.** The game is called Hood Simulator everywhere: README, package description, menus, credits, docs and code comments. The package and save-database name `original-gangster` stays so existing cities still load.
+2. **Arrests** (all map sizes; street arrests, FBI warrants and office raids alike):
+   - a hood goes alone;
+   - a lieutenant takes only the men of his crew standing with him (within 26 m);
+   - the crimes a man answered for in court are spent, so a man released or acquitted and arrested again is never tried a second time on the same record (this was the "acquitted and convicted" case);
+   - a dead defendant's case is dismissed, never convicted.
+   - Conviction rate: not a bug. The verdict compares prosecution (case strength × 0.6 + 12 per hostile living witness + 6 × DA intelligence + a quarter of the gang's evidence) with defence (16 × lawyer intelligence + 11 per friendly juror + 15). With no lawyer the defence is about 23 against a typical 70–90, so nearly every case is lost unless the judge is bought or jurors are friendly. With a good lawyer and no witnesses it is close. That is tuning, left as it is.
+3. **City size and starting gang.**
+   - The City Size buttons decide the city for every game, scenarios included (default Standard 40 × 32). A scenario keeps its own money, crew, businesses and goal.
+   - The lieutenant comes on top of the chosen hoods, and the boss is not a hood. Ten hoods means ten hoods plus a lieutenant; three hoods leave one in the pool after the front manager and the crew man.
+   - Lessons (tutorials) keep their own small cities.
+4. **Tabs and saving.**
+   - Each browser tab claims an instance tag with the Web Locks API (kept in sessionStorage for reloads). The first tab keeps the plain names (`world.json`, `Autosave`). Every further tab open at the same time writes `world-<tag>.json`, `Autosave <tag>` and `report-…-<tag>.txt`, so tabs never overwrite each other.
+   - In the street view the autosave is refreshed mid-week once more orders have finished and at least four game hours have passed since the last such save. Never in the demo or during Auto Test.
+   - Profiling, 40 × 32, headless: ambient walking is about 60% of a week, roughly 5 s. Most of it is stepping about 6,000 walking citizens and 400 police every minute. The cost is about 0.25 µs a person a minute and is bound by memory access. The hot code (`stepRoute`, `ambientPerson`) is already tight. A real gain means stepping citizens less often in the end-week, which would change results. That is left to a later build and needs Robert's OK.
+5. **Debug report = the developer's full view.** After each week a journal records:
+   - every gang's cash, income by source, costs, and assets (property, weapons, vehicles);
+   - every gang's crews and orders;
+   - each multi-stop round, stop by stop: travel minutes, minutes at the stop, done or missed, skips (not reached), double visits and repeat orders carried over;
+   - planned against used minutes per crew;
+   - the news with its causes, and the week log;
+   - wages asked against wages paid;
+   - the accountant's numbers;
+   - the officials, with labels;
+   - a world snapshot (see 6).
+
+   There is no size cap; large reports are written as part files. The Auto Test log keeps only in-game knowledge: our own books, and for rivals their blocks and power rating.
+   - Lawyer $210 against $133: in the 40 × 32 city the hire list showed the recruit's general wage quote, but hiring re-quotes it for the hiring gang (its fear and hostility toward it). The hire lists now show that gang-specific quote, the wage he will actually be paid.
+6. **Import and snapshot.**
+   - An Import button under Test reads an Auto Test report (any number of parts, joined in name order) or a diary file. It adds its learned state (strategy, action ranks, time ledger) to the diary. Every Auto Test report now ends with that learned state.
+   - The weekly world snapshot shows the block grid by x and y:
+     - territory with 3 × 3 squares a block: lot owner, protection, unowned or empty;
+     - lieutenant areas;
+     - land value;
+     - police presence (security);
+     - shopkeeper hostility;
+     - crime heat;
+     - last week's crimes.
+7. **Auto Test.**
+   - Cash reserve: about three weeks' payroll is kept in hand. The rest is reinvested, buildings first: up to four of the best-paying legal premises a week.
+   - Crews:
+     - a new lieutenant is made only when every crew has four hoods and the men would allow the new crew four too;
+     - the pool fills the crew closest to a useful size first.
+   - Hiring:
+     - new men are hired only when last week's takings cover the wage bill with them; in the first two weeks the protection on the books counts as the takings;
+     - hiring stops when the last three weeks added two or more men but no blocks.
+   - Buys go to the business crew if it has a quarter of its week free, otherwise to the freest crew.
+   - Bribes:
+     - the police chief is paid only when his opinion of us falls, or the police are hostile;
+     - bribe sums follow the illegal and protection takings (about 15%);
+     - a bribe run takes a crew with a car if one has time, and a second man as escort. This did not exist before.
+   - Collecting crews hand their guns to the muscle and go unarmed.
+   - Businesses the FBI closed, which still cost upkeep, are shut down.
+   - "Order not found" (Press refuser and others): the order had not finished by the end of the week (cancelled, or not reached). It now means no rank change, with the reason in plain words.
+8. **Routing.** Collection is shared out by value per minute: weekly takings over stop minutes plus travel from the office. A crew starts from the best stop left and takes the stops nearest it that fit its free week. It walks them nearest-next, with crossings removed (2-opt). The decision-making redesign is 1.2.22.
+9. **Checks.**
+   - Rival wealth:
+     - rival gangs earn by the same rules as the player: business profits at the Friday settlement, protection collected by their crews, rackets and sales, less wages and upkeep;
+     - there is no AI bonus;
+     - they spend slowly: at most one premises a week, only within two blocks of their territory and only above $14,000 cash; hardware is capped by a wage reserve; officials and specialists are bought at fixed cash gates;
+     - so cash piles up in an aggressive city with many protected blocks;
+     - "assets" value each building at cost × (0.6 + land value/100), less up to 35% for crime heat, so property on good land is booked above its price.
+     - Dry Season is won on its own goal, not on cash, so a winner with under $90k cash is consistent.
+     - Not changed in this build.
+   - Recruitment tips: a recruiting order now counts and points to the kind of person it asks for (accountant, lawyer or hood), not the kind the venue usually holds. Auto Test's hood-venue memory ignores accountant and lawyer tips.
+10. **Interface.**
+    - A Find by Refusal button on the Intimidate card lists only the businesses that refused us.
+    - The left panel's lieutenant slots can be dragged: drop one on another lieutenant and they swap; drop him on any slot, empty ones included, and he moves there and stays. The layout is saved with the city.
+    - The lawyer's lists:
+      - Crimes This Week: a To pool button, with his crew's name, beside each of our hoods.
+      - Squealers: these are outsiders, shopkeepers whose opinion of us is below −40, so they would talk to the police. They get a Find on map button (centres on him or his business) and an Intimidate shortcut (starts an Intimidate order on his business). To pool appears only if the entry is one of our own men.
+    - A Reports button left of Choose on map lists all of the week's reports, grouped under the street view's labels, in time order. A click centres the map.
+    - "DAs" is now "District Attorneys", with a tooltip.
+11. **Ideas for later** (unchanged):
+    - body armour: waiting for Robert's OK;
+    - a choice between cheap-but-risky and clean ways of doing things;
+    - a stronger rival AI;
+    - a grudge score per rival;
+    - routing methods 3–5 (clustering, time windows, local search).
 
 ## v1.2.20 decisions
 

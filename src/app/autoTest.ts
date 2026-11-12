@@ -573,7 +573,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // when last week's collecting ran out of time — never more crews than pairs of men.
     const wanted = () => Math.min(8, Math.max(2, Math.floor(hoods() / 2)), Math.max(3, Math.ceil(hoods() / 4), hoods() >= 18 ? 6 : 0) + (shortLastWeekCrews ? 1 : 0));
     // 1.2.21: fill a crew to a useful size before another lieutenant is made.
-    const allUseful = () => crewsOf().every((team) => team.memberIds.length >= USEFUL_CREW);
+    // Room for one more crew only when every crew, the new one too, can have a lieutenant and USEFUL_CREW hoods.
+    const allUseful = () => crewsOf().every((team) => team.memberIds.length >= USEFUL_CREW) && hoods() >= (gang.teamIds.length + 1) * (USEFUL_CREW + 1);
     for (let tries = 0; tries < 3 && gang.teamIds.length < wanted() && (allUseful() || gang.teamIds.length === 0); tries++) {
       const poolFree = gang.poolIds.filter((id) => !restingMen.has(id));
       const fromPool = poolFree.length ? rng.pick(poolFree) : undefined;
@@ -987,7 +988,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // 1.2.21: wages never exceed income. New men are hired only when last
       // week's takings carry the wage bill with them, and not while the last
       // men hired brought in no new blocks.
-      const takings = income.legal + income.illegal + income.protection + income.other;
+      // Last week's takings, or (in the first weeks) what the rackets on the books pay.
+      const booked = protectedBuildings(w, gang.id).reduce((sum, b) => sum + (b.protection?.weekly ?? 0), 0);
+      const takings = Math.max(income.legal + income.illegal + income.protection + income.other, w.week <= 2 ? booked : 0);
       const affordable = takings >= wageBill + averageWage * newMen;
       const pays = affordable && (men < floor || shortLastWeek || weeklyNet >= averageWage * newMen || gang.cash >= (wageBill + averageWage * newMen) * 52);
       if (pays && hiringStalled) {
