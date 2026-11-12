@@ -805,32 +805,55 @@ const FACADE_FILES: Record<string, string> = {
 
 const SIGN_FILES = ['sign-green', 'sign-oxblood', 'sign-navy', 'sign-walnut', 'sign-olive', 'sign-plum'];
 
+/** A picture that fails or hangs is tried again: up to three tries, each with a time limit (1.2.19). */
+export const ASSET_TRIES = 3;
+export const ASSET_TRY_MS = [20_000, 30_000, 45_000];
+
+/** Run `attempt` up to `tries` times; each try gives up after its time limit. A late
+ * answer from a timed-out try is ignored. Resolves null when every try failed. */
+export async function withRetry<T>(attempt: (tryIndex: number) => Promise<T | null>, limits: readonly number[] = ASSET_TRY_MS,
+  tries = ASSET_TRIES, wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms))): Promise<T | null> {
+  for (let i = 0; i < tries; i++) {
+    const limit = limits[Math.min(i, limits.length - 1)];
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), limit); });
+    const result = await Promise.race([attempt(i).catch(() => null), timedOut]);
+    if (timer) clearTimeout(timer);
+    if (result != null) return result;
+    if (i + 1 < tries) await wait(500 * (i + 1));
+  }
+  return null;
+}
+
+/** A retry asks past any broken cached copy. */
+const tryUrl = (file: string, tryIndex: number) => tryIndex === 0 ? cityFile(file) : `${cityFile(file)}${cityFile(file).includes('?') ? '&' : '?'}retry=${tryIndex}`;
+
 function loadTexture(file: string, repeat = true): Promise<THREE.Texture | null> {
   return enqueueAssetLoad(async () => {
     const started = performance.now();
-    try {
-      const t = await new THREE.TextureLoader().loadAsync(cityFile(file));
-      noteAssetLoad(file, performance.now() - started, true);
-      t.colorSpace = THREE.SRGBColorSpace;
-      t.anisotropy = 8;
-      t.wrapS = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-      t.wrapT = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-      return t;
-    } catch {
-      noteAssetLoad(file, performance.now() - started, false);
-      return null;
-    }
+    const t = await withRetry((i) => new THREE.TextureLoader().loadAsync(tryUrl(file, i)));
+    noteAssetLoad(file, performance.now() - started, !!t);
+    if (!t) return null;
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    t.wrapS = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+    t.wrapT = repeat ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+    return t;
   });
 }
 
 function loadImageFile(file: string): Promise<HTMLImageElement | null> {
-  return enqueueAssetLoad(() => new Promise((resolve) => {
+  return enqueueAssetLoad(async () => {
     const started = performance.now();
-    const img = new Image();
-    img.onload = () => { noteAssetLoad(file, performance.now() - started, true); resolve(img); };
-    img.onerror = () => { noteAssetLoad(file, performance.now() - started, false); resolve(null); };
-    img.src = cityFile(file);
-  }));
+    const img = await withRetry((i) => new Promise<HTMLImageElement | null>((resolve) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => resolve(null);
+      image.src = tryUrl(file, i);
+    }));
+    noteAssetLoad(file, performance.now() - started, !!img);
+    return img;
+  });
 }
 
 /** Street surfaces and facades the camera needs first, then signs and extras. */
