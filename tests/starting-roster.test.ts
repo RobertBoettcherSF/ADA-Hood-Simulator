@@ -14,6 +14,8 @@ function fixture(startHoods = 5) {
 }
 const payroll = (s: ReturnType<typeof fixture>) => gangMembers(s.w, s.g).reduce((sum, p) => sum + p.pay, 0);
 
+// 1.2.21: the lieutenant comes on top of the chosen hoods — N hoods are one
+// crew hood, one front manager and N − 2 in the pool, plus the lieutenant.
 describe('manual p.31 starting hoods', () => {
   it.each(['varied', 'classic'] as const)('allocates every 3–10 hood setting before planning (%s)', cityLayout => {
     for (let startHoods = 3; startHoods <= 10; startHoods++) {
@@ -22,13 +24,13 @@ describe('manual p.31 starting hoods', () => {
         const team = w.teams[g.teamIds[0]], people = gangMembers(w, g);
         expect(g.teamIds).toHaveLength(1);
         expect(team.memberIds).toHaveLength(1);
-        expect(g.poolIds).toHaveLength(startHoods - 3);
+        expect(g.poolIds).toHaveLength(startHoods - 2);
         const managers = Object.values(w.buildings).filter(b => b.ownerGangId === g.id && b.managerId != null);
         expect(managers).toHaveLength(1);
         expect(w.people[managers[0].managerId!].teamId).toBeNull();
-        expect(new Set(people.map(p => p.id)).size).toBe(startHoods + 1); // boss is separate
-        expect(people).toHaveLength(startHoods + 1);
-        expect(gangManpower(w, g)).toBe(startHoods);
+        expect(new Set(people.map(p => p.id)).size).toBe(startHoods + 2); // boss and lieutenant on top
+        expect(people).toHaveLength(startHoods + 2);
+        expect(gangManpower(w, g)).toBe(startHoods + 1);
         for (const id of g.poolIds) expect(w.people[id]).toMatchObject({ role: 'hood', teamId: null, buildingId: null, gangId: g.id });
         for (const p of people.filter(p => p.role !== 'boss')) expect(p.pay).toBe(p.payDemand);
       }
@@ -38,13 +40,13 @@ describe('manual p.31 starting hoods', () => {
 
   it.each([3, 5, 6, 10])('keeps player reserves and lets rival planning staff usable crews (%i hoods)', count => {
     const s = fixture(count);
-    expect(s.g.poolIds).toHaveLength(count - 3);
+    expect(s.g.poolIds).toHaveLength(count - 2);
     expect(s.team.memberIds).toHaveLength(1);
     for (const rival of Object.values(s.w.gangs).filter(g => !g.isPlayer)) {
       expect(rival.poolIds).toHaveLength(0);
       const crews = rival.teamIds.map(id => s.w.teams[id]);
       expect(crews.every(t => t.memberIds.length > 0 && t.memberIds.length < MAX_TEAM_SIZE)).toBe(true);
-      expect(gangManpower(s.w, rival)).toBe(count);
+      expect(gangManpower(s.w, rival)).toBe(count + 1);
       expect(new Set(gangMembers(s.w, rival).map(p => p.id)).size).toBe(gangMembers(s.w, rival).length);
     }
     expect(() => validateSaveWorld(s.w)).not.toThrow();
@@ -80,7 +82,7 @@ describe('manual p.31 starting hoods', () => {
     expect(moveToPool(s.w, s.g.id, id).ok).toBe(true);
     expect(s.g.poolIds.filter(p => p === id)).toHaveLength(1);
     expect(s.w.people[id].teamId).toBeNull();
-    expect(payroll(s)).toBe(wages); expect(gangManpower(s.w, s.g)).toBe(5);
+    expect(payroll(s)).toBe(wages); expect(gangManpower(s.w, s.g)).toBe(6);
     expect(() => validateSaveWorld(s.w)).not.toThrow();
   });
 
@@ -126,7 +128,7 @@ describe('manual p.31 starting hoods', () => {
     for (const id of [...s.g.poolIds]) moveToTeam(s.w, s.g.id, id, s.team.id);
     const restored = Sim.fromSave(structuredClone(s.w));
     expect(restored.playerGang.poolIds).toHaveLength(0);
-    expect(restored.world.teams[s.team.id].memberIds).toHaveLength(3);
+    expect(restored.world.teams[s.team.id].memberIds).toHaveLength(4);
     expect(restored.world.teams[s.team.id]).toEqual(s.team);
   });
 });

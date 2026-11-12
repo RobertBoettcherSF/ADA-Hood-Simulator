@@ -80,9 +80,10 @@ describe('rules from the manual', () => {
     sim.finishWeek();
     // (Its crew may have been broken up in the week, its orders with it: the order's own state still tells.)
     const archived = w.lastWeekOrders.find((o) => o.id === order.id) ?? order;
-    // Either they found him and had a go, or nobody would talk — never left travelling.
+    // Either they found him and had a go, nobody would talk, or the week ran out
+    // on the search (1.2.21: the starting gang's extra hood shifts seed 23's city) — never left travelling.
     expect(['done', 'failed']).toContain(archived.state);
-    if (archived.state === 'failed') expect(archived.failReason).toMatch(/where|found/i);
+    if (archived.state === 'failed') expect(archived.failReason).toMatch(/where|found|time in the week/i);
   });
 
   it('loses the week when a manager is recalled to base', () => {
@@ -129,14 +130,15 @@ describe('rules from the manual', () => {
     expect(gang.vehicles.coupe).toBe(inCache);
   });
 
-  it('starts every scenario on its own city with its objective named', () => {
+  it('starts every scenario with its objective named, on the chosen city size (1.2.21)', () => {
     for (const sc of SCENARIOS) {
       const o = applyScenario(defaultGameOptions(), sc);
       expect(o.scenarioId).toBe(sc.id);
       expect(o.seed).toBe(sc.options.seed);
       expect(describeMode(o)).toContain(sc.name);
       const sim = new Sim(o);
-      expect(sim.world.gridW).toBe(sc.options.citySize);
+      // The City Size buttons rule every game: a compact base falls back to Standard 40 × 32.
+      expect([sim.world.gridW, sim.world.gridH]).toEqual([40, 32]);
       expect(sim.world.options.mode).toBe(sc.options.mode);
     }
   });

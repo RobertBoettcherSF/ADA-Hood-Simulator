@@ -14,11 +14,11 @@ import { lieutenantAreaChoices } from '../sim/lieutenantAreas';
 
 import { peopleList, buildingList } from '../sim/entityLists';
 /** Keyboard alternative to canvas picking, using the same action handler. */
-export function MapAccess({ className = 'btn sm', label = 'Choose on map' }: { className?: string; label?: string }) {
+export function MapAccess({ className = 'btn sm', label = 'Choose on map', refusals = false, title }: { className?: string; label?: string; refusals?: boolean; title?: string }) {
   const [open, setOpen] = useState(false);
-  return <><button className={className} onClick={() => setOpen(true)}>{label}</button>{open && <MapChooser onClose={() => setOpen(false)} />}</>;
+  return <><button className={className} title={title} onClick={() => setOpen(true)}>{label}</button>{open && <MapChooser refusals={refusals} onClose={() => setOpen(false)} />}</>;
 }
-function MapChooser({ onClose }: { onClose: () => void }) {
+function MapChooser({ onClose, refusals = false }: { onClose: () => void; refusals?: boolean }) {
   const sim = useGame(s => s.sim)!;
   const mode = useGame(s => s.pickMode);
   const card = useGame(s => s.jobCard);
@@ -48,14 +48,14 @@ function MapChooser({ onClose }: { onClose: () => void }) {
     : kind === 'blocks'
       ? activeBlocks(w).filter(b => (!lieutenant || lieutenant.available.has(b.id)) && (!picking || ORDERS[card.type].target === 'point' || blockOrderSites(w, gang.id, card, b.id).length > 0))
         .map(b => ({ id: b.id, label: `Block ${b.gx},${b.gy}`, hit: { personId: null, buildingId: null, blockId: b.id, point: b.center } }))
-      : buildingList(w).filter(b => (!staff || staffSites.has(b.id)) && buildingMapIntel(b, gang.id).siteKnown && (!picking || ORDERS[card.type].target === 'point' ||
+      : buildingList(w).filter(b => (!refusals || (b.protection?.gangId === gang.id && b.protection.refusing) || !!b.extortRefusedBy?.includes(gang.id)) && (!staff || staffSites.has(b.id)) && buildingMapIntel(b, gang.id).siteKnown && (!picking || ORDERS[card.type].target === 'point' ||
         (ORDERS[card.type].target === 'person' ? orderPersonAtSite(w, gang.id, card.type, b) != null : selectableOrderSite(w, gang.id, card, b))))
         .map(b => ({ id: b.id, label: `${buildingName(w, b.id)} · block ${w.blocks[b.blockId].gx},${w.blocks[b.blockId].gy} · site ${w.lots[b.lotId].index + 1}`,
         hit: { personId: null, buildingId: b.id, blockId: b.blockId, point: w.lots[b.lotId].center } }));
   const filtered = rows.filter(r => r.label.toLowerCase().includes(needle));
   const block = cityBlockAt(w, x, y);
   const blockAvailable = block && (!lieutenant || lieutenant.available.has(block.id)) && (!picking || ORDERS[card.type].target === 'point' || blockOrderSites(w, gang.id, card, block.id).length > 0);
-  return <Modal title="Choose on map" onClose={onClose}>
+  return <Modal title={refusals ? 'Find by refusal' : 'Choose on map'} onClose={onClose}>
       <p>{lieutenant ? 'Choose your territory to allocate it, or select an assigned block again to remove it. Another lieutenant must release their area before you can take it.' : 'Select a person, site or block to perform the current map action. Area selections can include several blocks.'}</p>
       <label>Find <input className="text-input" value={query} onChange={e => setQuery(e.target.value)} /></label>
       <div className="row wrap">{(['buildings', 'people', 'blocks'] as const).filter(k => areaMode ? k === 'blocks' : !staff || k !== 'blocks').map(k => <button className="btn" key={k} aria-pressed={kind === k} onClick={() => setKind(k)}>{k[0].toUpperCase() + k.slice(1)}</button>)}</div>

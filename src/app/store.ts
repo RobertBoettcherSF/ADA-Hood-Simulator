@@ -1,3 +1,5 @@
+import { captureDevWeek, clearDevJournal } from './devJournal';
+import { autosaveName } from './instance';
 import { readTextureQuality, writeTextureQuality, type TextureQuality } from '../render/textureQuality';
 import { applyUiScale, readUiScale, writeUiScale } from './uiScale';
 import { applyLiveMovement } from '../sim/movement';
@@ -290,6 +292,9 @@ function freshWorldUi() {
   };
 }
 
+const MID_WEEK_SAVE_MINUTES = 240;
+let midWeekSave = { done: 0, minute: 0 };
+
 export const useGame = create<GameState>((set, get) => ({
   sim: null,
   version: 0,
@@ -367,6 +372,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (livingCityOnFile() && typeof window !== 'undefined' && !window.confirm('Start a new city in this folder? The city already here will be replaced when the new one is saved.')) return;
     void (async () => {
     const sim = new Sim({ ...options, era: '1932' });
+    clearDevJournal();
     if (options.tutorialId == null && options.scenarioId == null) {
       try { await stampRivalPlaybook(sim.world); } catch { /* a missing diary leaves rivals as they are */ }
     }
@@ -488,7 +494,7 @@ export const useGame = create<GameState>((set, get) => ({
     const name = raw.trim();
     const refuse = (text: string) => set({ toast: { text, bad: true, at: Date.now() } });
     if (!name) return refuse('Give the save a name first.');
-    if (name.toLowerCase() === 'autosave') return refuse('"Autosave" is kept for the automatic save. Choose another name.');
+    if (name.toLowerCase().startsWith('autosave')) return refuse('"Autosave" is kept for the automatic save. Choose another name.');
     if (name.length > SAVE_NAME_MAX) return refuse(`Save names can be at most ${SAVE_NAME_MAX} characters.`);
     try {
       captureTutorialProgress(sim.world);
@@ -782,7 +788,19 @@ export const useGame = create<GameState>((set, get) => ({
     if (isFlatOut(state.speed)) sim.runFlatOut(FLAT_OUT_BUDGET_MS, reported);
     else sim.advance(seconds, state.speed, 8);
     if (reported()) get().setSpeed(1);
+    // 1.2.21: finished orders are kept mid-week. When more of the player's
+    // orders have finished and at least half a game day has passed since the
+    // last one, the autosave is refreshed (never in the demo or Auto Test).
+    if (sim.world.phase === 'week' && !get().attract && !autoTestRunState().running) {
+      const done = Object.values(sim.world.orders).filter((o) => o.gangId === sim.playerGang.id && (o.state === 'done' || o.state === 'failed')).length;
+      if (done > midWeekSave.done && sim.world.minute - midWeekSave.minute >= MID_WEEK_SAVE_MINUTES) {
+        midWeekSave = { done, minute: sim.world.minute };
+        void get().autosave(true);
+      } else if (sim.world.minute < midWeekSave.minute) midWeekSave = { done: 0, minute: 0 };
+    }
     if (sim.world.phase !== 'week') {
+      midWeekSave = { done: 0, minute: 0 };
+      if (!get().attract) captureDevWeek(sim.world);
       if (get().attract) {
         if (sim.world.phase === 'gameOver') get().endAttract();
         else { get().bump(); get().attractWeek(); }
@@ -816,6 +834,7 @@ export const useGame = create<GameState>((set, get) => ({
         lastUi = performance.now();
       }
     }
+    captureDevWeek(sim.world);
     if (sim.world.phase === 'planning') get().setTab('newspaper');
     set({ finishingWeek: false, paused: false, weekProgress: 1, screen: sim.world.phase === 'gameOver' ? 'gameOver' : 'game' });
     await get().autosave(true);
@@ -850,6 +869,7 @@ export const useGame = create<GameState>((set, get) => ({
         set({ weekProgress: progress });
       }
       markTiming('end-week', performance.now() - started);
+      captureDevWeek(sim.world);
       get().bump();
       if (phase() === 'planning') get().setTab('newspaper');
       set({
@@ -897,7 +917,7 @@ export const useGame = create<GameState>((set, get) => ({
     try {
       captureTutorialProgress(sim.world);
       sim.settleDeferred();
-      await saveGame('Autosave', sim.world, responsive);
+      await saveGame(autosaveName(), sim.world, responsive);
       if (get().sim === sim) get().notify('The city has been put away in the Autosave slot.');
       return true;
     } catch {

@@ -1,7 +1,7 @@
 /**
  * Hunting a rival gang's man whose whereabouts the gang does not know, in the
  * original city, as the original does it (traced 28 October 2026 from the
- * shipped gangsters.exe; docs/audit/2026-10-28/hunt/review.md).
+ * shipped the original executable; docs/audit/2026-10-28/hunt/review.md).
  *
  * The original has no hunt order. A Kill, Assault, Kidnap, Tail or Recruit
  * aimed at a person pushes a chase step (0x565B00, step type 6), and the chase

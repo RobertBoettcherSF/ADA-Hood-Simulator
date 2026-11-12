@@ -459,7 +459,7 @@ export function serveAccountantWarrants(w: WorldState, rng: Rng): void {
       // latest crime on his record; his team goes with him (0x49A530).
       const kind = accountant ? 'taxEvasion' : latestCrimeKind(w, p);
       for (const q of [p, ...mates]) {
-        takeIntoCustody(w, q, gang.id, kind, null, agent, q === p ? 'on a warrant' : `with his team-mate ${p.name}`);
+        takeIntoCustody(w, q, gang.id, kind, null, agent, q === p ? 'on a warrant' : `with his lieutenant ${p.name}`);
         q.fbiWarrant = undefined;
       }
       w.weekLog.push(`Federal agents arrested ${p.name}, ${who === 'man' ? 'of' : 'accountant to'} ${gang.name}, for ${describeCrime(kind)}.`);
@@ -752,10 +752,21 @@ export function arrestEdge(squad: number, team: number): number {
   return squad - 1 > side ? 64 : side > squad + 3 ? -64 : 0;
 }
 
-/** The rest of a man's team, whom an arrest takes with him (0x49A530). */
-function teamMates(w: WorldState, p: Person): Person[] {
+/** How close a crew member must stand to his lieutenant to be taken with him. */
+export const ARREST_GROUP_METRES = 26;
+
+/**
+ * Whom an arrest takes with him (0x49A530: the list of men he leads, +0x114).
+ * 1.2.21: a hood leads nobody, so he goes alone; a lieutenant takes only the
+ * men of his crew standing with him (within ARREST_GROUP_METRES), never crew
+ * members elsewhere in the city. Every map size, every kind of arrest.
+ */
+export function teamMates(w: WorldState, p: Person): Person[] {
   if (p.teamId == null) return [];
-  return peopleList(w).filter(q => q.id !== p.id && q.teamId === p.teamId && q.gangId === p.gangId && q.status === 'active')
+  const team = w.teams[p.teamId];
+  if (!team || team.lieutenantId !== p.id) return [];
+  return peopleList(w).filter(q => q.id !== p.id && q.teamId === p.teamId && q.gangId === p.gangId && q.status === 'active' &&
+    dist(q.pos, p.pos) <= ARREST_GROUP_METRES)
     .sort((a, b) => a.id - b.id);
 }
 
@@ -821,7 +832,7 @@ export function raidHeadquarters(w: WorldState, rng: Rng, b: Building, agent?: P
     // A wanted accountant taken in is charged with tax evasion (0x4F47C3); a
     // man wanted by the member pass, with the latest crime on his record.
     const kind = !p.fbiWarrant ? 'extort' : p.role === 'accountant' ? 'taxEvasion' : latestCrimeKind(w, p);
-    takeIntoCustody(w, p, gang.id, kind, b.id, agent, mate ? `with his team-mate ${mate.name} in the raid on the office` : 'in a raid on the office');
+    takeIntoCustody(w, p, gang.id, kind, b.id, agent, mate ? `with his lieutenant ${mate.name} in the raid on the office` : 'in a raid on the office');
     p.fbiWarrant = undefined;
     taken.push(p);
   };
@@ -835,9 +846,9 @@ export function raidHeadquarters(w: WorldState, rng: Rng, b: Building, agent?: P
     if (p.status !== 'active') continue;
     const outcome = arrestContest(rng, p, arrestEdge(squad, teamMates(w, p).length));
     if (outcome === 'arrested') {
+      const mates = teamMates(w, p);
       arrest(p);
-      if (p.teamId != null) for (const q of peopleList(w))
-        if (q.teamId === p.teamId && q.gangId === gang.id) arrest(q, p);
+      for (const q of mates) if (q.status === 'active') arrest(q, p);
     } else if (outcome === 'resists') {
       resisted++;
       if (agent && agent.status === 'active') p.streetOrder = { type: 'assault', targetPersonId: agent.id, pos: null };

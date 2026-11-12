@@ -1,3 +1,5 @@
+import { devJournalWeeks, splitReport } from './devJournal';
+import { instanceFile } from './instance';
 import { ERA_2032_ENABLED, ACTIVE_ERA } from './era';
 import { formatMemberLoss, memberLosses } from '../sim/memberLosses';
 import { activeWorldStore, downloadText } from './worldFolder';
@@ -249,17 +251,17 @@ export function buildDebugReport(world: WorldState | null, version: string, comm
     lines.push('');
     lines.push('Men lost (this session, player gang)');
     const lossGang = Object.values(world.gangs).find((g) => g.isPlayer);
-    const lost = lossGang ? memberLosses(world, lossGang.id).slice(-40) : [];
+    const lost = lossGang ? memberLosses(world, lossGang.id) : [];
     if (!lost.length) lines.push('(none recorded)');
     for (const l of lost) lines.push(`Week ${l.week}: ${formatMemberLoss(l)}`);
     lines.push('');
     lines.push('Recent week log');
-    const log = world.weekLog.slice(-40);
+    const log = world.weekLog;
     if (!log.length) lines.push('(empty)');
     for (const line of log) lines.push(line);
     lines.push('');
     lines.push('Recent messages');
-    const messages = world.messages.slice(-20);
+    const messages = world.messages;
     if (!messages.length) lines.push('(none)');
     for (const message of messages) lines.push(`${message.minute} ${message.category}: ${message.text}`);
   }
@@ -284,6 +286,11 @@ export function buildDebugReport(world: WorldState | null, version: string, comm
   if (!errors.length) lines.push('(none)');
   for (const error of errors) lines.push(error);
   lines.push('');
+  // 1.2.21: the developer's full view, week by week (no size cap).
+  const journal = devJournalWeeks();
+  lines.push(`Developer journal (${journal.length} week${journal.length === 1 ? '' : 's'} this session)`);
+  if (!journal.length) lines.push('(no week played this session)');
+  for (const week of journal) lines.push(week);
   return lines.join('\n');
 }
 
@@ -295,14 +302,19 @@ export async function writeDebugReport(world: WorldState | null, version: string
   const { latestCommit } = await import('./versionCheck');
   const commit = await latestCommit();
   const text = buildDebugReport(world, version, commit);
-  const filename = `report-${stamp()}.txt`;
-  await saveReport(filename, text, true);
+  const base = `report-${stamp()}`;
+  // Large reports are split into part files; nothing is cut.
+  const parts = splitReport(text);
+  for (let i = 0; i < parts.length; i++) {
+    const name = parts.length === 1 ? `${base}.txt` : `${base}-part${i + 1}of${parts.length}.txt`;
+    await saveReport(instanceFile(name), parts[i], true);
+  }
   return text;
 }
 
 async function writeCrashReport(): Promise<void> {
   const text = buildDebugReport(worldSource(), typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'unknown', null);
-  await saveReport(`crash-${stamp()}.txt`, text, false);
+  await saveReport(instanceFile(`crash-${stamp()}.txt`), text, false);
 }
 
 export async function writeReportFile(filename: string, text: string): Promise<void> {

@@ -1,3 +1,4 @@
+import { hireQuote } from '../../sim/originalWages';
 import { useEffect, useRef, useState } from 'react';
 import { act, useGame } from '../../app/store';
 import {
@@ -225,8 +226,16 @@ function PoolSheet({ teamId, newLieutenant = false }: { teamId?: ID; newLieutena
   const setSheet = useGame((s) => s.setSheet);
   const [sortBy, setSortBy] = useState<keyof Person['skills']>('intelligence');
   const [dropProps, dropOver] = useResourceDrop({ kind: 'pool' });
+  const [sackAsk, setSackAsk] = useState<{ ids: ID[]; text: string } | null>(null);
   const w = sim.world;
   const gang = sim.playerGang;
+  // 1.2.21: idle = an active hood in the pool with no order on hand.
+  const idle = gang.poolIds.map((id) => w.people[id]).filter((p) => p && p.role === 'hood' && p.status === 'active' && p.orderId == null && !p.streetOrder);
+  const sackAll = (ids: ID[]) => {
+    let n = 0;
+    act((s) => { for (const id of ids) if (sackPerson(s.world, gang.id, id).ok) n++; });
+    notify({ ok: true, message: `${n} hood${n === 1 ? '' : 's'} sacked — back on the street, and they will not forget it.` });
+  };
   const pool = gang.poolIds
     .map((id) => w.people[id])
     .filter(Boolean)
@@ -271,8 +280,23 @@ function PoolSheet({ teamId, newLieutenant = false }: { teamId?: ID; newLieutena
             <button className="btn sm" title="Make this hood a lieutenant with a team of his own" onClick={() => notify(act((s) => promote(s.world, gang.id, p.id))!)}>
               Promote
             </button>
+            {p.role === 'hood' && (
+              <button className="btn sm" title="Let him go: he goes back on the street with a grudge"
+                onClick={() => setSackAsk({ ids: [p.id], text: `Sack ${p.name}? He goes back on the street, and he will not forget it.` })}>
+                Sack
+              </button>
+            )}
           </div>
         ))
+      )}
+      {idle.length > 0 && (
+        <button className="btn sm" style={{ marginTop: 6 }} title="Sack every hood in the pool who has no order"
+          onClick={() => setSackAsk({ ids: idle.map((p) => p.id), text: `Sack all ${idle.length} idle hood${idle.length === 1 ? '' : 's'} in the pool? They go back on the street with a grudge.` })}>
+          Sack all idle · {idle.length}
+        </button>
+      )}
+      {sackAsk && (
+        <ConfirmDialog text={sackAsk.text} onYes={() => { const ids = sackAsk.ids; setSackAsk(null); sackAll(ids); }} onNo={() => setSackAsk(null)} />
       )}
     </div>
   );
@@ -432,7 +456,7 @@ function RecruitsSheet({ teamId }: { teamId: ID | null }) {
                 <div className="row between">
                   <b style={{ fontWeight: 500, fontSize: 15 }}>{p.name}</b>
                   <span className="muted">
-                    {ROLE_LABELS[p.role]} · wants {money(p.payDemand)}/week
+                    {ROLE_LABELS[p.role]} · wants {money(hireQuote(sim.world, p, sim.playerGang.id))}/week
                   </span>
                 </div>
                 <div style={{ margin: '5px 0' }}>

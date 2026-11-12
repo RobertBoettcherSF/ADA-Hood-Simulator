@@ -1,3 +1,4 @@
+import { CITY_SIZE_PRESETS, citySizePreset } from '../sim/newGameValidation';
 import type { GameOptions } from '../sim/types';
 
 /**
@@ -57,7 +58,7 @@ export const SCENARIOS: Scenario[] = [
     id: 'bigHouse',
     name: 'The Big House',
     difficulty: 'medium',
-    blurb: 'A large city and a large crew: ten hoods, ten thousand dollars and the run of the place. Win the full game any way you can.',
+    blurb: 'A large crew: ten hoods, ten thousand dollars and the run of the place. Win the full game any way you can.',
     options: { seed: 1934, mode: 'normal', economy: 'normal', opponents: 'aggressive', startMoney: 10_000, startHoods: 10, startBusinesses: 4, citySize: 16 },
   },
 ];
@@ -68,6 +69,9 @@ export function scenarioById(id: string | undefined): Scenario | null {
 
 /** The player's identity kept, everything else set by the scenario. */
 export function applyScenario(base: GameOptions, scenario: Scenario): GameOptions {
-  // Authored scenarios are square compact cities unless they say otherwise.
-  return { ...base, ...scenario.options, cityHeight: scenario.options.cityHeight, scenarioId: scenario.id, tutorialId: undefined };
+  // 1.2.21: the City Size selection rules every game. A scenario keeps its own
+  // money, crew and goal but plays on the chosen city (default Standard 40×32).
+  const sized = citySizePreset(base) ? { citySize: base.citySize, cityHeight: base.cityHeight }
+    : { citySize: CITY_SIZE_PRESETS.standard.w, cityHeight: CITY_SIZE_PRESETS.standard.h };
+  return { ...base, ...scenario.options, ...sized, scenarioId: scenario.id, tutorialId: undefined };
 }

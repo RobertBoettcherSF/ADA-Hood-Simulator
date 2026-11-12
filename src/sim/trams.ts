@@ -1,7 +1,7 @@
 /**
  * Street trams.
  *
- * The original (gangsters.exe, traced 29 October 2026; see
+ * The original (the original executable, traced 29 October 2026; see
  * docs/audit/2026-10-29/trams/review.md):
  *
  * - Its avenue blocks are tramways. The block-name panel 0x4EC3D0 calls

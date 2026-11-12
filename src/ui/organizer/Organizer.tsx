@@ -1,5 +1,6 @@
 import { MoneyRoll } from '../MoneyRoll';
 import { MapAccess } from '../MapAccess';
+import { WeekReports } from '../WeekReports';
 import { JobCardPanel } from '../JobCardPanel';
 import { useGame, type OrganizerTab } from '../../app/store';
 import type { OverlayKind } from '../../render/scene';
@@ -154,7 +155,10 @@ export function Organizer() {
             </div>
           </div>
         ) : <>
-          <MapAccess className="btn map-access-floating" />
+          <div className="map-access-floating row" style={{ gap: 6 }}>
+            <WeekReports />
+            <MapAccess className="btn" />
+          </div>
           <button className="journal-handle" onClick={() => setCollapsed(false)} title="Open the journal">
             <span>▲ Open the journal</span>
           </button>

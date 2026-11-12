@@ -4,7 +4,7 @@ import type { WorldState } from '../sim/types';
  * The name the original's organizer map shows for a block, in the small tag
  * it puts over the map while the left button is held on it.
  *
- * gangsters.exe, traced 29 October 2026 (docs/audit/2026-10-29/map-hover/review.md):
+ * the original executable, traced 29 October 2026 (docs/audit/2026-10-29/map-hover/review.md):
  * 0x4EC3D0 switches on the cell's content id (block record +0x64, the city
  * generator's content, `Block.original.content` here) and prints one of these
  * names, nothing else: no coordinates, owner or site name. Content ids it does

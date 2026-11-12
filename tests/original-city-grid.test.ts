@@ -58,11 +58,11 @@ describe('original 40 × 32 city grid', () => {
     expect(count(w, 'police')).toBe(Math.round(14 * 14 * 0.22));
   });
 
-  it('keeps authored scenarios and lessons square even when chosen from the original grid', () => {
+  it('plays scenarios on the chosen city size and keeps lessons square (1.2.21)', () => {
     for (const scenario of SCENARIOS) {
       const selected = applyScenario(original(), scenario);
-      expect(selected.cityHeight).toBeUndefined();
-      expect(generatedCityDimensions(selected).w).toBe(generatedCityDimensions(selected).h);
+      expect(generatedCityDimensions(selected)).toEqual(generatedCityDimensions(original()));
+      expect(selected.seed).toBe(scenario.options.seed);
     }
     for (const lesson of TUTORIALS) expect(applyTutorial(original(), lesson).cityHeight).toBeUndefined();
   });

@@ -1,3 +1,4 @@
+import { instanceFile } from './instance';
 /**
  * One living world per folder.
  * Desktop Chromium uses the File System Access API. Other browsers use the
@@ -43,7 +44,7 @@ export function livingCityOnFile(): boolean {
 
 export async function refreshCityOnFile(): Promise<boolean> {
   const store = activeWorldStore();
-  cityOnFile = !!store && await store.exists('world.json');
+  cityOnFile = !!store && await store.exists(instanceFile(WORLD_FILE));
   return cityOnFile;
 }
 
@@ -118,7 +119,7 @@ export function downloadText(filename: string, body: string): void {
 export async function exportWorldFile(): Promise<void> {
   const store = activeWorldStore();
   if (!store) throw new Error('Choose where the city lives before exporting it.');
-  const body = await store.read(WORLD_FILE);
+  const body = await store.read(instanceFile(WORLD_FILE));
   if (!body) throw new Error('This folder does not have a city yet.');
   downloadText('world.json', body);
 }
@@ -127,7 +128,7 @@ export async function importWorldFile(file: File): Promise<void> {
   const store = activeWorldStore();
   if (!store) throw new Error('Choose where the city lives before importing one.');
   const body = await file.text();
-  await store.write(WORLD_FILE, body);
+  await store.write(instanceFile(WORLD_FILE), body);
 }
 
 function directoryStore(handle: DirHandle): WorldStore {

@@ -97,3 +97,14 @@ export function originalStartingWage(p: Person, gangId: ID): void {
   p.payDemand = originalWageQuote(p, gangId);
   p.pay = p.payDemand;
 }
+
+/**
+ * 1.2.21: the wage a recruit will actually be paid on joining this gang, so the
+ * hire lists show the same number the books then charge. In the original city
+ * the stored demand is a general quote; hiring re-quotes it for the gang (its
+ * fear and hostility toward it), which is why a list could say $210 and the
+ * first wage come to $133.
+ */
+export function hireQuote(w: { cityLayout?: { original?: unknown } | null }, p: Person, gangId: ID): number {
+  return w.cityLayout?.original ? originalWageQuote(p, gangId) : p.payDemand;
+}

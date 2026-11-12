@@ -145,7 +145,8 @@ describe('the original FBI suspicion of a boss (0x4F5860, 0x6D04C2, 0x4F5AE0)', 
     expect(outcomes(5)).toEqual(['arrested']);
   });
 
-  it('takes a whole team with one arrest, and leaves those who resist or break away', () => {
+  // 1.2.21: a hood goes alone; only a lieutenant takes the crew standing with him.
+  it('takes a hood alone at a raid, and leaves those who resist or break away', () => {
     const { w, player } = city();
     const office = hq(w, player);
     const members = Object.values(w.people).filter(p => p.gangId === player.id && p.id !== player.bossId).slice(0, 4);
@@ -163,13 +164,13 @@ describe('the original FBI suspicion of a boss (0x4F5860, 0x6D04C2, 0x4F5AE0)', 
     player.fbiRaidWeek = w.week;
     raidHeadquarters(w, new Rng(4), office, agent);
     expect(smart.status).toBe('arrested');
-    expect(partner.status).toBe('arrested');            // away from the office, but on his team
+    expect(partner.status).toBe('active');              // away from the office: a hood's arrest takes nobody else
     expect(dull.status).toBe('active');
     expect(dull.streetOrder).toEqual({ type: 'assault', targetPersonId: agent.id, pos: null });
     expect(middling.status).toBe('active');
     expect(middling.streetOrder).toBeNull();
     expect(boss.status).toBe('active');                  // not at the office
-    expect(w.weekLog.at(-1)).toContain('2 arrested; 1 resisted, 1 got away');
+    expect(w.weekLog.at(-1)).toContain('1 arrested; 1 resisted, 1 got away');
   });
 
   it('charges a wanted man caught at the office with his own crime; only an accountant with tax evasion', () => {
@@ -232,7 +233,7 @@ describe("who makes the arrest (0x49A530's callers) and its edge", () => {
     expect(seen(-64)).toEqual(['resists']);          // -29..2
   });
 
-  it('lets a policeman on the street take a man in by the contest, with his team', () => {
+  it('lets a policeman on the street take a hood in by the contest, alone (1.2.21)', () => {
     const { w, player } = city();
     const [hood, mate] = Object.values(w.people).filter(p => p.gangId === player.id && p.id !== player.bossId).slice(0, 2);
     const cop = Object.values(w.people).find(p => p.role === 'police')!;
@@ -243,7 +244,25 @@ describe("who makes the arrest (0x49A530's callers) and its edge", () => {
     hood.skills.intelligence = 5;                    // always arrested
     expect(streetArrest(w, new Rng(3), cop, hood)).toBe('arrested');
     expect(hood.status).toBe('arrested');
-    expect(mate.status).toBe('arrested');            // his team goes with him
+    expect(mate.status).toBe('active');              // a hood goes alone
+  });
+
+  it('lets a policeman take a lieutenant with the crew standing by him, not the crew far off (1.2.21)', () => {
+    const { w, player } = city();
+    const team = w.teams[player.teamIds[0]];
+    const lt = w.people[team.lieutenantId];
+    const [near, far] = Object.values(w.people).filter(p => p.gangId === player.id && p.role === 'hood').slice(0, 2);
+    const cop = Object.values(w.people).find(p => p.role === 'police')!;
+    for (const p of Object.values(w.people)) if (p.role === 'police' && p !== cop) p.status = 'jailed';
+    for (const p of [lt, near, far, cop]) Object.assign(p, { status: 'active', inVehicle: false, buildingId: null, orderId: null, streetOrder: null });
+    near.teamId = far.teamId = team.id;
+    near.pos = { x: lt.pos.x + 5, y: lt.pos.y }; far.pos = { x: lt.pos.x + 500, y: lt.pos.y };
+    cop.pos = { ...lt.pos };
+    lt.skills.intelligence = 5;
+    expect(streetArrest(w, new Rng(3), cop, lt)).toBe('arrested');
+    expect(lt.status).toBe('arrested');
+    expect(near.status).toBe('arrested');
+    expect(far.status).toBe('active');
   });
 
   it('turns one who resists on the officer and sends one who breaks away home', () => {
@@ -633,7 +652,7 @@ describe('a member own FBI suspicion (+0x7C: 0x4DB700, 0x460300, the member pass
     expect(() => validateSaveWorld(bad)).toThrow(/personal FBI suspicion/);
   });
 
-  it('serves a member warrant: arrested with his team, charged with his latest crime', () => {
+  it('serves a member warrant: a hood is arrested alone, charged with his latest crime (1.2.21)', () => {
     const { w, player } = city();
     const [a, b] = men(w, player);
     a.teamId = b.teamId = 9003;
@@ -644,9 +663,9 @@ describe('a member own FBI suspicion (+0x7C: 0x4DB700, 0x460300, the member pass
     const before = w.crimes.length;
     serveAccountantWarrants(w, new Rng(2));
     expect(a.status).toBe('arrested');
-    expect(b.status).toBe('arrested');
+    expect(b.status).toBe('active');
     expect(a.fbiWarrant).toBeUndefined();
-    expect(w.crimes.slice(before).filter(c => c.kind === 'torch').map(c => c.perpetratorId).sort()).toEqual([a.id, b.id].sort());
+    expect(w.crimes.slice(before).filter(c => c.kind === 'torch').map(c => c.perpetratorId)).toEqual([a.id]);
   });
 
   it('does not count the charge laid at an arrest as a fresh crime', () => {
@@ -662,7 +681,7 @@ describe('a member own FBI suspicion (+0x7C: 0x4DB700, 0x460300, the member pass
     serveAccountantWarrants(w, new Rng(2));
     expect(a.status).toBe('arrested');
     const charges = w.crimes.filter(c => c.week === w.week && c.kind === 'kill');
-    expect(charges.map(c => c.perpetratorId).sort()).toEqual([a.id, b.id].sort());
+    expect(charges.map(c => c.perpetratorId)).toEqual([a.id]);
     expect(charges.every(c => c.charge)).toBe(true);
     heavyCrimeSuspicion(w);
     expect(a.crimeSuspicion).toBeUndefined();

@@ -34,7 +34,7 @@ import { WeekClock, weekTime, WEEK_DAYS } from './WeekClock';
 import './interface.css';
 import { buildingList } from '../sim/entityLists';
 
-const CATEGORIES:Record<MessageCategory,{name:string;short:string;key:string}>={
+export const CATEGORIES:Record<MessageCategory,{name:string;short:string;key:string}>={
   combat:{name:'Combat messages',short:'Combat',key:'F5'},
   police:{name:'Hoods and the Law',short:'Police',key:'F6'},
   failed:{name:'Failed Order messages',short:'Failed',key:'F7'},

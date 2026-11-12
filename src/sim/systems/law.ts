@@ -125,7 +125,8 @@ function handleSquealers(w: WorldState, rng: Rng): void {
 function openCases(w: WorldState, rng: Rng): void {
   for (const p of peopleList(w)) {
     if (p.status !== 'arrested') continue;
-    if (Object.values(w.cases).some((c) => c.defendantId === p.id && (c.status === 'awaiting' || c.status === 'onTrial'))) continue;
+    // One case at a time per man (open or decided this week): never a second trial in the same week.
+    if (Object.values(w.cases).some((c) => c.defendantId === p.id && (c.status === 'awaiting' || c.status === 'onTrial' || c.weeksToTrial >= 0))) continue;
     if (p.gangId == null) {
       p.status = 'active';
       continue;
@@ -239,7 +240,7 @@ function progressCases(w: WorldState, rng: Rng): void {
     prosecution *= rng.range(0.85, 1.15);
     defence *= rng.range(0.85, 1.15);
 
-    if (prosecution > defence) {
+    if (prosecution > defence && (defendant.status as string) !== 'dead') {
       c.status = 'convicted';
       const isBoss = defendant.role === 'boss';
       noteMemberLoss(w, defendant, `convicted of ${c.crime}`, 'the courts');
@@ -260,6 +261,10 @@ function progressCases(w: WorldState, rng: Rng): void {
       if (gang.isPlayer) addMessage(w, 'police', `${defendant.name} was acquitted.`);
     }
     gang.evidence = Math.max(0, gang.evidence - 8);
+    // 1.2.21: the crimes he answered for are spent. Without this a man
+    // acquitted (or released) and arrested again was tried a second time on
+    // the same record, so one man could be both acquitted and convicted.
+    w.crimes = w.crimes.filter((cr) => cr.perpetratorId !== defendant.id || cr.week > w.week);
   }
 
   // Clear out concluded cases after a week so the report can show them once.

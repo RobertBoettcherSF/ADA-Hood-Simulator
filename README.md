@@ -1,6 +1,6 @@
-# Original Gangster
+# Hood Simulator
 
-Inspired by *Gangsters: Organized Crime* (1998): a Prohibition-era crime
+Hood Simulator: a Prohibition-era crime
 strategy game. Plan your gang's week at
 the desk, then watch it play out on the streets of a fully 3D city.
 
@@ -44,8 +44,7 @@ tests/      Vitest suites
 
 ## Credits
 
-Inspiration: *Gangsters: Organized Crime* was designed by Martin Capel, developed by Hothouse
-Creations and published by Eidos Interactive in 1998.
+Hood Simulator is a fan reimagining of a 1998 crime strategy game.
 
 Original Repo: Built with Three.js, React, Vite, Zustand, Electron and Vitest. Fonts are Barlow,
 Barlow Condensed, Special Elite and Cinzel from Google Fonts (SIL Open Font License).
