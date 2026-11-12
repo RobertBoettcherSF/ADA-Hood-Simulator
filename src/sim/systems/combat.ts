@@ -16,7 +16,7 @@ import type { ID, Person, WorldState } from '../types';
 import { dist2 } from '../world';
 import { blockClaimants } from '../territory';
 import { peopleList } from '../entityLists';
-import { streetArrest } from './fbi';
+import { streetArrest, teamMates } from './fbi';
 import { onGangPayroll } from '../payrollMark';
 
 /** Optional snapshot for isolated combat fixtures. The game reads live claims
@@ -243,11 +243,18 @@ export function tickCombat(
           // Original city: the officer takes him through the arrest contest (0x49A530).
           if (w.cityLayout?.original) { streetArrest(w, rng, a, b); continue; }
           if (b.vehicleKey) { dismount(w, b); if (onRoad(w, b.pos)) b.pos = pavementBeside(w, b.pos); }
+          // A lieutenant takes the men of his crew standing with him (1.2.21, all map sizes).
+          const mates = teamMates(w, b);
           noteMemberLoss(w, b, 'arrested in the street', a.role === 'fbi' ? 'the FBI' : 'the police');
           b.status = 'arrested';
           b.dest = null;
           b.path = [];
           b.orderId = null;
+          for (const q of mates) {
+            noteMemberLoss(w, q, `arrested in the street with ${b.name}`, a.role === 'fbi' ? 'the FBI' : 'the police');
+            q.status = 'arrested'; q.dest = null; q.path = []; q.orderId = null; q.buildingId = null; q.inVehicle = false;
+            if (gang.isPlayer) addMessage(w, 'police', `${q.name} has been arrested with ${b.name}.`, q.pos, q.id);
+          }
           if (gang.isPlayer) {
             addMessage(
               w,
