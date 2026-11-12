@@ -1,3 +1,4 @@
+import { instanceFile } from './instance';
 import { ERA_2032_ENABLED, ACTIVE_ERA } from './era';
 import { formatMemberLoss, memberLosses } from '../sim/memberLosses';
 import { activeWorldStore, downloadText } from './worldFolder';
@@ -295,14 +296,14 @@ export async function writeDebugReport(world: WorldState | null, version: string
   const { latestCommit } = await import('./versionCheck');
   const commit = await latestCommit();
   const text = buildDebugReport(world, version, commit);
-  const filename = `report-${stamp()}.txt`;
+  const filename = instanceFile(`report-${stamp()}.txt`);
   await saveReport(filename, text, true);
   return text;
 }
 
 async function writeCrashReport(): Promise<void> {
   const text = buildDebugReport(worldSource(), typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'unknown', null);
-  await saveReport(`crash-${stamp()}.txt`, text, false);
+  await saveReport(instanceFile(`crash-${stamp()}.txt`), text, false);
 }
 
 export async function writeReportFile(filename: string, text: string): Promise<void> {

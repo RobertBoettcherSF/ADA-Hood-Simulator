@@ -1,3 +1,4 @@
+import { instanceFile } from './instance';
 /**
  * A player made of the same actions the desk uses. The seed picks his choices
  * and, when learning is on, which weights to nudge. It does not touch the
@@ -1675,7 +1676,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     versusLast: planned.versusLast, planNote: planned.note, weeks, actions, notes, anomalies,
     outcome, score: gameScore, learningScore: score, scoreNote, beat, plateau, diaryNote,
   });
-  const filename = `auto-test-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+  const filename = instanceFile(`auto-test-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`);
   const last = weeks[weeks.length - 1];
   let noted = false;
   try {

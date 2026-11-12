@@ -166,7 +166,7 @@ export function MainMenu() {
                   <div>
                     <h3>
                       {s.name}
-                      {s.id === 'Autosave' && <small>Autosave</small>}
+                      {s.id.startsWith('Autosave') && <small>Autosave</small>}
                     </h3>
                     <div className="muted" style={{ marginTop: 4 }}>
                       {s.error ?? <>{s.bossName} · Week {s.week}{s.summary || s.world ? <> · {money(info.cash)} · {info.blocks} blocks</> : null}</>}
@@ -201,7 +201,7 @@ export function MainMenu() {
       )}
       {deleting && (
         <ConfirmDialog
-          text={`Delete "${deleting.name}"? ${deleting.id === 'Autosave' ? 'This is your automatic save. ' : ''}It cannot be brought back.`}
+          text={`Delete "${deleting.name}"? ${deleting.id.startsWith('Autosave') ? 'This is your automatic save. ' : ''}It cannot be brought back.`}
           onYes={() => {
             const id = deleting.id;
             setDeleting(null);

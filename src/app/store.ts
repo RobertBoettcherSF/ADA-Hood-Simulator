@@ -1,3 +1,4 @@
+import { autosaveName } from './instance';
 import { readTextureQuality, writeTextureQuality, type TextureQuality } from '../render/textureQuality';
 import { applyUiScale, readUiScale, writeUiScale } from './uiScale';
 import { applyLiveMovement } from '../sim/movement';
@@ -488,7 +489,7 @@ export const useGame = create<GameState>((set, get) => ({
     const name = raw.trim();
     const refuse = (text: string) => set({ toast: { text, bad: true, at: Date.now() } });
     if (!name) return refuse('Give the save a name first.');
-    if (name.toLowerCase() === 'autosave') return refuse('"Autosave" is kept for the automatic save. Choose another name.');
+    if (name.toLowerCase().startsWith('autosave')) return refuse('"Autosave" is kept for the automatic save. Choose another name.');
     if (name.length > SAVE_NAME_MAX) return refuse(`Save names can be at most ${SAVE_NAME_MAX} characters.`);
     try {
       captureTutorialProgress(sim.world);
@@ -897,7 +898,7 @@ export const useGame = create<GameState>((set, get) => ({
     try {
       captureTutorialProgress(sim.world);
       sim.settleDeferred();
-      await saveGame('Autosave', sim.world, responsive);
+      await saveGame(autosaveName(), sim.world, responsive);
       if (get().sim === sim) get().notify('The city has been put away in the Autosave slot.');
       return true;
     } catch {

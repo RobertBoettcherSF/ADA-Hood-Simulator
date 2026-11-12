@@ -1,3 +1,4 @@
+import { instanceFile } from './instance';
 import { validateSaveWorld, validateSaveWorldResponsive } from '../sim/saveSchema';
 import type { GangColorName, WorldState } from '../sim/types';
 import { yieldForInput } from '../yieldForInput';
@@ -151,9 +152,9 @@ export async function saveGame(name: string, world: WorldState, frozen = false):
     const started = performance.now();
     const worldJson = await stringifyFrozenWorld(world);
     const boss = Object.values(world.gangs).find((g) => g.isPlayer);
-    await living.write('world.json', worldJson);
+    await living.write(instanceFile('world.json'), worldJson);
     lastSave = { world, week: world.week, bytes: utf8Length(worldJson) };
-    await living.write('manifest.json', JSON.stringify({
+    await living.write(instanceFile('manifest.json'), JSON.stringify({
       format: 1,
       game: 'ada-hood-simulator',
       schemaVersion: world.schemaVersion ?? 2,
@@ -204,7 +205,7 @@ export async function loadGame(): Promise<SaveSlot[]> {
   const living = activeWorldStore();
   if (living) {
     const started = performance.now();
-    const text = await living.read('world.json');
+    const text = await living.read(instanceFile('world.json'));
     if (!text) return [];
     await yieldForInput();
     const parsed = await parseWorldText(text);

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
 import { useGame } from './app/store';
 import { installUiScale } from './app/uiScale';
+import { claimInstance } from './app/instance';
 import { loadCityArt } from './render/textures';
 import './styles.css';
 
@@ -16,8 +17,9 @@ installUiScale(() => useGame.getState().uiScale);
 const root = document.getElementById('root');
 if (!root) throw new Error('Root element missing');
 
-createRoot(root).render(
+// Each tab claims its own save and report names before anything is read.
+void Promise.race([claimInstance(), new Promise((r) => setTimeout(r, 500))]).finally(() => createRoot(root).render(
   <StrictMode>
     <App />
   </StrictMode>,
-);
+));
