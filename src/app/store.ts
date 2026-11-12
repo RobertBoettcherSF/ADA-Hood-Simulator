@@ -291,6 +291,9 @@ function freshWorldUi() {
   };
 }
 
+const MID_WEEK_SAVE_MINUTES = 240;
+let midWeekSave = { done: 0, minute: 0 };
+
 export const useGame = create<GameState>((set, get) => ({
   sim: null,
   version: 0,
@@ -783,7 +786,18 @@ export const useGame = create<GameState>((set, get) => ({
     if (isFlatOut(state.speed)) sim.runFlatOut(FLAT_OUT_BUDGET_MS, reported);
     else sim.advance(seconds, state.speed, 8);
     if (reported()) get().setSpeed(1);
+    // 1.2.21: finished orders are kept mid-week. When more of the player's
+    // orders have finished and at least half a game day has passed since the
+    // last one, the autosave is refreshed (never in the demo or Auto Test).
+    if (sim.world.phase === 'week' && !get().attract && !autoTestRunState().running) {
+      const done = Object.values(sim.world.orders).filter((o) => o.gangId === sim.playerGang.id && (o.state === 'done' || o.state === 'failed')).length;
+      if (done > midWeekSave.done && sim.world.minute - midWeekSave.minute >= MID_WEEK_SAVE_MINUTES) {
+        midWeekSave = { done, minute: sim.world.minute };
+        void get().autosave(true);
+      } else if (sim.world.minute < midWeekSave.minute) midWeekSave = { done: 0, minute: 0 };
+    }
     if (sim.world.phase !== 'week') {
+      midWeekSave = { done: 0, minute: 0 };
       if (get().attract) {
         if (sim.world.phase === 'gameOver') get().endAttract();
         else { get().bump(); get().attractWeek(); }
