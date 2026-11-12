@@ -1,4 +1,4 @@
-import { BUY_REACH_BLOCKS, defaultOptions, nearTerritory, validBuildingTarget } from '../sim/api';
+import { defaultOptions, validBuildingTarget } from '../sim/api';
 import { ORDERS } from '../sim/constants';
 import { expandTargets, isValidAreaTarget } from '../sim/execution';
 import { buildingMapIntel } from '../sim/mapIntel';
@@ -13,8 +13,7 @@ export function selectableOrderSite(w: WorldState, gangId: ID, card: Pick<JobCar
   if (ORDERS[card.type].target !== 'building') return false;
   // Choose the premises first, then configure its business and front on the card.
   if (card.type === 'setUpBusiness') return b.ownerGangId === gangId;
-  return validBuildingTarget(w, gangId, card.type, b, defaultOptions(card.opts)) &&
-    (card.type !== 'buyPremises' || nearTerritory(w, gangId, b.blockId, BUY_REACH_BLOCKS));
+  return validBuildingTarget(w, gangId, card.type, b, defaultOptions(card.opts));
 }
 
 export function selectableOrderPerson(w: WorldState, gangId: ID, type: OrderType, p: Person): boolean {

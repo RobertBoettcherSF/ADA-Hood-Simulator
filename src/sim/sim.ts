@@ -12,7 +12,7 @@ import { planGang } from './ai';
 import { createWorld } from './citygen';
 import { repairLegacyStreetSpawns } from './streetPlacement';
 import { closeFinances, currentFinances, openFinances } from './finances';
-import { finalScore, recordScorePeaks, scoreMeasures } from './scoring';
+import { finalScore, recordScorePeaks, scoreMeasures, WIN_BONUS } from './scoring';
 import { observeTargetRace, tieRank } from './targetRace';
 import { weeklyTaxes } from './systems/taxes';
 import { buildingValue, releaseGangHoldings, standingBlocks } from './execution';
@@ -731,7 +731,7 @@ export class Sim {
       : race.basis === 'legacy'
         ? `${won ? 'You have' : `${winner.name} has`} reached ${objective} in this saved game.`
         : `${won ? 'You' : winner.name} reached ${objective} first.`;
-    this.finishGame(this.makeOutcome(won, reason, won ? 45 : 0)!);
+    this.finishGame(this.makeOutcome(won, reason, won ? WIN_BONUS.race : 0)!);
     return true;
   }
 
@@ -765,23 +765,23 @@ export class Sim {
 
     // ---- winning
     if (w.options.mode === 'normal' && w.electionWinnerGangId === player.id) {
-      return this.makeOutcome(true, 'You were elected Mayor of Saint Volstead.', 35);
+      return this.makeOutcome(true, 'You were elected Mayor of Saint Volstead.', WIN_BONUS.mayor);
     }
 
     const rivals = Object.values(w.gangs).filter((g) => !g.isPlayer && !g.eliminated);
     if (!rivals.length) {
-      return this.makeOutcome(true, 'Every rival gang has been wiped out. The city is yours.', 45);
+      return this.makeOutcome(true, 'Every rival gang has been wiped out. The city is yours.', WIN_BONUS.domination);
     }
     // Two survivors in a firm alliance also counts as settling the question.
     if (rivals.length === 1) {
       const other = rivals[0];
       if (player.offered[other.id] === 'alliance' && player.known[other.id] === 'alliance') {
-        return this.makeOutcome(true, 'You and your last rival have carved the city in two.', 45);
+        return this.makeOutcome(true, 'You and your last rival have carved the city in two.', WIN_BONUS.domination);
       }
     }
 
     if (player.goingStraight && w.options.mode === 'normal' && canGoStraight(w, player.id).can) {
-      return this.makeOutcome(true, 'You went straight, with every dollar accounted for.', 25);
+      return this.makeOutcome(true, 'You went straight, with every dollar accounted for.', WIN_BONUS.straight);
     }
 
     // ---- short game targets
@@ -793,7 +793,7 @@ export class Sim {
         .sort((a, b) => powerRating(w, b) - powerRating(w, a) || tieRank(w.options.seed, a.id) - tieRank(w.options.seed, b.id) || a.id - b.id);
       const top = ranked[0];
       return top?.isPlayer
-        ? this.makeOutcome(true, 'When the clock ran out you were the most powerful boss in the city.', 45)
+        ? this.makeOutcome(true, 'When the clock ran out you were the most powerful boss in the city.', WIN_BONUS.power)
         : this.makeOutcome(false, `${top?.name ?? 'A rival'} ended the period stronger than you.`);
     }
 

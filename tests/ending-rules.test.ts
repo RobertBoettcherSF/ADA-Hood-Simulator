@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { defaultGameOptions } from '../src/app/newGame';
 import { act, useGame } from '../src/app/store';
-import { finalScore, recordScorePeaks, scoreMeasures } from '../src/sim/scoring';
+import { finalScore, recordScorePeaks, scoreMeasures, WIN_BONUS } from '../src/sim/scoring';
 import { payCash, receiveCash } from '../src/sim/finances';
 import { Sim, MINUTES_PER_SECOND } from '../src/sim/sim';
 import type { GameOptions, GangWeekStat, ScoreMeasures } from '../src/sim/types';
@@ -41,7 +41,7 @@ describe('game endings follow the selected game type', () => {
     for (const rival of Object.values(w.gangs)) if (!rival.isPlayer) rival.eliminated = true;
     settle(sim);
     expect(w.outcome?.won).toBe(true); expect(w.outcome?.reason).toContain('wiped out');
-    expect(w.outcome?.score).toBe(finalScore(scoreMeasures(w, gang), gang.scorePeaks!, true, 45));
+    expect(w.outcome?.score).toBe(finalScore(scoreMeasures(w, gang), gang.scorePeaks!, true, WIN_BONUS.domination));
   });
 
   it.each(['power', 'wealth', 'territory'] as const)('awards the highest win bonus for the actual %s target', mode => {
@@ -62,7 +62,7 @@ describe('game endings follow the selected game type', () => {
     restored.finishWeek();
     expect(restored.world.outcome?.won).toBe(true);
     const endingGang = restored.playerGang;
-    expect(restored.world.outcome?.score).toBe(finalScore(scoreMeasures(restored.world, endingGang), endingGang.scorePeaks!, true, 45));
+    expect(restored.world.outcome?.score).toBe(finalScore(scoreMeasures(restored.world, endingGang), endingGang.scorePeaks!, true, WIN_BONUS.domination));
     expect(Sim.fromSave(structuredClone(restored.world)).world.outcome).toEqual(restored.world.outcome);
     expect(sim.world.outcome).toBeNull();
   });
@@ -82,11 +82,13 @@ describe('final score uses cash and preserved campaign highs', () => {
   const zero: ScoreMeasures = { cash: 0, territory: 0, manpower: 0 };
 
   it('includes final and peak achievement, capped at 100, with ranked win bonuses', () => {
-    expect(finalScore(maximum, maximum, true, 45)).toBe(100);
-    expect(finalScore(maximum, maximum, true, 35)).toBe(90);
-    expect(finalScore(maximum, maximum, true, 25)).toBe(80);
-    expect(finalScore(zero, maximum, true, 45)).toBe(73);
+    expect(finalScore(maximum, maximum, true, WIN_BONUS.domination)).toBe(100);
+    expect(finalScore(maximum, maximum, true, WIN_BONUS.mayor)).toBe(90);
+    expect(finalScore(maximum, maximum, true, WIN_BONUS.straight)).toBe(80);
+    expect(finalScore(zero, maximum, true, WIN_BONUS.domination)).toBe(80);
     expect(finalScore(maximum, maximum, false, 45)).toBe(45);
+    // Every win outscores every loss; a bare win still scores its bonus.
+    expect(finalScore(zero, zero, true, WIN_BONUS.straight)).toBe(40);
     expect(finalScore(zero, zero, false, 0)).toBe(0);
   });
 

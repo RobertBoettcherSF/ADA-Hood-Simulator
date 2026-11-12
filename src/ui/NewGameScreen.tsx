@@ -6,7 +6,7 @@ import { useGame } from '../app/store';
 import { GANG_COLORS } from '../sim/constants';
 import { bossName } from '../sim/newGameValidation';
 import { bossFace, HERITAGE_BY_ID, HERITAGES, sitterCount, type Heritage } from '../sim/heritage';
-import { COMPACT_CITY_SIZES, generatedCityDimensions, isOriginalCity, ORIGINAL_CITY, reconcileTerritorySetup,
+import { CITY_SIZE_PRESETS, citySizePreset, generatedCityDimensions, isOriginalCity, reconcileTerritorySetup,
   territorySetupMaximum, territorySetupMinimum, TerritoryTargetError } from '../sim/newGameValidation';
 import type { GameOptions, GangColorName, Person } from '../sim/types';
 import { crestUrl } from './art';
@@ -363,21 +363,16 @@ export function NewGameScreen() {
                   </span>
                 </label>
                 {seg(
-                  originalCity ? 'original' : options.citySize === 8 && options.cityHeight == null ? 'test' : 'compact',
-                  ['original', 'test', 'compact'] as const,
-                  (v) => v === 'original' ? '40×32' : v === 'test' ? 'Small test' : 'Compact',
-                  (v) => {
-                    if (v === 'original') set({ citySize: ORIGINAL_CITY.w, cityHeight: ORIGINAL_CITY.h });
-                    else if (v === 'test') set({ citySize: 8, cityHeight: undefined });
-                    else set({ citySize: COMPACT_CITY_SIZES.default, cityHeight: undefined });
-                  },
+                  citySizePreset(options) ?? 'standard',
+                  ['small', 'standard', 'large'] as const,
+                  (v) => `${CITY_SIZE_PRESETS[v].label} ${CITY_SIZE_PRESETS[v].w}×${CITY_SIZE_PRESETS[v].h}`,
+                  (v) => set({ citySize: CITY_SIZE_PRESETS[v].w, cityHeight: CITY_SIZE_PRESETS[v].h }),
                 )}
-                {originalCity
-                  ? <div className="scene-small">The original game's 40 × 32 city.</div>
-                  : options.citySize === 8 && options.cityHeight == null
-                    ? <div className="scene-small">An 8 × 8 city for a short test. The same rules as the full map.</div>
-                    : <input id="NewGameScreen-field-7" className="brass-rail" type="range" min={COMPACT_CITY_SIZES.min} max={COMPACT_CITY_SIZES.max} value={options.citySize}
-                      onChange={(e) => set({ citySize: Number(e.target.value), cityHeight: undefined })} />}
+                <div className="scene-small">{originalCity
+                  ? 'The standard 40 × 32 city, laid out as in the original game.'
+                  : citySizePreset(options) === 'small' ? 'A smaller 36 × 28 city: rivals are closer and the election needs fewer blocks.'
+                    : citySizePreset(options) === 'large' ? 'A larger 44 × 35 city with more room to grow.'
+                      : `${cityDims.w} × ${cityDims.h} blocks (a test size).`}</div>
               </div>
               <div className="field">
                 <label htmlFor="city-seed">City seed</label>
