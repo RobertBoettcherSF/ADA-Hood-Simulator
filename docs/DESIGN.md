@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is Saint Volstead in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.17.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.18.
 
 ## Decisions
 
@@ -221,6 +221,17 @@ Items marked *(my call)* are choices made while building, not asked for.
 3. Stalled growth. The hiring target is two men per block (up to 60). If the crews ran out of week last Monday, six more are hired, up to 64. A recruit order takes at most two sites and two men, so a long list no longer uses up the week before the last door. Extortion is sized to the crew's free week (about one site per sixth of a week) and skipped when less than 15% of the week is left. A new lieutenant is promoted for every five hoods (at least two, at most eight). The accountant is hired from week 3 and the lawyer from week 4, trying the next desk each week so one empty office does not hold up the hire. *(my call: two men per block, five hoods per crew, and the earlier specialist weeks.)*
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
+
+## v1.2.18 decisions
+
+Items marked *(my call)* are choices made while building, not asked for.
+
+1. One score. Auto Test's report and its status line show the score the ending screen shows (the same 0–100 sum of blocks, men and cash, now and at their best, plus the win bonus or less the loss penalty). While the game is still running it shows that sum without the bonus or penalty. The diary's finer measure, which compares Auto Test runs with each other and can pass 100, is printed separately as the learning score. *(my call: the running-game score.)*
+2. Leaderboard. The main menu has a Leaderboard listing every finished game (boss, gang, outcome, week, score, date; games played by Auto Test are marked), best score first or newest first. It is kept with the other records in the city folder, up to 300 games, and can be cleared without touching the Hall of Fame. *(my call: the 300.)*
+3. Auto Test report. A week that ends the game is labelled like every other week, so the last week appears once in the timeline; a RESULT line already written the week before (an order still running) is not repeated.
+4. Crew names. Auto Test names each crew after its lieutenant's first name and its job: "Eddie's Protection", "Eddie's Extortion", "Eddie's Recruiting", "Eddie's Business", "Eddie's Strike", "Eddie's Scouting". A number is added only when two crews would carry the same name. A name the player typed is kept.
+5. Businesses, tuned to original-game values. The original's other 111 legal trades (82 shops and offices, 29 works) are now types of their own instead of playing the nearest of ours. Weekly profit is the original income group at the middle of the trade's land-value window and set-up cost the original price, both scaled to this game's money by the median ratio of the trades both games share; storeys follow the original size, so running costs use the original size groups; goods held and front cover for every illegal trade follow the original grades. The original city places them where it always did; in generated cities one shop, office or works plot in four plays one of them (chosen by a hash, so the rest of the city is unchanged); and any of them can be bought or set up on owned land. All fifteen illegal trades were already in the game (the original's house of ill repute is Rented Rooms). *(my call: the median scaling and the one-in-four.)*
+6. The office plan's right-click. On premises the first right-click shows the business card, a second on the same premises the owner's card (the gang and its boss, the private owner once known, or "unknown"), and a third goes back to the business. Off premises it shows the person under the pointer as before.
 
 ## v1.2.17 decisions
 
