@@ -10,8 +10,9 @@ import { audio } from '../audio/audio';
 import { HelpSheet } from './HelpSheet';
 import { applyTutorial, tutorialById, TUTORIALS } from '../app/tutorials';
 import { HallOfFame } from './HallOfFame';
+import { Leaderboard } from './Leaderboard';
 
-type Sheet = null | 'load' | 'tutorials' | 'hall' | 'help' | 'credits';
+type Sheet = null | 'load' | 'tutorials' | 'hall' | 'leaderboard' | 'help' | 'credits';
 
 /** What a saved city looked like when it was put away. */
 function describeSlot(slot: SaveSlot): { cash: number; blocks: number; men: number; seed: number; finished: boolean } {
@@ -101,6 +102,7 @@ export function MainMenu() {
         setSheet('hall');
       },
     },
+    { label: 'Leaderboard', go: () => setSheet('leaderboard') },
     { label: 'How to Play', go: () => setSheet('help') },
     { label: 'Credits', go: () => setSheet('credits') },
   ];
@@ -212,6 +214,8 @@ export function MainMenu() {
       )}
 
       {sheet === 'hall' && <HallOfFame onClose={() => { setHall(loadHallOfFame()); setSheet(null); }} />}
+
+      {sheet === 'leaderboard' && <Leaderboard onClose={() => setSheet(null)} />}
 
       {sheet === 'tutorials' && (() => {
         const chosen = tutorialById(lesson) ?? TUTORIALS[0];

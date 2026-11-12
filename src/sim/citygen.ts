@@ -52,6 +52,17 @@ import {
 import { CENTRE_LOT, blockCenter, gangMembers, lotCenter } from './world';
 import { originalStartingWage } from './originalWages';
 import { forgetEntityLists } from './entityLists';
+import { ORIGINAL_TRADES } from './data/originalTrades';
+
+/** The original trade, if any, that a module plot of this use plays (one plot in four). */
+export function originalTradeFor(use: string, district: string, lotId: number, seed: number): string | undefined {
+  if (use !== 'shops' && use !== 'business' && use !== 'works') return undefined;
+  const h = Math.imul((lotId + 1) ^ Math.imul(seed | 0, 0x9e3779b1), 0x85ebca6b) >>> 0;
+  if ((h & 3) !== 0) return undefined;
+  const rich = district === 'downtown' || district === 'civic';
+  const pool = ORIGINAL_TRADES.filter((t) => t.family === use && (use !== 'shops' || rich || !t.upmarket));
+  return pool.length ? pool[(h >>> 2) % pool.length].id : undefined;
+}
 
 export function newId(w: WorldState): ID {
   return w.nextId++;
@@ -465,7 +476,10 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
         const t = block.layout?.landmark ? BUILDING_BY_ID[block.layout.landmark]
           : slot ? rng.weighted((suited.length ? suited : family).map(item => ({ item, weight: item.weight[block.district] ?? 1 })))
             : pickBuildingType(rng, block.district, !!w.cityLayout);
-        makeBuilding(w, lot, block, slot?.vacant ? EMPTY_TYPE.id : t.id, gangIds);
+        // One plot in four of a shop, office or works module plays one of the original's
+        // other trades instead (a hash, not the generator's dice, so the rest of the city is unchanged).
+        const trade = slot && !block.layout?.landmark && !slot.vacant && !t.recruit && !t.special && (t.cls === 'commercial' || t.cls === 'industrial') && t.id !== 'warehouse' ? originalTradeFor(slot.use, block.district, lot.id, options.seed ?? 0) : undefined;
+        makeBuilding(w, lot, block, slot?.vacant ? EMPTY_TYPE.id : trade ?? t.id, gangIds);
       }
     }
 

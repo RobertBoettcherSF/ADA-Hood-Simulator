@@ -4,7 +4,7 @@ import { yieldForInput } from '../yieldForInput';
 import { buildingList } from '../sim/entityLists';
 import { gangManpower, territoryCount } from '../sim/world';
 import { activeWorldStore, parseWorldText, refreshCityOnFile } from './worldFolder';
-import { clearHallEntries, loadHallEntries, saveHallEntries } from './localData';
+import { addGameRecord, clearHallEntries, loadHallEntries, saveHallEntries } from './localData';
 import { markTiming } from './debugReport';
 
 export interface SaveSlot {
@@ -314,6 +314,44 @@ export async function deleteSave(id: string): Promise<void> {
 
 // ---------------------------------------------------------------- hall of fame
 
+/** One finished game on the main menu's leaderboard. */
+export interface GameRecord {
+  resultId: string;
+  boss: string;
+  gang: string;
+  won: boolean;
+  reason: string;
+  week: number;
+  score: number;
+  /** When it ended (ms since 1970). */
+  at: number;
+  /** Played by Auto Test rather than by hand. */
+  autoTest?: boolean;
+}
+
+/** Note a finished game on the leaderboard (once per result). */
+export function recordPastGame(world: WorldState, autoTest = false): boolean {
+  const gang = Object.values(world.gangs).find(g => g.isPlayer);
+  const outcome = world.outcome;
+  if (!gang || !outcome || world.options.tutorialId != null) return false;
+  try {
+    addGameRecord({
+      resultId: JSON.stringify([campaignId(world), world.week, outcome.won, outcome.reason, outcome.score]),
+      boss: world.people[gang.bossId]?.name ?? 'Unknown',
+      gang: gang.name,
+      won: outcome.won,
+      reason: outcome.reason,
+      week: world.week,
+      score: outcome.score,
+      at: Date.now(),
+      autoTest: autoTest || undefined,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export interface HallEntry {
   resultId?: string;
   name: string;
@@ -410,6 +448,7 @@ export function recordHallOfFame(world: WorldState): boolean {
   const gang = Object.values(world.gangs).find(g => g.isPlayer);
   const outcome = world.outcome;
   if (world.phase !== 'gameOver' || !gang || !outcome || world.options.tutorialId != null) return false;
+  recordPastGame(world);
   const id = campaignId(world);
   const boss = world.people[gang.bossId];
   const peaks = gang.scorePeaks;

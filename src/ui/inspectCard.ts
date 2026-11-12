@@ -70,6 +70,8 @@ export interface InspectPlacement {
   x: number;
   y: number;
   hit: PickResult;
+  /** The owner's card for the premises under the click rather than the business card. */
+  view?: 'owner';
 }
 
 let placement: InspectPlacement | null = null;
@@ -88,8 +90,8 @@ export function onInspect(listener: () => void): () => void {
   return () => { listeners.delete(listener); };
 }
 
-export function openInspect(x: number, y: number, hit: PickResult): void {
-  placement = { x, y, hit };
+export function openInspect(x: number, y: number, hit: PickResult, view?: 'owner'): void {
+  placement = { x, y, hit, view };
   emit();
 }
 
@@ -105,7 +107,34 @@ export function showInspect(x: number, y: number, w: WorldState, viewer: ID, hit
   else openInspect(x, y, hit);
 }
 
-export function inspectFacts(w: WorldState, viewer: ID, hit: PickResult): InspectFacts | null {
+/** The premises last right-clicked on the office plan, and which card it showed. */
+let cycle: { buildingId: ID; step: number } | null = null;
+
+/**
+ * The office plan's right-click: on premises the first click shows the business
+ * card, a second on the same premises the owner's card, then back again. Off
+ * premises it shows whoever is under the pointer, as before.
+ */
+export function cycleInspect(x: number, y: number, w: WorldState, viewer: ID, hit: PickResult): void {
+  const building = hit.buildingId != null ? w.buildings[hit.buildingId] : buildingUnder(w, hit.point);
+  if (!building) {
+    cycle = null;
+    showInspect(x, y, w, viewer, hit);
+    return;
+  }
+  const step = cycle && cycle.buildingId === building.id ? (cycle.step + 1) % 2 : 0;
+  cycle = { buildingId: building.id, step };
+  openInspect(x, y, { ...hit, buildingId: building.id, personId: null }, step === 1 ? 'owner' : undefined);
+}
+
+/** Forget the cycle (tests, or a new city). */
+export function resetInspectCycle(): void { cycle = null; }
+
+export function inspectFacts(w: WorldState, viewer: ID, hit: PickResult, view?: 'owner'): InspectFacts | null {
+  if (view === 'owner') {
+    const building = hit.buildingId != null ? w.buildings[hit.buildingId] : buildingUnder(w, hit.point);
+    if (building) return ownerFacts(w, viewer, building);
+  }
   if (hit.personId != null) {
     const person = w.people[hit.personId];
     if (person && person.status !== 'dead') return personFacts(w, person);
@@ -137,6 +166,37 @@ function personFacts(w: WorldState, person: Person): InspectFacts {
     rows: [
       { label: 'Gang', value: gang ?? 'None' },
       { label: 'Order', value: currentOrder(w, person) },
+    ],
+  };
+}
+
+/** Who owns the premises, as far as the viewer knows. */
+export function ownerFacts(w: WorldState, viewer: ID, building: Building): InspectFacts {
+  const intel = buildingMapIntel(building, viewer);
+  const place = !intel.siteKnown ? 'Unknown premises' : BUILDING_BY_ID[building.typeId]?.name ?? (building.cls === 'empty' ? 'Empty lot' : 'Premises');
+  const gangId = building.ownerGangId === viewer ? viewer : intel.ownerGangId;
+  if (intel.siteKnown && gangId != null && w.gangs[gangId]) {
+    const gang = w.gangs[gangId];
+    return {
+      title: gang.name,
+      rows: [
+        { label: 'Owner of', value: place },
+        { label: 'Boss', value: w.people[gang.bossId]?.name ?? 'Unknown' },
+        { label: 'Kind', value: gangId === viewer ? 'Your gang' : 'A gang' },
+      ],
+    };
+  }
+  const knowledge = building.knowledge[viewer] ?? 0;
+  const person = building.ownerPersonId != null ? w.people[building.ownerPersonId] : undefined;
+  if (intel.siteKnown && person && knowledge >= 2 && building.ownerGangId == null) {
+    return { title: person.name, rows: [{ label: 'Owner of', value: place }, ...personFacts(w, person).rows] };
+  }
+  const nobody = intel.siteKnown && building.ownerGangId == null && building.ownerPersonId == null;
+  return {
+    title: nobody ? 'No owner' : 'Owner unknown',
+    rows: [
+      { label: 'Owner of', value: place },
+      { label: 'Owner', value: nobody ? 'Nobody' : 'Unknown until the place is extorted or explored' },
     ],
   };
 }

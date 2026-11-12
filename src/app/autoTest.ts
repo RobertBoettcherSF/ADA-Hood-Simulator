@@ -3,7 +3,8 @@
  * and, when learning is on, which weights to nudge. It does not touch the
  * city's random stream until the week itself runs.
  */
-import { lastSavedBytes, utf8Length } from './save';
+import { lastSavedBytes, recordPastGame, utf8Length } from './save';
+import { gameScoreNow } from '../sim/scoring';
 import { clearWeekHeaps, noteAutoTestRunning, noteAutoTestStopped, noteLastAutoTest, noteWeekHeap, writeReportFile } from './debugReport';
 
 let autoTestRunning = false;
@@ -41,7 +42,7 @@ export function takeAutoTestStopped(): boolean {
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
 import { BUY_REACH_BLOCKS, buySnitchInfo, canGoStraight, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, moveToTeam, nearTerritory, promote, transferWeapon, type ApiResult, type IssueOrderInput } from '../sim/api';
-import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, carMinutesSaved, crewNameFor, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, talentSwaps, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
+import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, carMinutesSaved, crewNames, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, talentSwaps, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
 import { DRIVE_SPEED, GO_STRAIGHT_ASSETS, VEHICLES, WALK_SPEED, WEAPONS } from '../sim/constants';
 import type { Building, WeaponId } from '../sim/types';
 import { BUILDING_BY_ID, ILLEGAL_TYPES } from '../sim/data/buildings';
@@ -491,13 +492,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     logResult(actions, `talent: ${w.people[move.personId]?.name ?? move.personId} to the ${roles.get(move.toTeamId)} crew`, result.ok, result.ok ? '' : result.error);
   }
   // Each crew carries the name of its job, unless the player has named it.
-  const counted = new Map<CrewRole, number>();
+  const named = crewNames(crewsOf().filter((team) => roles.has(team.id)).map((team) => ({
+    id: team.id, name: team.name, role: roles.get(team.id)!, lieutenantName: w.people[team.lieutenantId]?.name ?? '',
+  })));
   for (const team of crewsOf()) {
-    const role = roles.get(team.id);
-    if (!role) continue;
-    const index = (counted.get(role) ?? 0) + 1;
-    counted.set(role, index);
-    const name = crewNameFor(team.name, role, index);
+    const name = named.get(team.id);
     if (name && name !== team.name) team.name = name;
   }
   if (roles.size) actions.push(`NOTE crews: ${[...roles].map(([id, role]) => `${w.people[w.teams[id]?.lieutenantId]?.name ?? id} ${role}`).join(', ')}`);
@@ -1141,6 +1140,9 @@ function reportText(parts: {
   anomalies: string[];
   outcome: string;
   score: number;
+  /** The diary's finer learning measure, which can pass 100. */
+  learningScore?: number;
+  scoreNote?: string;
   beat: string;
   plateau: string;
   diaryNote: string;
@@ -1184,7 +1186,8 @@ function reportText(parts: {
   lines.push('', 'Notes');
   if (!parts.notes.length) lines.push('(none)');
   for (const note of parts.notes) lines.push(note);
-  lines.push('', 'Outcome', parts.outcome, `Score: ${parts.score}`);
+  lines.push('', 'Outcome', parts.outcome, `Score: ${parts.score}${parts.scoreNote ? ` ${parts.scoreNote}` : ''}`);
+  if (parts.learningScore != null) lines.push(`Learning score (diary only, compares Auto Test runs): ${parts.learningScore}`);
   return lines.join('\n');
 }
 
@@ -1228,6 +1231,8 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   stoppedThisRun = false;
   emitAutoTestRun();
   try {
+  let resultsSaid = new Map<number | string, string>();
+  let resultsNow = new Map<number | string, string>();
   for (let i = 0; i < cap; i++) {
     if (stopAfterThisWeek) { stoppedThisRun = true; notes.push('Stopped before another week. The desk is yours.'); break; }
     if (sim.world.phase !== 'planning') break;
@@ -1262,6 +1267,9 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       break;
     }
     const weekSnap = snapshot(sim, ms);
+    // A week that ends the game does not advance the calendar; label it as the week after the one played, like every other.
+    weekSnap.week = Math.max(weekSnap.week, weekBefore + 1);
+    if (weeks.length && weeks[weeks.length - 1].week >= weekSnap.week) weekSnap.week = weeks[weeks.length - 1].week + 1;
     // The week is saved by now. Pause if used heap looks high, then stop
     // only if it is still above 80% of the limit after garbage collection.
     const memory = await checkMemoryStop();
@@ -1288,8 +1296,13 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     for (const order of sim.world.lastWeekOrders) {
       if (order.gangId !== sim.playerGang.id || !['recruit', 'buyPremises', 'setUpBusiness', 'export'].includes(order.type)) continue;
       const reason = order.failReason || order.results.join(' ');
-      if (reason) actions.push(`RESULT ${order.type} — ${reason}`);
+      // An order still running carries last week's report; say it once.
+      const line = `RESULT ${order.type} — ${reason}`;
+      if (reason && resultsSaid.get(order.id) !== reason && !resultsSaid.has(line)) actions.push(line);
+      if (reason) { resultsNow.set(order.id, reason); resultsNow.set(line, reason); }
     }
+    resultsSaid = resultsNow;
+    resultsNow = new Map();
     const men = gangManpower(sim.world, sim.playerGang);
     if (men === menBefore && sim.playerGang.poolIds.length === poolBefore && sim.playerGang.recruitIds.length === 0) flatRecruit += 1;
     else flatRecruit = 0;
@@ -1324,13 +1337,17 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   const won = sim.world.outcome ? sim.world.outcome.won : null;
   const outcome = sim.world.outcome ? `${sim.world.outcome.won ? 'won' : 'lost'}: ${sim.world.outcome.reason}` : 'still playing';
   const score = scoreRun(weeks[weeks.length - 1], won);
+  // The score the player sees on the win or loss screen; while the game runs, the same sum without a win bonus or loss penalty.
+  const gameScore = gameScoreNow(sim.world);
+  const scoreNote = sim.world.outcome ? '' : '(game still running: no win bonus or loss penalty yet)';
+  if (sim.world.outcome) recordPastGame(sim.world, true);
   const previousBest = planned.previousBest;
   const beatBest = previousBest == null || score > previousBest;
   const beat = previousBest == null
-    ? `Beat the previous best: yes (score ${score}, no earlier matching run).`
+    ? `Beat the previous best: yes (learning score ${score}, no earlier matching run).`
     : beatBest
-      ? `Beat the previous best: yes (score ${score}, previous ${previousBest}).`
-      : `Beat the previous best: no (score ${score}, previous ${previousBest}). The next learning run returns to the best.`;
+      ? `Beat the previous best: yes (learning score ${score}, previous ${previousBest}).`
+      : `Beat the previous best: no (learning score ${score}, previous ${previousBest}). The next learning run returns to the best.`;
   const anomalies = [
     ...balanceAnomalies(weeks, actions, won, sim.world.gridW * sim.world.gridH),
     ...notes.filter((note) => note.startsWith('Stuck:') || note.startsWith('Suspicious:')),
@@ -1376,7 +1393,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   const text = reportText({
     settings, citySeed: sim.world.options.seed, campaign, strategy: planned.strategy,
     versusLast: planned.versusLast, planNote: planned.note, weeks, actions, notes, anomalies,
-    outcome, score, beat, plateau, diaryNote,
+    outcome, score: gameScore, learningScore: score, scoreNote, beat, plateau, diaryNote,
   });
   const filename = `auto-test-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
   const last = weeks[weeks.length - 1];
@@ -1388,7 +1405,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       cash: last?.cash ?? 0,
       men: last?.men ?? 0,
       territory: last?.territory ?? 0,
-      score,
+      score: gameScore,
       diary: diaryNote,
       file: filename,
     });

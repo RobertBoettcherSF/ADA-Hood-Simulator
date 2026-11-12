@@ -10,9 +10,9 @@ export function InspectCard() {
   const card = useRef<HTMLElement>(null);
   useEffect(() => onInspect(() => bump((n) => n + 1)), []);
   const place = inspectPlacement();
-  const facts = sim && place ? inspectFacts(sim.world, sim.playerGang.id, place.hit) : null;
+  const facts = sim && place ? inspectFacts(sim.world, sim.playerGang.id, place.hit, place.view) : null;
 
-  const openKey = place ? `${place.x},${place.y},${place.hit.personId ?? ''},${place.hit.buildingId ?? ''},${place.hit.point.x},${place.hit.point.y}` : '';
+  const openKey = place ? `${place.view ?? ''},${place.x},${place.y},${place.hit.personId ?? ''},${place.hit.buildingId ?? ''},${place.hit.point.x},${place.hit.point.y}` : '';
   useEffect(() => {
     if (!openKey) return;
     const close = () => closeInspect();

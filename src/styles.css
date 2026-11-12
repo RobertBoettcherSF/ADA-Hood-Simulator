@@ -4808,3 +4808,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .control-card { max-width: 300px; }
 .control-card p { margin: 0 0 6px; font: 400 13px/1.35 var(--font-body); }
+
+/* Main menu leaderboard (1.2.18) */
+.leaderboard { width: 100%; border-collapse: collapse; font-size: 13px; }
+.leaderboard th, .leaderboard td { padding: 4px 8px; text-align: left; border-bottom: 1px solid rgba(0, 0, 0, 0.15); vertical-align: top; }
+.leaderboard th { font-variant: small-caps; letter-spacing: 0.04em; }
+.leaderboard td.won { color: #2f6b2f; }
+.leaderboard td.lost { color: #8a2a1e; }
+.leaderboard td:nth-child(5), .leaderboard td:nth-child(6) { text-align: right; }

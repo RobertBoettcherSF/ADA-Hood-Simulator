@@ -4,7 +4,7 @@
  * Until a folder is attached they live in memory for this page only.
  */
 import { activeWorldStore } from './worldFolder';
-import type { HallEntry } from './save';
+import type { GameRecord, HallEntry } from './save';
 
 export interface AudioPrefs {
   music: number;
@@ -33,6 +33,8 @@ export interface LocalData {
   /** New hoods from a Recruit order. Pool is the default; crew puts them on the crew that hired them. */
   recruitJoin: RecruitJoin;
   hall: HallEntry[];
+  /** Every finished game, newest first (the main menu's leaderboard). */
+  games: GameRecord[];
 }
 
 const FILE = 'prefs.json';
@@ -50,6 +52,7 @@ function defaults(): LocalData {
     autoLowerRoofs: true,
     recruitJoin: 'pool',
     hall: [],
+    games: [],
   };
 }
 
@@ -92,6 +95,7 @@ function sanitize(value: unknown): LocalData {
     autoLowerRoofs: raw.autoLowerRoofs !== false,
     recruitJoin: raw.recruitJoin === 'crew' ? 'crew' : 'pool',
     hall: Array.isArray(raw.hall) ? raw.hall as HallEntry[] : [],
+    games: Array.isArray(raw.games) ? (raw.games as GameRecord[]).filter((g) => g && typeof g.score === 'number') : [],
   };
 }
 
@@ -116,12 +120,13 @@ export async function flushLocalData(): Promise<void> {
   await store.write(FILE, JSON.stringify(data));
 }
 
-export function patchLocalData(patch: Partial<Omit<LocalData, 'audio' | 'hall'>> & { audio?: Partial<AudioPrefs> }): LocalData {
+export function patchLocalData(patch: Partial<Omit<LocalData, 'audio' | 'hall' | 'games'>> & { audio?: Partial<AudioPrefs> }): LocalData {
   data = sanitize({
     ...data,
     ...patch,
     audio: { ...data.audio, ...patch.audio },
     hall: data.hall,
+    games: data.games,
   });
   void flushLocalData().catch(() => {});
   return data;
@@ -143,5 +148,23 @@ export function saveHallEntries(entries: HallEntry[]): void {
 
 export function clearHallEntries(): void {
   data = { ...data, hall: [] };
+  void flushLocalData().catch(() => {});
+}
+
+/** The most past games the leaderboard keeps. */
+export const GAMES_KEPT = 300;
+
+export function loadGameRecords(): GameRecord[] {
+  return [...data.games].sort((a, b) => b.at - a.at);
+}
+
+export function addGameRecord(record: GameRecord): void {
+  if (data.games.some((g) => g.resultId === record.resultId)) return;
+  data = { ...data, games: [record, ...data.games].sort((a, b) => b.at - a.at).slice(0, GAMES_KEPT) };
+  void flushLocalData().catch(() => {});
+}
+
+export function clearGameRecords(): void {
+  data = { ...data, games: [] };
   void flushLocalData().catch(() => {});
 }
