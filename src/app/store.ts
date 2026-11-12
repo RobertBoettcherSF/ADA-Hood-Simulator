@@ -1,3 +1,4 @@
+import { captureDevWeek, clearDevJournal } from './devJournal';
 import { autosaveName } from './instance';
 import { readTextureQuality, writeTextureQuality, type TextureQuality } from '../render/textureQuality';
 import { applyUiScale, readUiScale, writeUiScale } from './uiScale';
@@ -371,6 +372,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (livingCityOnFile() && typeof window !== 'undefined' && !window.confirm('Start a new city in this folder? The city already here will be replaced when the new one is saved.')) return;
     void (async () => {
     const sim = new Sim({ ...options, era: '1932' });
+    clearDevJournal();
     if (options.tutorialId == null && options.scenarioId == null) {
       try { await stampRivalPlaybook(sim.world); } catch { /* a missing diary leaves rivals as they are */ }
     }
@@ -798,6 +800,7 @@ export const useGame = create<GameState>((set, get) => ({
     }
     if (sim.world.phase !== 'week') {
       midWeekSave = { done: 0, minute: 0 };
+      if (!get().attract) captureDevWeek(sim.world);
       if (get().attract) {
         if (sim.world.phase === 'gameOver') get().endAttract();
         else { get().bump(); get().attractWeek(); }
@@ -831,6 +834,7 @@ export const useGame = create<GameState>((set, get) => ({
         lastUi = performance.now();
       }
     }
+    captureDevWeek(sim.world);
     if (sim.world.phase === 'planning') get().setTab('newspaper');
     set({ finishingWeek: false, paused: false, weekProgress: 1, screen: sim.world.phase === 'gameOver' ? 'gameOver' : 'game' });
     await get().autosave(true);
@@ -865,6 +869,7 @@ export const useGame = create<GameState>((set, get) => ({
         set({ weekProgress: progress });
       }
       markTiming('end-week', performance.now() - started);
+      captureDevWeek(sim.world);
       get().bump();
       if (phase() === 'planning') get().setTab('newspaper');
       set({
