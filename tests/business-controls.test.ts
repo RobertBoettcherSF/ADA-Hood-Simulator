@@ -7,6 +7,9 @@ import {financeNet,openFinances,receiveCash} from '../src/sim/finances';
 import {weeklyEconomy} from '../src/sim/systems/economy';
 import {buildingValue} from '../src/sim/execution';
 import {raidSite} from '../src/sim/systems/fbi';
+import {businessCarryingCost} from '../src/sim/businessState';
+/** The ceased cafe's weekly site cost at its block's land value. */
+const siteCost=(s:{w:Sim['world'];b:Sim['world']['buildings'][number]})=>businessCarryingCost(s.b,s.w.blocks[s.b.blockId].landValue);
 
 function fixture() {
   const sim=new Sim({...defaultGameOptions(),seed:404,citySize:10,startMoney:100_000});
@@ -28,17 +31,18 @@ describe('business costs and confirmed offers',()=>{
     const s=fixture();s.b.stock.counterfeit=2;setTrading(s.w,s.g.id,s.b.id,false);const cash=s.g.cash;
     weeklyEconomy(s.w,s.sim.rng);
     expect(s.g.lastWeekIncome.legal).toBe(0);expect(s.b.lastProfit).toBe(0);expect(s.b.stock.counterfeit).toBe(2);
-    expect(s.g.finances!.costs.wages).toBe(200);expect(s.g.finances!.costs.upkeep).toBe(31);
-    expect(s.g.finances!.closedSiteUpkeep).toBe(31);
-    expect(s.g.cash).toBe(cash-231);expect(s.g.finances!.taxableProfit).toBe(-231);
+    const c=siteCost(s);
+    expect(s.g.finances!.costs.wages).toBe(200);expect(s.g.finances!.costs.upkeep).toBe(c);
+    expect(s.g.finances!.closedSiteUpkeep).toBe(c);
+    expect(s.g.cash).toBe(cash-200-c);expect(s.g.finances!.taxableProfit).toBe(-200-c);
     expect(s.g.finances!.openingCash+financeNet(s.g.finances!)).toBe(s.g.cash);
   });
   it('retains site costs throughout a saved cease/restart week and deducts them before tax',()=>{
     const s=fixture();setTrading(s.w,s.g.id,s.b.id,false);setTrading(s.w,s.g.id,s.b.id,true);
     receiveCash(s.w,s.g,'legal',1000);const restored=Sim.fromSave(structuredClone(s.w));settle(restored);
-    const g=restored.playerGang,report=g.lastFinanceReport!;
-    expect(report.income.legal).toBe(1000);expect(report.costs.upkeep).toBe(31);
-    expect(report.taxableProfit).toBe(769);expect(report.costs.tax).toBe(185);
+    const g=restored.playerGang,report=g.lastFinanceReport!,c=siteCost(s);
+    expect(report.income.legal).toBe(1000);expect(report.costs.upkeep).toBe(c);
+    expect(report.taxableProfit).toBe(800-c);expect(report.costs.tax).toBe(Math.round((800-c)*0.24));
     expect(restored.world.buildings[s.b.id].state).toBe('trading');
     expect(report.openingCash+financeNet(report)).toBe(report.closingCash);
     const second=Sim.fromSave(structuredClone(restored.world));settle(second);
@@ -46,9 +50,10 @@ describe('business costs and confirmed offers',()=>{
     expect(second.playerGang.lastFinanceReport!.income.legal).toBeGreaterThan(0);
   });
   it('reports only the carrying costs actually paid when cash is short',()=>{
-    const s=fixture();setTrading(s.w,s.g.id,s.b.id,false);s.g.cash=120;openFinances(s.w,s.g);weeklyEconomy(s.w,s.sim.rng);
-    expect(s.g.finances!.costs.wages).toBe(100);expect(s.g.finances!.costs.upkeep).toBe(16);expect(s.g.cash).toBe(4);
-    expect(s.g.finances!.closedSiteUpkeep).toBe(16);
+    const s=fixture(),c=siteCost(s),half=Math.round((200+c)/2);
+    setTrading(s.w,s.g.id,s.b.id,false);s.g.cash=half+4;openFinances(s.w,s.g);weeklyEconomy(s.w,s.sim.rng);
+    expect(s.g.finances!.costs.wages).toBe(100);expect(s.g.finances!.costs.upkeep).toBe(half-100);expect(s.g.cash).toBe(4);
+    expect(s.g.finances!.closedSiteUpkeep).toBe(half-100);
   });
   it.each(['shutdown','sell'] as const)('stops site costs after %s while still paying the former manager',action=>{
     const s=fixture();setTrading(s.w,s.g.id,s.b.id,false);
@@ -87,13 +92,14 @@ describe('business costs and confirmed offers',()=>{
   });
   it('retains carrying costs after a federal closure until the operation is shut down',()=>{
     const s=fixture();raidSite(s.w,s.sim.rng,s.b);weeklyEconomy(s.w,s.sim.rng);
-    expect(s.g.finances!.closedSiteUpkeep).toBe(31);expect(s.g.lastWeekIncome.legal).toBe(0);
+    expect(s.g.finances!.closedSiteUpkeep).toBe(siteCost(s));expect(s.g.lastWeekIncome.legal).toBe(0);
   });
   it('retains the cost breakdown in saves, accepts older reports, and rejects impossible breakdowns',()=>{
     const s=fixture();setTrading(s.w,s.g.id,s.b.id,false);settle(s.sim);
-    const restored=Sim.fromSave(structuredClone(s.w));expect(restored.playerGang.lastFinanceReport!.closedSiteUpkeep).toBe(31);
+    const c=siteCost(s);
+    const restored=Sim.fromSave(structuredClone(s.w));expect(restored.playerGang.lastFinanceReport!.closedSiteUpkeep).toBe(c);
     delete restored.playerGang.lastFinanceReport!.closedSiteUpkeep;expect(()=>Sim.fromSave(structuredClone(restored.world))).not.toThrow();
-    for(const amount of [-1,32,Infinity]){
+    for(const amount of [-1,c+1,Infinity]){
       const state=structuredClone(s.w);state.gangs[s.g.id].lastFinanceReport!.closedSiteUpkeep=amount;
       expect(()=>Sim.fromSave(state)).toThrow();
     }
