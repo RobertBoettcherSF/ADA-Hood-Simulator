@@ -1,4 +1,5 @@
 import { ORDERS } from '../constants';
+import { noteMemberLoss } from '../memberLosses';
 import { availableOfficial, ensureCourtOfficials } from '../courtOfficials';
 import { availableSpecialist } from '../specialists';
 import { exposeTaxRecords } from './taxes';
@@ -74,6 +75,7 @@ function investigateCrimes(w: WorldState, rng: Rng, records = w.crimes): void {
     if (perp.orderId != null && w.orders[perp.orderId]?.opts.priority) risk *= 1.25;
 
     if (rng.chance(Math.max(0, Math.min(0.95, risk)))) {
+      noteMemberLoss(w, perp, 'arrested at the scene of a crime', 'the police');
       perp.status = 'arrested';
       perp.dest = null;
       perp.path = [];
@@ -240,6 +242,7 @@ function progressCases(w: WorldState, rng: Rng): void {
     if (prosecution > defence) {
       c.status = 'convicted';
       const isBoss = defendant.role === 'boss';
+      noteMemberLoss(w, defendant, `convicted of ${c.crime}`, 'the courts');
       defendant.status = 'jailed';
       defendant.jailWeeks = isBoss ? 999 : rng.int(2, 6);
       w.weekLog.push(`${defendant.name} was convicted of ${c.crime}.`);

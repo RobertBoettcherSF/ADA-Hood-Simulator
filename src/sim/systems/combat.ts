@@ -1,4 +1,5 @@
 import { INCIDENT_HOSTILITY, provoke } from '../aiStance';
+import { noteMemberLoss } from '../memberLosses';
 import { cityBlockAt } from '../cityLayout';
 import { inAmbushArea, isOnStreet, validAmbushTarget } from '../ambush';
 import { clearDestination } from '../movement';
@@ -242,6 +243,7 @@ export function tickCombat(
           // Original city: the officer takes him through the arrest contest (0x49A530).
           if (w.cityLayout?.original) { streetArrest(w, rng, a, b); continue; }
           if (b.vehicleKey) { dismount(w, b); if (onRoad(w, b.pos)) b.pos = pavementBeside(w, b.pos); }
+          noteMemberLoss(w, b, 'arrested in the street', a.role === 'fbi' ? 'the FBI' : 'the police');
           b.status = 'arrested';
           b.dest = null;
           b.path = [];

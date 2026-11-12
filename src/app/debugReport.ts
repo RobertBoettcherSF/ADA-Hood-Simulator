@@ -1,4 +1,5 @@
 import { ERA_2032_ENABLED, ACTIVE_ERA } from './era';
+import { formatMemberLoss, memberLosses } from '../sim/memberLosses';
 import { activeWorldStore, downloadText } from './worldFolder';
 import { recentActions } from './actionLog';
 import { slowestAssets } from './assetTiming';
@@ -245,6 +246,12 @@ export function buildDebugReport(world: WorldState | null, version: string, comm
     lines.push('');
     lines.push('Outcome');
     lines.push(world.outcome ? `${world.outcome.won ? 'won' : 'lost'}: ${world.outcome.reason} (score ${world.outcome.score})` : 'still playing');
+    lines.push('');
+    lines.push('Men lost (this session, player gang)');
+    const lossGang = Object.values(world.gangs).find((g) => g.isPlayer);
+    const lost = lossGang ? memberLosses(world, lossGang.id).slice(-40) : [];
+    if (!lost.length) lines.push('(none recorded)');
+    for (const l of lost) lines.push(`Week ${l.week}: ${formatMemberLoss(l)}`);
     lines.push('');
     lines.push('Recent week log');
     const log = world.weekLog.slice(-40);

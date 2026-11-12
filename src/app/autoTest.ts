@@ -47,11 +47,43 @@ import type { Building, WeaponId } from '../sim/types';
 import { BUILDING_BY_ID, ILLEGAL_TYPES } from '../sim/data/buildings';
 import { isValidAreaTarget } from '../sim/execution';
 import type { Sim } from '../sim/sim';
-import { dist, gangAssets, gangManpower, protectedBuildings, territoryCount } from '../sim/world';
+import { dist, gangAssets, gangManpower, gangMembers, protectedBuildings, territoryCount } from '../sim/world';
 import { buildingList } from '../sim/entityLists';
 import { MINUTES_PER_WEEK } from '../sim/constants';
 import { chooseGoal, formatGoalScores, GOAL_LABELS, GOAL_POLICY, GOAL_REVIEW_WEEKS, GOAL_STALL_PENALTY, goalScores, type VictoryGoal } from './autoGoals';
 import { canRunForOffice, electionBlocksRequired } from '../sim/systems/politics';
+
+const UNAVAILABLE = new Set(['dead', 'arrested', 'onTrial', 'jailed', 'kidnapped']);
+
+/**
+ * LOST lines for everyone who was in the gang and at liberty before the week
+ * and is now gone or out of action, with the cause and culprit when the sim
+ * recorded them. key groups them for the report's summary.
+ */
+export function lostLines(w: Sim['world'], gangId: number, before: Map<number, string>, sinceWeek: number): { text: string; key: string }[] {
+  const recorded = memberLosses(w, gangId, sinceWeek);
+  const out: { text: string; key: string }[] = [];
+  for (const [id, was] of before) {
+    const p = w.people[id];
+    if (!p || UNAVAILABLE.has(was)) continue;
+    const gone = p.gangId !== gangId;
+    if (!gone && !UNAVAILABLE.has(p.status)) continue;
+    const loss = [...recorded].reverse().find((l) => l.personId === id);
+    let cause = loss?.cause, by = loss?.by;
+    if (!cause) {
+      if (p.status === 'dead') cause = 'died';
+      else if (p.status === 'kidnapped') { cause = 'kidnapped'; by = p.capturedBy != null ? w.gangs[p.capturedBy]?.name : undefined; }
+      else if (p.status === 'arrested' || p.status === 'onTrial') { cause = 'arrested'; by = 'the police'; }
+      else if (p.status === 'jailed') { cause = 'jailed'; by = 'the courts'; }
+      else if (gone && p.gangId != null) { cause = 'joined another gang'; by = w.gangs[p.gangId]?.name; }
+      else cause = `left the gang (loyalty ${Math.round(p.loyalty)}, paid $${p.pay}, wanted $${p.payDemand})`;
+    }
+    const kind = /deserted|left the gang/.test(cause) ? 'deserted' : /arrest/.test(cause) ? 'arrested' : /convicted|jailed/.test(cause) ? 'jailed'
+      : /kidnap/.test(cause) ? 'kidnapped' : /sacked/.test(cause) ? 'sacked' : p.status === 'dead' ? 'killed' : 'lost';
+    out.push({ text: `LOST ${p.name} (${p.role}) — ${cause}${by ? ` [${by}]` : ''}`, key: `${kind}${by ? ` by ${by}` : ''}` });
+  }
+  return out;
+}
 
 /** The win Auto Test is playing for in each city, when it last looked, and every change of mind. */
 const goalOf = new WeakMap<Sim['world'], { goal: VictoryGoal; reviewedWeek: number; history: string[]; progress: number[] }>();
@@ -67,6 +99,7 @@ let pendingActions: PendingAction[] = [];
 /** Men the talent pass moved this run; the crew balancer leaves them where they are. */
 const talentPlaced = new Set<number>();
 export function currentActionRanks(): ActionRanks { return { ...actionRanks }; }
+import { memberLosses } from '../sim/memberLosses';
 import { availableSpecialist } from '../sim/specialists';
 import { queueSpecialistJob } from '../sim/specialistJobs';
 import { bribePrice, isBribableOfficial, refusesBribe } from '../sim/officials';
@@ -976,6 +1009,8 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   const actions: string[] = [];
   const notes: string[] = [];
   const weeks: AutoTestWeek[] = [];
+  /** Men lost this run, by cause and culprit. */
+  const lostTally = new Map<string, number>();
   let flatRecruit = 0;
   let dryRecruit = 0;
   const cap = settings.weeks == null ? Infinity : Math.min(settings.weeks, AUTO_TEST_MAX_WEEKS);
@@ -988,6 +1023,8 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     if (stopAfterThisWeek) { stoppedThisRun = true; notes.push('Stopped before another week. The desk is yours.'); break; }
     if (sim.world.phase !== 'planning') break;
     const menBefore = gangManpower(sim.world, sim.playerGang);
+    const rosterBefore = new Map(gangMembers(sim.world, sim.playerGang).map((p) => [p.id, p.status] as const));
+    const weekBefore = sim.world.week;
     const poolBefore = sim.playerGang.poolIds.length;
     try {
       actions.push(`-- week ${sim.world.week}`);
@@ -1025,6 +1062,10 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       noteWeekHeap(weekSnap.week, memory.heap.used, memory.heap.total);
     }
     weeks.push(weekSnap);
+    for (const line of lostLines(sim.world, sim.playerGang.id, rosterBefore, weekBefore)) {
+      actions.push(line.text);
+      lostTally.set(line.key, (lostTally.get(line.key) ?? 0) + 1);
+    }
     rememberRecruitResults(
       sim.world.lastWeekOrders.filter((order) => order.gangId === sim.playerGang.id),
       sim.world.week,
@@ -1065,6 +1106,8 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   }
   const goalNow = autoTestGoal(sim.world);
   if (goalNow) notes.push(`Goal: ${goalNow.goal} (${GOAL_LABELS[goalNow.goal]}). History: ${goalNow.history.join('; ')}.`);
+  if (lostTally.size) notes.push(`Men lost: ${[...lostTally].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${k}`).join(', ')}.`);
+  else notes.push('Men lost: none.');
   notes.push(`Action ranks: ${ACTION_KEYS.map((key) => `${key} ${ranksAtStart[key]}→${actionRanks[key]}`).join(', ')}.`);
   const odd = weeks.filter((week) => !Number.isFinite(week.cash) || !Number.isFinite(week.men) || week.cash < 0 || week.men < 0);
   for (const week of odd) notes.push(`Suspicious: week ${week.week} cash ${week.cash} men ${week.men}.`);

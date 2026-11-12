@@ -1,4 +1,5 @@
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
+import { noteMemberLoss } from './memberLosses';
 import { huntStops, whereaboutsUnknown } from './execution';
 export { huntStops, whereaboutsUnknown };
 import { LEFT_GANG, NO_ORIGINAL_CHANNEL, opinionSet } from './attitudes';
@@ -479,6 +480,7 @@ export function sackPerson(w: WorldState, gangId: ID, personId: ID): ApiResult {
   const gang = w.gangs[gangId];
   const p = w.people[personId];
   if (!gang || !p) return fail('No such person.');
+  noteMemberLoss(w, p, 'sacked', gang.name);
   defect(w, gang, personId);
   // defect() already applied the original's leaving-the-gang hostility.
   opinionSet(p, gangId, Math.min(-40, (p.opinion[gangId] ?? 0) - 40), NO_ORIGINAL_CHANNEL);

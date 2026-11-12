@@ -1,4 +1,5 @@
 import { effectiveHostility, fearOf, hostilityOf, LEFT_GANG, opinionSet, setAttitude, shiftAttitude } from '../attitudes';
+import { noteMemberLoss } from '../memberLosses';
 import { ECONOMY_MULT } from '../constants';
 import { goodsRetailer } from '../goodsStorage';
 import { BUILDING_BY_ID } from '../data/buildings';
@@ -303,6 +304,7 @@ function applyLoyalty(w: WorldState, gang: Gang, paidFraction: number): void {
   // Desertions.
   for (const p of gangMembers(w, gang)) {
     if (p.role === 'boss' || p.loyalty > (w.cityLayout?.original ? ORIGINAL_DESERTION_LOYALTY : 14)) continue;
+    noteMemberLoss(w, p, `deserted: loyalty ${Math.round(p.loyalty)}; paid $${p.pay}, wanted $${p.payDemand}${paidFraction < 1 ? '; wages short this week' : ''}`, 'his own gang');
     defect(w, gang, p.id);
     if (gang.isPlayer) w.weekLog.push(`${p.name} walked out on ${gang.name}.`);
     if (gang.isPlayer) addMessage(w, 'failed', `${p.name} has deserted you.`);
