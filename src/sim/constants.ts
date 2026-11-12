@@ -197,7 +197,7 @@ export const ORDERS: Record<OrderType, OrderDef> = {
     maxManpower: 2,
     group: 'business',
     name: 'Buy Premises',
-    desc: 'Buy empty land, a warehouse, or a commercial, industrial or tenement site within two blocks of your territory.',
+    desc: 'Buy empty land, a warehouse, or a commercial, industrial or tenement site anywhere in the city.',
     minutesPerTarget: 250,
     target: 'building',
     skills: ['business', 'organization'],

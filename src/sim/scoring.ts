@@ -30,13 +30,29 @@ export function recordCashPeak(w: WorldState, gang: Gang): void {
   if (gang.scorePeaks) gang.scorePeaks.cash = Math.max(gang.scorePeaks.cash, gang.cash);
 }
 
+/** The win bonus by kind of win (1.2.20): the manual ranks domination
+ * highest, the mayoralty next and going straight lowest. A short game's win
+ * (power, wealth or territory) is its only win and takes the top bonus. */
+export const WIN_BONUS = { domination: 60, mayor: 50, power: 60, race: 60, straight: 40 } as const;
+/** The most the gang's showing adds to a win (territory, men and cash). */
+export const WIN_SHOWING = 40;
+
 /** Manual p.83 specifies the factors, not their weights. This remake gives
- * equal weight to each factor's final and best capped contribution. */
-export function finalScore(current: ScoreMeasures, best: ScoreMeasures, won: boolean, winBonus: number): number {
+ * equal weight to each factor's final and best capped contribution (up to 55
+ * points). A loss is that showing less 10, so 0 to 45. A win is its bonus plus
+ * the showing scaled to at most WIN_SHOWING, so every win outscores every loss
+ * and, for the same showing, domination > mayor > going straight. */
+/** The gang's showing alone, 0 to 55: territory, men and cash, now and at best. */
+export function showingScore(current: ScoreMeasures, best: ScoreMeasures): number {
   const contribution = (now: number, peak: number, scale: number, cap: number) =>
     (Math.min(cap, Math.max(0, now) * scale) + Math.min(cap, Math.max(0, peak, now) * scale)) / 2;
-  const score = (won ? winBonus : -10) + contribution(current.territory, best.territory, 1 / 8, 20) +
+  return contribution(current.territory, best.territory, 1 / 8, 20) +
     contribution(current.manpower, best.manpower, .7, 15) + contribution(current.cash, best.cash, 1 / 30_000, 20);
+}
+
+export function finalScore(current: ScoreMeasures, best: ScoreMeasures, won: boolean, winBonus: number): number {
+  const showing = showingScore(current, best);
+  const score = won ? winBonus + showing * WIN_SHOWING / 55 : showing - 10;
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
@@ -50,5 +66,5 @@ export function gameScoreNow(w: WorldState): number {
   best.cash = Math.max(best.cash, current.cash);
   best.territory = Math.max(best.territory, current.territory);
   best.manpower = Math.max(best.manpower, current.manpower);
-  return finalScore(current, best, true, 0);
+  return Math.max(0, Math.min(100, Math.round(showingScore(current, best))));
 }

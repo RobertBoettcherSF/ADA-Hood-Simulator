@@ -9,10 +9,18 @@ import { GO_STRAIGHT_ASSETS } from '../sim/constants';
 import { availableSpecialist } from '../sim/specialists';
 import { electionBlocksRequired } from '../sim/systems/politics';
 import type { Gang, WorldState } from '../sim/types';
-import { gangAssets, gangManpower, territoryCount } from '../sim/world';
+import { gangAssets, gangManpower, gangWealth, powerRating, territoryCount } from '../sim/world';
 
-export type VictoryGoal = 'office' | 'straight' | 'eliminate';
+export type VictoryGoal = 'office' | 'straight' | 'eliminate' | 'wealth' | 'territory' | 'power';
+/** The full game's three wins. */
 export const VICTORY_GOALS: readonly VictoryGoal[] = ['office', 'straight', 'eliminate'];
+/** A short game has one win: its own race (1.2.20). */
+export const MODE_GOAL: Partial<Record<string, VictoryGoal>> = { wealth: 'wealth', territory: 'territory', power: 'power' };
+/** The goals open in this game's mode. */
+export function goalsFor(w: WorldState): readonly VictoryGoal[] {
+  const only = MODE_GOAL[w.options.mode];
+  return only ? [only] : VICTORY_GOALS;
+}
 
 export interface GoalPolicy {
   /** Share of the crews sent to take new blocks, and the size of each area (1 = normal). */
@@ -27,10 +35,18 @@ export const GOAL_POLICY: Record<VictoryGoal, GoalPolicy> = {
   office: { expansion: 1.5, violence: 'normal', illegal: true },
   straight: { expansion: 0.6, violence: 'low', illegal: false },
   eliminate: { expansion: 1, violence: 'high', illegal: true },
+  // Wealth race: cash plus assets. Rackets pay best, premises count as assets;
+  // fighting only costs men and money.
+  wealth: { expansion: 0.8, violence: 'low', illegal: true },
+  // Territory race: blocks, as many and as fast as the crews can take them.
+  territory: { expansion: 2, violence: 'normal', illegal: true },
+  // Power: wealth/1000 + blocks × 3 + men × 4 — grow on every front.
+  power: { expansion: 1.5, violence: 'normal', illegal: true },
 };
 
 export const GOAL_LABELS: Record<VictoryGoal, string> = {
   office: 'run for office', straight: 'go straight', eliminate: 'eliminate the rivals',
+  wealth: 'win the wealth race (cash plus assets)', territory: 'win the territory race (blocks)', power: 'be the most powerful when the clock runs out',
 };
 
 /** Weeks between reviews of the goal. */
@@ -56,7 +72,14 @@ export function goalScores(w: WorldState, gang: Gang): Record<VictoryGoal, numbe
     ? Math.min(1, gangManpower(w, gang) / strongest / 2) * 0.7 + (rivals.length ? (rivals.length - alive.length) / rivals.length : 0) * 0.5
     : 0;
   const round = (n: number) => Math.round(n * 100) / 100;
-  return { office: round(office), straight: round(straight), eliminate: round(eliminate) };
+  // Short games: only the mode's own race counts.
+  const o = w.options;
+  const wealth = o.mode === 'wealth' ? Math.min(1, gangWealth(w, gang) / Math.max(1, o.wealthTarget)) : 0;
+  const territory = o.mode === 'territory' ? Math.min(1, territoryCount(w, gang.id) / Math.max(1, o.territoryTarget)) : 0;
+  const best = Math.max(1, ...alive.map((g) => powerRating(w, g)));
+  const power = o.mode === 'power' ? Math.min(1, powerRating(w, gang) / best / 1.2) : 0;
+  return { office: round(office), straight: round(straight), eliminate: full ? round(eliminate) : 0,
+    wealth: round(wealth), territory: round(territory), power: round(power) };
 }
 
 /** The goal to play for: the best scorer, unless the current one is within the margin. */
@@ -71,13 +94,16 @@ export const GOAL_DROP_WEEKS = 12;
 export function chooseGoal(w: WorldState, gang: Gang, current?: VictoryGoal, stalled = false, excluded: readonly VictoryGoal[] = []): { goal: VictoryGoal; scores: Record<VictoryGoal, number> } {
   const scores = goalScores(w, gang);
   if (current && stalled) scores[current] = Math.max(0, Math.round((scores[current] - GOAL_STALL_PENALTY) * 100) / 100);
-  const open = VICTORY_GOALS.filter((g) => !excluded.includes(g));
-  if (current && excluded.includes(current)) current = undefined;
-  const best = [...(open.length ? open : VICTORY_GOALS)].sort((a, b) => scores[b] - scores[a] || VICTORY_GOALS.indexOf(a) - VICTORY_GOALS.indexOf(b))[0];
+  const goals = goalsFor(w);
+  // A short game never drops its only goal.
+  if (goals.length === 1) return { goal: goals[0], scores };
+  const open = goals.filter((g) => !excluded.includes(g));
+  if (current && (excluded.includes(current) || !goals.includes(current))) current = undefined;
+  const best = [...(open.length ? open : goals)].sort((a, b) => scores[b] - scores[a] || goals.indexOf(a) - goals.indexOf(b))[0];
   if (current && scores[best] - scores[current] < GOAL_SWITCH_MARGIN) return { goal: current, scores };
   return { goal: best, scores };
 }
 
-export function formatGoalScores(scores: Record<VictoryGoal, number>): string {
-  return VICTORY_GOALS.map((g) => `${g} ${scores[g]}`).join(', ');
+export function formatGoalScores(scores: Record<VictoryGoal, number>, goals: readonly VictoryGoal[] = VICTORY_GOALS): string {
+  return goals.map((g) => `${g} ${scores[g]}`).join(', ');
 }

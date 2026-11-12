@@ -41,18 +41,19 @@ export function takeAutoTestStopped(): boolean {
 }
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
-import { BUY_REACH_BLOCKS, buySnitchInfo, canGoStraight, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, moveToTeam, nearTerritory, promote, transferWeapon, type ApiResult, type IssueOrderInput } from '../sim/api';
+import { buySnitchInfo, canGoStraight, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, issueStreetOrder, moveToPool, moveToTeam, nearTerritory, promote, sackPerson, transferWeapon, type ApiResult, type IssueOrderInput } from '../sim/api';
 import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, carMinutesSaved, crewNames, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, talentSwaps, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
 import { DRIVE_SPEED, GO_STRAIGHT_ASSETS, VEHICLES, WALK_SPEED, WEAPONS } from '../sim/constants';
 import type { Building, WeaponId } from '../sim/types';
 import { BUILDING_BY_ID, ILLEGAL_TYPES } from '../sim/data/buildings';
 import { isValidAreaTarget } from '../sim/execution';
 import type { Sim } from '../sim/sim';
-import { dist, gangAssets, gangManpower, gangMembers, protectedBuildings, territoryCount } from '../sim/world';
+import { buildingDoor, dist, gangAssets, gangManpower, gangMembers, protectedBuildings, territoryBlocks, territoryCount } from '../sim/world';
+import { effectiveHostility } from '../sim/attitudes';
 import { buildingList, peopleList } from '../sim/entityLists';
 import { MINUTES_PER_WEEK } from '../sim/constants';
-import { chooseGoal, formatGoalScores, GOAL_LABELS, GOAL_POLICY, GOAL_DROP_WEEKS, GOAL_REVIEW_WEEKS, GOAL_STALL_DROP, GOAL_STALL_PENALTY, goalScores, type VictoryGoal } from './autoGoals';
-import { canRunForOffice, electionBlocksRequired } from '../sim/systems/politics';
+import { chooseGoal, formatGoalScores, goalsFor, GOAL_LABELS, GOAL_POLICY, GOAL_DROP_WEEKS, GOAL_REVIEW_WEEKS, GOAL_STALL_DROP, GOAL_STALL_PENALTY, goalScores, type VictoryGoal } from './autoGoals';
+import { campaignWeeklyCost, canRunForOffice, electionBlocksRequired } from '../sim/systems/politics';
 
 const UNAVAILABLE = new Set(['dead', 'arrested', 'onTrial', 'jailed', 'kidnapped']);
 
@@ -372,8 +373,33 @@ const suspicionLastWeek = new WeakMap<Sim['world'], number>();
 function crewReady(w: Sim['world'], teamId: number): boolean {
   const team = w.teams[teamId];
   const lt = team ? w.people[team.lieutenantId] : undefined;
-  return !!lt && lt.status !== 'dead' && lt.status !== 'jailed' && lt.status !== 'kidnapped';
+  // A lieutenant in custody or before a court cannot lead (1.2.20: arrested and onTrial too).
+  return !!lt && lt.status === 'active';
 }
+
+/**
+ * Street heat (1.2.20). A policeman takes a man in when his wanted level, less
+ * half the officer's opinion of the gang, passes 45; in the original city the
+ * arrest takes the man's whole crew with him, wherever they are. Auto Test
+ * reads the same sum (with the police's average opinion) and rests a man well
+ * before that line.
+ */
+export const STREET_HEAT_REST = 30;
+/** A resting man goes back to work once his street heat is below this. */
+export const STREET_HEAT_BACK = 15;
+/** Resting only helps a man with his own wanted level: below this, his heat is
+ * the police's opinion of the gang, which no rest can cool. */
+export const REST_WANTED = 10;
+/** A man who killed an FBI agent and is this wanted is sacked rather than hidden. */
+export const SACK_WANTED = 80;
+export function streetHeat(wanted: number, policeOpinion: number): number {
+  return wanted - policeOpinion * 0.5;
+}
+/** Men resting in the pool until their street heat falls, and FBI hitmen. */
+const resting = new WeakMap<Sim['world'], Set<number>>();
+const fbiHitmen = new WeakMap<Sim['world'], Set<number>>();
+/** The rival gang that last killed our men, and until which week Auto strikes back. */
+const retaliation = new WeakMap<Sim['world'], { gangId: number; until: number }>();
 
 /**
  * One Monday at the desk, using hire, promote, and issueOrder.
@@ -411,16 +437,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const { goal, scores } = chooseGoal(w, gang, before, stalled, excluded);
     if (stalled && stalls < GOAL_STALL_DROP) actions.push(`NOTE goal ${before} has stalled — it counts ${GOAL_STALL_PENALTY} less this review`);
     if (!goalState) {
-      goalState = { goal, reviewedWeek: w.week, history: [`week ${w.week}: ${goal} (${formatGoalScores(scores)})`], progress: [], stalls: 0, dropped: [] };
+      goalState = { goal, reviewedWeek: w.week, history: [`week ${w.week}: ${goal} (${formatGoalScores(scores, goalsFor(w))})`], progress: [], stalls: 0, dropped: [] };
       goalOf.set(w, goalState);
-      actions.push(`GOAL ${goal} — ${GOAL_LABELS[goal]} (${formatGoalScores(scores)})`);
+      actions.push(`GOAL ${goal} — ${GOAL_LABELS[goal]} (${formatGoalScores(scores, goalsFor(w))})`);
     } else {
       goalState.reviewedWeek = w.week;
       if (goal !== before) {
-        goalState.history.push(`week ${w.week}: ${before} → ${goal} (${formatGoalScores(scores)})`);
-        actions.push(`GOAL switch ${before} → ${goal} — ${GOAL_LABELS[goal]} now fits better (${formatGoalScores(scores)})`);
+        goalState.history.push(`week ${w.week}: ${before} → ${goal} (${formatGoalScores(scores, goalsFor(w))})`);
+        actions.push(`GOAL switch ${before} → ${goal} — ${GOAL_LABELS[goal]} now fits better (${formatGoalScores(scores, goalsFor(w))})`);
       } else {
-        actions.push(`GOAL kept ${goal} (${formatGoalScores(scores)})`);
+        actions.push(`GOAL kept ${goal} (${formatGoalScores(scores, goalsFor(w))})`);
       }
       if (goal !== goalState.goal) { goalState.progress = []; goalState.stalls = 0; }
       else goalState.stalls = stalls;
@@ -461,6 +487,64 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const shrinking = rebuild || menNow < 12 || (lastMen != null && menNow < lastMen);
   menLastWeek.set(w, menNow);
 
+  // The lawyer and the accountant stay at the office: never in the pool or a
+  // crew, never on a street or crew order (1.2.20). They leave only for the
+  // lawyer's bribes and the accountant's audits (specialist jobs).
+  for (const id of [gang.lawyerId, gang.accountantId]) {
+    const p = id == null ? undefined : w.people[id];
+    if (!p) continue;
+    const inPool = gang.poolIds.includes(p.id);
+    const crew = crewsOf().find((team) => team.memberIds.includes(p.id));
+    if (inPool || crew || p.teamId != null) {
+      gang.poolIds = gang.poolIds.filter((x) => x !== p.id);
+      if (crew) crew.memberIds = crew.memberIds.filter((x) => x !== p.id);
+      p.teamId = null;
+      actions.push(`NOTE ${p.role} ${p.name} taken off ${crew ? 'a crew' : 'the pool'} — he stays at the office`);
+    }
+    if (p.streetOrder) { p.streetOrder = null; actions.push(`NOTE ${p.role} ${p.name} called back from the street`); }
+  }
+
+  // Street heat (1.2.20): a man near the police's arrest line rests in the pool,
+  // off every order, so his wanted level cools 6 a week instead of 2 and an
+  // arrest cannot take a whole crew with him. A lieutenant that hot rests with
+  // his crew (below). A man who killed an FBI agent rests the same way, or is
+  // sacked if he is too wanted to cool.
+  const police = w.policeIds.map((id) => w.people[id]).filter((p) => p && p.status === 'active');
+  const policeOpinion = police.length ? police.reduce((sum, p) => sum + (p.opinion[gang.id] ?? 0), 0) / police.length : 0;
+  const heatOfMan = (id: number) => { const p = w.people[id]; return p ? streetHeat(p.wanted, policeOpinion) : 0; };
+  const restingMen = resting.get(w) ?? new Set<number>();
+  resting.set(w, restingMen);
+  const hitmen = fbiHitmen.get(w) ?? new Set<number>();
+  fbiHitmen.set(w, hitmen);
+  for (const id of [...hitmen]) {
+    const p = w.people[id];
+    if (!p || p.gangId !== gang.id || p.status !== 'active') { hitmen.delete(id); continue; }
+    if (p.wanted >= SACK_WANTED) {
+      const result = sackPerson(w, gang.id, id);
+      logResult(actions, `sack ${p.name} — killed an FBI agent and is too wanted to hide (wanted ${Math.round(p.wanted)})`, result.ok, result.ok ? result.message ?? '' : result.error);
+      if (result.ok) { hitmen.delete(id); restingMen.delete(id); }
+    }
+  }
+  for (const team of crewsOf()) {
+    for (const id of [...team.memberIds]) {
+      const p = w.people[id];
+      if (!p || p.status !== 'active' || heatOfMan(id) < STREET_HEAT_REST || p.wanted < REST_WANTED) continue;
+      const result = moveToPool(w, gang.id, id);
+      if (result.ok) restingMen.add(id);
+      logResult(actions, `rest ${p.name} (street heat ${Math.round(heatOfMan(id))}) — off the street so an arrest cannot take his crew`, result.ok, result.ok ? '' : result.error);
+    }
+  }
+  for (const id of [...restingMen]) {
+    const p = w.people[id];
+    if (!p || p.gangId !== gang.id || p.status !== 'active' || !gang.poolIds.includes(id)) { restingMen.delete(id); continue; }
+    if ((heatOfMan(id) < STREET_HEAT_BACK || p.wanted < REST_WANTED / 2) && !(hitmen.has(id) && p.wanted > 5)) { restingMen.delete(id); hitmen.delete(id); }
+  }
+  if (restingMen.size) actions.push(`NOTE ${restingMen.size} m${restingMen.size === 1 ? 'an' : 'en'} resting in the pool until the street heat dies down`);
+  // The police's opinion of the gang raises every man's heat alike: resting
+  // cannot cool it, buying the chief and quieter work can.
+  const policeHostile = -policeOpinion * 0.5 >= 20;
+  if (policeHostile) actions.push(`NOTE the police are hostile (opinion ${Math.round(policeOpinion)}): every man starts ${Math.round(-policeOpinion * 0.5)} nearer arrest — the chief gets paid`);
+
   const shortLastWeekCrews = lastMonday.get(w)?.timeShort ?? false;
   // Enough lieutenants for the men: one crew per five hoods, at least two, at most eight.
   if (weight.hiring >= 0.2) {
@@ -469,7 +553,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // when last week's collecting ran out of time — never more crews than pairs of men.
     const wanted = () => Math.min(8, Math.max(2, Math.floor(hoods() / 2)), Math.max(3, Math.ceil(hoods() / 4), hoods() >= 18 ? 6 : 0) + (shortLastWeekCrews ? 1 : 0));
     for (let tries = 0; tries < 3 && gang.teamIds.length < wanted(); tries++) {
-      const fromPool = gang.poolIds.length ? rng.pick(gang.poolIds) : undefined;
+      const poolFree = gang.poolIds.filter((id) => !restingMen.has(id));
+      const fromPool = poolFree.length ? rng.pick(poolFree) : undefined;
       const biggest = crewsOf().filter((team) => team.memberIds.length >= 4).sort((a, b) => b.memberIds.length - a.memberIds.length)[0];
       const id = fromPool ?? biggest?.memberIds[biggest.memberIds.length - 1];
       if (id == null) break;
@@ -478,6 +563,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (!result.ok) break;
     }
     for (const id of [...gang.poolIds]) {
+      if (restingMen.has(id)) continue;
       const crew = crewsOf().filter((team) => team.memberIds.length < 8).sort((a, b) => a.memberIds.length - b.memberIds.length)[0];
       if (!crew) break;
       const result = moveToTeam(w, gang.id, id, crew.id);
@@ -529,7 +615,12 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if ((gang.weapons.explosives ?? 0) > 0) while ((gang.weapons.explosives ?? 0) > 0 && transferWeapon(w, gang.id, 'explosives', muscleCrew.id, true).ok) { /* and the dynamite */ }
   }
 
-  const ready = crewsOf().filter((team) => crewReady(w, team.id));
+  // At most half the crews rest at once (the most wanted first), so the takings keep coming in.
+  const hotCrews = crewsOf().filter((team) => crewReady(w, team.id) && heatOfMan(team.lieutenantId) >= STREET_HEAT_REST && (w.people[team.lieutenantId]?.wanted ?? 0) >= REST_WANTED)
+    .sort((a, b) => (w.people[b.lieutenantId]?.wanted ?? 0) - (w.people[a.lieutenantId]?.wanted ?? 0))
+    .slice(0, Math.floor(crewsOf().filter((team) => crewReady(w, team.id)).length / 2));
+  if (hotCrews.length) actions.push(`NOTE crew${hotCrews.length === 1 ? '' : 's'} lying low (lieutenant's street heat ${STREET_HEAT_REST}+): ${hotCrews.map((team) => `${w.people[team.lieutenantId]?.name ?? team.id} ${Math.round(heatOfMan(team.lieutenantId))}`).join(', ')}`);
+  const ready = crewsOf().filter((team) => crewReady(w, team.id) && !hotCrews.includes(team));
   if (!ready.length) {
     actions.push('FAIL orders — no crew');
     return actions;
@@ -631,6 +722,33 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     w.week,
   );
 
+  // FBI agents at our rackets (1.2.20). The FBI cannot be bought, so an agent
+  // searching or watching one of our illegal businesses (or standing at its
+  // door) is shot by one expendable hood: the least skilled man at liberty,
+  // taken off his crew first so an arrest takes nobody else, given a pistol
+  // from the gang's stock. Afterwards he rests until the heat dies down, or is
+  // sacked if he is too wanted (above). One a week.
+  {
+    const ours = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.cls === 'illegal' && b.state !== 'destroyed' && !b.isHQ);
+    const watched = new Set(ours.flatMap((b) => (b.frontId != null ? [b.id, b.frontId] : [b.id])));
+    const agents = w.fbiIds.map((id) => w.people[id]).filter((a): a is NonNullable<typeof a> => !!a && a.status === 'active' &&
+      ((a.fbiAssignment != null && watched.has(a.fbiAssignment.buildingId)) || ours.some((b) => dist(a.pos, buildingDoor(w, b)) <= 30)));
+    if (agents.length && !lieLow) {
+      const agent = agents[0];
+      const total = (p: NonNullable<(typeof w.people)[number]>) => Object.values(p.skills).reduce((a, b) => a + b, 0);
+      const hood = crewsOf().flatMap((team) => team.memberIds).map((id) => w.people[id])
+        .filter((p): p is NonNullable<typeof p> => !!p && p.status === 'active' && p.role === 'hood' && !restingMen.has(p.id))
+        .sort((a, b) => total(a) - total(b) || a.id - b.id)[0];
+      if (hood) {
+        moveToPool(w, gang.id, hood.id);
+        if ((gang.weapons.pistol ?? 0) < 1 && gang.cash > WEAPONS.pistol.cost) buyWeapon(w, gang.id, 'pistol');
+        const result = issueStreetOrder(w, gang.id, [hood.id], 'kill', agent.id, null);
+        logResult(actions, `FBI agent ${agent.name} at our ${agent.fbiAssignment ? `${agent.fbiAssignment.kind} site` : 'racket'} — ${hood.name} (expendable) sent to kill him; the FBI cannot be bought`, result.ok, result.ok ? '' : result.error);
+        if (result.ok) { hitmen.add(hood.id); restingMen.add(hood.id); }
+      }
+    } else if (agents.length) actions.push(`NOTE FBI agent ${agents[0].name} at one of our rackets — lying low, nobody sent`);
+  }
+
   // The lawyer only does a lawyer's work (courts and officials, from the office) and
   // never goes on the street. A lost lawyer (arrested, jailed, dead or gone) is
   // replaced before anything else; with heat rising, he is hired early.
@@ -640,7 +758,20 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const desks = buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'lawyer' && b.state !== 'destroyed').sort(nearer);
     const desk = desks.length ? desks[w.week % desks.length] : undefined;
     if (gang.lawyerId != null) actions.push(`NOTE lawyer ${lawyerNow?.name ?? ''} lost (${lawyerNow?.status ?? 'gone'}) — hiring a new one first`);
-    if (desk) give('recruit lawyer', freest(), { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'lawyer' } });
+    const sent = desk ? give('recruit lawyer', freest(), { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'lawyer' } }) : undefined;
+    // Nobody free to fetch one, or a trial already running: the boss hires a
+    // lawyer himself at once (as the computer bosses do), so the court can still
+    // be bought. A lawyer the crews already found comes first.
+    const trialNow = Object.values(w.cases ?? {}).some((c) => c.gangId === gang.id && ['awaiting', 'onTrial'].includes(c.status));
+    if (!sent?.ok || (trialNow && gang.lawyerId != null)) {
+      const free = (p: (typeof w.people)[number] | undefined) => !!p && p.role === 'lawyer' && p.gangId == null && p.status === 'active';
+      const found = gang.recruitIds.map((id) => w.people[id]).find(free)
+        ?? peopleList(w).filter((p) => free(p)).sort((a, b) => b.skills.intelligence - a.skills.intelligence || a.id - b.id)[0];
+      if (found) {
+        const result = hireRecruit(w, gang.id, found.id, 'pool');
+        logResult(actions, `the boss hires lawyer ${found.name} himself (${sent?.ok ? 'a trial is running' : 'no crew free to fetch one'})`, result.ok, result.ok ? result.message ?? '' : result.error);
+      } else actions.push('NOTE no lawyer for hire anywhere in the city this week');
+    }
   }
 
   const hq = buildingList(w).find((b) => b.isHQ && b.ownerGangId === gang.id);
@@ -665,7 +796,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // choose which. Past SUSPICION_BRIBE the lawyer pays the police chief, and a
   // rich gang buys the mayor so fewer police walk its patch.
   const openCases = Object.values(w.cases ?? {}).filter((c) => c.gangId === gang.id && ['awaiting', 'onTrial'].includes(c.status));
-  const hot = heat >= 1 || openCases.length > 0;
+  // Hot men on the street count too: the chief is paid before the police start taking crews.
+  const streetHot = hotCrews.length > 0 || policeHostile || [...restingMen].some((id) => heatOfMan(id) >= STREET_HEAT_REST);
+  const hot = heat >= 1 || openCases.length > 0 || streetHot;
   const lawyer = availableSpecialist(w, gang, 'lawyer');
   const buyable = (id: number | undefined, share: number) => {
     const o = id == null ? undefined : w.people[id];
@@ -724,6 +857,17 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   } else if (hot && gang.lawyerId == null) {
     actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} and no lawyer yet`);
   }
+  // Hostile police take any of our men on sight: the lawyer puts the officers
+  // on our own beats on the payroll (a paid officer makes no arrests), the
+  // blocks nearest the office first. A bribe, so a lawyer's errand.
+  if (policeHostile && lawyer && gang.cash > 8000) {
+    const beats = territoryBlocks(w, gang.id).sort((a, b) => dist(a.center, origin) - dist(b.center, origin)).slice(0, 6).map((block) => block.id);
+    const onPayroll = police.filter((p) => p.employedBy === gang.id).length;
+    if (beats.length && onPayroll < 12) {
+      const result = queueSpecialistJob(w, gang.id, 'employPolice', null, beats);
+      logResult(actions, `lawyer puts the police on our ${beats.length} nearest blocks on the payroll (${onPayroll} already paid)`, result.ok, result.ok ? result.message ?? '' : result.error);
+    }
+  }
   if (lawyer && gang.cash > 40000) {
     const mayor = buyable(w.mayorId, 0.3);
     if (mayor) {
@@ -751,7 +895,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       let projected = assetsNow;
       const value = (b: Building) => (BUILDING_BY_ID[b.typeId]?.cost ?? 0) * (0.6 + (w.blocks[b.blockId]?.landValue ?? 0) / 100);
       const picks = buildingList(w).filter((b) => b.ownerGangId == null && b.state === 'trading' && ['commercial', 'industrial', 'tenement'].includes(b.cls) &&
-        (BUILDING_BY_ID[b.typeId]?.cost ?? 0) > 0 && nearTerritory(w, gang.id, b.blockId, BUY_REACH_BLOCKS))
+        (BUILDING_BY_ID[b.typeId]?.cost ?? 0) > 0)
         .sort((a, b) => value(b) / (BUILDING_BY_ID[b.typeId]!.cost) - value(a) / (BUILDING_BY_ID[a.typeId]!.cost) || value(b) - value(a));
       const chosen: Building[] = [];
       for (const b of picks) {
@@ -768,7 +912,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         if (ready.length > used.size + 1) used.add(team.id);
         give(`go straight: buy ${b.typeId}`, team, { type: 'buyPremises', buildingIds: [b.id] });
       }
-      if (!chosen.length) actions.push('NOTE going straight: no legal premises for sale within reach');
+      if (!chosen.length) actions.push('NOTE going straight: no legal premises for sale');
     }
   }
 
@@ -778,6 +922,14 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const expansion = officeClose ? Math.max(2, policy.expansion) : policy.expansion;
   if (officeClose) actions.push(`NOTE ${territoryCount(w, gang.id)} of ${blocksNeeded} blocks for the mayoralty — every crew pushes for the last ones`);
   const easing = (heat >= 1 && !officeClose) || lieLow;
+  // The mayoral campaign (1.2.20): the blocks the election asks for, a business
+  // of our own across them (our own manager is never hostile at the poll),
+  // gentle collecting so the shopkeepers stay friendly, a Teamsters business
+  // (behind a trade union for full weight), and the cash to fund the race.
+  const campaign = goal === 'office' && w.options.mode === 'normal';
+  const campaignReserve = campaign && (w.election.active || territoryCount(w, gang.id) >= blocksNeeded * 0.7)
+    ? campaignWeeklyCost(w, gang.id) * Math.max(4, (w.election.active ? w.election.weeksLeft : 0) + 1) : 0;
+  if (campaign) actions.push(`NOTE campaign: ${territoryCount(w, gang.id)} of ${blocksNeeded} blocks${w.election.active ? `, election under way (${w.election.weeksLeft} weeks left)` : ''}${campaignReserve ? `; $${campaignReserve} kept for the campaign` : ''}`);
   if (lieLow) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''} — lying low: collecting and legal buying only`);
   else if (easing) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''} — extortion eased, the police chief paid, legal premises before rackets`);
 
@@ -811,7 +963,19 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     if (key === 'rackets') {
       // Collect: the owed shops, split evenly over the crews, nearest first.
-      const owed = protectedBuildings(w, gang.id).filter((b) => b.state === 'trading').sort(nearer);
+      // Campaigning, a shopkeeper close to refusing is left alone this week:
+      // a refusal makes him hostile, and hostility costs votes.
+      const payer = (b: Building) => { const id = b.ownerPersonId ?? b.managerId; return id == null ? undefined : w.people[id]; };
+      const tooHostile = (b: Building) => { const p = payer(b); return !!p && p.status !== 'dead' && effectiveHostility(p, gang.id) >= 170; };
+      const owedAll = protectedBuildings(w, gang.id).filter((b) => b.state === 'trading').sort(nearer);
+      const owed = campaign ? owedAll.filter((b) => !tooHostile(b)) : owedAll;
+      if (campaign && owed.length < owedAll.length) actions.push(`NOTE campaign: ${owedAll.length - owed.length} hostile shopkeeper(s) not collected from this week`);
+      if (campaign && w.week >= 4) {
+        const sore = owedAll.filter((b) => b.protection && b.protection.gangId === gang.id && b.protection.grievance >= 1 && b.protection.weekly > b.protection.base * 0.75)
+          .sort((a, b) => (b.protection?.grievance ?? 0) - (a.protection?.grievance ?? 0))[0];
+        const team = sore ? freest(undefined, 'collect') : undefined;
+        if (sore && team) give(`campaign: ease protection at ${sore.typeId}`, team, { type: 'adjustProtection', buildingIds: [sore.id], opts: { manpower: 1, protectionLevel: 0.75 } });
+      }
       if (w.week >= 2 && weight.rackets >= 0.2 && owed.length) {
         const share = Math.max(3, Math.ceil(owed.length / ready.length));
         const collected = new Set<number>();
@@ -890,10 +1054,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (gang.cash > gate) {
         const site = buildingList(w).filter((b) => {
           const cost = BUILDING_BY_ID[b.typeId]?.cost ?? 0;
-          return b.ownerGangId == null && b.state === 'trading' && cost > 0 && cost < gang.cash * fraction && nearTerritory(w, gang.id, b.blockId, BUY_REACH_BLOCKS);
+          return b.ownerGangId == null && b.state === 'trading' && cost > 0 && cost < gang.cash * fraction;
         }).sort(nearer)[0];
         if (site) give(`buy ${site.typeId}`, freest(undefined, 'business'), { type: 'buyPremises', buildingIds: [site.id] });
-        else if (easing) actions.push(`NOTE no legal premises for sale within reach under $${Math.round(gang.cash * fraction)}`);
+        else if (easing) actions.push(`NOTE no legal premises for sale under $${Math.round(gang.cash * fraction)}`);
       }
     }
     if (key === 'violence' && w.week >= 8 && policy.violence !== 'low' && (weight.violence >= 0.45 || policy.violence === 'high')) {
@@ -915,12 +1079,13 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // a truck to export what the outlets cannot take. The trucks between the
   // gang's own sites run by themselves; only the export needs a crew.
   if (w.week >= 4) {
-    const keep = 4000 + gangManpower(w, gang) * 80;
+    const keep = 4000 + gangManpower(w, gang) * 80 + campaignReserve;
     let spareCash = gang.cash - keep;
     const owned = () => buildingList(w).filter((b) => b.ownerGangId === gang.id && b.state === 'trading');
     // Counted from the day it is bought or set up, not only once it trades.
     const ownsType = (typeId: string) => buildingList(w).some((b) => b.ownerGangId === gang.id && b.state !== 'destroyed' && b.typeId === typeId);
-    const near = (b: Building) => nearTerritory(w, gang.id, b.blockId, BUY_REACH_BLOCKS);
+    // 1.2.20: premises can be bought anywhere; the nearest still come first.
+    const near = (b: Building) => b.state !== 'destroyed';
     const price = (b: Building) => BUILDING_BY_ID[b.typeId]?.cost ?? 0;
     const forSale = (pick: (b: Building) => boolean) => buildingList(w)
       .filter((b) => b.ownerGangId == null && b.state === 'trading' && pick(b) && price(b) > 0 && price(b) <= spareCash && near(b)).sort(nearer)[0];
@@ -958,7 +1123,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       }
       if (racket.cost > spareCash) spareCash = racket.cost;
       savingFor.delete(w);
-      const fronts = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.state !== 'destroyed' && b.hidesId == null && racket.fronts?.includes(b.typeId)).sort(nearer);
+      const union = (b: Building) => (racketId === 'teamsters' && b.typeId === 'tradeUnion' ? 0 : 1);
+      const fronts = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.state !== 'destroyed' && b.hidesId == null && racket.fronts?.includes(b.typeId)).sort((a, b) => union(a) - union(b) || nearer(a, b));
       for (const front of fronts) {
         const centre = centreOf(front.blockId);
         if (!centre || centre.id === front.id) continue;
@@ -976,9 +1142,24 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // A front already waits for its lot or its money: no second one.
       if (fronts.some((f) => { const c = centreOf(f.blockId); return !!c && c.id !== f.id && c.cls === 'empty' && (c.ownerGangId == null || c.ownerGangId === gang.id); })) return 'poor' as const;
       // No usable front yet: buy one where the block's centre lot is still free.
-      const front = forSale((b) => !!racket.fronts?.includes(b.typeId) && (() => { const c = centreOf(b.blockId); return !!c && c.cls === 'empty' && c.ownerGangId == null; })());
+      const freeCentre = (b: Building) => { const c = centreOf(b.blockId); return !!c && c.cls === 'empty' && c.ownerGangId == null; };
+      // The Teamsters count three times behind a trade union at the poll.
+      const front = (racketId === 'teamsters' ? forSale((b) => b.typeId === 'tradeUnion' && freeCentre(b)) : undefined)
+        ?? forSale((b) => !!racket.fronts?.includes(b.typeId) && freeCentre(b));
       return buy(`a front for a ${racket.name.toLowerCase()}:`, front) ? 'front' as const : 'none' as const;
     };
+    // Campaign: one business of our own in each block we hold, cheapest first, a
+    // block at a time; then the Teamsters, behind a trade union if one is ours or for sale.
+    if (campaign && spareCash > 0) {
+      const ownBlocks = new Set(buildingList(w).filter((b) => b.ownerGangId === gang.id && b.state !== 'destroyed').map((b) => b.blockId));
+      const bare = territoryBlocks(w, gang.id).filter((block) => !ownBlocks.has(block.id)).map((block) => block.id);
+      const site = buildingList(w).filter((b) => bare.includes(b.blockId) && b.ownerGangId == null && b.state === 'trading' &&
+        ['commercial', 'industrial', 'tenement'].includes(b.cls) && price(b) > 0 && price(b) <= Math.min(spareCash, gang.cash * 0.3))
+        .sort((a, b) => price(a) - price(b) || nearer(a, b))[0];
+      if (bare.length) actions.push(`NOTE campaign: ${bare.length} of our blocks without a business of our own`);
+      if (site) buy('campaign: a business of our own in block', site);
+      if (!ownsType('teamsters') && !lieLow && territoryCount(w, gang.id) >= blocksNeeded * 0.5) behind('teamsters');
+    }
     if (!policy.illegal || easing) savingFor.delete(w);
     if (spareCash > 0 && policy.illegal && !easing) {
       const producing = ownsType('moonshineStill') || ownsType('counterfeitPress');
@@ -1095,6 +1276,48 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (block != null && ids.length) give('scout', scoutCrew, { type: 'explore', buildingIds: ids, opts: { manpower: 1 } });
   }
 
+  // ---- retaliation (1.2.20): a rival that killed our men last week is answered.
+  // The street crews are armed and the muscle strikes back at that gang: one of
+  // its known men, or else its nearest premises (bombed if there is dynamite,
+  // smashed up otherwise). The grudge lasts three weeks.
+  {
+    const killedBy = new Map<number, number>();
+    for (const loss of memberLosses(w, gang.id, w.week - 1)) {
+      if (!loss.by || !/gunned|killed|shot|stab|beat|bomb|burn/i.test(loss.cause)) continue;
+      const culprit = Object.values(w.gangs).find((g) => g.id !== gang.id && !g.eliminated && g.name === loss.by);
+      if (culprit) killedBy.set(culprit.id, (killedBy.get(culprit.id) ?? 0) + 1);
+    }
+    const worst = [...killedBy].sort((a, b) => b[1] - a[1])[0];
+    if (worst) {
+      retaliation.set(w, { gangId: worst[0], until: w.week + 3 });
+      actions.push(`NOTE ${worst[1]} of our men killed by ${w.gangs[worst[0]].name} — arming the street crews and striking back`);
+    }
+    const grudge = retaliation.get(w);
+    const enemy = grudge && grudge.until > w.week ? w.gangs[grudge.gangId] : undefined;
+    if (grudge && (!enemy || enemy.eliminated)) retaliation.delete(w);
+    if (enemy && !enemy.eliminated && !lieLow) {
+      // A pistol for every street crew but the extortion crew (which works unarmed).
+      for (const team of ready) {
+        const role = roles.get(team.id);
+        if (role === 'extortion' || role === 'business' || (team.weapons.pistol ?? 0) > 0) continue;
+        if (gang.cash < reserve + WEAPONS.pistol.cost) break;
+        const result = buyWeapon(w, gang.id, 'pistol', team.id);
+        logResult(actions, `arm ${w.people[team.lieutenantId]?.name ?? 'crew'}'s crew against ${enemy.name}`, result.ok, result.ok ? '' : result.error);
+      }
+      const striker = armed ?? freest(undefined, 'muscle');
+      const theirMen = gang.knownPeople.map((id) => w.people[id]).filter((p): p is NonNullable<typeof p> => !!p && p.status === 'active' && p.gangId === enemy.id && p.role !== 'boss');
+      const theirSites = buildingList(w).filter((b) => b.ownerGangId === enemy.id && !b.isHQ && b.state === 'trading').sort(nearer);
+      if (striker && theirMen.length) {
+        const victim = theirMen.sort((a, b) => (b.role === 'lieutenant' ? 1 : 0) - (a.role === 'lieutenant' ? 1 : 0) || a.id - b.id)[0];
+        give(`retaliate: kill ${victim.name} of ${enemy.name}`, striker, { type: 'kill', personId: victim.id, opts: { manpower: manpowerFor(striker, 3) } });
+      } else if (striker && theirSites.length) {
+        const site = theirSites[0];
+        const dynamite = (striker.weapons.explosives ?? 0) > 0;
+        give(`retaliate: ${dynamite ? 'bomb' : 'smash up'} ${enemy.name}'s ${site.typeId}`, striker, { type: dynamite ? 'bomb' : 'smashUp', buildingIds: [site.id], opts: { manpower: manpowerFor(striker, 3) } });
+      } else if (striker) actions.push(`NOTE nothing of ${enemy.name}'s known to strike at — scouting for them`);
+    }
+  }
+
   // ---- the ranked action table: dice weighted by rank when men and cash are spare
   const spare = ready.filter((team) => freeShare(team) >= 0.35);
   if (w.week >= 3 && gangManpower(w, gang) >= 8 && spare.length && gang.cash > reserve) {
@@ -1108,10 +1331,12 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const rivalGangs = Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated).map((g) => g.id);
     const explosives = (armed?.weapons.explosives ?? 0) + (gang.weapons.explosives ?? 0) > 0;
     const peaceful = policy.violence === 'low';
-    const available = ACTION_KEYS.filter((key) => !(peaceful && ['torchRival', 'bombRival', 'kidnapRival', 'killRival', 'raid'].includes(key))).filter((key) => ({
+    const available = ACTION_KEYS.filter((key) => !(peaceful && ['torchRival', 'bombRival', 'kidnapRival', 'killRival', 'raid', 'strikeFbi'].includes(key))).filter((key) => ({
       raid: raidSites.length > 0, pressRefuser: refused.length > 0, torchRival: rivalSites.length > 0,
       bombRival: rivalSites.length > 0 && explosives, kidnapRival: rivals.length > 0, killRival: rivals.length > 0 && !!armed,
       snitch: !!snitch && gang.snitchUsedWeek !== w.week && rivalGangs.length > 0 && gang.cash > reserve + 1500,
+      // Rare and low-ranked: the FBI director, struck at his headquarters.
+      strikeFbi: !!armed && !lieLow && w.week >= 8 && w.people[w.fbiHeadId]?.status === 'active',
     } as Record<ActionKey, boolean>)[key]);
     const rolls = (gang.cash > reserve + 15000 ? 2 : 1) + (policy.violence === 'high' ? 1 : 0);
     const tried = new Set<ActionKey>();
@@ -1136,6 +1361,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (key === 'raid') { targetBuildingId = raidSites[0].id; input = { type: 'raid', buildingIds: [targetBuildingId], opts: { manpower: men } }; }
       else if (key === 'pressRefuser') { targetBuildingId = refused[0].id; input = { type: 'extort', buildingIds: [targetBuildingId], opts: { manpower: team ? manpowerFor(team, 3) : 1 } }; }
       else if (key === 'torchRival' || key === 'bombRival') { targetBuildingId = rivalSites[rng.int(0, Math.min(2, rivalSites.length - 1))].id; input = { type: key === 'torchRival' ? 'torch' : 'bomb', buildingIds: [targetBuildingId], opts: { manpower: men } }; }
+      else if (key === 'strikeFbi') { targetPersonId = w.fbiHeadId; input = { type: 'kill', personId: w.fbiHeadId, opts: { manpower: team ? manpowerFor(team, 4) : 1 } }; }
       else { const victim = rivals[rng.int(0, rivals.length - 1)]; targetPersonId = victim.id; input = { type: key === 'kidnapRival' ? 'kidnap' : 'kill', personId: victim.id, opts: { manpower: men } }; }
       const result = give(`${ACTION_LABELS[key]}`, team, input);
       const orderId = team?.orderIds[team.orderIds.length - 1];

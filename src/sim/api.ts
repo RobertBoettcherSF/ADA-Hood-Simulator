@@ -237,13 +237,8 @@ export function issueOrder(w: WorldState, gangId: ID, input: IssueOrderInput): A
   // A whole-block order with no eligible sites (for example, a municipal or
   // charity block selected for extortion) is refused rather than sent out.
   if (def.target === 'area' && !targetBuildingIds.length) return fail('Nothing there for that order.');
-  // Premises can only be bought within two blocks of your territory.
-  if (input.type === 'buyPremises') {
-    const site = w.buildings[targetBuildingIds[0]];
-    if (site && !nearTerritory(w, gangId, site.blockId, BUY_REACH_BLOCKS)) {
-      return fail(`Too far from your territory: you can only buy within ${BUY_REACH_BLOCKS} blocks of it.`);
-    }
-  }
+  // 1.2.20: premises can be bought anywhere in the city (the old two-block
+  // reach is kept only as the computer gangs' own preference, BUY_REACH_BLOCKS).
 
   const order = previewOrder(w, gangId, { ...input, buildingIds, blockIds, opts })!;
   // Refuse a purchase the gang cannot pay for now, rather than send the crew
