@@ -3,7 +3,7 @@
  * city plan. It only reads the city. It does not give an order or spend time.
  */
 import { deviceIsPhone } from '../app/device';
-import { CELL, DAYS_PER_WEEK, ORDERS } from '../sim/constants';
+import { CELL, DAYS_PER_WEEK, ORDERS, typicalTakings } from '../sim/constants';
 import { cityBlockAt, lotRect } from '../sim/cityLayout';
 import { BUILDING_BY_ID } from '../sim/data/buildings';
 import { businessCarryingCost } from '../sim/businessState';
@@ -272,7 +272,7 @@ function weeklyRent(w: WorldState, building: Building): number | null {
     return daily * occupied * DAYS_PER_WEEK;
   }
   if ((building.cls === 'tenement' || building.cls === 'residential') && building.state !== 'destroyed') {
-    const profit = BUILDING_BY_ID[building.typeId]?.profit ?? 0;
+    const profit = typicalTakings(BUILDING_BY_ID[building.typeId]?.profit ?? 0);
     return profit > 0 ? profit : null;
   }
   return null;

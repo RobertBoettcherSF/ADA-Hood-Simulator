@@ -4,7 +4,7 @@ This document describes the game as the code stands, and the shape of the browse
 
 The setting in the code is Saint Volstead in 1932, a Prohibition-era city in the vein of *Gangsters: Organized Crime* (1998). A second presentation, an imaginary city in 2032, uses the same rules and similar goods. The 2032 names below are proposals. The 2032 city still needs a name from the owner.
 
-Package name in `package.json`: `original-gangster`. The playable build is version 1.2.18.
+Package name in `package.json`: `original-gangster`. The playable build is version 1.2.19.
 
 ## Decisions
 
@@ -221,6 +221,16 @@ Items marked *(my call)* are choices made while building, not asked for.
 3. Stalled growth. The hiring target is two men per block (up to 60). If the crews ran out of week last Monday, six more are hired, up to 64. A recruit order takes at most two sites and two men, so a long list no longer uses up the week before the last door. Extortion is sized to the crew's free week (about one site per sixth of a week) and skipped when less than 15% of the week is left. A new lieutenant is promoted for every five hoods (at least two, at most eight). The accountant is hired from week 3 and the lawyer from week 4, trying the next desk each week so one empty office does not hold up the hire. *(my call: two men per block, five hoods per crew, and the earlier specialist weeks.)*
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
+
+## v1.2.19 decisions
+
+Items marked *(my call)* are choices made while building, not asked for.
+
+1. Auto Test watches suspicion from the first weeks. At 30 it eases the extortion (half the crews, the hottest blocks left alone) and has the lawyer pay the police chief; at 50 it lies low: collecting protection and buying legal premises only, no extortion, rough work, new rackets or (unless short of men) hiring. A rise of 15 or more in one week counts as one level hotter. While easing or lying low it stops saving for a racket and spends on legal premises first (up to three quarters of its cash), and if the lawyer cannot afford the chief a crew offers him a smaller sum. Suspicion follows protection and racket money that legal takings do not cover, so lying low slows the rise but only more legal business turns it round. *(my call: the 15, the hiring exception and the three quarters.)*
+2. The lawyer and accountant only do their own jobs (courts and officials, the books) and are never given street orders. A lost lawyer (arrested, on trial, jailed, dead or gone) is replaced before any other order is given; he is hired from week 4, or earlier once suspicion reaches 20.
+3. Auto Test never puts more than half its men on risky street work at once (extortion, robbery, kidnap, killing, smashing, arson, bombing, assault, intimidation, ambush), and no more than 35% while easing off, so one raid cannot take the whole gang. *(my call: the shares.)* The FBI's office raid takes everyone at the office and each arrested man's whole crew, as in the original; the men-lost lines now say so ("arrested in a raid on the office", "with his team-mate …").
+4. Income, tuned to original-game values. Trades far from the shared ratio to the original's income (about 0.49) were brought to it: Convenience Store $710, Restaurant $890, Cannery $1,170, Newspaper, Radio Station and Docks $1,650; Finance Company $330, Dance Studio and Gymnasium $190 a week. Their prices moved with them, so a purchase pays back in the same number of weeks. Then one multiplier, `INCOME_MULT` = 1.5, applies to every business's weekly takings, legal and illegal (not to costs, protection, rent from rooms or goods sales); the "typical" figures shown to the player include it. *(my call: moving the prices with the profits.)*
+5. Pictures. A city picture that fails or hangs is tried three times, with time limits of 20, 30 and 45 seconds, the retries asking past any broken cached copy; a hung picture no longer holds up the ones queued behind it.
 
 ## v1.2.18 decisions
 

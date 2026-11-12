@@ -350,9 +350,24 @@ const menLastWeek = new WeakMap<Sim['world'], number>();
 /** A racket the gang is saving for: other premises wait until its cost is in hand. */
 const savingFor = new WeakMap<Sim['world'], { name: string; cost: number }>();
 
-/** Suspicion at which the desk starts paying officials and easing the extortion. */
-const SUSPICION_BRIBE = 40;
-const SUSPICION_EASE = 50;
+/** Suspicion at which the desk starts paying the police chief and easing the extortion (1.2.19: 30, was 40). */
+const SUSPICION_BRIBE = 30;
+/** Suspicion at which the gang lies low: collecting and legal buying only. */
+export const SUSPICION_LIE_LOW = 50;
+/** A rise this big in one week counts as one level hotter than the figure says. */
+export const SUSPICION_JUMP = 15;
+/** Most of the gang's men on risky street orders (extortion and rough work) at once; less while easing. */
+export const RISKY_SHARE = 0.5;
+export const RISKY_SHARE_EASING = 0.35;
+const RISKY_ORDERS = new Set(['extort', 'raid', 'kidnap', 'kill', 'smashUp', 'torch', 'bomb', 'assault', 'intimidate', 'ambush']);
+/** How hot the gang is: 0 normal, 1 ease off (bribe the chief, half the extortion), 2 lie low. */
+export function heatLevel(suspicion: number, lastWeek: number | undefined): 0 | 1 | 2 {
+  const jump = lastWeek != null && suspicion - lastWeek >= SUSPICION_JUMP;
+  if (suspicion >= SUSPICION_LIE_LOW || (jump && suspicion >= SUSPICION_BRIBE)) return 2;
+  if (suspicion >= SUSPICION_BRIBE || jump) return 1;
+  return 0;
+}
+const suspicionLastWeek = new WeakMap<Sim['world'], number>();
 
 function crewReady(w: Sim['world'], teamId: number): boolean {
   const team = w.teams[teamId];
@@ -520,6 +535,15 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     return actions;
   }
 
+  // Heat, watched from the first weeks: ease off past 30, lie low past 50, one level
+  // hotter when suspicion jumped 15 or more since last week.
+  const suspicionBefore = suspicionLastWeek.get(w);
+  suspicionLastWeek.set(w, gang.suspicion);
+  const heat = heatLevel(gang.suspicion, suspicionBefore);
+  const lieLow = heat >= 2;
+  // Risky street work is capped so one raid cannot take the whole gang.
+  const riskyCap = Math.max(2, Math.floor(Math.max(1, gangManpower(w, gang)) * (heat >= 1 ? RISKY_SHARE_EASING : RISKY_SHARE)));
+  let riskyMen = 0;
   const outOfTime = new Set<number>();
   const shortLastWeek = lastMonday.get(w)?.timeShort ?? false;
   let timeShort = false;
@@ -536,6 +560,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       return { ok: false, error: 'Every crew is busy this week.' };
     }
     const name = w.people[team.lieutenantId]?.name ?? 'crew';
+    const risky = RISKY_ORDERS.has(input.type);
+    if (risky && lieLow) {
+      actions.push(`NOTE ${label} not given — lying low`);
+      return { ok: false, error: 'Lying low this week.' };
+    }
+    const hands = Math.min(input.opts?.manpower ?? 1, team.memberIds.length + 1);
+    if (risky && riskyMen + hands > riskyCap) {
+      actions.push(`NOTE ${label} not given — ${riskyMen} of ${riskyCap} men allowed on risky work already out`);
+      return { ok: false, error: 'Too many men on risky work.' };
+    }
     // Fit the order to the crew's free time by the ledger; hand out nothing that cannot fit.
     const hasCar = Object.values(team.vehicles).some((n) => n > 0);
     const key = ledgerKey(input.type, hasCar);
@@ -559,6 +593,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     logResult(actions, `${label} (${name})`, result.ok, result.ok ? result.message ?? '' : result.error);
     if (!result.ok && /time/i.test(result.error)) { outOfTime.add(team.id); timeShort = true; }
+    if (result.ok && risky) riskyMen += hands;
     if (result.ok) {
       const order = team.orderIds.length ? w.orders[team.orderIds[team.orderIds.length - 1]] : undefined;
       const minutes = order?.estimatedMinutes || team.timeUsed - usedBefore;
@@ -596,6 +631,18 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     w.week,
   );
 
+  // The lawyer only does a lawyer's work (courts and officials, from the office) and
+  // never goes on the street. A lost lawyer (arrested, jailed, dead or gone) is
+  // replaced before anything else; with heat rising, he is hired early.
+  const lawyerNow = gang.lawyerId == null ? undefined : w.people[gang.lawyerId];
+  const lawyerLost = !lawyerNow || lawyerNow.gangId !== gang.id || ['arrested', 'onTrial', 'jailed', 'dead'].includes(lawyerNow.status);
+  if (lawyerLost && (w.week >= 4 || gang.suspicion >= 20 || gang.lawyerId != null)) {
+    const desks = buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'lawyer' && b.state !== 'destroyed').sort(nearer);
+    const desk = desks.length ? desks[w.week % desks.length] : undefined;
+    if (gang.lawyerId != null) actions.push(`NOTE lawyer ${lawyerNow?.name ?? ''} lost (${lawyerNow?.status ?? 'gone'}) — hiring a new one first`);
+    if (desk) give('recruit lawyer', freest(), { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'lawyer' } });
+  }
+
   const hq = buildingList(w).find((b) => b.isHQ && b.ownerGangId === gang.id);
   if (w.week >= 2 && gangManpower(w, gang) >= 8 && hq) {
     give('guard office', freest(), { type: 'guardBusiness', buildingIds: [hq.id], opts: { manpower: 1 } });
@@ -611,10 +658,6 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const desk = deskFor('accountant');
     if (desk) give('recruit accountant', freest(), { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'accountant' } });
   }
-  if (w.week >= 4 && gang.lawyerId == null) {
-    const desk = deskFor('lawyer');
-    if (desk) give('recruit lawyer', freest(), { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'lawyer' } });
-  }
 
   // Police and courts, as the manual has it. A man on trial: the judge throws
   // the case out, the DA hands over the witness and juror lists, and those
@@ -622,7 +665,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // choose which. Past SUSPICION_BRIBE the lawyer pays the police chief, and a
   // rich gang buys the mayor so fewer police walk its patch.
   const openCases = Object.values(w.cases ?? {}).filter((c) => c.gangId === gang.id && ['awaiting', 'onTrial'].includes(c.status));
-  const hot = gang.suspicion >= SUSPICION_BRIBE || openCases.length > 0;
+  const hot = heat >= 1 || openCases.length > 0;
   const lawyer = availableSpecialist(w, gang, 'lawyer');
   const buyable = (id: number | undefined, share: number) => {
     const o = id == null ? undefined : w.people[id];
@@ -667,11 +710,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const result = give(`${ACTION_LABELS[key]} ${target.name}`, team, input);
     if (result.ok && team) pendingActions.push({ ...pendingBase, orderId: team.orderIds[team.orderIds.length - 1], targetPersonId: target.id });
   }
+  let chiefPaid = false;
   if (hot && lawyer) {
     const chief = buyable(w.policeChiefId, 0.3);
     if (chief) {
       const result = queueSpecialistJob(w, gang.id, 'bribeOfficials', chief.id);
       logResult(actions, `lawyer bribes ${chief.name} (police chief)`, result.ok, result.ok ? result.message ?? '' : result.error);
+      chiefPaid = result.ok;
+    } else {
+      const o = w.people[w.policeChiefId];
+      if (o && o.bribedBy !== gang.id) actions.push(`NOTE the lawyer cannot buy the police chief this week (${!isBribableOfficial(o) ? 'not available' : refusesBribe(o, gang.id) ? 'too hostile' : `$${bribePrice(w, o, gang.id)} against $${Math.round(gang.cash)} cash`}) — a crew offers a smaller sum`);
     }
   } else if (hot && gang.lawyerId == null) {
     actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} and no lawyer yet`);
@@ -683,7 +731,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       logResult(actions, `lawyer bribes ${mayor.name} (mayor: fewer police on the patch)`, result.ok, result.ok ? result.message ?? '' : result.error);
     }
   }
-  if (hot && !lawyer) {
+  if (hot && !chiefPaid) {
     const chief = w.people[w.policeChiefId];
     if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > 1500) {
       give('bribe chief', freest(), { type: 'bribe', personId: chief.id, opts: { manpower: 1, amount: Math.round(400 + gang.suspicion * 10) } });
@@ -729,8 +777,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const officeClose = goal === 'office' && territoryCount(w, gang.id) >= blocksNeeded * 0.8 && territoryCount(w, gang.id) < blocksNeeded;
   const expansion = officeClose ? Math.max(2, policy.expansion) : policy.expansion;
   if (officeClose) actions.push(`NOTE ${territoryCount(w, gang.id)} of ${blocksNeeded} blocks for the mayoralty — every crew pushes for the last ones`);
-  const easing = gang.suspicion >= SUSPICION_EASE && !officeClose;
-  if (easing) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} — extortion eased, buying legal premises`);
+  const easing = (heat >= 1 && !officeClose) || lieLow;
+  if (lieLow) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''} — lying low: collecting and legal buying only`);
+  else if (easing) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''} — extortion eased, the police chief paid, legal premises before rackets`);
 
   const spend = (key: PlayStrategy['priority'][number]) => {
     if (key === 'hiring') {
@@ -741,7 +790,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const floor = Math.max(18, Math.round(10 + weight.hiring * 12), Math.min(60, Math.round(territoryCount(w, gang.id) * 2)));
       const newMen = shrinking ? 4 : 2;
       const pays = men < floor || (shortLastWeek && weeklyNet >= averageWage) || weeklyNet >= averageWage * newMen || gang.cash >= (wageBill + averageWage * newMen) * 52;
-      if (pays && hoodSites.length) {
+      if (lieLow && !shrinking && men >= 10) {
+        actions.push('NOTE recruit held — lying low');
+      } else if (pays && hoodSites.length) {
         // Several venues, one man each: a two-man order waits for a second free hand.
         const venues = Math.min(hoodSites.length, shrinking || men < floor ? 4 : 2, ready.length);
         if (recruitMemory.hintIds.includes(hoodSites[0].id)) actions.push('NOTE recruit following last week\'s tip');
@@ -772,7 +823,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         }
       }
       // Expand: every crew takes the nearest unclaimed block at the edge of the territory.
-      if (weight.rackets >= 0.25) {
+      if (weight.rackets >= 0.25 && !lieLow) {
         const nearby = buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b) && nearTerritory(w, gang.id, b.blockId, 2)).sort(nearer);
         const targets = nearby.length ? nearby : buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b)).sort(nearer);
         const byBlock = new Map<number, typeof targets>();
@@ -799,7 +850,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           give('extort', team, { type: 'extort', buildingIds: sites.slice(0, fit).map((b) => b.id), opts: { manpower: manpowerFor(team, 2) } });
         }
       }
-      if (weight.rackets >= 0.45 && policy.illegal) {
+      if (weight.rackets >= 0.45 && policy.illegal && !lieLow) {
         const owned = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.state === 'trading');
         const lands = owned.filter((b) => b.cls === 'empty' && w.lots[b.lotId]?.index === 4);
         let budget = gang.cash * 0.5;
@@ -828,18 +879,21 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     // Legal takings weigh against protection money in the Bureau's sums, so
     // a suspicious gang buys shops whatever the strategy's buying weight.
+    // While suspicion is up, legal cover comes before saving for a racket.
+    if (easing) savingFor.delete(w);
     const saving = savingFor.get(w);
     if (key === 'buying' && saving && gang.cash < saving.cost * 1.5) {
       actions.push(`NOTE saving toward a ${saving.name} ($${saving.cost}) — no other premises this week`);
     } else if (key === 'buying' && w.week >= 4 && (weight.buying >= 0.3 || easing)) {
       const gate = easing ? 3000 : 8000 + (1 - weight.buying) * 8000;
-      const fraction = easing ? 0.4 : 0.15 + weight.buying * 0.5;
+      const fraction = easing ? 0.75 : 0.15 + weight.buying * 0.5;
       if (gang.cash > gate) {
         const site = buildingList(w).filter((b) => {
           const cost = BUILDING_BY_ID[b.typeId]?.cost ?? 0;
           return b.ownerGangId == null && b.state === 'trading' && cost > 0 && cost < gang.cash * fraction && nearTerritory(w, gang.id, b.blockId, BUY_REACH_BLOCKS);
         }).sort(nearer)[0];
         if (site) give(`buy ${site.typeId}`, freest(undefined, 'business'), { type: 'buyPremises', buildingIds: [site.id] });
+        else if (easing) actions.push(`NOTE no legal premises for sale within reach under $${Math.round(gang.cash * fraction)}`);
       }
     }
     if (key === 'violence' && w.week >= 8 && policy.violence !== 'low' && (weight.violence >= 0.45 || policy.violence === 'high')) {
@@ -925,8 +979,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const front = forSale((b) => !!racket.fronts?.includes(b.typeId) && (() => { const c = centreOf(b.blockId); return !!c && c.cls === 'empty' && c.ownerGangId == null; })());
       return buy(`a front for a ${racket.name.toLowerCase()}:`, front) ? 'front' as const : 'none' as const;
     };
-    if (!policy.illegal) savingFor.delete(w);
-    if (spareCash > 0 && policy.illegal) {
+    if (!policy.illegal || easing) savingFor.delete(w);
+    if (spareCash > 0 && policy.illegal && !easing) {
       const producing = ownsType('moonshineStill') || ownsType('counterfeitPress');
       if (!producing) {
         const step = behind('moonshineStill');

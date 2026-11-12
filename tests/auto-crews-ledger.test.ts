@@ -47,3 +47,15 @@ describe('time ledger', () => {
     expect(targetsThatFit(ledger, 'recruit|foot', 2, 10)).toBe(2);
   });
 });
+
+import { heatLevel } from '../src/app/autoTest';
+describe('heat', () => {
+  it('eases past 30, lies low past 50, and counts a fast rise as a level hotter', () => {
+    expect(heatLevel(17, 0)).toBe(1);
+    expect(heatLevel(10, 5)).toBe(0);
+    expect(heatLevel(31, 17)).toBe(1);
+    expect(heatLevel(47, 31)).toBe(2);
+    expect(heatLevel(52, 50)).toBe(2);
+    expect(heatLevel(29, 25)).toBe(0);
+  });
+});

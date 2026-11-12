@@ -419,9 +419,9 @@ function outOfCar(w: WorldState, p: Person): void {
 }
 
 /** Arrest a gang person where he stands and charge him. */
-function takeIntoCustody(w: WorldState, p: Person, gangId: ID, kind: string, buildingId: ID | null, agent?: Person): void {
+function takeIntoCustody(w: WorldState, p: Person, gangId: ID, kind: string, buildingId: ID | null, agent?: Person, how?: string): void {
   outOfCar(w, p);
-  noteMemberLoss(w, p, `arrested (${kind})`, 'the FBI');
+  noteMemberLoss(w, p, how ? `arrested ${how} (charged: ${kind})` : `arrested (${kind})`, 'the FBI');
   p.status = 'arrested'; p.buildingId = null; p.inVehicle = false;
   p.orderId = null; p.streetOrder = null; clearDestination(p);
   w.crimes.push({id:w.sequences.crime++,week:w.week,gangId,perpetratorId:p.id,
@@ -459,7 +459,7 @@ export function serveAccountantWarrants(w: WorldState, rng: Rng): void {
       // latest crime on his record; his team goes with him (0x49A530).
       const kind = accountant ? 'taxEvasion' : latestCrimeKind(w, p);
       for (const q of [p, ...mates]) {
-        takeIntoCustody(w, q, gang.id, kind, null, agent);
+        takeIntoCustody(w, q, gang.id, kind, null, agent, q === p ? 'on a warrant' : `with his team-mate ${p.name}`);
         q.fbiWarrant = undefined;
       }
       w.weekLog.push(`Federal agents arrested ${p.name}, ${who === 'man' ? 'of' : 'accountant to'} ${gang.name}, for ${describeCrime(kind)}.`);
@@ -816,12 +816,12 @@ export function raidHeadquarters(w: WorldState, rng: Rng, b: Building, agent?: P
     (p.buildingId === b.id || (!p.inVehicle && dist(p.pos, door) <= 12)))
     .sort((a, c) => a.id - c.id);
   const taken: Person[] = [];
-  const arrest = (p: Person) => {
+  const arrest = (p: Person, mate?: Person) => {
     if (p.status !== 'active') return;
     // A wanted accountant taken in is charged with tax evasion (0x4F47C3); a
     // man wanted by the member pass, with the latest crime on his record.
     const kind = !p.fbiWarrant ? 'extort' : p.role === 'accountant' ? 'taxEvasion' : latestCrimeKind(w, p);
-    takeIntoCustody(w, p, gang.id, kind, b.id, agent);
+    takeIntoCustody(w, p, gang.id, kind, b.id, agent, mate ? `with his team-mate ${mate.name} in the raid on the office` : 'in a raid on the office');
     p.fbiWarrant = undefined;
     taken.push(p);
   };
@@ -837,7 +837,7 @@ export function raidHeadquarters(w: WorldState, rng: Rng, b: Building, agent?: P
     if (outcome === 'arrested') {
       arrest(p);
       if (p.teamId != null) for (const q of peopleList(w))
-        if (q.teamId === p.teamId && q.gangId === gang.id) arrest(q);
+        if (q.teamId === p.teamId && q.gangId === gang.id) arrest(q, p);
     } else if (outcome === 'resists') {
       resisted++;
       if (agent && agent.status === 'active') p.streetOrder = { type: 'assault', targetPersonId: agent.id, pos: null };

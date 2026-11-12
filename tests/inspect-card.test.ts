@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { defaultGameOptions } from '../src/app/newGame';
 import { BUILDING_BY_ID } from '../src/sim/data/buildings';
+import { typicalTakings } from '../src/sim/constants';
 import { Sim } from '../src/sim/sim';
 import { closeInspect, cycleInspect, inspectFacts, inspectPlacement, openInspect, PressWatch, resetInspectCycle, showInspect } from '../src/ui/inspectCard';
 
@@ -33,7 +34,7 @@ describe('inspect card', () => {
     site.knowledge[gang.id] = 4;
     site.protection = null;
     const open = inspectFacts(w, gang.id, { buildingId: site.id, blockId: site.blockId, personId: null, point: { x: 0, y: 0 } });
-    expect(open?.rows.find((row) => row.label === 'Rent')?.value).toBe(`$${BUILDING_BY_ID[site.typeId].profit}/wk`);
+    expect(open?.rows.find((row) => row.label === 'Rent')?.value).toBe(`$${typicalTakings(BUILDING_BY_ID[site.typeId].profit)}/wk`);
 
     const rival = Object.values(w.gangs).find((g) => g.id !== gang.id)!;
     site.ownerGangId = rival.id;

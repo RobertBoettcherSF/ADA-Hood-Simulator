@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { typicalTakings } from '../sim/constants';
 import { ArtImage } from './ArtImage';
 import { act, useGame } from '../app/store';
 import { quoteBuildingSale, recallManager, repairBuilding, sackManager, sellBuilding, setPay, setTrading, shutdownBuilding } from '../sim/api';
@@ -105,7 +106,7 @@ export function BuildingPanel() {
           {knowledge >= 3 && !mine && t && (
             <div className="kv">
               <span>Trade</span>
-              <b>{money(t.profit)}/wk typical</b>
+              <b>{money(typicalTakings(t.profit))}/wk typical</b>
             </div>
           )}
           {b.cls !== 'municipal' && b.cls !== 'charity' && b.cls !== 'residential' && !mine && intel.ownerGangId == null && (
