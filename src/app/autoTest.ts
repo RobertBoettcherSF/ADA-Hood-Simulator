@@ -387,6 +387,9 @@ function crewReady(w: Sim['world'], teamId: number): boolean {
 export const STREET_HEAT_REST = 30;
 /** A resting man goes back to work once his street heat is below this. */
 export const STREET_HEAT_BACK = 15;
+/** Resting only helps a man with his own wanted level: below this, his heat is
+ * the police's opinion of the gang, which no rest can cool. */
+export const REST_WANTED = 10;
 /** A man who killed an FBI agent and is this wanted is sacked rather than hidden. */
 export const SACK_WANTED = 80;
 export function streetHeat(wanted: number, policeOpinion: number): number {
@@ -525,7 +528,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   for (const team of crewsOf()) {
     for (const id of [...team.memberIds]) {
       const p = w.people[id];
-      if (!p || p.status !== 'active' || heatOfMan(id) < STREET_HEAT_REST) continue;
+      if (!p || p.status !== 'active' || heatOfMan(id) < STREET_HEAT_REST || p.wanted < REST_WANTED) continue;
       const result = moveToPool(w, gang.id, id);
       if (result.ok) restingMen.add(id);
       logResult(actions, `rest ${p.name} (street heat ${Math.round(heatOfMan(id))}) — off the street so an arrest cannot take his crew`, result.ok, result.ok ? '' : result.error);
@@ -534,9 +537,13 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   for (const id of [...restingMen]) {
     const p = w.people[id];
     if (!p || p.gangId !== gang.id || p.status !== 'active' || !gang.poolIds.includes(id)) { restingMen.delete(id); continue; }
-    if (heatOfMan(id) < STREET_HEAT_BACK && !(hitmen.has(id) && p.wanted > 5)) { restingMen.delete(id); hitmen.delete(id); }
+    if ((heatOfMan(id) < STREET_HEAT_BACK || p.wanted < REST_WANTED / 2) && !(hitmen.has(id) && p.wanted > 5)) { restingMen.delete(id); hitmen.delete(id); }
   }
   if (restingMen.size) actions.push(`NOTE ${restingMen.size} m${restingMen.size === 1 ? 'an' : 'en'} resting in the pool until the street heat dies down`);
+  // The police's opinion of the gang raises every man's heat alike: resting
+  // cannot cool it, buying the chief and quieter work can.
+  const policeHostile = -policeOpinion * 0.5 >= 20;
+  if (policeHostile) actions.push(`NOTE the police are hostile (opinion ${Math.round(policeOpinion)}): every man starts ${Math.round(-policeOpinion * 0.5)} nearer arrest — the chief gets paid`);
 
   const shortLastWeekCrews = lastMonday.get(w)?.timeShort ?? false;
   // Enough lieutenants for the men: one crew per five hoods, at least two, at most eight.
@@ -608,7 +615,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if ((gang.weapons.explosives ?? 0) > 0) while ((gang.weapons.explosives ?? 0) > 0 && transferWeapon(w, gang.id, 'explosives', muscleCrew.id, true).ok) { /* and the dynamite */ }
   }
 
-  const hotCrews = crewsOf().filter((team) => crewReady(w, team.id) && heatOfMan(team.lieutenantId) >= STREET_HEAT_REST);
+  // At most half the crews rest at once (the most wanted first), so the takings keep coming in.
+  const hotCrews = crewsOf().filter((team) => crewReady(w, team.id) && heatOfMan(team.lieutenantId) >= STREET_HEAT_REST && (w.people[team.lieutenantId]?.wanted ?? 0) >= REST_WANTED)
+    .sort((a, b) => (w.people[b.lieutenantId]?.wanted ?? 0) - (w.people[a.lieutenantId]?.wanted ?? 0))
+    .slice(0, Math.floor(crewsOf().filter((team) => crewReady(w, team.id)).length / 2));
   if (hotCrews.length) actions.push(`NOTE crew${hotCrews.length === 1 ? '' : 's'} lying low (lieutenant's street heat ${STREET_HEAT_REST}+): ${hotCrews.map((team) => `${w.people[team.lieutenantId]?.name ?? team.id} ${Math.round(heatOfMan(team.lieutenantId))}`).join(', ')}`);
   const ready = crewsOf().filter((team) => crewReady(w, team.id) && !hotCrews.includes(team));
   if (!ready.length) {
@@ -787,7 +797,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // rich gang buys the mayor so fewer police walk its patch.
   const openCases = Object.values(w.cases ?? {}).filter((c) => c.gangId === gang.id && ['awaiting', 'onTrial'].includes(c.status));
   // Hot men on the street count too: the chief is paid before the police start taking crews.
-  const streetHot = hotCrews.length > 0 || [...restingMen].some((id) => heatOfMan(id) >= STREET_HEAT_REST);
+  const streetHot = hotCrews.length > 0 || policeHostile || [...restingMen].some((id) => heatOfMan(id) >= STREET_HEAT_REST);
   const hot = heat >= 1 || openCases.length > 0 || streetHot;
   const lawyer = availableSpecialist(w, gang, 'lawyer');
   const buyable = (id: number | undefined, share: number) => {
