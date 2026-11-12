@@ -99,7 +99,10 @@ export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, o
     return { ok: false, why: c ? 'no list' : 'case closed before the DA was seen' };
   }
   const order = orders.find((o) => o.id === pending.orderId);
-  if (!order) return { ok: false, why: 'order not found' };
+  // 1.2.21: an order that never finished (cancelled, merged, or still queued
+  // when the week ran out) is not in last week's list. That says nothing about
+  // the action itself: no rank change, and the reason in plain words.
+  if (!order) return { ok: null, why: 'the order did not run to the end of the week (cancelled or not reached)' };
   const lost = order.assignedIds.filter((id) => LOST.has(w.people[id]?.status ?? 'active'));
   if (lost.length) return { ok: false, why: `${lost.length} man${lost.length === 1 ? '' : 'en'} lost (${lost.map((id) => w.people[id]?.status).join(', ')})` };
   // Running out of week says nothing about the action itself: no rank change.
