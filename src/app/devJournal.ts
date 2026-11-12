@@ -8,9 +8,12 @@
  * part files when large. The Auto Test log keeps only in-game knowledge.
  */
 import { takeStopTraces, type StopTrace } from '../sim/devTrace';
+import { MAX_TEAMS, MAX_TEAM_SIZE } from '../sim/constants';
+import { memberLosses } from '../sim/memberLosses';
+import { crewRoleFromName, roleStars } from './autoActions';
 import { hireQuote } from '../sim/originalWages';
 import { peopleList } from '../sim/entityLists';
-import type { Gang, Order, WorldState } from '../sim/types';
+import type { Gang, Order, Person, WorldState } from '../sim/types';
 import { gangHoldings, gangManpower, powerRating, territoryCount, teamsOf } from '../sim/world';
 
 const weeks: string[] = [];
@@ -42,8 +45,30 @@ function gangBooks(w: WorldState, gang: Gang): string[] {
     `  cash ${$(gang.cash)} · property ${$(h.property)} · weapons ${$(h.weapons)} · vehicles ${$(h.vehicles)} · assets ${$(h.assets)} · wealth ${$(h.wealth)}`,
     `  income: legal ${$(inc.legal)} · illegal ${$(inc.illegal)} · protection ${$(inc.protection)} · other ${$(inc.other)} = ${$(inc.legal + inc.illegal + inc.protection + inc.other)}`,
     `  costs: wages ${$(cost.wages)} · upkeep ${$(cost.upkeep)} · purchases ${$(cost.purchases)}`,
+    crewCapacity(w, gang),
+    ...sackings(w, gang),
     `  men ${gangManpower(w, gang)} · crews ${gang.teamIds.length} · pool ${gang.poolIds.length} · blocks ${territoryCount(w, gang.id)} · power ${powerRating(w, gang)} · suspicion ${Math.round(gang.suspicion)} · evidence ${Math.round(gang.evidence)}`,
   ];
+}
+
+/** Crew capacity (eight lieutenants with nine hoods) against the men in crews and the pool. */
+function crewCapacity(w: WorldState, gang: Gang): string {
+  const inCrews = teamsOf(w, gang).reduce((sum, t) => sum + t.memberIds.length + 1, 0);
+  const idle = gang.poolIds.filter((id) => w.people[id]?.status === 'active').length;
+  return `  crew capacity ${MAX_TEAMS * MAX_TEAM_SIZE} · in crews ${inCrews} · pool ${gang.poolIds.length} (${idle} active) · crew men + pool ${inCrews + gang.poolIds.length}`;
+}
+
+function sackings(w: WorldState, gang: Gang): string[] {
+  const sacked = memberLosses(w, gang.id, w.week - 1).filter((l) => l.cause === 'sacked');
+  return sacked.length ? [`  sacked ${sacked.length}: ${sacked.map((l) => `${l.name} (${l.role}, week ${l.week})`).join(', ')}`] : [];
+}
+
+/** The crew's job (from its name) and its men's average stars in that job's skills. */
+function crewStars(w: WorldState, name: string, ids: number[]): string {
+  const role = crewRoleFromName(name);
+  const men = ids.map((id) => w.people[id]).filter((p): p is Person => !!p);
+  if (!role || !men.length) return '';
+  return ` · ${role} ${(men.reduce((sum, p) => sum + roleStars(p, role), 0) / men.length).toFixed(1)}★ avg`;
 }
 
 function blockLabel(w: WorldState, buildingId: number | null): string {
@@ -65,7 +90,7 @@ function ordersSection(w: WorldState, gang: Gang, traces: StopTrace[], visitsByB
     const tr = traces.filter((t) => t.teamId === team.id);
     const planned = mine.reduce((s, o) => s + (o.estimatedMinutes || 0), 0);
     const used = tr.length ? Math.max(...tr.map((t) => t.minute)) : 0;
-    out.push(`  crew ${team.name} (lt ${lt?.name ?? '?'} ${lt?.status ?? ''}, ${team.memberIds.length} men) planned ${Math.round(planned)} min · last stop at minute ${used}${carried.length ? ` · repeat carryover ${carried.length}` : ''}`);
+    out.push(`  crew ${team.name} (lt ${lt?.name ?? '?'} ${lt?.status ?? ''}, ${team.memberIds.length} men${crewStars(w, team.name, [team.lieutenantId, ...team.memberIds])}) planned ${Math.round(planned)} min · last stop at minute ${used}${carried.length ? ` · repeat carryover ${carried.length}` : ''}`);
     for (const o of mine) out.push(...orderLines(w, o, tr.filter((t) => t.orderId === o.id), visitsByBuilding));
   }
   return out;

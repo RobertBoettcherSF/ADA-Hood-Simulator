@@ -23,12 +23,13 @@ function deployOne() {
 }
 
 describe('street roster counts people, not crew portraits or the whole gang',()=>{
-  it('starts with a two-person crew, two reserves, one front manager and a separate boss',()=>{
+  // 1.2.21: five hoods plus the lieutenant — three reserves now.
+  it('starts with a two-person crew, three reserves, one front manager and a separate boss',()=>{
     const {w,gang,team,manager}=scene();
     expect(gang.teamIds).toHaveLength(1); expect(team.memberIds).toHaveLength(1);
-    expect(gang.poolIds).toHaveLength(2);
+    expect(gang.poolIds).toHaveLength(3);
     expect(manager.teamId).toBeNull();
-    expect(Object.values(w.people).filter(p=>p.gangId===gang.id && p.role!=='boss')).toHaveLength(5);
+    expect(Object.values(w.people).filter(p=>p.gangId===gang.id && p.role!=='boss')).toHaveLength(6);
     expect(streetRoster(w,gang)).toEqual({count:0,groups:[]});
   });
 

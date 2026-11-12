@@ -46,16 +46,16 @@ export function takeAutoTestStopped(): boolean {
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
 import { buySnitchInfo, canGoStraight, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, issueStreetOrder, moveToPool, moveToTeam, nearTerritory, promote, sackPerson, transferWeapon, type ApiResult, type IssueOrderInput } from '../sim/api';
-import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, carMinutesSaved, crewNames, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, talentSwaps, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
+import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, carMinutesSaved, crewNames, roleStars, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, talentSwaps, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
 import { DRIVE_SPEED, GO_STRAIGHT_ASSETS, VEHICLES, WALK_SPEED, WEAPONS } from '../sim/constants';
-import type { Building, WeaponId } from '../sim/types';
+import type { Building, Person, Team, WeaponId } from '../sim/types';
 import { BUILDING_BY_ID, ILLEGAL_TYPES } from '../sim/data/buildings';
 import { isValidAreaTarget } from '../sim/execution';
 import type { Sim } from '../sim/sim';
 import { buildingDoor, dist, gangAssets, gangManpower, gangMembers, powerRating, protectedBuildings, territoryBlocks, territoryCount } from '../sim/world';
 import { effectiveHostility } from '../sim/attitudes';
 import { buildingList, peopleList } from '../sim/entityLists';
-import { MINUTES_PER_WEEK } from '../sim/constants';
+import { MAX_TEAM_SIZE, MAX_TEAMS, MINUTES_PER_WEEK } from '../sim/constants';
 import { chooseGoal, formatGoalScores, goalsFor, GOAL_LABELS, GOAL_POLICY, GOAL_DROP_WEEKS, GOAL_REVIEW_WEEKS, GOAL_STALL_DROP, GOAL_STALL_PENALTY, goalScores, type VictoryGoal } from './autoGoals';
 import { campaignWeeklyCost, canRunForOffice, electionBlocksRequired } from '../sim/systems/politics';
 
@@ -364,6 +364,10 @@ const menBlocks = new WeakMap<Sim['world'], { men: number; blocks: number }[]>()
 const chiefOpinionLastWeek = new WeakMap<Sim['world'], number>();
 /** A crew is worth starting only when every existing one has this many hoods. */
 const USEFUL_CREW = 4;
+/** 1.2.21: eight lieutenants with nine hoods each — the most men the crews can use. */
+const CREW_CAPACITY = MAX_TEAMS * MAX_TEAM_SIZE;
+/** Idle hoods kept in the pool as replacements; more are sacked, the weakest first. */
+const POOL_RESERVE = 3;
 /** A racket the gang is saving for: other premises wait until its cost is in hand. */
 const savingFor = new WeakMap<Sim['world'], { name: string; cost: number }>();
 
@@ -435,6 +439,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const beforeMen = gangManpower(w, gang);
   const weight = strategy.weights;
   const crewsOf = () => gang.teamIds.map((teamId) => w.teams[teamId]).filter((team) => !!team);
+  /** Lieutenants, crew hoods and the pool — the men the crews can use (managers and specialists apart). */
+  const crewMen = () => gang.poolIds.length + crewsOf().reduce((sum, team) => sum + team.memberIds.length + 1, 0);
+  /** Pool hoods free to work: not resting off the heat, not the lawyer or accountant. */
+  const idlePool = () => gang.poolIds.filter((id) => { const p = w.people[id]; return !!p && p.status === 'active' && p.role === 'hood' && !resting.get(w)?.has(id); });
 
   // The win to play for, looked at again every few weeks.
   let goalState = goalOf.get(w);
@@ -478,7 +486,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
 
   for (const id of [...gang.recruitIds]) {
     const person = w.people[id];
-    const room = crewsOf().filter((team) => team.memberIds.length < 8).sort((a, b) => a.memberIds.length - b.memberIds.length)[0];
+    if (person?.role === 'hood' && crewMen() >= CREW_CAPACITY && idlePool().length >= POOL_RESERVE) {
+      actions.push(`NOTE hire ${person.name} held — the crews are full (${crewMen()} of ${CREW_CAPACITY}) and ${idlePool().length} wait in the pool`);
+      continue;
+    }
+    const room = crewsOf().filter((team) => team.memberIds.length < MAX_TEAM_SIZE - 1).sort((a, b) => a.memberIds.length - b.memberIds.length)[0];
     const result = hireRecruit(w, gang.id, id, room ? 'team' : 'pool', room?.id);
     logResult(actions, `hire ${person?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
   }
@@ -585,15 +597,52 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       logResult(actions, `promote ${w.people[id]?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
       if (!result.ok) break;
     }
-    for (const id of [...gang.poolIds]) {
-      if (restingMen.has(id)) continue;
-      // The crew closest to a useful size but still short of it first, then the smallest.
-      const open = crewsOf().filter((team) => team.memberIds.length < 8);
-      const crew = open.filter((team) => team.memberIds.length < USEFUL_CREW).sort((a, b) => b.memberIds.length - a.memberIds.length)[0]
-        ?? open.sort((a, b) => a.memberIds.length - b.memberIds.length)[0];
+    // 1.2.21: pool hoods go where their stars count. The crews short of a useful
+    // size are filled first; among the open crews a man goes to the one whose
+    // job he raises most (his stars for that job against the crew's average).
+    const provisional = assignCrewRoles(w, crewsOf());
+    const roleOf = (team: Team) => provisional.get(team.id) ?? 'collect';
+    const crewStars = (team: Team) => {
+      const men = team.memberIds.map((m) => w.people[m]).filter((p): p is Person => !!p);
+      return men.length ? men.reduce((sum, p) => sum + roleStars(p, roleOf(team)), 0) / men.length : 0;
+    };
+    const bestStars = (p: Person) => Math.max(...crewsOf().map((team) => roleStars(p, roleOf(team))), 0);
+    const placeable = gang.poolIds.filter((id) => !restingMen.has(id)).map((id) => w.people[id]).filter((p): p is Person => !!p && p.role === 'hood' && p.status === 'active')
+      .sort((a, b) => bestStars(b) - bestStars(a) || a.id - b.id);
+    for (const p of placeable) {
+      const open = crewsOf().filter((team) => team.memberIds.length < MAX_TEAM_SIZE - 1);
+      const short = open.filter((team) => team.memberIds.length < USEFUL_CREW);
+      const gain = (team: Team) => roleStars(p, roleOf(team)) - crewStars(team);
+      const crew = (short.length ? short : open).sort((a, b) => gain(b) - gain(a) || a.memberIds.length - b.memberIds.length)[0];
       if (!crew) break;
-      const result = moveToTeam(w, gang.id, id, crew.id);
-      logResult(actions, `to crew ${w.people[id]?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
+      const result = moveToTeam(w, gang.id, p.id, crew.id);
+      logResult(actions, `to crew ${p.name} (${roleStars(p, roleOf(crew)).toFixed(1)}★ for ${roleOf(crew)})`, result.ok, result.ok ? result.message ?? '' : result.error);
+    }
+    // Every crew full: a better man in the pool takes the place of the weakest
+    // free hand for that crew's job (up to three swaps a week).
+    let swaps = 0;
+    for (const p of [...placeable].filter((x) => gang.poolIds.includes(x.id))) {
+      if (swaps >= 3 || crewsOf().some((team) => team.memberIds.length < MAX_TEAM_SIZE - 1)) break;
+      let best: { team: Team; weak: Person; gain: number } | undefined;
+      for (const team of crewsOf()) {
+        const weak = team.memberIds.map((m) => w.people[m]).filter((x): x is Person => !!x && x.status === 'active' && x.orderId == null && !talentPlaced.has(x.id))
+          .sort((a, b) => roleStars(a, roleOf(team)) - roleStars(b, roleOf(team)))[0];
+        const gain = weak ? roleStars(p, roleOf(team)) - roleStars(weak, roleOf(team)) : 0;
+        if (weak && gain >= 1 && (!best || gain > best.gain)) best = { team, weak, gain };
+      }
+      if (!best) continue;
+      const out = moveToPool(w, gang.id, best.weak.id);
+      const result = out.ok ? moveToTeam(w, gang.id, p.id, best.team.id) : out;
+      logResult(actions, `swap ${p.name} into ${best.team.name} for ${best.weak.name} (+${best.gain.toFixed(1)}★ ${roleOf(best.team)})`, result.ok, result.ok ? '' : result.error);
+      if (result.ok) swaps++;
+    }
+    // The pool keeps a few replacements; the weakest idle men beyond them are sacked.
+    if (!crewsOf().some((team) => team.memberIds.length < MAX_TEAM_SIZE - 1)) {
+      const spare = idlePool().map((id) => w.people[id]).sort((a, b) => bestStars(a) - bestStars(b) || a.id - b.id);
+      for (const p of spare.slice(0, Math.max(0, spare.length - POOL_RESERVE))) {
+        const result = sackPerson(w, gang.id, p.id);
+        logResult(actions, `sack ${p.name} — idle in the pool, the crews are full (${bestStars(p).toFixed(1)}★ best)`, result.ok, result.ok ? result.message ?? '' : result.error);
+      }
     }
     // A new crew gets men from the biggest one, so no lieutenant walks alone.
     for (let moves = 0; moves < 8; moves++) {
@@ -993,7 +1042,13 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const takings = Math.max(income.legal + income.illegal + income.protection + income.other, w.week <= 2 ? booked : 0);
       const affordable = takings >= wageBill + averageWage * newMen;
       const pays = affordable && (men < floor || shortLastWeek || weeklyNet >= averageWage * newMen || gang.cash >= (wageBill + averageWage * newMen) * 52);
-      if (pays && hiringStalled) {
+      const idle = idlePool().length;
+      const full = crewMen() >= CREW_CAPACITY;
+      if (full && idle >= POOL_RESERVE) {
+        actions.push(`NOTE recruit held — the crews are full (${crewMen()} of ${CREW_CAPACITY} men) and ${idle} wait in the pool`);
+      } else if (!full && idle > 0) {
+        actions.push(`NOTE recruit held — ${idle} idle in the pool to place first`);
+      } else if (pays && hiringStalled) {
         actions.push(`NOTE recruit held — the last men hired added no blocks (${menBlocksHistory.map((h) => `${h.men} men/${h.blocks} blocks`).join(' → ')})`);
       } else if (!affordable && hoodSites.length) {
         actions.push(`NOTE recruit held — wages $${Math.round(wageBill)} + about $${Math.round(averageWage * newMen)} for ${newMen} more would exceed last week's takings $${Math.round(takings)}`);
@@ -1004,7 +1059,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         // 1.2.21: the venues no longer wait for a crew each — with fewer crews
         // than venues one crew walks several (a hiring place is often empty by
         // the time a man gets there, so one stop a week starved a small gang).
-        const venues = Math.min(hoodSites.length, shrinking || men < floor ? 4 : 2);
+        // At capacity only a replacement or two is sought, for the swaps.
+        const venues = Math.min(hoodSites.length, full ? 1 : shrinking || men < floor ? 4 : 2);
         if (recruitMemory.hintIds.includes(hoodSites[0].id)) actions.push('NOTE recruit following last week\'s tip');
         const sentTo = new Set<number>();
         const teams: NonNullable<ReturnType<typeof freest>>[] = [];
@@ -1192,7 +1248,17 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     };
     const buy = (label: string, site: Building | undefined) => {
       if (!site) return false;
-      const result = give(`reinvest: buy ${label} ${site.typeId}`, businessCrew(), { type: 'buyPremises', buildingIds: [site.id] });
+      let team = businessCrew();
+      let result = give(`reinvest: buy ${label} ${site.typeId}`, team, { type: 'buyPremises', buildingIds: [site.id] });
+      // 1.2.21: a crew without the time is not asked again — the buy goes to
+      // the crew with the most free minutes (give() has marked the first out of time).
+      const tried = new Set<number>(team ? [team.id] : []);
+      for (let k = 0; k < 3 && !result.ok && /time/i.test(result.error); k++) {
+        team = freest(tried);
+        if (!team) break;
+        tried.add(team.id);
+        result = give(`reinvest: buy ${label} ${site.typeId} (reassigned)`, team, { type: 'buyPremises', buildingIds: [site.id] });
+      }
       if (result.ok) spareCash -= price(site);
       return result.ok;
     };

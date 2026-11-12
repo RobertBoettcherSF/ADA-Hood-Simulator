@@ -270,7 +270,14 @@ Items marked *(my call)* are choices made while building, not asked for.
    - Hiring:
      - new men are hired only when last week's takings cover the wage bill with them; in the first two weeks the protection on the books counts as the takings;
      - hiring stops when the last three weeks added two or more men but no blocks.
-   - Buys go to the business crew if it has a quarter of its week free, otherwise to the freest crew.
+   - Buys go to the business crew if it has a quarter of its week free, otherwise to the freest crew. A crew that answers "has not got the time" is not asked again that week: the buy goes to the crew with the most free minutes, up to three tries. (Robert's week-87 run had the same iceHouse buy refused nine times on one crew.)
+   - Crew capacity and the pool:
+     - capacity is eight lieutenants with nine hoods each, 80 men in crews; lawyer, accountant and business managers are on top;
+     - each week the idle pool hoods are placed first, and no one is hired while one waits. At capacity, recruiting looks for a replacement at one venue only, and hiring stops once three are waiting. (The week-87 run had 222 men, most of them idle in the pool.)
+     - pool hoods go to crews by their stars for the crew's job. Crews short of four hoods are filled first. Otherwise a man goes to the crew whose job he raises most: extortion wants intimidation and fists; strike wants firearms, fists and stealth; collection wants driving and organisation; recruiting wants intelligence and organisation; business wants business and organisation; scouting wants stealth, intelligence and driving;
+     - with every crew full, a pool man at least one star better than a crew's weakest free hand takes his place (three swaps a week at most);
+     - beyond a reserve of three, the weakest idle pool hoods are sacked.
+   - The debug report shows, per gang, crew capacity against men in crews and the pool, and the week's sackings. Each crew line gives its job and its men's average stars in that job.
    - Bribes:
      - the police chief is paid only when his opinion of us falls, or the police are hostile;
      - bribe sums follow the illegal and protection takings (about 15%);
@@ -287,6 +294,7 @@ Items marked *(my call)* are choices made while building, not asked for.
      - so cash piles up in an aggressive city with many protected blocks;
      - "assets" value each building at cost × (0.6 + land value/100), less up to 35% for crime heat, so property on good land is booked above its price.
      - Dry Season is won on its own goal, not on cash, so a winner with under $90k cash is consistent.
+     - Runaway rival cash (Robert's seed 3311433221 run: Delgado $1.09M with 18–19 men by week 87). A 40-week headless run on that seed shows the same shape: Sullivan reaches $346k and Delgado $198k by week 40, with 18–19 men each. Their books balance, checked week by week: the change in cash matches income less wages, upkeep and purchases, within bribes and taxes. There is no double counting. Per block they earn about what the player earns (around $800–1,100 a block a week). Their costs, though, stay flat: an AI gang hires only the people who have already agreed to join (`manageStaff`), so it stays near 18 men and about $2,900 a week in wages. It buys at most one premises a week, within two blocks. So $20–30k a week of income becomes $15–25k of profit, and over 87 weeks that piles up to about a million. The cause is spending, not income. A fix means letting the AI recruit and spend more, which is a core retune and waits for Robert's OK.
      - Not changed in this build.
    - Auto Test recruiting with few crews: the hiring places are no longer capped at one per crew. With fewer crews than venues, one crew's recruit order walks several of them. The new rule that keeps a crew filling before another lieutenant is made had left a 6-man gang with one crew. That crew checked one venue a week, often an empty one, and the gang stayed at 6 men for six weeks (base build: 17). With the fix it reaches 18.
    - Recruitment tips: a recruiting order now counts and points to the kind of person it asks for (accountant, lawyer or hood), not the kind the venue usually holds. Auto Test's hood-venue memory ignores accountant and lawyer tips.
@@ -298,6 +306,7 @@ Items marked *(my call)* are choices made while building, not asked for.
       - Squealers: these are outsiders, shopkeepers whose opinion of us is below −40, so they would talk to the police. Each entry has an Intimidate button left of its Hostile badge, and an Intimidate all button sits below the list. Both open a small crew picker: every crew (lieutenant and crew name) with its free minutes this week, the crew whose lieutenant stands nearest the squealers' businesses preselected. Confirming queues an Intimidate order for that crew on their businesses, through the same order flow as the Gang Organizer. To pool appears only if the entry is one of our own men. *(Robert's call: no Find on map here.)*
     - A Reports button left of Choose on map lists all of the week's reports, grouped under the street view's labels, in time order. A click centres the map.
     - "DAs" is now "District Attorneys", with a tooltip.
+    - The pool list has a Sack button beside each hood and a Sack all idle button below it (hoods with no order on hand), both behind a confirmation.
 11. **Ideas for later** (unchanged):
     - body armour: waiting for Robert's OK;
     - a choice between cheap-but-risky and clean ways of doing things;

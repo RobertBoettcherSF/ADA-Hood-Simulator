@@ -178,6 +178,25 @@ export const scoutTalent = (p: Person) => p.skills.stealth * 2 + p.skills.intell
 export const businessTalent = (p: Person) => p.skills.business * 2 + p.skills.organization + p.skills.intelligence;
 export const extortionTalent = (p: Person) => p.skills.intimidation * 2 + p.skills.fists * 0.5;
 export const muscleTalent = (p: Person) => p.skills.firearms * 2 + p.skills.stealth + p.skills.driving * 0.5 + p.skills.explosives * 0.5;
+/**
+ * 1.2.21: the skills each crew job asks for, read as stars (the mean of the
+ * listed skills). Extortion and strike want fists and guns, collection wants
+ * driving and organisation, recruiting and bribes want brains.
+ */
+export const ROLE_SKILLS: Record<CrewRole, readonly (keyof Person['skills'])[]> = {
+  extortion: ['intimidation', 'fists'],
+  muscle: ['firearms', 'fists', 'stealth'],
+  collect: ['driving', 'organization'],
+  recruit: ['intelligence', 'organization'],
+  business: ['business', 'organization'],
+  scout: ['stealth', 'intelligence', 'driving'],
+};
+export const roleStars = (p: Person, role: CrewRole) => ROLE_SKILLS[role].reduce((sum, k) => sum + (p.skills[k] ?? 0), 0) / ROLE_SKILLS[role].length;
+/** A crew's job read back from its auto name ("Eddie's Strike"), or null. */
+export function crewRoleFromName(name: string): CrewRole | null {
+  for (const [role, job] of Object.entries(CREW_JOBS) as [CrewRole, string][]) if (new RegExp(`'s ${job}( \\d+)?$`).test(name)) return role;
+  return null;
+}
 const totalSkill = (p: Person) => Object.values(p.skills).reduce((a, b) => a + b, 0);
 
 /**
