@@ -176,6 +176,7 @@ export function JobCardPanel() {
               {def.target !== 'none' &&
                 <button className="btn sm" onClick={() => setCollapsed(true)}>Pick on map</button>}
               <MapAccess label="Find by name" />
+              {jc.type === 'intimidate' && <MapAccess label="Find by Refusal" refusals title="Only the businesses that refused to pay you" />}
               {(jc.blockIds.length > 0 || jc.buildingIds.length > 0 || jc.personId != null || jc.pos != null) &&
                 <button className="btn sm" onClick={() => { update({ blockIds: [], buildingIds: [], personId: null, pos: null }); setOffer(null); }}>Clear selection</button>}
             </div>

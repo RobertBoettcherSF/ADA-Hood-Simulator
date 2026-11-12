@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { act, useGame } from '../../app/store';
 import {
   assaultPrisoner,
@@ -17,6 +17,7 @@ import { buildingName, money } from '../../sim/world';
 import { ConfirmDialog, Dial, Empty, Hint, Icon, Kicker, Pill, SkillList, Stamp } from '../common';
 import { Portrait } from '../Portrait';
 import { resourceDragProps, resourceJustDropped, useResourceDrop } from '../resourceDrag';
+import { SLOT_COUNT, moveSlot, slotLayout } from '../lieutenantSlots';
 import { Advisor } from './Advisor';
 import { ABSENT, PayRoll, hours } from './RightSheet';
 
@@ -416,25 +417,67 @@ export function LieutenantStrip() {
   useGame((s) => s.version);
   const w = sim.world;
   const gang = sim.playerGang;
-  const teams: (Team | undefined)[] = gang.teamIds.map((id) => w.teams[id]);
-  const selected = (selectedTeamId != null ? w.teams[selectedTeamId] : undefined) ?? teams[0];
+  const layout = slotLayout(w, gang);
+  const teams: (Team | undefined)[] = layout.map((id) => (id == null ? undefined : w.teams[id]));
+  const selected = (selectedTeamId != null ? w.teams[selectedTeamId] : undefined) ?? teams.find(Boolean);
 
   const slots = [];
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < SLOT_COUNT; i++) {
     const t = teams[i];
     if (!t) {
-      slots.push(<EmptyLieutenantSlot key={`e${i}`} index={i} />);
+      slots.push(<SlotDrop key={`e${i}`} index={i}><EmptyLieutenantSlot index={i} /></SlotDrop>);
       continue;
     }
-    slots.push(<LieutenantTab key={t.id} team={t} index={i} selected={selected?.id === t.id} onSelect={() => {
+    slots.push(<SlotDrop key={t.id} index={i}><LieutenantTab team={t} index={i} selected={selected?.id === t.id} onSelect={() => {
       if (resourceJustDropped()) { selectTeam(t.id); return; }
       selectTeam(t.id);
       const sheet = useGame.getState().sheet;
       if (sheet?.kind === 'hoods' && sheet.teamId === t.id) useGame.getState().setSheet(null);
       else useGame.getState().setSheet({ kind: 'hoods', teamId: t.id });
-    }} />);
+    }} /></SlotDrop>);
   }
   return <div className="lt-strip">{slots}</div>;
+}
+
+const SLOT_MIME = 'application/x-hood-lieutenant-slot';
+
+/**
+ * 1.2.21: a lieutenant's slot is a drag source and every slot a drop target.
+ * Dropped on another lieutenant the two swap; dropped on an empty slot he
+ * moves there and stays. Hoods, weapons and cars still drop as before.
+ */
+function SlotDrop({ index, children }: { index: number; children: ReactNode }) {
+  const [over, setOver] = useState(false);
+  return (
+    <div
+      className={`lt-slot${over ? ' drop-over' : ''}`}
+      style={{ display: 'contents' }}
+      draggable={false}
+      onDragStart={(e) => {
+        if (e.dataTransfer.types.includes('application/x-og-resource')) return;
+        e.dataTransfer.setData(SLOT_MIME, String(index));
+        e.dataTransfer.effectAllowed = 'move';
+      }}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes(SLOT_MIME)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (!over) setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        setOver(false);
+        if (!e.dataTransfer.types.includes(SLOT_MIME)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const from = Number(e.dataTransfer.getData(SLOT_MIME));
+        if (!Number.isFinite(from)) return;
+        act((s) => { moveSlot(s.world, s.playerGang, from, index); return { ok: true }; });
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 /** An empty tab. Dropping a pool hood here promotes him and starts a crew. */
@@ -475,6 +518,7 @@ function LieutenantTab({ team: t, index, selected, onSelect }: { team: Team; ind
       aria-pressed={selected || poolOpen} className={`lt-tab${selected ? ' on' : ''}${poolOpen ? ' pool-open' : ''}${lt && lt.status !== 'active' ? ' absent' : ''}${dropOver ? ' drop-over' : ''}`}
       title={`${lt?.name ?? 'Vacant'} — ${t.name}${pct ? ` · ${pct}% of the week allocated` : ''}. Click the portrait to open the pool for this crew; click again for the city plan.`}
       onClick={onSelect}
+      draggable
       {...dropProps}
     >
       {lt && <Portrait person={lt} gang={gang} size={58} />}

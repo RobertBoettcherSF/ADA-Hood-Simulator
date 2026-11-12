@@ -6,6 +6,7 @@ import {
   canGoStraight,
   policeTourCapacity,
   hireRecruit,
+  moveToPool,
   sackPerson,
   setGoStraight,
   setPay,
@@ -182,13 +183,14 @@ export function LawyerTab() {
                   ['mayor', 'Mayor'],
                   ['policeChief', 'Chief'],
                   ['judge', 'Judges'],
-                  ['da', 'DAs'],
+                  ['da', 'District Attorneys'],
                   ['police', 'Officers'],
                 ] as const
               ).map(([k, label]) => (
                 <button
                   key={k}
                   className={`btn sm${officialKind === k ? ' on' : ''}`}
+                  title={k === 'da' ? 'District Attorneys: they prosecute your men in court. A bought DA hands over the witness and juror lists.' : undefined}
                   onClick={() => setOfficialKind(k)}
                 >
                   {label}
@@ -359,6 +361,7 @@ export function LawyerTab() {
       </Panel>
 
       <Panel title="Squealers">
+        <Hint>Squealers are shopkeepers who would talk. One of your own men among them can be sent to the pool from here.</Hint>
         {squealers.length === 0 ? (
           <Empty>Nobody is talking.</Empty>
         ) : (
@@ -370,6 +373,7 @@ export function LawyerTab() {
             >
               <span className="name tiny">{p.name}</span>
               <Pill kind="bad">hostile</Pill>
+              <ToPool personId={p.id} />
             </button>
           ))
         )}
@@ -385,10 +389,28 @@ export function LawyerTab() {
                 {w.people[c.perpetratorId]?.name ?? 'Unknown'} — {c.kind}
               </span>
               <span className="muted mono">{Math.round(c.arrestRisk * 100)}% risk</span>
+              <ToPool personId={c.perpetratorId} />
             </div>
           ))
         )}
       </Panel>
     </div>
+  );
+}
+
+/** 1.2.21: the crew a man is in, and a button that sends him to the pool (off the streets). */
+function ToPool({ personId }: { personId: number }) {
+  const sim = useGame((s) => s.sim)!;
+  const notify = useGame((s) => s.notify);
+  useGame((s) => s.version);
+  const w = sim.world, gang = sim.playerGang, p = w.people[personId];
+  if (!p || p.gangId !== gang.id || p.status !== 'active' || p.role !== 'hood') return null;
+  const team = p.teamId != null ? w.teams[p.teamId] : undefined;
+  if (!team) return <span className="muted tiny">in the pool</span>;
+  return (
+    <span className="row" style={{ gap: 4 }} onClick={(e) => e.stopPropagation()}>
+      <span className="muted tiny">{team.name}</span>
+      <button className="btn sm" title="Take him off his crew into the pool so he stays off the streets" onClick={() => notify(act((s) => moveToPool(s.world, gang.id, p.id))!)}>To pool</button>
+    </span>
   );
 }

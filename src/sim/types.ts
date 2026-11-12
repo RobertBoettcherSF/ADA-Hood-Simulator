@@ -685,6 +685,8 @@ export interface Gang {
   personality: 'passive' | 'normal' | 'aggressive';
   cash: number;
   teamIds: ID[];
+  /** 1.2.21: the left panel's eight lieutenant slots, as the player arranged them (team id or null). */
+  teamSlots?: (ID | null)[];
   poolIds: ID[];
   accountantId: ID | null;
   lawyerId: ID | null;
