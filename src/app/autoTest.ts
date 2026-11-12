@@ -54,6 +54,8 @@ import { MINUTES_PER_WEEK } from '../sim/constants';
 /** The ranked action table for this run, and what was tried last Monday. */
 let actionRanks: ActionRanks = defaultActionRanks();
 let pendingActions: PendingAction[] = [];
+/** Men the talent pass moved this run; the crew balancer leaves them where they are. */
+const talentPlaced = new Set<number>();
 export function currentActionRanks(): ActionRanks { return { ...actionRanks }; }
 import { availableSpecialist } from '../sim/specialists';
 import { queueSpecialistJob } from '../sim/specialistJobs';
@@ -339,7 +341,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const small = sorted[0];
       const big = sorted[sorted.length - 1];
       if (!small || !big || big === small || big.memberIds.length - small.memberIds.length < 3) break;
-      const id = big.memberIds[big.memberIds.length - 1];
+      // Keep the men the talent pass placed; move a newer hand instead.
+      const id = [...big.memberIds].reverse().find((member) => !talentPlaced.has(member)) ?? big.memberIds[big.memberIds.length - 1];
       const result = moveToTeam(w, gang.id, id, small.id);
       logResult(actions, `to crew ${w.people[id]?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
       if (!result.ok) break;
@@ -352,6 +355,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const roles = assignCrewRoles(w, crewsOf().filter((team) => crewReady(w, team.id)));
   for (const move of talentSwaps(w, crewsOf(), roles)) {
     const result = moveToTeam(w, gang.id, move.personId, move.toTeamId);
+    if (result.ok) talentPlaced.add(move.personId);
     logResult(actions, `talent: ${w.people[move.personId]?.name ?? move.personId} to the ${roles.get(move.toTeamId)} crew`, result.ok, result.ok ? '' : result.error);
   }
   if (roles.size) actions.push(`NOTE crews: ${[...roles].map(([id, role]) => `${w.people[w.teams[id]?.lieutenantId]?.name ?? id} ${role}`).join(', ')}`);
@@ -734,6 +738,7 @@ function reportText(parts: {
 export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: (sim: Sim) => Promise<void> | void, sink: DiarySink = folderDiary()): Promise<string> {
   recruitMemory = newRecruitMemory();
   pendingActions = [];
+  talentPlaced.clear();
   clearWeekHeaps();
   noteAutoTestRunning(
     `seed ${settings.seed} learn ${settings.learn === false ? 'off' : 'on'}`,
