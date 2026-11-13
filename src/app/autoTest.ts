@@ -2040,6 +2040,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (p.kind === 'business' && site != null && !buyAllowed(desk, team.id, site)) return { ok: false, error: 'this crew failed there before — retry elsewhere' };
     return give(label, team, input, p.kind);
   });
+  actions.push(`DECIDE ${proposals.length} candidate orders for ${slots.length} crews (goal ${goal}): ${decision.given.length} given, ${decision.skipped.length} not`);
+  for (const d of decision.given) actions.push(d.line);
+  for (const d of decision.skipped) actions.push(d.line);
   {
     const restingNow = [...(resting.get(w) ?? [])].map((id) => w.people[id]).filter((p): p is Person => !!p);
     for (const p of restingNow) if (!heldForWanted.has(p.id)) heldForWanted.set(p.id, `${p.name} (wanted ${Math.round(p.wanted)}, resting in the pool)`);
@@ -2049,9 +2052,6 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     actions.push(`WANTED held back ${heldForWanted.size} hood${heldForWanted.size === 1 ? '' : 's'}${heldForWanted.size ? `: ${[...heldForWanted.values()].join('; ')}` : ''}`);
   }
-  actions.push(`DECIDE ${proposals.length} candidate orders for ${slots.length} crews (goal ${goal}): ${decision.given.length} given, ${decision.skipped.length} not`);
-  for (const d of decision.given) actions.push(d.line);
-  for (const d of decision.skipped) actions.push(d.line);
   noteDevDesk(`DECIDE ${decision.given.length} of ${proposals.length} given`);
   // 1.2.23: no crew sits at 0 orders without a reason in the log.
   for (const slot of slots) {
