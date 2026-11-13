@@ -417,6 +417,9 @@ export const SUSPICION_JUMP = 15;
 /** Most of the gang's men on risky street orders (extortion and rough work) at once; less while easing. */
 export const RISKY_SHARE = 0.5;
 export const RISKY_SHARE_EASING = 0.35;
+/** 1.2.24: walks an unarmed crew skips while suspicion is high. */
+const OFF_STREET_ORDERS = new Set(['explore', 'guardBusiness', 'patrol']);
+const crewArmed = (team: Team) => Object.values(team.weapons).some((n) => (n ?? 0) > 0);
 const RISKY_ORDERS = new Set(['extort', 'raid', 'kidnap', 'kill', 'smashUp', 'torch', 'bomb', 'assault', 'intimidate', 'ambush']);
 /** How hot the gang is: 0 normal, 1 ease off (bribe the chief, half the extortion), 2 lie low. */
 export function heatLevel(suspicion: number, lastWeek: number | undefined): 0 | 1 | 2 {
@@ -538,6 +541,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   if (rebuild) actions.push(`NOTE rebuilding the gang first: ${crewMen()} men and $${Math.round(gang.cash)} — recruiting comes before everything, no rough work`);
   const managerCount = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.managerId != null && w.people[b.managerId]?.status !== 'dead').length;
   actions.push(`NOTE men: ${crewMen()} in crews and pool, ${managerCount} managers (not counted against any limit)`);
+  // 1.2.24: last week's arrests, each with its cause.
+  {
+    const arrests = memberLosses(w, gang.id, w.week - 1).filter((l) => l.week === w.week - 1 && /arrest/i.test(l.cause));
+    actions.push(`ARRESTS week ${w.week - 1}: ${arrests.length}${arrests.length ? ` — ${arrests.map((l) => `${l.name} (${l.role}) ${l.cause}${l.by ? ` by ${l.by}` : ''}${l.orderType ? ` on ${l.orderType}` : ' off duty'}`).join('; ')}` : ''}`);
+  }
   // 1.2.24: a manager killed or an owned business lost since last Monday is logged.
   {
     const before = ownedLastWeek.get(w);
@@ -858,6 +866,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     const name = w.people[team.lieutenantId]?.name ?? 'crew';
     const risky = RISKY_ORDERS.has(input.type);
+    // 1.2.24: while suspicion is high (or the police hostile) an unarmed crew with
+    // no criminal work stays off the street: no scouting or guarding walks, and
+    // none at all when its lieutenant is hot (an arrest takes his crew with him).
+    if (!risky && (gang.suspicion >= SUSPICION_LIE_LOW || policeHostile) && !crewArmed(team)) {
+      const hotLt = heatOfMan(team.lieutenantId) >= STREET_HEAT_BACK;
+      if (OFF_STREET_ORDERS.has(input.type) || (hotLt && input.type !== 'buyPremises' && input.type !== 'setUpBusiness')) {
+        actions.push(`NOTE ${label} not given — ${name}'s crew is unarmed and stays off the street (suspicion ${Math.round(gang.suspicion)}${policeHostile ? ', police hostile' : ''}${hotLt ? `, lieutenant's street heat ${Math.round(heatOfMan(team.lieutenantId))}` : ''})`);
+        return { ok: false, error: 'Off the street this week.' };
+      }
+    }
     // 1.2.23: lying low stops the violence; extortion stops only past SUSPICION_EASE.
     if (risky && ((lieLow && input.type !== 'extort') || cooling)) {
       actions.push(`NOTE ${label} not given — lying low`);
