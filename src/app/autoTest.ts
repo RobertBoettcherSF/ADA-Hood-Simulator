@@ -1,4 +1,5 @@
 import { learnedBlock } from './diary';
+import { moveSlot, slotLayout } from '../ui/lieutenantSlots';
 import { devJournalWeeks, splitReport } from './devJournal';
 import { peekStopTraces } from '../sim/devTrace';
 import { planRoute } from './routing';
@@ -51,7 +52,7 @@ export function takeAutoTestStopped(): boolean {
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
 import { buySnitchInfo, canGoStraight, repairBuilding, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, issueStreetOrder, demote, moveToPool, moveToTeam, nearTerritory, promote, sackPerson, transferVehicle, transferWeapon, type ApiResult, type IssueOrderInput } from '../sim/api';
-import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, BASIC_CREWS, CREW_OPENING_ORDER, ROLE_SKILLS, carMinutesSaved, crewNames, roleStars, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, talentSwaps, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
+import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, BASIC_CREWS, CREW_OPENING_ORDER, ROLE_SKILLS, carMinutesSaved, crewNames, roleStars, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
 import { DRIVE_SPEED, GO_STRAIGHT_ASSETS, VEHICLES, WALK_SPEED, WEAPONS } from '../sim/constants';
 import type { Building, Gang, ID, Person, Team, WeaponId } from '../sim/types';
 import { buildingMapIntel, knownBlockOwners, personMapPosition } from '../sim/mapIntel';
@@ -743,48 +744,62 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     for (const id of [lt.id, ...members]) if (gang.poolIds.includes(id) && newTeam.memberIds.length < MAX_TEAM_SIZE - 1) moveToTeam(w, gang.id, id, newTeam.id);
     for (const [kind, n] of Object.entries(cars) as [keyof typeof VEHICLES, number][]) for (let i = 0; i < (n ?? 0); i++) transferVehicle(w, gang.id, kind, newTeam.id, true);
   }
-  // 1.2.30: the basic crews — Recruit first, then Business, Intimidation and
-  // protection collecting — are formed as soon as a lead qualifies and
-  // rebuilt straight away when lost, every week.
-  for (const role of BASIC_CREWS) {
-    if (crewsOf().some((t) => rolesNow().get(t.id) === role)) continue;
-    const lead = pickLead(role);
-    if (!lead) {
-      actions.push(`BASIC CREW ${role} not ${w.week > 1 ? 'formed or rebuilt' : 'formed'}: no free hood in the pool or a crew with ${leadNeed(role)}`);
-      continue;
+  // 1.2.32 (Robert): existing crews are filled before any new crew is formed,
+  // basic or not. Once every crew is full the next crew opens: the missing
+  // basic crews first (Recruit, Business, Intimidation, Collect; their lead
+  // from the pool first, then from a crew), then the rest of the opening
+  // order (their lead from the pool, with men waiting there) — as many as
+  // qualify. The attack crew is the exception Robert asked for: it forms as
+  // soon as a rival HQ is found or suspected.
+  {
+    const allFull = () => crewsOf().every((team) => team.memberIds.length >= MAX_TEAM_SIZE - 1);
+    const poolWaiting = () => gang.poolIds.filter((id) => !restingMen.has(id)).length;
+    const heldRoles = () => [...rolesNow().values()];
+    const open = (role: CrewRole, lead: Person, why: string) => {
+      const result = promote(w, gang.id, lead.id);
+      const newTeam = result.ok && lead.teamId != null ? w.teams[lead.teamId] : undefined;
+      if (newTeam) keptRoles.set(newTeam.id, role);
+      logResult(actions, `promote ${lead.name} to lead the ${role} crew (${describeLead(role, lead)}${leadQualified(role, lead) ? '' : ' — until a 4★ hood is recruited'})${why}`, !!newTeam, result.ok ? result.message ?? '' : result.error);
+      return !!newTeam;
+    };
+    // 1.2.32 (Robert): an attack crew as soon as our map shows a rival HQ or one is suspected.
+    const hqSeen = knownRivalHQs(w, gang).length > 0 || (suspectedHQ.get(w)?.size ?? 0) > 0;
+    if (hqSeen && !heldRoles().includes('muscle')) {
+      const lead = pickLead('muscle');
+      if (!lead) actions.push(`NOTE no attack crew although a rival HQ is ${knownRivalHQs(w, gang).length ? 'known' : 'suspected'}: no free hood with ${leadNeed('muscle')}`);
+      else if (gang.teamIds.length >= MAX_TEAMS) actions.push(`NOTE no attack crew although a rival HQ is known or suspected: already ${MAX_TEAMS} lieutenants (${lead.name} would lead it)`);
+      else open('muscle', lead, ' — a rival HQ is known or suspected');
     }
-    if (gang.teamIds.length >= MAX_TEAMS) { actions.push(`BASIC CREW ${role} not formed: already ${MAX_TEAMS} lieutenants (${lead.name} would lead it)`); continue; }
-    const result = promote(w, gang.id, lead.id);
-    const newTeam = result.ok && lead.teamId != null ? w.teams[lead.teamId] : undefined;
-    logResult(actions, `promote ${lead.name} to lead the ${role} crew (${describeLead(role, lead)}${leadQualified(role, lead) ? '' : ' — until a 4★ hood is recruited'})`, !!newTeam, result.ok ? result.message ?? '' : result.error);
-    if (newTeam) keptRoles.set(newTeam.id, role);
-    else actions.push(`BASIC CREW ${role} not formed: ${result.ok ? 'the promotion made no crew' : result.error}`);
+    for (;;) {
+      const missing = BASIC_CREWS.filter((r) => !heldRoles().includes(r));
+      if (gang.teamIds.length > 0 && !allFull()) {
+        for (const role of missing) actions.push(`BASIC CREW ${role} not ${w.week > 1 ? 'formed or rebuilt' : 'formed'}: the existing crews are filled first (${crewsOf().filter((t) => t.memberIds.length < MAX_TEAM_SIZE - 1).map((t) => `${t.name} ${t.memberIds.length}/${MAX_TEAM_SIZE - 1}`).join(', ')})`);
+        break;
+      }
+      if (gang.teamIds.length >= MAX_TEAMS) {
+        for (const role of missing) actions.push(`BASIC CREW ${role} not formed: already ${MAX_TEAMS} lieutenants`);
+        break;
+      }
+      if (missing.length) {
+        const role = missing[0];
+        const lead = pickLead(role);
+        if (!lead) {
+          for (const r of missing) actions.push(`BASIC CREW ${r} not ${w.week > 1 ? 'formed or rebuilt' : 'formed'}: ${r === role ? `no free hood in the pool or a crew with ${leadNeed(r)}` : `waits for the ${role} crew`}`);
+          break;
+        }
+        if (!open(role, lead, '')) break;
+        continue;
+      }
+      if (poolWaiting() < 1) break;
+      const nextRole = CREW_OPENING_ORDER.find((r) => !heldRoles().includes(r)) ?? 'collect';
+      const lead = pickLead(nextRole, poolHoods);
+      if (!lead) { actions.push(`NOTE no new ${nextRole} crew: no free pool hood with ${leadNeed(nextRole)}`); break; }
+      if (!open(nextRole, lead, '')) break;
+    }
   }
 
   if (weight.hiring >= 0.2) {
-    const allFull = () => crewsOf().every((team) => team.memberIds.length >= MAX_TEAM_SIZE - 1);
-    const poolWaiting = () => gang.poolIds.filter((id) => !restingMen.has(id)).length;
-    // 1.2.31 (Robert): existing crews are filled first; a new crew opens only
-    // once every crew is full and men wait in the pool.
-    const mayOpen = () => gang.teamIds.length === 0
-      || (gang.teamIds.length < MAX_TEAMS && allFull() && poolWaiting() >= 1);
-    // A new crew's lead: 4★ in its lead skills, else 3★ (1.2.31), from the pool.
     const roleOfNow = () => rolesNow();
-    // 1.2.30: further crews only once every basic crew is formed.
-    const basicHeld = () => BASIC_CREWS.every((r) => [...roleOfNow().values()].includes(r));
-    for (let tries = 0; tries < 3 && basicHeld() && mayOpen(); tries++) {
-      const held = roleOfNow();
-      const nextRole = CREW_OPENING_ORDER.find((r) => ![...held.values()].includes(r)) ?? 'collect';
-      const lead = pickLead(nextRole, poolHoods);
-      if (!lead) {
-        actions.push(`NOTE no new ${nextRole} crew: no free pool hood with ${leadNeed(nextRole)}`);
-        break;
-      }
-      const result = promote(w, gang.id, lead.id);
-      if (result.ok && lead.teamId != null) keptRoles.set(lead.teamId, nextRole);
-      logResult(actions, `promote ${lead.name} to lead the ${nextRole} crew (${describeLead(nextRole, lead)}${leadQualified(nextRole, lead) ? '' : ' — until a 4★ hood is recruited'})`, result.ok, result.ok ? result.message ?? '' : result.error);
-      if (!result.ok) break;
-    }
     // 1.2.25 (Robert's rule): a pool hood joins only a crew whose job he has
     // 3★ or more for — the crew he is best for, the fullest among equals, so
     // one crew fills before the next. Nobody goes to a crew just because it is empty.
@@ -861,9 +876,53 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // 1.2.25: every crew keeps its job, a crew whose lieutenant is in custody too
   // (it simply gets no orders) — its job never passes to another crew.
   const roles = rolesNow();
-  for (const move of talentSwaps(w, crewsOf(), roles)) {
-    const result = tryMove(move.personId, move.toTeamId, `talent: ${w.people[move.personId]?.name ?? move.personId} to the ${roles.get(move.toTeamId)} crew`);
-    if (result.ok) talentPlaced.add(move.personId);
+  // 1.2.32 (Robert): every crew is rebuilt every week whenever a more able
+  // hood is free — in the pool or in another crew (the business crew gives
+  // nobody away), 3★ or more for the crew's job. A crew with room takes him
+  // if he is better for its job than for his own crew's; a full crew trades
+  // its weakest man, only when the two crews are better off together. Each
+  // move raises the gang's total stars for the jobs, so the pass ends.
+  {
+    const job = (t: Team) => roles.get(t.id) ?? 'collect';
+    const crewOfMan = (id: number) => crewsOf().find((t) => t.memberIds.includes(id));
+    const movable = (p: Person | undefined): p is Person => !!p && p.status === 'active' && p.role === 'hood' && p.orderId == null && !restingMen.has(p.id);
+    const pass = () => {
+      for (const team of crewsOf()) {
+        const role = job(team);
+        const fromPool = idlePool().map((id) => w.people[id]).filter(movable);
+        const fromCrews = crewsOf().filter((t) => t !== team && job(t) !== 'business').flatMap((t) => t.memberIds.map((id) => w.people[id])).filter(movable);
+        const room = team.memberIds.length < MAX_TEAM_SIZE - 1;
+        const weak = team.memberIds.map((id) => w.people[id]).filter(movable).sort((x, y) => roleStars(x, role) - roleStars(y, role) || y.id - x.id)[0];
+        let best: { p: Person; gain: number } | undefined;
+        for (const p of [...fromPool, ...fromCrews]) {
+          if (roleStars(p, role) < 3) continue;
+          const home = crewOfMan(p.id);
+          const ownNow = home ? roleStars(p, job(home)) : 0;
+          let gain: number;
+          if (room) gain = home ? roleStars(p, role) - ownNow : roleStars(p, role);
+          else if (!weak) continue;
+          else gain = roleStars(p, role) - roleStars(weak, role) + (home ? roleStars(weak, job(home)) - ownNow : 0);
+          if (gain > 0 && (!best || gain > best.gain)) best = { p, gain };
+        }
+        if (!best) continue;
+        const home = crewOfMan(best.p.id);
+        if (!room && weak) {
+          const out = moveToPool(w, gang.id, weak.id);
+          if (!out.ok) continue;
+          const result = moveToTeam(w, gang.id, best.p.id, team.id);
+          logResult(actions, `rebuild ${team.name}: ${best.p.name} (${roleStars(best.p, role).toFixed(1)}★ ${role}) in for ${weak.name} (${roleStars(weak, role).toFixed(1)}★)${home ? `, who goes to ${home.name}` : ', who goes to the pool'}`, result.ok, result.ok ? '' : result.error);
+          if (!result.ok) { moveToTeam(w, gang.id, weak.id, team.id); continue; }
+          if (home) moveToTeam(w, gang.id, weak.id, home.id);
+          talentPlaced.add(best.p.id);
+          return true;
+        }
+        const result = moveToTeam(w, gang.id, best.p.id, team.id);
+        logResult(actions, `rebuild ${team.name}: ${best.p.name} joins (${roleStars(best.p, role).toFixed(1)}★ ${role}${home ? `, from ${home.name}` : ', from the pool'})`, result.ok, result.ok ? '' : result.error);
+        if (result.ok) { talentPlaced.add(best.p.id); return true; }
+      }
+      return false;
+    };
+    while (pass()) { /* until no crew can be made more able */ }
   }
   // 1.2.22, the business crew (Robert's method): hoods with more than three
   // business stars join it (1.2.31: no weekly limit), it gets a car, and it does the buying.
@@ -901,6 +960,17 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   for (const team of crewsOf()) {
     const name = named.get(team.id);
     if (name && name !== team.name) team.name = name;
+  }
+  // 1.2.32 (Robert): crews with the same job sit next to each other in the
+  // lieutenant list, by the player's own slot move (drag a lieutenant onto
+  // another slot; an occupied slot swaps), jobs in the opening order.
+  {
+    const rank = (id: number) => { const r = roles.get(id); return r ? CREW_OPENING_ORDER.indexOf(r) : CREW_OPENING_ORDER.length; };
+    const before = slotLayout(w, gang);
+    const want = before.filter((id): id is number => id != null).sort((x, y) => rank(x) - rank(y) || before.indexOf(x) - before.indexOf(y));
+    want.forEach((id, i) => { const from = slotLayout(w, gang).indexOf(id); if (from !== i) moveSlot(w, gang, from, i); });
+    const after = slotLayout(w, gang);
+    if (after.some((id, i) => id !== before[i])) actions.push(`NOTE lieutenant slots sorted by job: ${after.filter((id): id is number => id != null).map((id, i) => `${i + 1} ${w.teams[id]?.name ?? id}`).join(', ')}`);
   }
   if (roles.size) actions.push(`NOTE crews: ${[...roles].map(([id, role]) => `${w.people[w.teams[id]?.lieutenantId]?.name ?? id} ${role}`).join(', ')}`);
   // 1.2.24: crew sizes every week (hoods of the most a crew can hold, lieutenant apart).
@@ -1955,14 +2025,21 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (target) suspects.delete(targetId);
   }
   if (armed && w.week >= 3) {
-    const shop: WeaponId[] = [];
-    if ((armed.weapons.pistol ?? 0) < Math.min(3, armed.memberIds.length + 1)) shop.push('pistol');
-    if (policy.violence !== 'low' && gang.cash > reserve + 6000 && (armed.weapons.tommy ?? 0) < 1) shop.push('tommy');
-    if (policy.violence !== 'low' && gang.cash > reserve + 3000 && carried(armed, 'explosives') < 2 && actionRanks.bombRival >= 0.4) shop.push('explosives');
-    for (const item of shop) {
-      if (gang.cash < reserve + WEAPONS[item].cost) continue;
-      const result = supply(armed, item, true);
-      logResult(actions, `${item} for ${w.people[armed.lieutenantId]?.name ?? 'crew'} (store first)`, result.ok, result.ok ? '' : result.error);
+    // 1.2.32 (Robert): the attack crew's buys — up to 10 twin pistols, 10
+    // shotguns and 10 explosives, counting what it carries and the store.
+    // Bought into the store; each man still carries one gun (the best).
+    const ATTACK_STOCK = 10;
+    const owned = (item: WeaponId) => (armed.weapons[item] ?? 0) + (gang.weapons[item] ?? 0);
+    const wants: [WeaponId, () => boolean][] = [
+      ['twinPistols', () => true],
+      ['shotgun', () => true],
+      ['explosives', () => policy.violence !== 'low' && gang.cash > reserve + 3000 && actionRanks.bombRival >= 0.4],
+    ];
+    for (const [item, ok] of wants) {
+      let n = 0;
+      while (owned(item) < ATTACK_STOCK && ok() && gang.cash >= reserve + WEAPONS[item].cost && buyWeapon(w, gang.id, item).ok) n++;
+      if (n) actions.push(`OK buy ${n}× ${item} for the attack crew's store (${owned(item)} of ${ATTACK_STOCK})`);
+      if (item !== 'explosives') for (let i = 0; i < n; i++) if (!supply(armed, item, false).ok) break;
     }
   }
 
@@ -2322,7 +2399,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         if (!supply(t, BEST_GUN, true).ok) break;
         bought.push(`${BEST_GUN} for ${w.people[t.lieutenantId]?.name ?? 'crew'}${fromStore ? ' (from the store)' : ''}`);
       }
-      if (role === 'muscle' && carried(t, 'explosives') < 2 && afford(WEAPONS.explosives.cost) && buyWeapon(w, gang.id, 'explosives').ok) bought.push('explosives for the store');
+      if (role === 'muscle' && carried(t, 'explosives') < 10 && afford(WEAPONS.explosives.cost) && buyWeapon(w, gang.id, 'explosives').ok) bought.push('explosives for the store');
     }
     const counts = new Map<string, number>();
     for (const item of bought) counts.set(item, (counts.get(item) ?? 0) + 1);

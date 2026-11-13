@@ -222,6 +222,17 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## v1.2.32 decisions
+
+Auto Test crews and the attack crew (Robert). No game rule changes.
+
+1. **Fill first, basic crews too.** No crew opens, basic or not, until every existing crew is full. Then the missing basic crews open in the order Recruit, Business, Intimidation, Collect (lead from the pool first, then from a crew), then the rest of the opening order (lead from the pool, with men waiting there). Every week a basic crew is missing, a `BASIC CREW` line says why (crews not yet full, no qualified lead, or eight lieutenants).
+2. **Lieutenant list by job.** Auto Test sorts the eight lieutenant slots so crews with the same job sit together, jobs in the opening order, using the player's own slot move (`moveSlot` in `src/ui/lieutenantSlots.ts`, the same call the lieutenant tabs' drag and drop makes; an occupied slot swaps).
+3. **Crews rebuilt every week.** Every crew is checked every week and takes every more able hood available (3★ or more for its job), from the pool or another crew (the business crew gives nobody away): a crew with room takes a man who is better for its job than for his own crew's; a full crew trades its weakest man when both crews end up better off. The old limit of about one move per job a week is gone.
+4. **No limit on new crews a Monday.** As many crews open as qualify (fill first still applies).
+5. **Attack crew buys.** Up to 10 twin pistols, 10 shotguns and 10 explosives, counting what the attack crew carries and the store; bought into the store; each man still carries one gun, the best. The pistol and tommy shop of the attack crew is replaced; HQ attack buys are unchanged.
+6. **Attack crew when an HQ is seen.** As soon as our map shows a rival HQ or one is suspected (men killed on empty land), an attack crew forms if there is none, with a lead meeting the 4★, else 3★, rule in its skills — even before the other crews are full.
+
 ## v1.2.31 decisions
 
 Auto Test crews and explosives (Robert). No game rule changes.
