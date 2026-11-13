@@ -210,6 +210,22 @@ export const ROLE_SKILLS: Record<CrewRole, readonly (keyof Person['skills'])[]> 
   expendables: ['firearms'],
 };
 export const roleStars = (p: Person, role: CrewRole) => ROLE_SKILLS[role].reduce((sum, k) => sum + (p.skills[k] ?? 0), 0) / ROLE_SKILLS[role].length;
+/** 1.2.38 (Robert): tiebreaks among men with the same stars for a crew's job —
+ *  the attack crew by firearms, then explosives, then fists; the Expendables by firearms. */
+export const ROLE_TIES: Partial<Record<CrewRole, readonly (keyof Person['skills'])[]>> = {
+  muscle: ['firearms', 'explosives', 'fists'],
+  expendables: ['firearms'],
+};
+/** Better man for the job first (negative when a ranks above b): stars, then the job's tiebreaks. */
+export const roleCompare = (a: Person, b: Person, role: CrewRole) => {
+  const d = roleStars(b, role) - roleStars(a, role);
+  if (d) return d;
+  for (const k of ROLE_TIES[role] ?? []) { const t = (b.skills[k] ?? 0) - (a.skills[k] ?? 0); if (t) return t; }
+  return 0;
+};
+/** 1.2.38 (Robert): skills no crew's job uses (organization counts: leads use it) — they raise the wage for nothing. */
+export const UNUSED_SKILLS = (['intelligence', 'organization', 'business', 'firearms', 'fists', 'knives', 'arson', 'explosives', 'intimidation', 'driving', 'stealth'] as const)
+  .filter((k) => k !== 'organization' && !Object.values(ROLE_SKILLS).some((list) => list.includes(k)));
 /** A crew's job read back from its auto name ("Eddie's Strike"), or null. */
 export function crewRoleFromName(name: string): CrewRole | null {
   if (/^Business( \d+)?$/.test(name.trim())) return 'business';

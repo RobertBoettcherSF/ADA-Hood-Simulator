@@ -51,8 +51,8 @@ export function takeAutoTestStopped(): boolean {
 }
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
-import { buySnitchInfo, canGoStraight, repairBuilding, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, issueStreetOrder, previewOrder, demote, moveToPool, moveToTeam, nearTerritory, promote, sackPerson, transferVehicle, transferWeapon, type ApiResult, type IssueOrderInput } from '../sim/api';
-import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, BASIC_CREWS, CREW_OPENING_ORDER, carMinutesSaved, crewNames, roleStars, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
+import { setDiplomacy, buySnitchInfo, canGoStraight, repairBuilding, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, issueStreetOrder, previewOrder, demote, moveToPool, moveToTeam, nearTerritory, promote, sackPerson, transferVehicle, transferWeapon, type ApiResult, type IssueOrderInput } from '../sim/api';
+import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, BASIC_CREWS, CREW_OPENING_ORDER, carMinutesSaved, crewNames, roleStars, roleCompare, UNUSED_SKILLS, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
 import { DRIVE_SPEED, GO_STRAIGHT_ASSETS, VEHICLES, WALK_SPEED, WEAPONS } from '../sim/constants';
 import type { Building, Gang, ID, Person, Team, WeaponId } from '../sim/types';
 import { buildingMapIntel, knownBlockOwners, personMapPosition } from '../sim/mapIntel';
@@ -136,6 +136,7 @@ let pendingActions: PendingAction[] = [];
 /** Men the talent pass moved this run; the crew balancer leaves them where they are. */
 const talentPlaced = new Set<number>();
 import { memberLosses } from '../sim/memberLosses';
+import { fireRate, originalFireOdds } from '../sim/fireRoll';
 import { availableSpecialist } from '../sim/specialists';
 import { queueSpecialistJob } from '../sim/specialistJobs';
 import { bribePrice, isBribableOfficial, refusesBribe } from '../sim/officials';
@@ -401,6 +402,8 @@ const SPARE_LOSS_WEEKS = 4;
 const LEAD_SWAP_GAIN = 0.5;
 /** 1.2.37 (Robert): hoods under this intelligence are armed last (never in Collect or Business) and go to the Expendables. */
 const LOW_INT = 2.5;
+/** 1.2.38 (Robert): what a man's skills no crew uses count against him (wage cost): WAGE_DRAG × their average. */
+const wageDrag = (p: Person) => UNUSED_SKILLS.length ? WAGE_DRAG * UNUSED_SKILLS.reduce((sum, k) => sum + (p.skills[k] ?? 0), 0) / UNUSED_SKILLS.length : 0;
 /** 1.2.37 (Robert): a manager is swapped only when the estimated takings rise by this share or more. */
 const MANAGER_SWAP_GAIN = 0.1;
 /** 1.2.37 (Robert, open): weak below this share of the biggest rival's known men. */
@@ -482,6 +485,41 @@ const attackReserve = new WeakMap<Sim['world'], Partial<Record<WeaponId, number>
 /** 1.2.36: manager swaps under way, by site — the Run Business order, the hood named and the manager he replaces. */
 /** 1.2.37: the attack crew and its weapons when Auto last looked, so a crew broken up (lead swap, demote, a dead lieutenant) keeps its guns reserved. */
 const attackHeld = new WeakMap<Sim['world'], { teamId: number; weapons: Partial<Record<WeaponId, number>> }>();
+/** 1.2.38 (Robert): the last week each rival was answered (at most one retaliation per rival per RETALIATE_GAP weeks). */
+const retaliatedAt = new WeakMap<Sim['world'], Map<number, number>>();
+const RETALIATE_GAP = 3;
+/** 1.2.38 (Robert): no retaliation after a week with this many of our men killed. */
+const RETALIATE_LOSS_STOP = 3;
+/** 1.2.38 (Robert): retaliation needs the striking crew at this many attack stars. */
+const RETALIATE_STARS = 3;
+/** 1.2.38 (Robert): a crew with a car keeps a man with this much driving. */
+const DRIVER_STARS = 3;
+/** 1.2.38: how much skills no crew uses count against a man when firing or picking from the pool (open question). */
+const WAGE_DRAG = 0.1;
+/**
+ * 1.2.38 (Robert): guns ranked by the game's real hit and kill tables
+ * (fireRoll.ts), not damage × accuracy. A reference shooter (3★ firearms)
+ * against a reference hood (2.5★ stealth): the chance one attempt kills,
+ * averaged over the range bands of the job (one band = a fifth of a block).
+ * Inside (kills, raids, bombs inside premises): bands 0–1; on the street and
+ * in ambushes: bands 2–6.
+ */
+const GUN_IDS: WeaponId[] = ['pistol', 'shotgun', 'rifle', 'tommy', 'twinPistols'];
+const REF_SHOOTER = { role: 'hood', skills: { firearms: 3, stealth: 3 } } as unknown as Person;
+const REF_TARGET = { role: 'hood', skills: { firearms: 2.5, stealth: 2.5 } } as unknown as Person;
+const killPerAttempt = (g: WeaponId, bands: number[]) => bands.reduce((sum, band) => {
+  const o = originalFireOdds(REF_SHOOTER, REF_TARGET, g as Exclude<WeaponId, 'explosives'>, (band + 0.5) * 10.8, fireRate(g as Exclude<WeaponId, 'explosives'>));
+  return sum + o.hit * o.killGivenHit;
+}, 0) / bands.length;
+type GunJob = 'inside' | 'street';
+const GUN_SCORE: Record<GunJob, Record<string, number>> = {
+  inside: Object.fromEntries(GUN_IDS.map((g) => [g, killPerAttempt(g, [0, 1])])),
+  street: Object.fromEntries(GUN_IDS.map((g) => [g, killPerAttempt(g, [2, 3, 4, 5, 6])])),
+};
+const GUN_ORDER: Record<GunJob, WeaponId[]> = {
+  inside: [...GUN_IDS].sort((a, b) => GUN_SCORE.inside[b] - GUN_SCORE.inside[a]),
+  street: [...GUN_IDS].sort((a, b) => GUN_SCORE.street[b] - GUN_SCORE.street[a]),
+};
 const swapsPending = new WeakMap<Sim['world'], Map<number, { orderId: number; candId: number; oldId: number; week: number }>>();
 /** 1.2.36: a snitch who had nothing new, and what we knew then; he is not asked again until that changes. */
 const snitchDry = new WeakMap<Sim['world'], { key: string; week: number; dead: number }>();
@@ -871,8 +909,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const roles0 = roleOfNow();
     const roleOf = (team: Team) => roles0.get(team.id) ?? 'collect';
     const bestStars = (p: Person) => Math.max(...crewsOf().map((team) => roleStars(p, roleOf(team))), 0);
+    // 1.2.38 (Robert): skills no crew uses count less (they raise the wage): the pool is taken best-value first.
     const placeable = gang.poolIds.filter((id) => !restingMen.has(id)).map((id) => w.people[id]).filter((p): p is Person => !!p && p.role === 'hood' && p.status === 'active')
-      .sort((a, b) => bestStars(b) - bestStars(a) || a.id - b.id);
+      .sort((a, b) => (bestStars(b) - wageDrag(b)) - (bestStars(a) - wageDrag(a)) || a.id - b.id);
     for (const p of placeable) {
       const crew = crewsOf().filter((team) => roleOf(team) !== 'expendables' && team.memberIds.length < MAX_TEAM_SIZE - 1 && roleStars(p, roleOf(team)) >= 3)
         .sort((a, b) => roleStars(p, roleOf(b)) - roleStars(p, roleOf(a)) || b.memberIds.length - a.memberIds.length || a.id - b.id)[0];
@@ -908,8 +947,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         if (team.memberIds.length < MAX_TEAM_SIZE - 1 || roleOf(team) === 'expendables') continue;
         if (roleOf(team) === 'business' && p.skills.business < 3) continue; // 1.2.36: business hands only with 3★ business
         const weak = team.memberIds.map((m) => w.people[m]).filter((x): x is Person => !!x && x.status === 'active' && x.orderId == null && !talentPlaced.has(x.id))
-          .sort((a, b) => roleStars(a, roleOf(team)) - roleStars(b, roleOf(team)))[0];
-        const gain = weak ? roleStars(p, roleOf(team)) - roleStars(weak, roleOf(team)) : 0;
+          .sort((a, b) => roleCompare(b, a, roleOf(team)))[0];
+        // 1.2.38: skills no crew uses count against a pool hood (wage cost).
+        const gain = weak ? roleStars(p, roleOf(team)) - wageDrag(p) - roleStars(weak, roleOf(team)) : 0;
         if (weak && gain > 0 && (!best || gain > best.gain)) best = { team, weak, gain };
       }
       if (!best) continue;
@@ -929,7 +969,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const basicsHeld = BASIC_CREWS.every((r) => [...roleOfNow().values()].includes(r));
       const full = !crewsOf().some(canFill);
       const best = (p: Person) => Math.max(...CREW_OPENING_ORDER.map((r) => roleStars(p, r)));
-      const weakestFirst = [...idle].sort((a, b) => best(a) - best(b) || b.id - a.id);
+      // 1.2.38 (Robert): skills no crew uses count against a man when firing (wage cost).
+      const weakestFirst = [...idle].sort((a, b) => (best(a) - wageDrag(a)) - (best(b) - wageDrag(b)) || b.id - a.id);
       const over = Math.max(0, idle.length - lost);
       if (idle.length) actions.push(`NOTE spares: ${idle.length} in the pool, ${lost} kept against men lost in the last ${SPARE_LOSS_WEEKS} weeks (men we let go not counted)${!full ? ' — a crew can still take a pool hood, nobody is let go' : !basicsHeld ? ' — a basic crew is missing, nobody is let go' : ''}`);
       // 1.2.37 (Robert): before anyone is let go, the hoods who fit no crew
@@ -974,7 +1015,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       while (small.memberIds.length < 2) {
         const donors = crewsOf().filter((t) => t !== small && roleOf(t) !== 'business' && roleOf(t) !== 'expendables' && t.memberIds.length >= 4).sort((a, b) => b.memberIds.length - a.memberIds.length || a.id - b.id);
         const pick = donors.flatMap((t) => t.memberIds.map((id) => w.people[id])).filter((p): p is Person => !!p && p.status === 'active' && p.orderId == null && roleStars(p, roleOf(small)) >= 3)
-          .sort((a, b) => roleStars(b, roleOf(small)) - roleStars(a, roleOf(small)) || a.id - b.id)[0];
+          .sort((a, b) => roleCompare(a, b, roleOf(small)) || a.id - b.id)[0];
         if (!pick) break;
         const result = moveToTeam(w, gang.id, pick.id, small.id);
         logResult(actions, `to crew ${pick.name} (${roleStars(pick, roleOf(small)).toFixed(1)}★ for ${jobName(roleOf(small))}) — a new crew gets men`, result.ok, result.ok ? result.message ?? '' : result.error);
@@ -1005,7 +1046,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         const fromPool = idlePool().map((id) => w.people[id]).filter(movable);
         const fromCrews = crewsOf().filter((t) => t !== team && job(t) !== 'business').flatMap((t) => t.memberIds.map((id) => w.people[id])).filter(movable);
         const room = team.memberIds.length < MAX_TEAM_SIZE - 1;
-        const weak = team.memberIds.map((id) => w.people[id]).filter(movable).sort((x, y) => roleStars(x, role) - roleStars(y, role) || y.id - x.id)[0];
+        const weak = team.memberIds.map((id) => w.people[id]).filter(movable).sort((x, y) => roleCompare(y, x, role) || y.id - x.id)[0];
         let best: { p: Person; gain: number } | undefined;
         for (const p of [...fromPool, ...fromCrews]) {
           if (roleStars(p, role) < 3) continue;
@@ -1015,7 +1056,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           if (room) gain = home ? roleStars(p, role) - ownNow : roleStars(p, role);
           else if (!weak) continue;
           else gain = roleStars(p, role) - roleStars(weak, role) + (home ? (roleStars(weak, job(home)) >= 3 ? roleStars(weak, job(home)) : 0) - ownNow : 0);
-          if (gain > 0 && (!best || gain > best.gain)) best = { p, gain };
+          if (!home) gain -= wageDrag(p); // 1.2.38: a pool hood's unused skills count against him (wage cost)
+          // 1.2.38 (Robert): equal gains go to the better man by the job's tiebreaks (attack: firearms, explosives, fists).
+          if (gain > 0 && (!best || gain > best.gain || (gain === best.gain && roleCompare(p, best.p, role) < 0))) best = { p, gain };
         }
         if (!best) continue;
         const home = crewOfMan(best.p.id);
@@ -1108,6 +1151,38 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   if (roles.size) actions.push(`NOTE crews: ${[...roles].map(([id, role]) => `${w.people[w.teams[id]?.lieutenantId]?.name ?? id} ${jobName(role)}`).join(', ')}`);
   // 1.2.24: crew sizes every week (hoods of the most a crew can hold, lieutenant apart).
   actions.push(`CREWS ${crewsOf().map((t) => `${t.name} ${t.memberIds.length}/${MAX_TEAM_SIZE - 1}`).join(', ') || 'none'}; pool ${gang.poolIds.length}`);
+  // 1.2.38 (Robert): every crew with a car keeps at least one man with
+  // DRIVER_STARS★ driving where it can (Collect and Scouts first): a free
+  // driver from the pool, or else from another crew that keeps a driver of its
+  // own, who has 3★ for this crew's job; he takes a free place, or the
+  // weakest non-driver goes to the pool. No driver to be had: no change.
+  // Driving counts nowhere else (no crew score).
+  {
+    const hasCar = (t: Team) => Object.values(t.vehicles).some((n) => (n ?? 0) > 0);
+    const drives = (p: Person | undefined) => !!p && p.status === 'active' && p.skills.driving >= DRIVER_STARS;
+    const drivers = (t: Team) => [t.lieutenantId, ...t.memberIds].filter((id) => drives(w.people[id])).length;
+    const first: CrewRole[] = ['collect', 'scout'];
+    const carCrews = crewsOf().filter((t) => hasCar(t) && roles.get(t.id) !== 'expendables')
+      .sort((a, b) => Number(first.includes(roles.get(b.id) ?? 'collect')) - Number(first.includes(roles.get(a.id) ?? 'collect')) || a.id - b.id);
+    for (const team of carCrews) {
+      if (drivers(team)) continue;
+      const role = roles.get(team.id) ?? 'collect';
+      const free = (p: Person | undefined): p is Person => !!p && p.role === 'hood' && p.status === 'active' && p.orderId == null && !restingMen.has(p.id) && drives(p) && roleStars(p, role) >= 3;
+      const fromPool = gang.poolIds.map((id) => w.people[id]).filter(free);
+      const fromCrews = crewsOf().filter((t) => t !== team && roles.get(t.id) !== 'business' && (!hasCar(t) || drivers(t) > 1))
+        .flatMap((t) => t.memberIds.map((id) => w.people[id])).filter(free);
+      const pick = [...fromPool.sort((a, b) => roleCompare(a, b, role) || a.id - b.id), ...fromCrews.sort((a, b) => roleCompare(a, b, role) || a.id - b.id)][0];
+      if (!pick) { actions.push(`NOTE ${team.name} has a car but no man with ${DRIVER_STARS}★ driving — none to be had`); continue; }
+      if (team.memberIds.length >= MAX_TEAM_SIZE - 1) {
+        const out = team.memberIds.map((id) => w.people[id]).filter((p): p is Person => !!p && p.status === 'active' && p.orderId == null && !drives(p))
+          .sort((x, y) => roleCompare(y, x, role) || y.id - x.id)[0];
+        if (!out || !moveToPool(w, gang.id, out.id).ok) { actions.push(`NOTE ${team.name} has a car but no man with ${DRIVER_STARS}★ driving — no place free for ${pick.name}`); continue; }
+        actions.push(`NOTE ${out.name} to the pool to make room for a driver in ${team.name}`);
+      }
+      const result = moveToTeam(w, gang.id, pick.id, team.id);
+      logResult(actions, `driver for ${team.name}: ${pick.name} (driving ${pick.skills.driving.toFixed(1)}★, ${roleStars(pick, role).toFixed(1)}★ for ${jobName(role)})`, result.ok, result.ok ? '' : result.error);
+    }
+  }
   const GUNS: WeaponId[] = ['pistol', 'shotgun', 'rifle', 'tommy', 'twinPistols'];
   const roleCrew = (role: CrewRole) => crewsOf().find((team) => roles.get(team.id) === role);
   // 1.2.30 (Robert's rules): a crew holds at most one gun per man, the best
@@ -1115,21 +1190,18 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // 1.2.36 (Robert): every crew carries guns — one per man, Collect and
   // Business too. The attack crew's own stock (bought for it, or handed in by
   // it) is kept in the store for it alone; the other crews take only the rest.
-  const gunRank = (g: WeaponId) => WEAPONS[g].damage * WEAPONS[g].accuracy;
-  const BEST_FIRST = [...GUNS].sort((x, y) => gunRank(y) - gunRank(x));
-  const CHEAPEST_GUN = [...GUNS].sort((x, y) => WEAPONS[x].cost - WEAPONS[y].cost || gunRank(x) - gunRank(y))[0];
+  // 1.2.38 (Robert): guns ranked by the game's real hit/kill tables per job
+  // (GUN_ORDER: inside — shotgun, twin pistols, rifle, tommy, revolver; street
+  // and ambush — rifle first). Plain ranking (store hand-ins, supply) uses the street order.
+  const gunRank = (g: WeaponId) => GUN_SCORE.street[g] ?? 0;
+  const BEST_FIRST = GUN_ORDER.street;
   const gunsOf = (t: Team) => GUNS.reduce((sum, g) => sum + (t.weapons[g] ?? 0), 0);
-  // 1.2.37 (Robert): hoods under 2.5★ intelligence are armed last, and not
-  // at all in Collect or Business. Guns belong to the crew (the game hands
-  // them out to the men at work), so Auto counts them: a Collect or Business
-  // crew holds one gun per man of 2.5★ intelligence or more; every other crew
-  // one per man, those for its sharper men first.
   const menOfCrew = (t: Team) => [t.lieutenantId, ...t.memberIds].map((id) => w.people[id]).filter((p): p is Person => !!p);
-  const sharpMen = (t: Team) => menOfCrew(t).filter((p) => p.skills.intelligence >= LOW_INT).length;
-  const unarmedJob = (t: Team) => roles.get(t.id) === 'collect' || roles.get(t.id) === 'business';
-  const gunLimit = (t: Team) => unarmedJob(t) ? sharpMen(t) : t.memberIds.length + 1;
-  /** The first round of arming: the sharper men only. */
-  const firstLimit = (t: Team) => Math.min(gunLimit(t), sharpMen(t));
+  // 1.2.38 (Robert): guns only for men on violent jobs — the attack crew
+  // always, the Expendables only while on a job, any other crew only for a
+  // kill or an ambush order (armed when the order is given, below). Everyone
+  // else is unarmed, which ends the random shots. This replaces the gun for every man.
+  const gunLimit = (t: Team) => roles.get(t.id) === 'muscle' ? t.memberIds.length + 1 : 0;
   const attackCrew = roleCrew('muscle');
   const kept = attackReserve.get(w) ?? {};
   attackReserve.set(w, kept);
@@ -1173,35 +1245,27 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (!worst || !toStore(team, worst).ok) break;
       handed.push(worst);
     }
-    if (handed.length) actions.push(`NOTE ${team.name} hands ${handed.join(', ')} to the store — one gun per man (${gunLimit(team)})`);
+    if (handed.length) actions.push(`NOTE ${team.name} hands ${handed.join(', ')} to the store — ${gunLimit(team) ? `one gun per man (${gunLimit(team)})` : 'guns only for violent jobs'}`);
   }
-  // Store guns first: a gun for every man of every crew (the attack crew
-  // first), then a better gun in the store replaces a crew's worst one.
-  const armOrder: CrewRole[] = ['muscle', 'expendables', 'scout', 'recruit', 'intimidation', 'collect', 'business'];
-  const byArm = crewsOf().sort((a, b) => armOrder.indexOf(roles.get(a.id) ?? 'collect') - armOrder.indexOf(roles.get(b.id) ?? 'collect') || a.id - b.id);
-  const taken = new Map<Team, string[]>();
-  const tookNote = (team: Team, what: string) => taken.set(team, [...(taken.get(team) ?? []), what]);
-  // 1.2.37 (Robert): Collect and Business carry revolvers at most — they take the plainest gun in the store.
-  const storePick = (team: Team) => (unarmedJob(team) ? [...BEST_FIRST].reverse() : BEST_FIRST).find((g) => inStore(team, g) > 0);
-  for (const limit of [firstLimit, gunLimit]) for (const team of byArm) {
-    while (gunsOf(team) < limit(team)) {
-      const best = storePick(team);
-      if (!best || !fromStore(team, best).ok) break;
-      tookNote(team, best);
+  /** 1.2.38 (Robert): a crew carries the fitting gun for its job — one per man, best by the job's table first, from the store (the attack crew's own stock included). */
+  const kitted = new Set<number>();
+  const kitFor = (team: Team, job: GunJob, men: number): string[] => {
+    const took: string[] = [];
+    for (const g of GUN_ORDER[job]) {
+      while (gunsOf(team) < men && inStore(team, g) > 0 && fromStore(team, g).ok) took.push(g);
     }
+    return took;
+  };
+  /** Swap a crew's guns for the job's: everything back to the store, then the job's best. */
+  const rekit = (team: Team, job: GunJob, men: number): string[] => {
+    for (const g of GUNS) { const n = team.weapons[g] ?? 0; for (let i = 0; i < n; i++) if (!toStore(team, g).ok) break; }
+    return kitFor(team, job, men);
+  };
+  // The attack crew stays armed for the street (rifles first) until a job asks for another gun.
+  if (attackCrew) {
+    const took = kitFor(attackCrew, 'street', gunLimit(attackCrew));
+    if (took.length) actions.push(`NOTE ${attackCrew.name} takes ${took.join(', ')} from the store (street order)`);
   }
-  for (const team of byArm) {
-    if (unarmedJob(team)) continue; // 1.2.37: no upgrades for Collect or Business
-    for (;;) {
-      const best = BEST_FIRST.find((g) => inStore(team, g) > 0);
-      const worst = [...BEST_FIRST].reverse().find((g) => (team.weapons[g] ?? 0) > 0);
-      if (!best || !worst || gunRank(best) <= gunRank(worst)) break;
-      if (!toStore(team, worst).ok) break;
-      if (!fromStore(team, best).ok) { fromStore(team, worst); break; }
-      tookNote(team, `${best} for a ${worst}`);
-    }
-  }
-  for (const [team, list] of taken) actions.push(`NOTE ${team.name} takes ${list.join(', ')} from the store`);
   /** 1.2.30: a weapon for a crew — from the store first, bought only when the store has none (and `buy` allows it). One gun per man: a full crew trades its worst gun in. */
   const supply = (team: Team, item: WeaponId, canBuy: boolean): ApiResult => {
     if (GUNS.includes(item) && gunsOf(team) >= gunLimit(team)) {
@@ -1372,26 +1436,58 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       return { ok: false, error: 'Not enough time left this week (time ledger).' };
     }
     if (fits < targets && input.buildingIds) input = { ...input, buildingIds: input.buildingIds.slice(0, fits) };
-    // 1.2.34 (Robert): an armed crew carries the gun for the job — shotguns
-    // inside an office, rifles on the road — from the store, one per man.
+    let kitJob: GunJob | undefined;
+    // 1.2.38 (Robert): each violent job takes the fitting gun by the real
+    // tables — inside premises (or a man inside) the inside order (shotgun
+    // first), on the street and in ambushes the street order (rifle first).
+    // The attack crew and the Expendables arm for any violent job; another
+    // crew only for a kill or an ambush. One kit a week per crew: the first
+    // violent job's (the game hands guns to the men at work, not per order).
     {
+      const role = roles.get(team.id);
       const target = input.buildingIds?.length ? w.buildings[input.buildingIds[0]] : input.personId != null ? (() => { const v = w.people[input.personId!]; return v?.buildingId != null ? w.buildings[v.buildingId] : undefined; })() : undefined;
-      const attack = ['kill', 'smashUp', 'bomb', 'raid', 'assault', 'ambush', 'kidnap'].includes(input.type);
-      const prefer: WeaponId | undefined = !attack ? undefined
-        : target && (target.typeId === 'office' || target.isHQ) ? 'shotgun'
-        : !target && (input.personId != null || input.type === 'ambush') ? 'rifle' : undefined;
-      if (prefer) {
-        const took: string[] = [];
-        while ((team.weapons[prefer] ?? 0) < gunLimit(team) && inStore(team, prefer) > 0) {
-          if (gunsOf(team) >= gunLimit(team)) {
-            const out = GUNS.find((g) => g !== prefer && (team.weapons[g] ?? 0) > 0);
-            if (!out || !toStore(team, out).ok) break;
-          }
-          if (!fromStore(team, prefer).ok) break;
-          took.push(prefer);
+      const violent = ['kill', 'smashUp', 'bomb', 'raid', 'assault', 'ambush', 'kidnap', 'torch'].includes(input.type);
+      const arms = violent && (role === 'muscle' || role === 'expendables' || input.type === 'kill' || input.type === 'ambush') && input.type !== 'assault';
+      const job: GunJob = input.type === 'ambush' || !target ? 'street' : 'inside';
+      if (arms && !kitted.has(team.id)) kitJob = job;
+    }
+    // 1.2.38 (Robert): the man named for the work — Bomb the best explosives
+    // man, Torch the best arson man, Kidnap and Smash Up the best fists man.
+    {
+      const skill = ({ bomb: 'explosives', torch: 'arson', kidnap: 'fists', smashUp: 'fists' } as Partial<Record<string, keyof Person['skills']>>)[input.type];
+      if (skill && input.opts?.preferredHoodId == null) {
+        const best = [team.lieutenantId, ...team.memberIds].map((id) => w.people[id])
+          .filter((p): p is Person => !!p && p.status === 'active' && p.orderId == null && !restingMen.has(p.id))
+          .sort((x, y) => y.skills[skill] - x.skills[skill] || x.id - y.id)[0];
+        if (best) {
+          input = { ...input, opts: { ...(input.opts ?? {}), preferredHoodId: best.id } as IssueOrderInput['opts'] };
+          actions.push(`NOTE ${label}: ${best.name} named (${skill} ${best.skills[skill].toFixed(1)}★, the best in ${name}'s crew)`);
         }
-        if (took.length) actions.push(`NOTE ${name} takes ${took.length}× ${prefer} from the store for ${label}`);
       }
+    }
+    // 1.2.38 (Robert): routes avoid danger and fit the week — collect,
+    // extortion and recruit stops in or beside rival-held blocks are dropped,
+    // then the farthest stops from the office until the game's own estimate fits.
+    if (input.type === 'bribe' && input.personId != null) {
+      const target = w.people[input.personId];
+      if (target && dangerBlocks.has(blockOfPerson(target))) { actions.push(`NOTE ${label} not given — ${target.name} is in or beside a rival-held block`); return { ok: false, error: 'target in a rival-held block' }; }
+    }
+    if (['collectProtection', 'extort', 'recruit'].includes(input.type) && input.buildingIds?.length) {
+      const all = input.buildingIds;
+      const safe = all.filter((id) => { const b = w.buildings[id]; return !b || !dangerBlocks.has(claimOf(b.blockId)); });
+      if (safe.length < all.length) actions.push(`NOTE ${label}: ${all.length - safe.length} stop(s) dropped — in or beside blocks rival men hold or were seen in`);
+      if (!safe.length) return { ok: false, error: 'every stop is in or beside a rival-held block' };
+      let ids = safe;
+      const far = (id: number) => { const b = w.buildings[id]; return b ? dist(w.lots[b.lotId].center, origin) : 0; };
+      const dropped: number[] = [];
+      for (;;) {
+        const preview = previewOrder(w, gang.id, { ...input, buildingIds: ids, teamId: team.id });
+        if (!preview || ids.length <= 1 || crewHasTime(w, team, preview)) break;
+        const worst = [...ids].sort((x, y) => far(y) - far(x))[0];
+        ids = ids.filter((id) => id !== worst); dropped.push(worst);
+      }
+      if (dropped.length) actions.push(`NOTE ${label}: the ${dropped.length} farthest stop(s) dropped so the route fits the week`);
+      input = { ...input, buildingIds: ids };
     }
     const usedBefore = team.timeUsed;
     let result = issueOrder(w, gang.id, { ...input, teamId: team.id });
@@ -1407,6 +1503,15 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // A buy too long for the week leaves room for a shorter one: the business crew is not marked out of time.
     if (!result.ok && /time/i.test(result.error)) { if (kind !== 'business') outOfTime.add(team.id); timeShort = true; }
     if (result.ok && risky) riskyMen += hands;
+    if (result.ok && kitJob && !kitted.has(team.id)) {
+      kitted.add(team.id);
+      const took = rekit(team, kitJob, team.memberIds.length + 1);
+      // A crew other than the attack crew short of guns for the job buys the
+      // cheapest gun (the revolver) for the store, while the cash is above the reserve.
+      const cheapest = [...GUNS].sort((a, b) => WEAPONS[a].cost - WEAPONS[b].cost)[0];
+      while (team !== attackCrew && gunsOf(team) < team.memberIds.length + 1 && gang.cash >= reserve + WEAPONS[cheapest].cost && buyWeapon(w, gang.id, cheapest).ok && fromStore(team, cheapest).ok) took.push(`${cheapest} (bought)`);
+      actions.push(`NOTE ${name} carries ${took.length ? took.join(', ') : 'no gun (none in the store)'} for ${label} (${kitJob} order: ${GUN_ORDER[kitJob].join(' > ')})`);
+    }
     if (result.ok && input.type === 'bomb' && (team.weapons.explosives ?? 0) <= 0 && fromStore(team, 'explosives').ok) actions.push(`NOTE explosives from the store to ${name} for the bombing`);
     if (result.ok) {
       const order = team.orderIds.length ? w.orders[team.orderIds[team.orderIds.length - 1]] : undefined;
@@ -1424,6 +1529,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const sharpCrews = () => ready.filter((t) => t !== bizCrew && !outOfTime.has(t.id) && freeShare(t) >= 0.2 && sharpestOf(t))
     .sort((a, b) => sharpestOf(b)!.skills.intelligence - sharpestOf(a)!.skills.intelligence || Number(Object.values(b.vehicles).some((n) => n > 0)) - Number(Object.values(a.vehicles).some((n) => n > 0)) || a.id - b.id);
   const sharp = (team: Team) => { const p = sharpestOf(team); return p ? { preferredHoodId: p.id } : {}; };
+  const knivesOf = (team: Team) => { const men = [team.lieutenantId, ...team.memberIds].map((id) => w.people[id]).filter((p): p is Person => !!p && p.status === 'active'); return men.length ? men.reduce((a, p) => a + p.skills.knives, 0) / men.length : 5; };
+  const lowKnifeCrews = () => ready.filter((t) => t !== bizCrew && !outOfTime.has(t.id)).sort((a, b) => knivesOf(a) - knivesOf(b) || a.id - b.id);
   const manpowerFor = (team: (typeof ready)[number], most: number) => Math.max(1, Math.min(most, team.memberIds.length + 1));
   // Blocks we claim now (one standing business owned or protected, as the game counts them).
   const territoryBlocksNow = claimedTerritoryBlocks(w, gang.id);
@@ -1450,6 +1557,35 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     return out;
   };
+  // 1.2.38 (Robert): the blocks rival patrols cover, by what our map shows —
+  // blocks a rival visibly holds (patrols walk their own territory) and not
+  // us, and blocks where rival men were reported seen — plus the blocks
+  // beside them. Collect, extortion, recruit and specialist visits keep out.
+  const dangerBlocks = (() => {
+    const core = new Set<number>();
+    for (const b of w.blocks) if (rivalClaimSeen(b.id) && !blockIsOurs(b.id)) core.add(claimOf(b.id));
+    for (const id of sightedBlocks()) core.add(id);
+    const at = new Map<string, number>();
+    for (const b of w.blocks) at.set(`${b.gx},${b.gy}`, claimOf(b.id));
+    const out = new Set(core);
+    for (const b of w.blocks) {
+      if (!core.has(claimOf(b.id))) continue;
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) { const n = at.get(`${b.gx + dx},${b.gy + dy}`); if (n != null) out.add(n); }
+    }
+    return out;
+  })();
+  actions.push(`DANGER ${dangerBlocks.size} block(s) in or beside rival-held or rival-sighted blocks — collect, extortion, recruit and specialist visits keep out`);
+  const blockOfPerson = (p: Person) => {
+    const b = p.buildingId != null ? w.buildings[p.buildingId] : undefined;
+    if (b) return claimOf(b.blockId);
+    return claimOf(w.blocks.reduce((best, k) => (dist(k.center, p.pos) < dist(best.center, p.pos) ? k : best), w.blocks[0]).id);
+  };
+  /** 1.2.38: a specialist visit (lawyer bribes) only to a man outside the danger blocks. */
+  const specialistVisit = (type: Parameters<typeof queueSpecialistJob>[2], targetId: number | null, beats?: number[]): ApiResult => {
+    const target = targetId != null ? w.people[targetId] : undefined;
+    if (target && dangerBlocks.has(blockOfPerson(target))) return { ok: false, error: `${target.name} is in or beside a rival-held block — the visit waits` };
+    return queueSpecialistJob(w, gang.id, type, targetId, beats);
+  };
   // ---- 1.2.23: the weekly decision loop. Every order below is put forward as
   // a candidate (what it is worth, of what kind, for which crew job); at the
   // end decideWeek scores them by the goal and gives each crew the best that fit.
@@ -1468,6 +1604,24 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const rivalEstimate = Math.max(0, ...Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated)
     .map((g) => gang.knownPeople.filter((id) => w.people[id]?.gangId === g.id && w.people[id]?.status === 'active').length));
   const weak = (rivalEstimate > 0 && crewMen() < rivalEstimate * WEAK_MEN_SHARE) || gang.cash < cashReserve;
+  // 1.2.38 (Robert): going straight (the goal, or already under way) — no
+  // retaliation, and no hits on rivals at war with us (what their stance shows us).
+  const straightNow = goal === 'straight' || gang.goingStraight;
+  const atWarWithUs = (gangId: number | null | undefined) => gangId != null && gang.known[gangId] === 'war';
+  /** 1.2.38 (Robert): weak or going straight, no kill, kidnap, raid, torch, bomb or smash-up on a rival at war with us. */
+  const noHitOn = (gangId: number | null | undefined) => (weak || straightNow) && atWarWithUs(gangId);
+  // 1.2.38 (Robert): ceasefire toward every rival (the game's own stance
+  // call): our armed men answer rival intruders on our own streets, and no
+  // rival is pushed to war by our stance.
+  {
+    const set: string[] = [];
+    for (const g of Object.values(w.gangs)) {
+      if (g.id === gang.id || g.eliminated || gang.offered[g.id] === 'ceasefire') continue;
+      if (setDiplomacy(w, gang.id, g.id, 'ceasefire').ok) set.push(g.name);
+    }
+    if (set.length) actions.push(`OK stance: ceasefire toward ${set.join(', ')}`);
+    actions.push(`STANCE ours ceasefire; theirs toward us: ${Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated).map((g) => `${g.name} ${gang.known[g.id] ?? 'peace'}`).join(', ')}`);
+  }
   actions.push(`STRENGTH ${crewMen()} men against ${rivalEstimate} known men of the biggest rival, cash $${Math.round(gang.cash).toLocaleString('en-US')} against a $${cashReserve.toLocaleString('en-US')} reserve — ${weak ? 'weak: the armed crews keep out of rival blocks' : 'strong enough: ambush rival men with rifles, rival HQ first'}`);
   // 1.2.35 (Robert): managers by what they earn — the game's profit rule
   // (0.45 + business × 0.16 + organization × 0.05) less what he skims. Every
@@ -1717,7 +1871,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const pendingBase = { key, caseId: c.id, defendantId: c.defendantId, cashBefore: gang.cash };
     if (key === 'bribeJudge' || key === 'bribeDA') {
       const official = key === 'bribeJudge' ? judge! : da!;
-      const result = queueSpecialistJob(w, gang.id, 'bribeOfficials', official.id);
+      const result = specialistVisit('bribeOfficials', official.id);
       logResult(actions, `lawyer bribes ${official.name} (${official.role})`, result.ok, result.ok ? result.message ?? '' : result.error);
       if (result.ok) pendingActions.push({ ...pendingBase, targetPersonId: official.id });
       continue;
@@ -1725,7 +1879,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const target = key === 'bribeJuror' ? jurors[0] : witnesses[0];
     propose({
       label: `${ACTION_LABELS[key]} ${target.name}`, kind: 'safety', value: 3000, why: `${defendant?.name ?? 'a man'} on trial`, role: key === 'scareWitness' ? 'muscle' : 'recruit',
-      teams: key === 'scareWitness' ? undefined : sharpCrews(),
+      // 1.2.38 (Robert): roughing up a witness goes to the crew with the lowest
+      // knives (a beating turns fatal with knives above 2.5★) — the crew average.
+      teams: key === 'scareWitness' ? lowKnifeCrews() : sharpCrews(),
       input: (team) => key === 'scareWitness'
         ? { type: 'assault', personId: target.id, opts: { manpower: manpowerFor(team, 2) } }
         : { type: 'bribe', personId: target.id, opts: { manpower: manpowerFor(team, 2), amount: Math.round(400 + target.skills.intelligence * 300), ...sharp(team) } as IssueOrderInput['opts'] },
@@ -1750,7 +1906,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // 1.2.23: hostile police arrest our men on sight — worth more of the cash.
     const chief = buyable(w.policeChiefId, policeHostile ? 0.6 : 0.3);
     if (chief) {
-      const result = queueSpecialistJob(w, gang.id, 'bribeOfficials', chief.id);
+      const result = specialistVisit('bribeOfficials', chief.id);
       logResult(actions, `lawyer bribes ${chief.name} (police chief)`, result.ok, result.ok ? result.message ?? '' : result.error);
       chiefPaid = result.ok;
     } else {
@@ -1767,14 +1923,14 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const beats = territoryBlocks(w, gang.id).sort((a, b) => dist(a.center, origin) - dist(b.center, origin)).slice(0, 6).map((block) => block.id);
     const onPayroll = police.filter((p) => p.employedBy === gang.id).length;
     if (beats.length && onPayroll < 12) {
-      const result = queueSpecialistJob(w, gang.id, 'employPolice', null, beats);
+      const result = specialistVisit('employPolice', null, beats);
       logResult(actions, `lawyer puts the police on our ${beats.length} nearest blocks on the payroll (${onPayroll} already paid)`, result.ok, result.ok ? result.message ?? '' : result.error);
     }
   }
   if (lawyer && gang.cash > 40000) {
     const mayor = buyable(w.mayorId, 0.3);
     if (mayor) {
-      const result = queueSpecialistJob(w, gang.id, 'bribeOfficials', mayor.id);
+      const result = specialistVisit('bribeOfficials', mayor.id);
       logResult(actions, `lawyer bribes ${mayor.name} (mayor: fewer police on the patch)`, result.ok, result.ok ? result.message ?? '' : result.error);
     }
   }
@@ -1871,7 +2027,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const payer = (b: Building) => { const id = b.ownerPersonId ?? b.managerId; return id == null ? undefined : w.people[id]; };
       const tooHostile = (b: Building) => { const p = payer(b); return !!p && p.status !== 'dead' && effectiveHostility(p, gang.id) >= 170; };
       const owedAll = protectedBuildings(w, gang.id).filter((b) => b.state === 'trading').sort(nearer);
-      const owed = campaign ? owedAll.filter((b) => !tooHostile(b)) : owedAll;
+      const owedReach = owedAll.filter((b) => !dangerBlocks.has(claimOf(b.blockId)));
+      if (owedReach.length < owedAll.length) actions.push(`NOTE collect: ${owedAll.length - owedReach.length} shop(s) in or beside rival-held blocks not collected this week`);
+      const owed = campaign ? owedReach.filter((b) => !tooHostile(b)) : owedReach;
       if (campaign && owed.length < owedAll.length) actions.push(`NOTE campaign: ${owedAll.length - owed.length} hostile shopkeeper(s) not collected from this week`);
       // 1.2.25 (B4, B9): grievances and refusals read every week; a sore
       // shopkeeper is eased while campaigning or while our popularity is below zero.
@@ -1940,7 +2098,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (weight.rackets >= 0.25 && !suspicionHigh) {
         const crewsToSend = easing ? Math.max(1, Math.floor(ready.length / 2)) : Math.max(1, Math.round(ready.length * Math.min(1, expansion)));
         const cap = Math.max(2, Math.round(weight.rackets * 5 * expansion));
-        const valid = buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b));
+        const valid = buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b) && !dangerBlocks.has(claimOf(b.blockId))); // 1.2.38: not in or beside rival-held blocks
         if (goal === 'territory' || goal === 'office') {
           // 1.2.23 territory by extortion: a block counts once one standing
           // business in it is ours (owned or protected). One target in each
@@ -2067,7 +2225,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     if (key === 'violence' && !weak && w.week >= 8 && policy.violence !== 'low' && (weight.violence >= 0.45 || policy.violence === 'high')) {
       // 1.2.25 (no peeking): the nearest business our map shows as a rival's.
-      const rival = buildingList(w).filter((b) => seenRival(b) && !b.isHQ && b.state === 'trading').sort(nearer)[0];
+      const rival = buildingList(w).filter((b) => seenRival(b) && !b.isHQ && b.state === 'trading' && !noHitOn(buildingMapIntel(b, gang.id).ownerGangId)).sort(nearer)[0];
       if (rival) {
         propose({ label: `smash ${rival.typeId}`, kind: 'violence', value: 300, role: 'muscle', why: 'the nearest rival business',
           input: (team) => ({ type: 'smashUp', buildingIds: [rival.id], opts: { manpower: manpowerFor(team, 2) } }) });
@@ -2289,6 +2447,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   /** 1.2.23: the HQ attack — to a crew with the time for it, armed from the attack crew (a bomb set off by a crew out of time was seen in 1.2.22). */
   const proposeHqStrike = (target: Building, value: number, why: string, key: ActionKey) => {
     const owner = w.gangs[target.ownerGangId!];
+    if (noHitOn(target.ownerGangId)) { const line = `HQ ATTACK not made on ${owner?.name ?? 'a rival'}'s HQ: ${weak ? 'we are weak' : 'going straight'} and they are at war with us`; actions.push(line); noteDevDesk(line); return; }
     const cashBefore = gang.cash;
     let targetPersonId: number | undefined;
     // 1.2.24 (Robert): a strike only with explosives, enough men and a whole free week.
@@ -2333,7 +2492,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       }
     }
   };
-  if (armed && !weak && suspects.size && policy.violence !== 'low') {
+  if (armed && !weak && suspects.size && policy.violence !== 'low' && !(() => { const b = w.buildings[[...suspects.keys()][0]]; return !!b && noHitOn(buildingMapIntel(b, gang.id).ownerGangId); })()) {
     // 1.2.33 (Robert): no separate buy before an attack — it uses what the crew and the store hold.
     const [targetId] = [...suspects.keys()];
     const target = w.buildings[targetId];
@@ -2349,22 +2508,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       } });
     if (target) suspects.delete(targetId);
   }
-  // 1.2.36 (Robert): a gun for every man of every crew, Collect and Business
-  // included — the cheapest gun first while cash is short, so everyone is
-  // armed before anyone is armed better; better guns come with surplus cash
-  // (EQUIP below) and the attack crew's own stock-up.
-  {
-    const armedNow: string[] = [];
-    // 1.2.37: the sharper men of every crew first, then the men under 2.5★ intelligence (never in Collect or Business).
-    for (const limit of [firstLimit, gunLimit]) for (const team of byArm) {
-      let n = 0;
-      while (gunsOf(team) < limit(team) && gang.cash >= reserve + WEAPONS[CHEAPEST_GUN].cost && buyWeapon(w, gang.id, CHEAPEST_GUN, team.id).ok) n++;
-      if (n) armedNow.push(`${n}× ${CHEAPEST_GUN} for ${team.name}${limit === gunLimit && firstLimit(team) < gunLimit(team) ? ` (men under ${LOW_INT}★ intelligence, last)` : ''}`);
-    }
-    if (armedNow.length) actions.push(`OK arm every man: ${armedNow.join(', ')}`);
-    const unarmed = byArm.reduce((sum, t) => sum + Math.max(0, gunLimit(t) - gunsOf(t)), 0);
-    if (unarmed) actions.push(`NOTE ${unarmed} m${unarmed === 1 ? 'an' : 'en'} still without a gun — the cash is down to the reserve`);
-  }
+  // 1.2.38 (Robert): no gun for every man any more — only the violent jobs are armed.
   if (armed && w.week >= 3) {
     // 1.2.34 (Robert): the attack crew may buy any weapon — twin pistols by
     // default, shotguns for attacks inside an office, rifles for road attacks,
@@ -2377,19 +2521,20 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const owned = (item: WeaponId) => (armed.weapons[item] ?? 0) + (kept[item] ?? 0);
     const need = armed.memberIds.length + 1;
     const hqKnown = knownRivalHQs(w, gang).length > 0 || suspects.size > 0;
+    // 1.2.38 (Robert): a shotgun and a rifle per man (inside and street
+    // jobs); no more twin pistols or tommy guns bought for it.
     const wants: [WeaponId, () => boolean][] = [
       ['explosives', () => hqKnown && policy.violence !== 'low' && gang.cash > reserve + 3000],
-      ['twinPistols', () => true],
       ['shotgun', () => true],
       ['rifle', () => true],
-      ['tommy', () => true],
     ];
     for (const [item, ok] of wants) {
       let n = 0;
       while (owned(item) < need && ok() && gang.cash >= reserve + WEAPONS[item].cost && buyForAttack(item).ok) n++;
       if (n) actions.push(`OK buy ${n}× ${item} for the attack crew's store (${owned(item)} for ${need} men)`);
-      if (item === 'twinPistols') for (let i = 0; i < n; i++) if (!supply(armed, item, false).ok) break;
     }
+    const took = kitted.has(armed.id) ? [] : kitFor(armed, 'street', gunLimit(armed));
+    if (took.length) actions.push(`NOTE ${armed.name} takes ${took.join(', ')} from the store (street order)`);
   }
   // 1.2.37: what the attack crew holds now, kept for next week (a crew broken up keeps its guns reserved).
   if (attackCrew && crewsOf().includes(attackCrew)) attackHeld.set(w, { teamId: attackCrew.id, weapons: { ...attackCrew.weapons } as Partial<Record<WeaponId, number>> });
@@ -2492,33 +2637,51 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const worst = [...killedBy].sort((a, b) => b[1] - a[1])[0];
     if (worst) {
       retaliation.set(w, { gangId: worst[0], until: w.week + 3 });
-      actions.push(`NOTE ${worst[1]} of our men killed by ${w.gangs[worst[0]].name} — arming the street crews and striking back`);
+      actions.push(`NOTE ${worst[1]} of our men killed by ${w.gangs[worst[0]].name} — an answer is weighed (1.2.38 rules)`);
     }
     const grudge = retaliation.get(w);
     const enemy = grudge && grudge.until > w.week ? w.gangs[grudge.gangId] : undefined;
     if (grudge && (!enemy || enemy.eliminated)) retaliation.delete(w);
     if (enemy && !enemy.eliminated && !lieLow) {
-      // A pistol for every crew still without a gun (1.2.36: every crew).
-      for (const team of ready) {
-        if (gunsOf(team) > 0) continue;
-        if (inStore(team, 'pistol') < 1 && gang.cash < reserve + WEAPONS.pistol.cost) break;
-        const result = supply(team, 'pistol', true);
-        logResult(actions, `arm ${w.people[team.lieutenantId]?.name ?? 'crew'}'s crew against ${enemy.name}`, result.ok, result.ok ? '' : result.error);
-      }
-      const striker = weak ? undefined : armed ?? freest(undefined, 'muscle');
-      if (weak) actions.push(`NOTE no answer to ${enemy.name}: we are weak — the armed crews keep out of rival blocks`);
+      // 1.2.38 (Robert): only the attack or the Expendables crew answers, and
+      // only full (every hood place taken) with 3★ or more attack (crew stars
+      // on firearms and stealth: the best man × 0.7 + the average × 0.3), against
+      // a target crew no bigger than ours (its men we know of); never while going
+      // straight; at most once per rival every RETALIATE_GAP weeks; not after a
+      // week with RETALIATE_LOSS_STOP or more of our men killed.
+      const answered = retaliatedAt.get(w) ?? new Map<number, number>();
+      retaliatedAt.set(w, answered);
+      const killedLastWeek = [...killedBy.values()].reduce((a, b) => a + b, 0);
+      const attackStars = (t: Team) => { const men = menOfCrew(t).filter((p) => p.status === 'active'); if (!men.length) return 0; const st = men.map((p) => roleStars(p, 'muscle')); return Math.max(...st) * 0.7 + (st.reduce((a, b) => a + b, 0) / st.length) * 0.3; };
+      const fullCrew = (t: Team) => t.memberIds.length >= MAX_TEAM_SIZE - 1;
+      const fitStrikers = [armed, expCrew].filter((t): t is Team => !!t && fullCrew(t) && attackStars(t) >= RETALIATE_STARS);
+      const lastAnswer = answered.get(enemy.id);
+      const why = weak ? 'we are weak — the armed crews keep out of rival blocks'
+        : straightNow ? 'we are going straight'
+        : lastAnswer != null && w.week - lastAnswer < RETALIATE_GAP ? `answered in week ${lastAnswer}; once per ${RETALIATE_GAP} weeks`
+        : killedLastWeek >= RETALIATE_LOSS_STOP ? `${killedLastWeek} of our men killed last week (${RETALIATE_LOSS_STOP} or more: no answer)`
+        : !fitStrikers.length ? `no full attack or Expendables crew with ${RETALIATE_STARS}★ attack (${[armed, expCrew].filter((t): t is Team => !!t).map((t) => `${t.name} ${t.memberIds.length}/${MAX_TEAM_SIZE - 1}, ${attackStars(t).toFixed(1)}★`).join('; ') || 'none ready'})`
+        : '';
+      const striker = why ? undefined : fitStrikers[0];
+      if (why) actions.push(`NOTE no answer to ${enemy.name}: ${why}`);
       const theirMen = gang.knownPeople.map((id) => w.people[id]).filter((p): p is NonNullable<typeof p> => !!p && p.status === 'active' && p.gangId === enemy.id && p.role !== 'boss');
       const theirSites = buildingList(w).filter((b) => buildingMapIntel(b, gang.id).ownerGangId === enemy.id && !b.isHQ && b.state === 'trading').sort(nearer);
-      if (striker && theirMen.length) {
-        const victim = theirMen.sort((a, b) => (b.role === 'lieutenant' ? 1 : 0) - (a.role === 'lieutenant' ? 1 : 0) || a.id - b.id)[0];
-        propose({ label: `retaliate: kill ${victim.name} of ${enemy.name}`, kind: 'violence', value: 1500, why: `${enemy.name} killed our men`, teams: strikeCrews(expCrew ?? striker),
-          input: (team) => ({ type: 'kill', personId: victim.id, opts: { manpower: manpowerFor(team, 3) } }) });
-      } else if (striker && theirSites.length) {
+      // The target crew: the known men of his crew (a lone man counts as one).
+      const knownCrew = (p: Person) => p.teamId == null ? 1 : Math.max(1, gang.knownPeople.filter((id) => w.people[id]?.status === 'active' && w.people[id]?.teamId === p.teamId).length);
+      const ourMen = striker ? striker.memberIds.length + 1 : 0;
+      const victims = theirMen.filter((p) => knownCrew(p) <= ourMen);
+      if (striker && theirMen.length && !victims.length) actions.push(`NOTE no answer to ${enemy.name}: every known man of theirs is in a crew bigger than ours (${ourMen})`);
+      const onGiven = () => { answered.set(enemy.id, w.week); };
+      if (striker && victims.length) {
+        const victim = victims.sort((a, b) => (b.role === 'lieutenant' ? 1 : 0) - (a.role === 'lieutenant' ? 1 : 0) || a.id - b.id)[0];
+        propose({ label: `retaliate: kill ${victim.name} of ${enemy.name} (crew of ${knownCrew(victim)} known)`, kind: 'violence', value: 1500, why: `${enemy.name} killed our men`, teams: fitStrikers,
+          input: (team) => ({ type: 'kill', personId: victim.id, opts: { manpower: manpowerFor(team, 3) } }), onGiven });
+      } else if (striker && !theirMen.length && theirSites.length) {
         const site = theirSites[0];
         const dynamite = bang(striker);
-        propose({ label: `retaliate: ${dynamite ? 'bomb' : 'smash up'} ${enemy.name}'s ${site.typeId}`, kind: 'violence', value: 1500, why: `${enemy.name} killed our men`, teams: [striker],
-          input: (team) => ({ type: dynamite ? 'bomb' : 'smashUp', buildingIds: [site.id], opts: { manpower: manpowerFor(team, 3) } }) });
-      } else if (striker) {
+        propose({ label: `retaliate: ${dynamite ? 'bomb' : 'smash up'} ${enemy.name}'s ${site.typeId}`, kind: 'violence', value: 1500, why: `${enemy.name} killed our men`, teams: fitStrikers,
+          input: (team) => ({ type: dynamite ? 'bomb' : 'smashUp', buildingIds: [site.id], opts: { manpower: manpowerFor(team, 3) } }), onGiven });
+      } else if (striker && !theirMen.length) {
         // 1.2.25: nothing of theirs on our map — scout where their men were last seen.
         const block = sightedBlocks(enemy.id)[0];
         const ids = block == null ? [] : buildingList(w).filter((b) => claimOf(b.blockId) === block && b.ownerGangId !== gang.id && b.state !== 'destroyed' && isValidAreaTarget(w, gang.id, 'explore', b))
@@ -2534,11 +2697,13 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const spare = ready.filter((team) => freeShare(team) >= 0.35);
   if (w.week >= 3 && gangManpower(w, gang) >= 8 && spare.length && gang.cash > reserve) {
     const near = (b: Building) => nearTerritory(w, gang.id, b.blockId, 3);
-    const rivalSites = buildingList(w).filter((b) => seenRival(b) && !b.isHQ && b.state === 'trading' && near(b)).sort(nearer);
-    const raidSites = buildingList(w).filter((b) => raidValue(b, gang.id) > 0 && near(b) && b.protection?.gangId !== gang.id).sort((a, b) => raidValue(b, gang.id) - raidValue(a, gang.id));
+    // 1.2.38 (Robert): weak or going straight, nothing violent against a rival at war with us.
+    const hitOk = (b: Building) => !noHitOn(buildingMapIntel(b, gang.id).ownerGangId) && !noHitOn(b.protection?.gangId);
+    const rivalSites = buildingList(w).filter((b) => seenRival(b) && !b.isHQ && b.state === 'trading' && near(b) && hitOk(b)).sort(nearer);
+    const raidSites = buildingList(w).filter((b) => raidValue(b, gang.id) > 0 && near(b) && b.protection?.gangId !== gang.id && hitOk(b)).sort((a, b) => raidValue(b, gang.id) - raidValue(a, gang.id));
     const refused = w.lastWeekOrders.filter((o) => o.gangId === gang.id && o.type === 'extort').flatMap((o) => (o.refusals ?? []).map((r) => r.buildingId))
       .map((id) => w.buildings[id]).filter((b): b is Building => !!b && b.state === 'trading' && b.protection?.gangId !== gang.id);
-    const rivals = gang.knownPeople.map((id) => w.people[id]).filter((p): p is NonNullable<typeof p> => !!p && p.status === 'active' && p.gangId != null && p.gangId !== gang.id && (p.role === 'hood' || p.role === 'lieutenant'));
+    const rivals = gang.knownPeople.map((id) => w.people[id]).filter((p): p is NonNullable<typeof p> => !!p && p.status === 'active' && p.gangId != null && p.gangId !== gang.id && (p.role === 'hood' || p.role === 'lieutenant') && !noHitOn(p.gangId));
     const snitch = Object.values(w.people).find((p) => p.role === 'snitch' && p.status === 'active');
     const rivalGangs = Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated).map((g) => g.id);
     const explosives = (armed ? carried(armed, 'explosives') : inStore(undefined, 'explosives')) > 0;
@@ -2562,7 +2727,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // Rare and low-ranked: the FBI director, struck at his headquarters.
       strikeFbi: !!hitCrew && !lieLow && w.week >= 8 && w.people[w.fbiHeadId]?.status === 'active',
       // 1.2.22: a rival HQ our scouts found, struck at most every few weeks.
-      strikeHQ: !!armed && !!hqTarget && !lieLow && w.week >= 8 && w.week - desk.lastHqStrike >= HQ_STRIKE_GAP,
+      strikeHQ: !!armed && !!hqTarget && !noHitOn(hqTarget.ownerGangId) && !lieLow && w.week >= 8 && w.week - desk.lastHqStrike >= HQ_STRIKE_GAP,
     } as Record<ActionKey, boolean>)[key]);
     const rolls = (gang.cash > reserve + 15000 ? 2 : 1) + (policy.violence === 'high' ? 1 : 0);
     const tried = new Set<ActionKey>();
@@ -2571,7 +2736,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (!key) break;
       tried.add(key);
       actions.push(`ROLL ${key} (${ACTION_LABELS[key]}, rank ${actionRanks[key]})`);
-      const crewRole: CrewRole = key === 'pressRefuser' ? 'intimidation' : expCrew && (key === 'killRival' || key === 'strikeFbi' || key === 'torchRival') ? 'expendables' : 'muscle';
+      // 1.2.38 (Robert): Torch goes to the attack crew first, the Expendables only if it is busy.
+      const crewRole: CrewRole = key === 'pressRefuser' ? 'intimidation' : expCrew && (key === 'killRival' || key === 'strikeFbi') ? 'expendables' : 'muscle';
       const cashBefore = gang.cash;
       if (key === 'snitch') {
         const knownBefore = gang.knownPeople.length;
@@ -2596,6 +2762,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       } else if (key === 'torchRival' || key === 'bombRival') {
         const site = rivalSites[rng.int(0, Math.min(2, rivalSites.length - 1))]; targetBuildingId = site.id; value = 400;
         input = (team) => ({ type: key === 'torchRival' ? 'torch' : 'bomb', buildingIds: [site.id], opts: { manpower: manpowerFor(team, 3) } });
+        if (key === 'torchRival') { const t = [armed, expCrew].filter((x): x is Team => !!x); if (t.length) teams = t; }
       } else if (key === 'strikeHQ' && armed && hqTarget) {
         // 1.2.33: no separate buy — the attack uses what the crew and the store hold.
         proposeHqStrike(hqTarget, 2500, `rolled at rank ${actionRanks[key]}`, key);
@@ -2644,7 +2811,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       for (const [id, what] of [[w.mayorId, 'mayor'], [w.policeChiefId, 'police chief']] as const) {
         const o = buyable(id, 0.3);
         if (!o) continue;
-        const r = queueSpecialistJob(w, gang.id, 'bribeOfficials', o.id);
+        const r = specialistVisit('bribeOfficials', o.id);
         logResult(actions, `surplus: lawyer bribes ${o.name} (${what})`, r.ok, r.ok ? r.message ?? '' : r.error);
         if (r.ok) break; // one errand at a time for the lawyer
       }
@@ -2652,7 +2819,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (onPayroll < 12) {
         const beats = territoryBlocks(w, gang.id).sort((a, b) => dist(a.center, origin) - dist(b.center, origin)).slice(0, 6).map((block) => block.id);
         if (beats.length) {
-          const r = queueSpecialistJob(w, gang.id, 'employPolice', null, beats);
+          const r = specialistVisit('employPolice', null, beats);
           logResult(actions, `surplus: lawyer puts the police on our ${beats.length} nearest blocks on the payroll`, r.ok, r.ok ? r.message ?? '' : r.error);
         }
       }
@@ -2792,28 +2959,19 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         seats += VEHICLES.coupe.capacity; bought.push(`coupe for ${w.people[t.lieutenantId]?.name ?? 'crew'}`);
       }
     }
-    // 1.2.30: one gun per man, store guns first (taken above). 1.2.36
-    // (Robert): every crew; with the surplus, the best gun for every man —
-    // a man's worse gun goes to the store when the best replaces it.
-    const BEST_GUN = BEST_FIRST[0];
+    // 1.2.38 (Robert): no guns from the surplus — only the violent jobs are
+    // armed, and the attack crew buys its own shotgun and rifle per man.
     for (const t of crews) {
       const role = roles.get(t.id);
-      // 1.2.37 (Robert): no upgrades for Business or Collect — revolvers are enough there.
-      for (;;) {
-        if (unarmedJob(t)) break;
-        const worst = [...BEST_FIRST].reverse().find((g) => (t.weapons[g] ?? 0) > 0);
-        if (gunsOf(t) >= gunLimit(t) && (!worst || gunRank(worst) >= gunRank(BEST_GUN))) break;
-        const fromStore = inStore(t, BEST_GUN) > 0;
-        if (!fromStore && !afford(WEAPONS[BEST_GUN].cost)) break;
-        if (!supply(t, BEST_GUN, true).ok) break;
-        bought.push(`${BEST_GUN} for ${w.people[t.lieutenantId]?.name ?? 'crew'}${fromStore ? ' (from the store)' : ''}`);
-      }
       if (role === 'muscle' && carried(t, 'explosives') < t.memberIds.length + 1 && afford(WEAPONS.explosives.cost) && buyForAttack('explosives').ok) bought.push('explosives for the store');
     }
     const counts = new Map<string, number>();
     for (const item of bought) counts.set(item, (counts.get(item) ?? 0) + 1);
     actions.push(`EQUIP surplus: $${Math.round(before - gang.cash).toLocaleString('en-US')} spent, $${Math.round(gang.cash).toLocaleString('en-US')} left (keep $${keep.toLocaleString('en-US')}: reserve${campaignReserve ? ' + campaign' : ''} + $${Math.round(committed).toLocaleString('en-US')} for this week's buys)${counts.size ? ` — ${[...counts].map(([k, n]) => `${n}× ${k}`).join(', ')}` : ' — every crew already has seats and guns'}`);
   }
+
+  // 1.2.38: what the attack crew holds after this week's kit, kept for next week.
+  if (attackCrew && crewsOf().includes(attackCrew)) attackHeld.set(w, { teamId: attackCrew.id, weapons: { ...attackCrew.weapons } as Partial<Record<WeaponId, number>> });
 
   // ---- the win itself
   if (goal === 'office' && w.election.active && !gang.runningForOffice) {

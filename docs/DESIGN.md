@@ -238,6 +238,24 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.38 decisions
+
+Auto Test: guns by the real tables, armed only for violent jobs, a ceasefire stance, stricter retaliation and safer routes, to cut deaths (Robert). No game rule changes.
+
+1. Gun ranking. Guns are ranked by the game's hit and kill tables (fireRoll.ts): the chance one attempt kills, with a 3★ shooter against a 2.5★ hood, averaged over the job's range bands. Inside premises (bands 0–1): shotgun, twin pistols, rifle, tommy, revolver. Street and ambush (bands 2–6): rifle, shotgun, tommy, twin pistols, revolver. Damage × accuracy is no longer used.
+2. Attack stock. The attack crew buys a shotgun and a rifle per man for its reserve in the store (plus explosives as before), no more twin pistols or tommy guns. It carries the street order between jobs. A violent job swaps its guns for the job's order, one per man. A crew keeps one kit a week, the first violent job's, because the game hands guns to the men at work, not per order.
+3. Attack and Expendables tiebreaks. Among men with equal stars for the job, the attack crew prefers firearms, then explosives, then fists. The Expendables prefer firearms. This applies to placements, rebuilds, donors and who leaves first.
+4. Named men. A Bomb order names the crew's best free explosives man, a Torch order its best arson man, and Kidnap and Smash Up orders its best fists man.
+5. Torch. Torching rival premises goes to the attack crew first, and to the Expendables only if the attack crew is busy.
+6. Guns only for violent jobs. The attack crew is always armed. The Expendables are armed only when given a job, and any other crew only for a kill or an ambush order. Every other crew hands its guns to the store at the start of the week, which ends random shots from crews. The gun for every man and the gun upgrades from surplus cash are gone. A crew other than the attack crew that is short of guns for its job buys revolvers for the store while cash is above the reserve. Guns go back to the store at the next week's start.
+7. Witnesses. Roughing up a witness goes to the crew with the lowest average knives.
+8. Drivers. Each crew with a car keeps at least one man with 3★ driving where it can, Collect and Scouts first. Auto takes a free pool hood, or a hood from a crew that keeps another driver, as long as he has 3★ for the crew's job. He takes a free place, or the weakest non-driver goes to the pool. Driving counts in no crew score.
+9. Wage cost. When Auto fires or picks from the pool, a man's skills no crew uses (fists, knives, arson, explosives, driving) count against him at 0.1 × their average. *(my call: 0.1.)*
+10. Ceasefire. Auto sets the player's stance to ceasefire toward every rival each week, using the game's own call. Our armed men answer rival intruders on our own blocks, and random shots no longer target rivals. The report logs each rival's stance toward us.
+11. Retaliation. Only the attack or Expendables crew answers a killing. That crew must be full, with 3★ or more attack (firearms and stealth: best × 0.7 + average × 0.3), and the target's crew, as far as we know its men, must be no bigger than ours. With nothing of theirs known, Auto may scout instead. There is no retaliation while going straight or weak. At most one answer per rival every 3 weeks, and none after a week with 3 or more of our men killed. Street crews are no longer armed after a killing.
+12. Weak or going straight. Auto gives no kill, kidnap, raid, torch, bomb, smash-up or HQ attack against a rival whose stance toward us is war. The 1.2.37 weak rule still blocks all violent rolled actions.
+13. Safer routes. Collect, extortion and recruit stops, crew bribe visits and the lawyer's visits avoid danger blocks. Those are the blocks a rival visibly holds and we don't, the blocks where rival men were reported seen, and the blocks next to either. Auto then drops the farthest stops from the office until the game's own time check fits the week. The report logs the danger block count.
+
 ## v1.2.37 decisions
 
 Auto Test: intelligence, stealth and intimidation as the game uses them, the Expendables crew, manager swaps by takings, and three fixes (Robert). No game rule changes.
