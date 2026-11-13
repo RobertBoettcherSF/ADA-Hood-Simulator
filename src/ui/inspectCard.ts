@@ -14,6 +14,7 @@ import { clampFloors, RENTED_ROOMS_DAILY_RENT } from '../sim/rentedRooms';
 import type { Building, ID, Person, Vec2, WorldState } from '../sim/types';
 import type { PickResult } from '../render/scene';
 import { money } from '../sim/world';
+import { registerProbe } from '../sim/memProbe';
 
 export interface InspectRow {
   label: string;
@@ -76,6 +77,7 @@ export interface InspectPlacement {
 
 let placement: InspectPlacement | null = null;
 const listeners = new Set<() => void>();
+registerProbe('inspectCardListeners', () => listeners.size); // 1.2.28
 
 function emit(): void {
   for (const listener of listeners) listener();

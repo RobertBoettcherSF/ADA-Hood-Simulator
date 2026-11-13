@@ -102,6 +102,7 @@ import {
   smoothstep,
 } from './util';
 import { peopleList, buildingList } from '../sim/entityLists';
+import { registerProbe, trackLifetime, noteDisposed } from '../sim/memProbe';
 
 export type OverlayKind =
   | 'territory'
@@ -211,6 +212,20 @@ async function restoreReleasedContext(canvas: HTMLCanvasElement): Promise<void> 
     lose.restoreContext();
   });
 }
+
+/** 1.2.28: memory probe — every renderer made, held weakly so the probe keeps none alive. */
+const liveRenderers = new Set<WeakRef<CityRenderer>>();
+registerProbe('renderer', () => {
+  let alive = 0, disposed = 0, geometries = 0, textures = 0, programs = 0, objects = 0;
+  for (const ref of liveRenderers) {
+    const r = ref.deref();
+    if (!r) { liveRenderers.delete(ref); continue; }
+    const c = r.probeCounts();
+    alive++; if (c.disposed) disposed++;
+    geometries += c.geometries; textures += c.textures; programs += c.programs; objects += c.objects;
+  }
+  return { alive, disposedButAlive: disposed, geometries, textures, programs, sceneObjects: objects, threeCacheFiles: Object.keys(THREE.Cache.files ?? {}).length };
+});
 
 export class CityRenderer {
   readonly scene = new THREE.Scene();
@@ -464,6 +479,7 @@ export class CityRenderer {
 
   constructor(canvas: HTMLCanvasElement, world: WorldState, deferConstruction = false) {
     this.world = world;
+    trackLifetime('CityRenderer', this); liveRenderers.add(new WeakRef(this)); // 1.2.28: memory probe
     this.characterActions = new CharacterActions(world);
     // The source bundle and decoded images are cached; this instance owns its
     // bundle metadata and every texture wrapper uploaded to its WebGL context.
@@ -3257,9 +3273,18 @@ export class CityRenderer {
     return result;
   }
 
+  /** 1.2.28: counts for the memory probe. */
+  probeCounts(): { disposed: boolean; geometries: number; textures: number; programs: number; objects: number } {
+    let objects = 0;
+    this.scene.traverse(() => { objects++; });
+    const info = this.renderer.info;
+    return { disposed: this.disposed, geometries: info.memory.geometries, textures: info.memory.textures, programs: info.programs?.length ?? 0, objects };
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    noteDisposed('CityRenderer'); // 1.2.28: memory probe
     streetSound.quiet();
     releaseAttachedShaders(this.renderer.getContext(), this.renderer.info.programs ?? []);
     document.fonts?.removeEventListener('loadingdone', this.fontsLoaded);

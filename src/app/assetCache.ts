@@ -5,6 +5,7 @@
  */
 import { activeWorldStore } from './worldFolder';
 import { resolvedGraphics } from './device';
+import { registerProbe } from '../sim/memProbe';
 
 export interface AssetFile {
   path: string;
@@ -54,6 +55,7 @@ export function fetchAsset(url: string, init?: RequestInit): Promise<Response> {
 const cache = new Map<string, string>();
 const lru: { path: string; bytes: number }[] = [];
 let remembered = 0;
+registerProbe('assetCache', () => ({ urls: cache.size, lru: lru.length, rememberedMB: Math.round(remembered / 1048576) })); // 1.2.28
 /** In-memory pictures on a phone. Oldest leave first. Nothing here is written to storage. */
 const PHONE_LAZY_CAP = 24 * 1024 * 1024;
 

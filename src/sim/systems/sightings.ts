@@ -54,6 +54,7 @@ import { buildingDoor, dist } from '../world';
 import { absoluteMinute, UNDER_FIRE_MINUTES } from './combat';
 import type { Rng } from '../rng';
 import type { Building, Gang, ID, MessageCategory, Person, Vec2, WorldState } from '../types';
+import { registerProbe } from '../memProbe';
 
 /** The original's ticks to one of our minutes: 24,000 a week over our 2,400 minutes. */
 export const ORIGINAL_TICKS_PER_MINUTE = 24_000 / MINUTES_PER_WEEK;
@@ -104,6 +105,7 @@ export function lookAheadCells(dx: number, dy: number): Set<string> {
   return s;
 }
 const AHEAD = new Map<string, Set<string>>();
+registerProbe('sightingLookAhead', () => AHEAD.size); // 1.2.28
 const ahead = (dx: number, dy: number) => {
   const key = `${dx},${dy}`;
   let s = AHEAD.get(key);

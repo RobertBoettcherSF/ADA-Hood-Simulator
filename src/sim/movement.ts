@@ -7,6 +7,7 @@ import { dist } from './world';
 import { blockRect, cityBlockAt, cityStreetInset, streetRouteNodes } from './cityLayout';
 import { onRoad, vehiclePathOnRoad, vehicleRoute } from './vehicleNavigation';
 import { peopleList } from './entityLists';
+import { registerProbe } from './memProbe';
 
 /** The middle of the footway, from the street's centre line. */
 const K = PAVEMENT_OFFSET;
@@ -317,6 +318,8 @@ export function stepPerson(p: Person, minutes: number, traffic?: TrafficContext,
  */
 let cachedPath: (PathPoint[] | null)[] = new Array<PathPoint[] | null>(1024).fill(null);
 let cachedX = new Float64Array(1024), cachedY = new Float64Array(1024), cachedCross = new Float64Array(1024);
+// 1.2.28: memory probe — the walkers' waypoint copies and this tick's early steps.
+registerProbe('movement', () => ({ cachedPaths: cachedPath.length, cachedXY: cachedX.length, earlySteps: earlySteps.size, driveFrom: driveFrom.size }));
 /** Fill the copy of p's next waypoint; false when the route is empty. */
 export function nextPoint(p: Person): boolean {
   const id = p.id, path = p.path;

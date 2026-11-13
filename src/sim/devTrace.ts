@@ -4,6 +4,7 @@
  * week only. It is never saved and never read by the simulation.
  */
 import type { ID, WorldState } from './types';
+import { registerProbe } from './memProbe';
 
 export interface StopTrace {
   week: number;
@@ -18,6 +19,7 @@ export interface StopTrace {
 }
 
 let traces: StopTrace[] = [];
+registerProbe('stopTraces', () => traces.length); // 1.2.28
 
 export function traceStop(w: WorldState, order: { id: ID; gangId: ID; teamId: ID; type: string; targetBuildingIds: ID[]; cursor: number },
   event: StopTrace['event'], note?: string): void {

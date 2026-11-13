@@ -1,3 +1,4 @@
+import { registerProbe } from '../sim/memProbe';
 /** How long image and model files took to arrive. The slowest stay at the top of the debug report. */
 export interface AssetLoad {
   file: string;
@@ -6,6 +7,7 @@ export interface AssetLoad {
 }
 
 const loads: AssetLoad[] = [];
+registerProbe('assetLoads', () => loads.length); // 1.2.28
 
 export function noteAssetLoad(file: string, ms: number, ok: boolean): void {
   const name = file.replace(/^.*\/art\//, 'art/');

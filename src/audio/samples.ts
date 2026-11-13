@@ -1,4 +1,5 @@
 import { audio } from './audio';
+import { registerProbe } from '../sim/memProbe';
 
 /**
  * Recorded effects and street beds in public/audio. They load in the
@@ -15,6 +16,7 @@ const ALL: SampleName[] = ['ui-click', 'ui-page', 'ui-cash', 'shot-pistol', 'sho
 
 const buffers = new Map<SampleName, AudioBuffer>();
 let loading: Promise<void> | null = null;
+registerProbe('samples', () => buffers.size); // 1.2.28
 
 /** Fetch and decode every sample once, short sounds first; `loaded` hears of each. */
 export function loadSamples(loaded?: (name: SampleName) => void): Promise<void> {

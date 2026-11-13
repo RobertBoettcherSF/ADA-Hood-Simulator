@@ -12,6 +12,7 @@ import { systemTimings } from '../sim/simTimings';
 import type { WorldState } from '../sim/types';
 import { gangManpower, money, territoryCount } from '../sim/world';
 import { musicStatusLines } from '../audio/musicPool';
+import { registerProbe } from '../sim/memProbe';
 
 let wish = '';
 
@@ -58,6 +59,8 @@ export interface LastAutoTest {
 let lastAutoTest: LastAutoTest | null = null;
 
 const weekHeaps: { week: number; used: number; total: number }[] = [];
+// 1.2.28: memory probe.
+registerProbe('debugReport', () => ({ errors: errors.length, timings: timings.length, autoplay: autoplay.length, weekHeaps: weekHeaps.length }));
 
 /** Start of an Auto Test run: drop the previous run's weekly heap lines. */
 export function clearWeekHeaps(): void {

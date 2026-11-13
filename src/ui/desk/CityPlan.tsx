@@ -1,5 +1,6 @@
 import { art, loadImage } from '../art';
 import { useEffect, useRef, type CSSProperties } from 'react';
+import { registerProbe } from '../../sim/memProbe';
 
 /**
  * A surveyor's plan of a city, drawn in ink on the desk: blocks, lots, a
@@ -24,6 +25,7 @@ const STREETS = ['Fourth St', 'Canal St', 'Market St', 'Volstead Ave', 'Harbour 
 /** The foxed drafting paper the plan is drawn on, once it has loaded. */
 let parchment: HTMLImageElement | null = null;
 const redraws = new Set<() => void>();
+registerProbe('cityPlanRedraws', () => redraws.size); // 1.2.28
 if (typeof document !== 'undefined') {
   loadImage(art('desk/parchment-plan.jpg'))
     .then((img) => {

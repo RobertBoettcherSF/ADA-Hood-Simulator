@@ -1,5 +1,7 @@
+import { registerProbe } from './memProbe';
 /** Wall-clock time spent in each simulation system since the last reset. */
 const buckets = new Map<string, { ms: number; calls: number }>();
+registerProbe('simTimings', () => buckets.size); // 1.2.28
 
 export function timeSystem<T>(name: string, run: () => T): T {
   const start = performance.now();

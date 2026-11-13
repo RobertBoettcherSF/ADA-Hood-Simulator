@@ -1,3 +1,4 @@
+import { registerProbe } from '../sim/memProbe';
 /** The last few things the player did, for the debug report. */
 export interface UserAction {
   at: string;
@@ -6,6 +7,7 @@ export interface UserAction {
 }
 
 const actions: UserAction[] = [];
+registerProbe('actionLog', () => actions.length); // 1.2.28
 
 export function recordAction(kind: string, detail: string): void {
   const at = new Date().toISOString().slice(11, 19);

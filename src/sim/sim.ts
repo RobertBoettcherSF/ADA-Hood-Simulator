@@ -49,6 +49,7 @@ const AMBIENT_SLICES = 6;
 import { gangAssets, gangWealth, gangLoyalty, gangManpower, money, ownedBuildings, placeName, powerRating, teamsOf, territoryCount } from './world';
 import { peopleList, buildingList } from './entityLists';
 import { syncCrewTime } from './crewTime';
+import { trackLifetime } from './memProbe';
 
 /** The clock lives with the other units; see constants.ts. */
 export { MINUTES_PER_SECOND } from './constants';
@@ -64,6 +65,7 @@ export class Sim {
     earlySteps.clear(); driveFrom.clear();
     const { world, rng } = createWorld(options);
     this.world = world;
+    trackLifetime('Sim', this); trackLifetime('world', world); // 1.2.28: memory probe
     this.rng = rng;
     for (const gang of Object.values(world.gangs)) openFinances(world, gang);
     for (const b of buildingList(world)) if (b.ownerGangId != null) b.acquisitionCost = buildingValue(world, b);
@@ -89,6 +91,7 @@ export class Sim {
   private static restoreValidated(state: WorldState): Sim {
     earlySteps.clear(); driveFrom.clear();
     const sim = Object.create(Sim.prototype) as Sim;
+    trackLifetime('Sim', sim); trackLifetime('world', state); // 1.2.28: memory probe
     state.people = shapePeople(state.people);
     sim.world = state;
     sim.rng = new Rng(state.options.seed);

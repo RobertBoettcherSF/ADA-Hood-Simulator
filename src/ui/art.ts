@@ -3,6 +3,7 @@ import { assetUrl, enqueueAssetLoad } from '../app/assetCache';
 import { resolvedGraphics } from '../app/device';
 import { noteAssetLoad } from '../app/assetTiming';
 import thickenedIcons from '../../public/art/icons-small/index.json';
+import { registerProbe } from '../sim/memProbe';
 
 /**
  * Where the delivered artwork lives and how the interface names it. Every
@@ -79,6 +80,7 @@ const cache = new Map<string, Promise<HTMLImageElement>>();
 const imageBytes = new Map<string, number>();
 const imageOrder: string[] = [];
 let imageUsed = 0;
+registerProbe('artImages', () => ({ cached: cache.size, sized: imageBytes.size, order: imageOrder.length, usedMB: Math.round(imageUsed / 1048576) })); // 1.2.28
 /** Decoded pictures kept on a phone. Oldest are dropped first. */
 const PHONE_IMAGE_CAP = 24 * 1024 * 1024;
 

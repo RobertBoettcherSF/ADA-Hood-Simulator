@@ -15,6 +15,7 @@ import { hireQuote } from '../sim/originalWages';
 import { peopleList } from '../sim/entityLists';
 import type { Gang, Order, Person, WorldState } from '../sim/types';
 import { gangHoldings, gangManpower, powerRating, territoryCount, teamsOf } from '../sim/world';
+import { registerProbe } from '../sim/memProbe';
 
 const weeks: string[] = [];
 /** 1.2.23: the most weeks the journal holds in memory. */
@@ -25,6 +26,8 @@ export function devJournalDropped(): number { return droppedWeeks; }
 /** 1.2.22: the Auto Test desk's own notes for the week (business crew, buy targets, drops, HQ scouting and strikes). */
 const deskLines: string[] = [];
 export function noteDevDesk(line: string): void { deskLines.push(line); }
+// 1.2.28: memory probe.
+registerProbe('journal', () => ({ weeks: weeks.length, kb: Math.round(weeks.reduce((n, s) => n + s.length, 0) / 1024), dropped: droppedWeeks, deskLines: deskLines.length }));
 
 export function clearDevJournal(): void {
   weeks.length = 0;

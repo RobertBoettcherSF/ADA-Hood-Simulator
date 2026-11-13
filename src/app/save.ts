@@ -7,6 +7,7 @@ import { gangManpower, territoryCount } from '../sim/world';
 import { activeWorldStore, parseWorldText, refreshCityOnFile } from './worldFolder';
 import { addGameRecord, clearHallEntries, loadHallEntries, saveHallEntries } from './localData';
 import { markTiming } from './debugReport';
+import { registerProbe, trackLifetime } from '../sim/memProbe';
 
 export interface SaveSlot {
   id: string;
@@ -55,6 +56,9 @@ export function utf8Length(text: string): number {
 
 /** 1.2.23: keyed weakly, so a finished city is not held in memory by its last save's size. */
 const lastSave = new WeakMap<WorldState, { week: number; bytes: number }>();
+/** 1.2.28: memory probe — saves begun and finished this session, and the last one's size. */
+const saveCounts = { started: 0, finished: 0, lastMB: 0 };
+registerProbe('saves', () => ({ ...saveCounts }));
 /** Size of the save just written for this world and week, so Auto Test need not stringify the city again. */
 export function lastSavedBytes(world: WorldState): number | null {
   const last = lastSave.get(world);
@@ -72,6 +76,7 @@ function campaignId(world: WorldState): string {
 /** Keep save identity when installing an independent copy of a stored world. */
 export function cloneSavedWorld(world: WorldState): WorldState {
   const snapshot = JSON.parse(JSON.stringify(world)) as WorldState;
+  trackLifetime('worldCopy', snapshot); // 1.2.28: memory probe
   campaignIds.set(snapshot, campaignId(world));
   return snapshot;
 }
@@ -82,6 +87,7 @@ export async function cloneSavedWorldResponsive(world: WorldState, signal?: Abor
   await yieldForInput();
   signal?.throwIfAborted();
   const snapshot = JSON.parse(json) as WorldState;
+  trackLifetime('worldCopy', snapshot); // 1.2.28: memory probe
   // Parsing is native and indivisible; give input a turn before validation.
   await yieldForInput();
   signal?.throwIfAborted();
@@ -149,6 +155,11 @@ async function stringifyFrozenWorld(world: WorldState, signal?: AbortSignal): Pr
 }
 
 export async function saveGame(name: string, world: WorldState, frozen = false): Promise<void> {
+  saveCounts.started++;
+  try { await saveGameNow(name, world, frozen); } finally { saveCounts.finished++; saveCounts.lastMB = Math.round((lastSave.get(world)?.bytes ?? 0) / 1048576); }
+}
+
+async function saveGameNow(name: string, world: WorldState, frozen: boolean): Promise<void> {
   const living = activeWorldStore();
   if (living) {
     const started = performance.now();

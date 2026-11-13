@@ -1,4 +1,5 @@
 import type { OrthographicCamera } from 'three';
+import { registerProbe } from '../sim/memProbe';
 
 /** Default capacity for small model galleries; the city supplies its actor limit. */
 export const MAX_DETAILED_CHARACTERS = 96;
@@ -22,6 +23,7 @@ let simple = false;
 let slowRun = 0;
 let fastRun = 0;
 const figureWatchers = new Set<() => void>();
+registerProbe('figureWatchers', () => figureWatchers.size); // 1.2.28
 
 /** True while the whole street is on the simple figures. */
 export function simpleFigures(): boolean {

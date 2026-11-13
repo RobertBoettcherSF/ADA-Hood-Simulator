@@ -757,6 +757,8 @@ export interface TrafficContext {
 let ctxWorld: WorldState | null = null;
 let ctxMinute = -1;
 let ctx: TrafficContext = { cars: [], carsByStreet: new Map(), drivers: [], crossings: [] };
+// 1.2.28: memory probe — the per-minute traffic caches.
+registerProbe('traffic', () => ({ cars: cacheCars.length, used: usedCache.length, drivers: scanDrivers.length, ctxCars: ctx.cars.length, ctxStreets: ctx.carsByStreet.size, ctxDrivers: ctx.drivers.length, ctxCrossings: ctx.crossings.length, slices: slices?.parts.length ?? 0 }));
 
 /** The traffic for the current minute, built once a tick however many ask. */
 export function trafficContext(w: WorldState): TrafficContext {
@@ -919,3 +921,4 @@ export function roadAheadRoom(t: TrafficContext, at: Vec2, next: Vec2, self?: ob
   return Math.max(0, room);
 }
 import { streetGraph } from './cityLayout';
+import { registerProbe } from './memProbe';

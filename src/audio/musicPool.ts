@@ -4,6 +4,7 @@
  * are never copied into the city folder.
  */
 import { readLocalData } from '../app/localData';
+import { registerProbe } from '../sim/memProbe';
 
 export type MusicCategory =
   | 'menu' | 'planner' | 'street' | 'action' | 'win' | 'loss'
@@ -57,6 +58,7 @@ const listeners = new Set<(title: string) => void>();
 let announced = '';
 const objectUrls = new Map<string, string>();
 let lastError = '';
+registerProbe('music', () => ({ tracks: tracks.length, bags: bags.size, nodes: nodes.length, mixed: mixed.size, fading: fading.size, listeners: listeners.size, objectUrls: objectUrls.size })); // 1.2.28
 /** The loading reel plays on its own element, not on the two pool players. */
 let reelNode: HTMLAudioElement | null = null;
 
