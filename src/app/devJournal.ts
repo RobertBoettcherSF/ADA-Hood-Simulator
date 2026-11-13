@@ -81,7 +81,7 @@ function crewStars(w: WorldState, name: string, ids: number[]): string {
   const role = crewRoleFromName(name);
   const men = ids.map((id) => w.people[id]).filter((p): p is Person => !!p);
   if (!role || !men.length) return '';
-  return ` · ${role} ${(men.reduce((sum, p) => sum + roleStars(p, role), 0) / men.length).toFixed(1)}★ avg`;
+  return ` · ${role === 'muscle' ? 'attack' : role} ${(men.reduce((sum, p) => sum + roleStars(p, role), 0) / men.length).toFixed(1)}★ avg`;
 }
 
 function blockLabel(w: WorldState, buildingId: number | null): string {
