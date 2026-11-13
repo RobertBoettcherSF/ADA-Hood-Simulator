@@ -25,7 +25,7 @@ import {
   repairBuilding,
   setTrading,
 } from './api';
-import { MAX_TEAMS, MAX_TEAM_SIZE, MINUTES_PER_WEEK, ORDERS, WEAPONS } from './constants';
+import { MAX_TEAMS, MAX_TEAM_SIZE, ORDERS, WEAPONS } from './constants';
 import { BUILDING_BY_ID, ILLEGAL_TYPES, coverQuality } from './data/buildings';
 import { isValidAreaTarget, nearestOffice } from './execution';
 import { purchasablePremisesType } from './premises';
@@ -50,6 +50,7 @@ import {
 import { peopleList } from './entityLists';
 import { quitGangPayroll } from './payrollMark';
 import { applyRivalPlaybook } from './rivalPlaybook';
+import { crewUsedShare } from './crewTime';
 
 /** Blocks within `radius` of anywhere the gang already has a presence. */
 function homeBlocks(w: WorldState, gang: Gang, radius: number): Block[] {
@@ -153,7 +154,7 @@ export function planGang(w: WorldState, rng: Rng, gang: Gang, autopilot = false)
 
   teams.forEach((team, idx) => {
     let guard = 0;
-    const canDoMore = () => team.timeUsed < MINUTES_PER_WEEK * 0.9 && guard++ < 8;
+    const canDoMore = () => crewUsedShare(w, team) < 0.9 && guard++ < 8;
 
     // 1. Always collect what is owed.
     if (protectedSites.length && canDoMore()) {
@@ -261,7 +262,7 @@ export function planGang(w: WorldState, rng: Rng, gang: Gang, autopilot = false)
     }
 
     // 7. Spend what is left holding the streets.
-    if (team.timeUsed < MINUTES_PER_WEEK * 0.45) {
+    if (crewUsedShare(w, team) < 0.45) {
       const mine = territoryBlocks(w, gang.id);
       if (mine.length) {
         const patrolBlocks = rng.shuffle([...mine]).slice(0, 6).map((b) => b.id);

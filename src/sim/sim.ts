@@ -48,6 +48,7 @@ import type { GameOptions, Gang, ID, WorldState } from './types';
 const AMBIENT_SLICES = 6;
 import { gangAssets, gangWealth, gangLoyalty, gangManpower, money, ownedBuildings, placeName, powerRating, teamsOf, territoryCount } from './world';
 import { peopleList, buildingList } from './entityLists';
+import { syncCrewTime } from './crewTime';
 
 /** The clock lives with the other units; see constants.ts. */
 export { MINUTES_PER_SECOND } from './constants';
@@ -118,6 +119,8 @@ export class Sim {
     reconcileTransport(state);
     normalizeFbiInvestigations(state);
     restoreElectionTiming(state);
+    // 1.2.27: crew time is man-hours; a save's booked time is recounted from its orders.
+    for (const team of Object.values(state.teams)) syncCrewTime(state, team);
     observeTargetRace(state, undefined, 'legacy');
     sim.resolveImmediateOutcome();
     return sim;
