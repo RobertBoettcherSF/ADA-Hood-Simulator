@@ -189,6 +189,9 @@ export const MEMORY_CHECK_SHARE = 0.6;
 export const MEMORY_STOP_SHARE = 0.8;
 /** Idle time given to the browser's garbage collector before the second check. */
 export const MEMORY_YIELD_MS = 3000;
+/** 1.2.24: used heap above which Auto Test idles HEAP_IDLE_MS between weeks. */
+export const HEAP_IDLE_MB = 1024;
+export const HEAP_IDLE_MS = 1500;
 
 export interface HeapFigures {
   used: number;
@@ -2279,6 +2282,10 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     if (weeks.length && weeks[weeks.length - 1].week >= weekSnap.week) weekSnap.week = weeks[weeks.length - 1].week + 1;
     // The week is saved by now. Pause if used heap looks high, then stop
     // only if it is still above 80% of the limit after garbage collection.
+    // 1.2.24: past HEAP_IDLE_MB of used heap the run pauses a moment between
+    // weeks, so the browser can collect the week's garbage (each week's save
+    // alone is a ~30 MB string plus its copy) before the next week allocates more.
+    { const h = readHeap(); if (h && h.used > HEAP_IDLE_MB * 1048576) await yieldIdle(HEAP_IDLE_MS); }
     const memory = await checkMemoryStop();
     if (memory.heap) {
       weekSnap.heapUsed = memory.heap.used;
