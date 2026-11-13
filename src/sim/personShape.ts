@@ -50,6 +50,7 @@ export function shapePerson(o: Person): Person {
     jailWeeks: o.jailWeeks,
     bribedBy: o.bribedBy,
     employedBy: o.employedBy,
+    homeOfficeId: o.homeOfficeId,
     weeklyRetainer: o.weeklyRetainer,
     retainerShort: o.retainerShort,
     quitPayrollOf: o.quitPayrollOf,

@@ -671,6 +671,41 @@ export function sellWeapon(w: WorldState, gangId: ID, weapon: WeaponId, teamId?:
   return ok(`Sold a ${WEAPONS[weapon].name}.`);
 }
 
+/**
+ * 1.2.41: station a pool hood at an office of the gang (null: the nearest
+ * office again). He walks there and waits inside, defending it.
+ */
+export function stationPoolHood(w: WorldState, gangId: ID, personId: ID, officeId: ID | null): ApiResult {
+  const gang = w.gangs[gangId];
+  const p = w.people[personId];
+  if (!gang || !p || p.gangId !== gangId || p.role !== 'hood' || !gang.poolIds.includes(personId)) return fail('Choose a hood in your pool.');
+  const office = officeId == null ? null : w.buildings[officeId];
+  if (officeId != null && (!office || office.ownerGangId !== gangId || office.typeId !== 'office' || office.state === 'destroyed')) return fail('Choose an office of yours.');
+  if ((p.homeOfficeId ?? null) === officeId) return ok();
+  p.homeOfficeId = officeId;
+  if (p.orderId == null && !p.streetOrder && p.buildingId !== officeId) sendHome(w, p);
+  return ok(office ? `${p.name} will wait at the office.` : `${p.name} goes back to the nearest office.`);
+}
+
+/** 1.2.41: move guns between the gang's cache and an office's own stash. */
+export function stockOfficeStash(w: WorldState, gangId: ID, officeId: ID, weapon: WeaponId, toOffice: boolean): ApiResult {
+  const gang = w.gangs[gangId];
+  const office = w.buildings[officeId];
+  if (!gang || !office || office.ownerGangId !== gangId || office.typeId !== 'office' || office.state === 'destroyed') return fail('Choose an office of yours.');
+  if (!WEAPONS[weapon]) return fail('No such weapon.');
+  office.stash ??= {};
+  if (toOffice) {
+    if ((gang.weapons[weapon] ?? 0) <= 0) return fail('None in the cache.');
+    gang.weapons[weapon]--;
+    office.stash[weapon] = (office.stash[weapon] ?? 0) + 1;
+  } else {
+    if ((office.stash[weapon] ?? 0) <= 0) return fail('The office has none.');
+    office.stash[weapon]!--;
+    gang.weapons[weapon] = (gang.weapons[weapon] ?? 0) + 1;
+  }
+  return ok();
+}
+
 export function transferWeapon(
   w: WorldState,
   gangId: ID,

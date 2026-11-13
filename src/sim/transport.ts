@@ -202,7 +202,9 @@ export function stepOut(w:WorldState,p:Person,toward:Vec2):void {
 export const STEP_OUT_MINUTES = 3;
 export function sendHome(w:WorldState,p:Person):void {
   if(p.status!=='active'||p.gangId==null)return;
-  const destination=base(w,p.gangId,p.pos),v=vehicleOf(w,p);
+  // 1.2.41: a pool hood stationed at an office of his gang goes home there.
+  const station=p.homeOfficeId!=null&&p.teamId==null?w.buildings[p.homeOfficeId]:undefined;
+  const destination=station&&station.ownerGangId===p.gangId&&station.typeId==='office'&&station.state!=='destroyed'?buildingDoor(w,station):base(w,p.gangId,p.pos),v=vehicleOf(w,p);
   p.buildingId=null;
   // Back into the waiting car after stepping out for the job.
   if(v&&!p.inVehicle&&v.boarding)tryBoard(w,v);

@@ -105,8 +105,11 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
       if (p.teamId != null && inOffice) p.buildingId = null;
       else if (p.teamId == null && p.buildingId == null) {
         let home: Building | undefined, far = false;
+        // 1.2.41: a hood stationed at an office of his gang waits only there.
+        const station = p.homeOfficeId != null ? w.buildings[p.homeOfficeId] : undefined;
+        const stationed = isGangOffice(station, p.gangId) ? station : undefined;
         for (const b of allBuildings(w)) {
-          if (!isGangOffice(b, p.gangId)) continue;
+          if (!isGangOffice(b, p.gangId) || (stationed && b.id !== stationed.id)) continue;
           if (dist(buildingDoor(w, b), p.pos) < 24) { home = b; break; }
           far = true;
         }

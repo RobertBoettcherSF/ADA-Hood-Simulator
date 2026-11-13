@@ -210,7 +210,7 @@ export function JobCardPanel() {
               <Kicker style={{ marginBottom: 6 }}>{isCentreLot ? 'Illegal business · centre lot' : 'Legal business'}</Kicker>
               <select aria-label="Business type" className="text-input" value={jc.opts.businessTypeId ?? ''} onChange={(e) => updateOpts({ businessTypeId: e.target.value })}>
                 <option value="">Choose a business…</option>
-                {(isCentreLot ? ILLEGAL_TYPES.filter((t) => t.id !== 'office') : ESTABLISHABLE_TYPES).map((t) => (
+                {(isCentreLot ? ILLEGAL_TYPES : ESTABLISHABLE_TYPES).map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name} — {money(t.cost)}
                   </option>

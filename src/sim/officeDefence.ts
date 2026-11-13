@@ -64,6 +64,8 @@ export function armedPoolDefenders(w: WorldState, office: Building): number {
   if (!gang) return 0;
   let men = 0;
   for (const id of [...gang.poolIds]) { const p = w.people[id]; if (p && poolHoodInside(w, p, office)) men++; }
-  const guns = (['pistol', 'shotgun', 'rifle', 'tommy', 'twinPistols'] as const).reduce((sum, g) => sum + Math.max(0, Math.floor(gang.weapons[g] ?? 0)), 0);
+  // 1.2.41: an office with its own stash arms its defenders from it.
+  const store: Partial<Record<string, number>> = office.stash && Object.values(office.stash).some((n) => (n ?? 0) >= 1) ? office.stash : gang.weapons;
+  const guns = (['pistol', 'shotgun', 'rifle', 'tommy', 'twinPistols'] as const).reduce((sum, g) => sum + Math.max(0, Math.floor(store[g] ?? 0)), 0);
   return Math.min(men, guns);
 }

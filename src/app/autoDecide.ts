@@ -51,6 +51,8 @@ export interface CrewSlot<T> {
   free: () => number;
   /** The business crew: buys and set-ups only. */
   businessOnly?: boolean;
+  /** 1.2.41: other work a business-only crew takes this week (protection collecting when there is no cash to buy). */
+  alsoTakes?: (p: Proposal<T>) => boolean;
 }
 
 export interface Decision { label: string; crew?: string; score: number; line: string }
@@ -78,7 +80,7 @@ export function decideWeek<T>(
     // 1.2.25 (Robert's rule): business work — buying a business, buying land,
     // setting up on our land — goes to the business crew and nobody else; the
     // business crew takes nothing else. No business crew: nobody buys.
-    const allowed = (c: CrewSlot<T>) => (p.kind === 'business') === !!c.businessOnly;
+    const allowed = (c: CrewSlot<T>) => (p.kind === 'business') === !!c.businessOnly || (!!c.businessOnly && !!c.alsoTakes?.(p));
     const slots = p.teams
       ? p.teams.map((t) => crews.find((c) => c.team === t)).filter((c): c is CrewSlot<T> => !!c && allowed(c))
       : crews.filter(allowed).sort((a, b) => Number(b.role === p.role && p.role != null) - Number(a.role === p.role && p.role != null) || b.free() - a.free());

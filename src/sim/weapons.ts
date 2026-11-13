@@ -42,7 +42,10 @@ export function allocateWeapons(w: WorldState): Loadout {
       defended ??= new Set([...officesUnderAttack(w).keys()]);
       if (p.buildingId == null || !defended.has(p.buildingId)) continue;
     }
-    const stock = team ? team.weapons : gang.weapons;
+    // 1.2.41: a pool hood defending an office with its own stash draws from that stash.
+    const office = !team && p.buildingId != null ? w.buildings[p.buildingId] : undefined;
+    const stash = office?.stash && Object.values(office.stash).some((n) => (n ?? 0) >= 1) && office.ownerGangId === gang.id && p.orderId == null && p.streetOrder == null ? office.stash as Record<WeaponId, number> : undefined;
+    const stock = team ? team.weapons : stash ?? gang.weapons;
     const group = groups.get(stock);
     if (group) group.push(p); else groups.set(stock, [p]);
   }

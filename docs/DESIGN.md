@@ -238,6 +238,33 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.41 decisions
+
+Auto Test goes all in below the police and FBI action levels, plans each crew's week as its orders one after another, and adds offices. Game changes: the Office appears in the Set Up Business menu, and a pool hood can be stationed at an office with a gun stash of its own (Robert).
+
+1. Crime ceiling. No fixed crime budget. Auto goes all in while the FBI suspicion graph is below its case line (78, raw 200), each man's heavy-crime points are below the warrant line (200), and the chief is not hostile (opinion above −20). At those lines it lies low. Collecting protection never stops, and it is no longer capped by the legal books.
+2. Trim. A multi-stop order that would pass a man's heavy-crime allowance is cut to the stops that fit, not refused whole. Refusers keep their own one-stop steps.
+3. Route fit. Each crew's week is checked as all its orders one after another (the game's estimates summed against the week). A crew that ran out of week last week takes no more route stops than it finished then.
+4. Hiring. Recruiting keeps looking for better men to swap in.
+5. Weak. Weak is measured by men only. The cash reserve still gates purchases.
+6. Unpaid wages. When the cash can't cover the week's wages, pool hoods are sacked, newest first. The HQ's office defenders (the oldest pool hoods) and hoods stationed at our other offices are never sacked.
+7. Pay cut. Never the lawyer, the accountant or a manager.
+8. Business crew. When there is no cash above the reserve to buy businesses, the business crew collects protection.
+9. Guard Office. Only the Expendables get it, never a working crew. Without them, the pool hoods inside defend the office.
+10. Patrol. Patrol goes to an armed crew with no order yet and is its only order that week.
+11. Mayor. The lawyer bribes the mayor whenever he is hostile and his price is within our cash.
+12. Chief bought by a rival. We offer 120% of the sum (the price the game quotes us stands in for the rival's, which we can't see) through a crew bribe when the cash covers it. Otherwise the Expendables get a kill of the chief at the kill order's existing value, and the log says so.
+13. Police. The chief bribe stays. The police payroll goes first to the officers on blocks with our illegal businesses: a retainer keeps an officer sweet whatever the chief thinks. Officers follow the chief, and the chief follows the mayor, so a single chief bribe wears off while the mayor is hostile.
+14. Audit. The accountant audits every manager of ours (highest profit first) and every lieutenant, in turn. A lieutenant found skimming at his full ask is only noted, because the swap rule covers managers.
+15. Refusers. A refuser stays on the list until he pays or we buy the shop. Lying low only pauses the steps.
+16. Lawyer and accountant search. A week counts as empty when last week's search brought nobody better than ours. After 3 empty weeks the search pauses until ours is lost. Candidates we don't hire are taken off our list.
+17. Street heat. Street heat uses the officers' real opinion. The Lawyer-tab bands are used for decisions only.
+18. Office in Set Up Business. The Office can be set up on a centre lot behind our legal front, like any illegal business.
+19. New offices. Auto sets up a new office 15 map blocks (grid distance, every block counted: roads between, rivers, parks) north, east, south or west of an office of ours. The block must be one our territory or one of our fronts reaches, with no office of ours nearer than 15. The office goes on the centre lot behind our legal front; the lot or a front is bought first when needed, from cash above the reserve.
+20. Office defenders. Each office besides the HQ keeps 5 pool hoods stationed inside, with a shotgun stash of its own that its defenders draw from. The HQ keeps 10, plus 10 per rival at war, armed from the gang's cache.
+21. Basic crews. A missing basic crew is no longer held back by crews that the pool fills that same week (seen: 29 hoods in the pool and "a basic crew is missing" every week). Bribe runs name only a man the game can staff now.
+22. Torching rival premises. It is back in the ranked actions; since 1.2.40 a comment had hidden it.
+
 ## v1.2.40 decisions
 
 Auto Test plays the office screens Robert listed: crackdown, graphs, loyalty, diplomacy, accountant, prisoners, patrol, refusers, charity, selling, staff cars and the FBI-agent hit, and reads only what a player can see (Robert). No game rule changes.

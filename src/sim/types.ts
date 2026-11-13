@@ -164,6 +164,8 @@ export interface Person {
   /** Bribe/retainer bookkeeping. */
   bribedBy: ID | null;
   employedBy: ID | null;
+  /** 1.2.41: a pool hood stationed at this office of his gang waits there (absent: the nearest office). */
+  homeOfficeId?: ID | null;
   weeklyRetainer: number;
   /** Original city: this week's retainer was cut to half (0x75DA90 flag); a
    * later full payment takes back the hostility the cut added. */
@@ -399,6 +401,8 @@ export interface Building {
   frontId: ID | null;
   /** For a legal building: the illegal business it fronts. */
   hidesId: ID | null;
+  /** 1.2.41: an office's own gun stash, drawn by the pool hoods defending it (absent: the gang's cache). */
+  stash?: Partial<Record<WeaponId, number>>;
   stock: Record<GoodsKind, number>;
   lastProfit: number;
   repairCost: number;
