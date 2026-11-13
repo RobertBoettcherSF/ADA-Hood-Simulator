@@ -426,9 +426,8 @@ export const SUSPICION_JUMP = 15;
 /** Most of the gang's men on risky street orders (extortion and rough work) at once; less while easing. */
 export const RISKY_SHARE = 0.5;
 export const RISKY_SHARE_EASING = 0.35;
-/** 1.2.24: walks an unarmed crew skips while suspicion is high. */
-const OFF_STREET_ORDERS = new Set(['explore', 'guardBusiness', 'patrol']);
-const crewArmed = (team: Team) => Object.values(team.weapons).some((n) => (n ?? 0) > 0);
+/** 1.2.24: a man this wanted gets no risky work (extortion, violence); his crew's risky order goes to a cleaner crew. */
+export const WANTED_RISKY_HOLD = 8;
 const RISKY_ORDERS = new Set(['extort', 'raid', 'kidnap', 'kill', 'smashUp', 'torch', 'bomb', 'assault', 'intimidate', 'ambush']);
 /** How hot the gang is: 0 normal, 1 ease off (bribe the chief, half the extortion), 2 lie low. */
 export function heatLevel(suspicion: number, lastWeek: number | undefined): 0 | 1 | 2 {
@@ -453,12 +452,12 @@ function crewReady(w: Sim['world'], teamId: number): boolean {
  * reads the same sum (with the police's average opinion) and rests a man well
  * before that line.
  */
-export const STREET_HEAT_REST = 30;
+export const STREET_HEAT_REST = 28; // 1.2.24: was 30
 /** A resting man goes back to work once his street heat is below this. */
 export const STREET_HEAT_BACK = 15;
 /** Resting only helps a man with his own wanted level: below this, his heat is
  * the police's opinion of the gang, which no rest can cool. */
-export const REST_WANTED = 10;
+export const REST_WANTED = 4; // 1.2.24: was 10 — with hostile police a man wanted 6 was already past the arrest line
 /** A man who killed an FBI agent and is this wanted is sacked rather than hidden. */
 export const SACK_WANTED = 80;
 export function streetHeat(wanted: number, policeOpinion: number): number {
@@ -550,6 +549,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   if (rebuild) actions.push(`NOTE rebuilding the gang first: ${crewMen()} men and $${Math.round(gang.cash)} — recruiting comes before everything, no rough work`);
   const managerCount = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.managerId != null && w.people[b.managerId]?.status !== 'dead').length;
   actions.push(`NOTE men: ${crewMen()} in crews and pool, ${managerCount} managers (not counted against any limit)`);
+  /** 1.2.24: hoods held back from street work this week for their wanted level. */
+  const heldForWanted = new Map<number, string>();
   // 1.2.24: last week's arrests, each with its cause.
   {
     const arrests = memberLosses(w, gang.id, w.week - 1).filter((l) => l.week === w.week - 1 && /arrest/i.test(l.cause));
@@ -890,11 +891,18 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     const name = w.people[team.lieutenantId]?.name ?? 'crew';
     const risky = RISKY_ORDERS.has(input.type);
-    // 1.2.24: while suspicion is high an unarmed crew with no criminal work
-    // stays off the street: no scouting or guarding walks (hot men already rest).
-    if (!risky && gang.suspicion >= SUSPICION_LIE_LOW && !crewArmed(team) && OFF_STREET_ORDERS.has(input.type)) {
-      actions.push(`NOTE ${label} not given — ${name}'s crew is unarmed and stays off the street (suspicion ${Math.round(gang.suspicion)})`);
-      return { ok: false, error: 'Off the street this week.' };
+    // 1.2.24 (Robert): each hood's own wanted level decides, to keep arrests down.
+    // Risky work goes only to a crew with no wanted man in it (a crew whose
+    // lieutenant is hot already lies low, and hot men rest in the pool); the
+    // order is offered to another crew instead, or not given.
+    if (risky) {
+      const crewIds = [team.lieutenantId, ...team.memberIds];
+      const hot = crewIds.filter((id) => (w.people[id]?.wanted ?? 0) >= WANTED_RISKY_HOLD);
+      if (hot.length) {
+        for (const id of hot) heldForWanted.set(id, `${w.people[id]?.name ?? id} (wanted ${Math.round(w.people[id]?.wanted ?? 0)}, street heat ${Math.round(heatOfMan(id))}) — no risky work`);
+        actions.push(`NOTE ${label} not given to ${name}'s crew — ${hot.length} wanted m${hot.length === 1 ? 'an' : 'en'} (${hot.map((id) => `${w.people[id]?.name ?? id} wanted ${Math.round(w.people[id]?.wanted ?? 0)}`).join(', ')}); another crew or none`);
+        return { ok: false, error: 'Too wanted — try elsewhere.' };
+      }
     }
     // 1.2.23: lying low stops the violence; extortion stops only past SUSPICION_EASE.
     if (risky && ((lieLow && input.type !== 'extort') || cooling)) {
@@ -2032,6 +2040,15 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (p.kind === 'business' && site != null && !buyAllowed(desk, team.id, site)) return { ok: false, error: 'this crew failed there before — retry elsewhere' };
     return give(label, team, input, p.kind);
   });
+  {
+    const restingNow = [...(resting.get(w) ?? [])].map((id) => w.people[id]).filter((p): p is Person => !!p);
+    for (const p of restingNow) if (!heldForWanted.has(p.id)) heldForWanted.set(p.id, `${p.name} (wanted ${Math.round(p.wanted)}, resting in the pool)`);
+    for (const team of hotCrews) for (const id of [team.lieutenantId, ...team.memberIds]) {
+      const p = w.people[id];
+      if (p && !heldForWanted.has(id)) heldForWanted.set(id, `${p.name} (crew lying low, lieutenant's street heat ${Math.round(heatOfMan(team.lieutenantId))})`);
+    }
+    actions.push(`WANTED held back ${heldForWanted.size} hood${heldForWanted.size === 1 ? '' : 's'}${heldForWanted.size ? `: ${[...heldForWanted.values()].join('; ')}` : ''}`);
+  }
   actions.push(`DECIDE ${proposals.length} candidate orders for ${slots.length} crews (goal ${goal}): ${decision.given.length} given, ${decision.skipped.length} not`);
   for (const d of decision.given) actions.push(d.line);
   for (const d of decision.skipped) actions.push(d.line);
