@@ -25,7 +25,7 @@ import { tickAmbient } from './systems/ambient';
 import { shapePeople } from './personShape';
 import { scanStreetSlice, storeStreetSlice, streetScanCollector, tickTraffic, trafficContext } from './traffic';
 import { TRAM_RIDING, tickTramRiding } from './tramRiding';
-import { capturePeaceFireExclusions, tickCombat } from './systems/combat';
+import { capturePeaceFireExclusions, tickCombat, tickOfficeDefence } from './systems/combat';
 import { sightingCells, tickSightings } from './systems/sightings';
 import { blockClaimants } from './territory';
 import { weeklyEconomy } from './systems/economy';
@@ -327,6 +327,7 @@ export class Sim {
     timeSystem('movement', () => finishMovementTick(w));
     timeSystem('transport', () => reconcileTransport(w));
     timeSystem('combat', () => tickCombat(w, this.rng, 1, undefined, loadout, peaceFireExclusions));
+    timeSystem('combat', () => tickOfficeDefence(w, this.rng, 1, loadout));
     timeSystem('sightings', () => tickSightings(w, this.rng, sightingBefore));
     // The minute's score peaks read only its closing state, which nothing but
     // the player changes before the next tick: they are taken in the first

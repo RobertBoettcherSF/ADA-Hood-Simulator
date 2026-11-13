@@ -136,6 +136,7 @@ let pendingActions: PendingAction[] = [];
 /** Men the talent pass moved this run; the crew balancer leaves them where they are. */
 const talentPlaced = new Set<number>();
 import { memberLosses } from '../sim/memberLosses';
+import { armedPoolDefenders } from '../sim/officeDefence';
 import { fireRate, originalFireOdds } from '../sim/fireRoll';
 import { availableSpecialist } from '../sim/specialists';
 import { queueSpecialistJob } from '../sim/specialistJobs';
@@ -496,6 +497,11 @@ const RETALIATE_STARS = 3;
 const DRIVER_STARS = 3;
 /** 1.2.38: how much skills no crew uses count against a man when firing or picking from the pool (open question). */
 const WAGE_DRAG = 0.1;
+/** 1.2.39 (Robert): pool hoods kept on top of the spares to defend the office (they wait inside it). */
+const POOL_DEFENDERS = 10;
+/** 1.2.39 (Robert): Attack and Expendables each aim for this many men with FIREARMS_QUOTA_STARS★ firearms. */
+const FIREARMS_QUOTA = 2;
+const FIREARMS_QUOTA_STARS = 3.5;
 /**
  * 1.2.38 (Robert): guns ranked by the game's real hit and kill tables
  * (fireRoll.ts), not damage × accuracy. A reference shooter (3★ firearms)
@@ -971,8 +977,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const best = (p: Person) => Math.max(...CREW_OPENING_ORDER.map((r) => roleStars(p, r)));
       // 1.2.38 (Robert): skills no crew uses count against a man when firing (wage cost).
       const weakestFirst = [...idle].sort((a, b) => (best(a) - wageDrag(a)) - (best(b) - wageDrag(b)) || b.id - a.id);
-      const over = Math.max(0, idle.length - lost);
-      if (idle.length) actions.push(`NOTE spares: ${idle.length} in the pool, ${lost} kept against men lost in the last ${SPARE_LOSS_WEEKS} weeks (men we let go not counted)${!full ? ' — a crew can still take a pool hood, nobody is let go' : !basicsHeld ? ' — a basic crew is missing, nobody is let go' : ''}`);
+      // 1.2.39 (Robert): the pool also keeps POOL_DEFENDERS hoods to defend the office.
+      const over = Math.max(0, idle.length - lost - POOL_DEFENDERS);
+      if (idle.length) actions.push(`NOTE spares: ${idle.length} in the pool, ${lost} kept against men lost in the last ${SPARE_LOSS_WEEKS} weeks (men we let go not counted) + ${POOL_DEFENDERS} office defenders${!full ? ' — a crew can still take a pool hood, nobody is let go' : !basicsHeld ? ' — a basic crew is missing, nobody is let go' : ''}`);
       // 1.2.37 (Robert): before anyone is let go, the hoods who fit no crew
       // (no 3★ job) and those under 2.5★ intelligence join the armed
       // Expendables crew for the risky violent work (hits, FBI agents, rival
@@ -1046,7 +1053,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         const fromPool = idlePool().map((id) => w.people[id]).filter(movable);
         const fromCrews = crewsOf().filter((t) => t !== team && job(t) !== 'business').flatMap((t) => t.memberIds.map((id) => w.people[id])).filter(movable);
         const room = team.memberIds.length < MAX_TEAM_SIZE - 1;
-        const weak = team.memberIds.map((id) => w.people[id]).filter(movable).sort((x, y) => roleCompare(y, x, role) || y.id - x.id)[0];
+        // 1.2.39: the firearms quota men of the attack crew are not swapped out.
+        const quotaMen = team.memberIds.filter((id) => (w.people[id]?.skills.firearms ?? 0) >= FIREARMS_QUOTA_STARS);
+        const keepForQuota = (p: Person) => role === 'muscle' && quotaMen.length <= FIREARMS_QUOTA && quotaMen.includes(p.id);
+        const weak = team.memberIds.map((id) => w.people[id]).filter(movable).filter((p) => !keepForQuota(p)).sort((x, y) => roleCompare(y, x, role) || y.id - x.id)[0];
         let best: { p: Person; gain: number } | undefined;
         for (const p of [...fromPool, ...fromCrews]) {
           if (roleStars(p, role) < 3) continue;
@@ -1183,6 +1193,40 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       logResult(actions, `driver for ${team.name}: ${pick.name} (driving ${pick.skills.driving.toFixed(1)}★, ${roleStars(pick, role).toFixed(1)}★ for ${jobName(role)})`, result.ok, result.ok ? '' : result.error);
     }
   }
+  // 1.2.39 (Robert): the attack and Expendables crews each aim for
+  // FIREARMS_QUOTA hoods with FIREARMS_QUOTA_STARS★ firearms — from the pool
+  // first, then other crews (never the business crew, never a lieutenant, never
+  // a car crew's only driver); a full crew sends its weakest other man to the pool.
+  {
+    const shooter = (p: Person | undefined): p is Person => !!p && p.status === 'active' && p.role === 'hood' && p.skills.firearms >= FIREARMS_QUOTA_STARS;
+    const hasCar = (t: Team) => Object.values(t.vehicles).some((n) => (n ?? 0) > 0);
+    const drivers = (t: Team) => [t.lieutenantId, ...t.memberIds].filter((id) => (w.people[id]?.skills.driving ?? 0) >= DRIVER_STARS && w.people[id]?.status === 'active').length;
+    for (const role of ['muscle', 'expendables'] as CrewRole[]) {
+      const team = crewsOf().find((t) => roles.get(t.id) === role);
+      if (!team) continue;
+      const quota = () => team.memberIds.filter((id) => shooter(w.people[id])).length;
+      const added: string[] = [];
+      while (quota() < FIREARMS_QUOTA) {
+        const free = (p: Person | undefined): p is Person => shooter(p) && p.orderId == null && !restingMen.has(p.id) && p.teamId !== team.id;
+        const fromPool = gang.poolIds.map((id) => w.people[id]).filter(free);
+        const fromCrews = crewsOf().filter((t) => t !== team && !['business', 'muscle', 'expendables'].includes(roles.get(t.id) ?? 'collect'))
+          .flatMap((t) => t.memberIds.map((id) => w.people[id]).filter(free).filter((p) => !(hasCar(t) && drivers(t) <= 1 && p.skills.driving >= DRIVER_STARS)));
+        const pick = [...fromPool.sort((a, b) => b.skills.firearms - a.skills.firearms || a.id - b.id), ...fromCrews.sort((a, b) => b.skills.firearms - a.skills.firearms || a.id - b.id)][0];
+        if (!pick) break;
+        if (team.memberIds.length >= MAX_TEAM_SIZE - 1) {
+          const out = team.memberIds.map((id) => w.people[id]).filter((p): p is Person => !!p && p.status === 'active' && p.orderId == null && !shooter(p))
+            .sort((x, y) => roleCompare(y, x, role) || y.id - x.id)[0];
+          if (!out || !moveToPool(w, gang.id, out.id).ok) break;
+          actions.push(`NOTE ${out.name} to the pool to make room for a ${FIREARMS_QUOTA_STARS}★ shooter in ${team.name}`);
+        }
+        const result = moveToTeam(w, gang.id, pick.id, team.id);
+        logResult(actions, `firearms quota for ${team.name}: ${pick.name} (firearms ${pick.skills.firearms.toFixed(1)}★)`, result.ok, result.ok ? '' : result.error);
+        if (!result.ok) break;
+        added.push(pick.name);
+      }
+      if (quota() < FIREARMS_QUOTA) actions.push(`NOTE ${team.name}: ${quota()} of ${FIREARMS_QUOTA} men with ${FIREARMS_QUOTA_STARS}★ firearms — no more to be had`);
+    }
+  }
   const GUNS: WeaponId[] = ['pistol', 'shotgun', 'rifle', 'tommy', 'twinPistols'];
   const roleCrew = (role: CrewRole) => crewsOf().find((team) => roles.get(team.id) === role);
   // 1.2.30 (Robert's rules): a crew holds at most one gun per man, the best
@@ -1201,7 +1245,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // always, the Expendables only while on a job, any other crew only for a
   // kill or an ambush order (armed when the order is given, below). Everyone
   // else is unarmed, which ends the random shots. This replaces the gun for every man.
-  const gunLimit = (t: Team) => roles.get(t.id) === 'muscle' ? t.memberIds.length + 1 : 0;
+  // 1.2.39 (Robert): the attack crew's shotguns and rifles sit in the cache,
+  // reserved for it; before each mission the job's guns go to the crew and
+  // back to the cache at the next week's start — no crew holds guns between jobs.
+  const gunLimit = (_t: Team) => 0;
   const attackCrew = roleCrew('muscle');
   const kept = attackReserve.get(w) ?? {};
   attackReserve.set(w, kept);
@@ -1261,11 +1308,6 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     for (const g of GUNS) { const n = team.weapons[g] ?? 0; for (let i = 0; i < n; i++) if (!toStore(team, g).ok) break; }
     return kitFor(team, job, men);
   };
-  // The attack crew stays armed for the street (rifles first) until a job asks for another gun.
-  if (attackCrew) {
-    const took = kitFor(attackCrew, 'street', gunLimit(attackCrew));
-    if (took.length) actions.push(`NOTE ${attackCrew.name} takes ${took.join(', ')} from the store (street order)`);
-  }
   /** 1.2.30: a weapon for a crew — from the store first, bought only when the store has none (and `buy` allows it). One gun per man: a full crew trades its worst gun in. */
   const supply = (team: Team, item: WeaponId, canBuy: boolean): ApiResult => {
     if (GUNS.includes(item) && gunsOf(team) >= gunLimit(team)) {
@@ -1470,23 +1512,24 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // then the farthest stops from the office until the game's own estimate fits.
     if (input.type === 'bribe' && input.personId != null) {
       const target = w.people[input.personId];
-      if (target && dangerBlocks.has(blockOfPerson(target))) { actions.push(`NOTE ${label} not given — ${target.name} is in or beside a rival-held block`); return { ok: false, error: 'target in a rival-held block' }; }
+      if (target && dangerBlocks.has(blockOfPerson(target))) { actions.push(`NOTE ${label} not given — ${target.name} is in a rival-held or rival-sighted block`); return { ok: false, error: 'target in a rival-held block' }; }
     }
     if (['collectProtection', 'extort', 'recruit'].includes(input.type) && input.buildingIds?.length) {
       const all = input.buildingIds;
       const safe = all.filter((id) => { const b = w.buildings[id]; return !b || !dangerBlocks.has(claimOf(b.blockId)); });
-      if (safe.length < all.length) actions.push(`NOTE ${label}: ${all.length - safe.length} stop(s) dropped — in or beside blocks rival men hold or were seen in`);
-      if (!safe.length) return { ok: false, error: 'every stop is in or beside a rival-held block' };
+      if (safe.length < all.length) actions.push(`NOTE ${label}: ${all.length - safe.length} stop(s) dropped — in blocks rival men hold or were seen in`);
+      if (!safe.length) return { ok: false, error: 'every stop is in a rival-held or rival-sighted block' };
       let ids = safe;
       const far = (id: number) => { const b = w.buildings[id]; return b ? dist(w.lots[b.lotId].center, origin) : 0; };
       const dropped: number[] = [];
       for (;;) {
         const preview = previewOrder(w, gang.id, { ...input, buildingIds: ids, teamId: team.id });
         if (!preview || ids.length <= 1 || crewHasTime(w, team, preview)) break;
-        const worst = [...ids].sort((x, y) => far(y) - far(x))[0];
+        const risky = (id: number) => { const b = w.buildings[id]; return b && riskyBlocks.has(claimOf(b.blockId)) ? 1 : 0; };
+        const worst = [...ids].sort((x, y) => risky(y) - risky(x) || far(y) - far(x))[0];
         ids = ids.filter((id) => id !== worst); dropped.push(worst);
       }
-      if (dropped.length) actions.push(`NOTE ${label}: the ${dropped.length} farthest stop(s) dropped so the route fits the week`);
+      if (dropped.length) actions.push(`NOTE ${label}: ${dropped.length} stop(s) dropped so the route fits the week (beside rival blocks first, then the farthest)`);
       input = { ...input, buildingIds: ids };
     }
     const usedBefore = team.timeUsed;
@@ -1561,20 +1604,22 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // blocks a rival visibly holds (patrols walk their own territory) and not
   // us, and blocks where rival men were reported seen — plus the blocks
   // beside them. Collect, extortion, recruit and specialist visits keep out.
-  const dangerBlocks = (() => {
+  // 1.2.39 (Robert): the blocks beside them are risky, not barred: kept on
+  // routes, and dropped first when a route runs short of time.
+  const { core: dangerBlocks, near: riskyBlocks } = (() => {
     const core = new Set<number>();
     for (const b of w.blocks) if (rivalClaimSeen(b.id) && !blockIsOurs(b.id)) core.add(claimOf(b.id));
     for (const id of sightedBlocks()) core.add(id);
     const at = new Map<string, number>();
     for (const b of w.blocks) at.set(`${b.gx},${b.gy}`, claimOf(b.id));
-    const out = new Set(core);
+    const near = new Set<number>();
     for (const b of w.blocks) {
       if (!core.has(claimOf(b.id))) continue;
-      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) { const n = at.get(`${b.gx + dx},${b.gy + dy}`); if (n != null) out.add(n); }
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) { const n = at.get(`${b.gx + dx},${b.gy + dy}`); if (n != null && !core.has(n)) near.add(n); }
     }
-    return out;
+    return { core, near };
   })();
-  actions.push(`DANGER ${dangerBlocks.size} block(s) in or beside rival-held or rival-sighted blocks — collect, extortion, recruit and specialist visits keep out`);
+  actions.push(`DANGER ${dangerBlocks.size} block(s) rival-held or rival-sighted — collect, extortion, recruit and specialist visits keep out; ${riskyBlocks.size} block(s) beside them risky (dropped first when time runs short)`);
   const blockOfPerson = (p: Person) => {
     const b = p.buildingId != null ? w.buildings[p.buildingId] : undefined;
     if (b) return claimOf(b.blockId);
@@ -1583,7 +1628,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   /** 1.2.38: a specialist visit (lawyer bribes) only to a man outside the danger blocks. */
   const specialistVisit = (type: Parameters<typeof queueSpecialistJob>[2], targetId: number | null, beats?: number[]): ApiResult => {
     const target = targetId != null ? w.people[targetId] : undefined;
-    if (target && dangerBlocks.has(blockOfPerson(target))) return { ok: false, error: `${target.name} is in or beside a rival-held block — the visit waits` };
+    if (target && dangerBlocks.has(blockOfPerson(target))) return { ok: false, error: `${target.name} is in a rival-held or rival-sighted block — the visit waits` };
     return queueSpecialistJob(w, gang.id, type, targetId, beats);
   };
   // ---- 1.2.23: the weekly decision loop. Every order below is put forward as
@@ -1807,7 +1852,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   }
 
   const hq = buildingList(w).find((b) => b.isHQ && b.ownerGangId === gang.id);
-  if (w.week >= 2 && gangManpower(w, gang) >= 8 && hq) {
+  // 1.2.39 (Robert): armed pool hoods inside the office count as guards — no
+  // Guard Office order while they are at least as many as it would post (one man).
+  const poolGuards = hq ? armedPoolDefenders(w, hq) : 0;
+  if (poolGuards >= 1 && w.week >= 2 && hq) actions.push(`NOTE no Guard Office: ${poolGuards} armed pool hood(s) inside the office count as guards`);
+  if (w.week >= 2 && gangManpower(w, gang) >= 8 && hq && poolGuards < 1) {
     propose({ label: 'guard office', kind: 'safety', value: 150, why: 'a man at the office door', input: { type: 'guardBusiness', buildingIds: [hq.id], opts: { manpower: 1 } } });
   }
 
@@ -2028,7 +2077,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const tooHostile = (b: Building) => { const p = payer(b); return !!p && p.status !== 'dead' && effectiveHostility(p, gang.id) >= 170; };
       const owedAll = protectedBuildings(w, gang.id).filter((b) => b.state === 'trading').sort(nearer);
       const owedReach = owedAll.filter((b) => !dangerBlocks.has(claimOf(b.blockId)));
-      if (owedReach.length < owedAll.length) actions.push(`NOTE collect: ${owedAll.length - owedReach.length} shop(s) in or beside rival-held blocks not collected this week`);
+      if (owedReach.length < owedAll.length) actions.push(`NOTE collect: ${owedAll.length - owedReach.length} shop(s) in rival-held or rival-sighted blocks not collected this week`);
       const owed = campaign ? owedReach.filter((b) => !tooHostile(b)) : owedReach;
       if (campaign && owed.length < owedAll.length) actions.push(`NOTE campaign: ${owedAll.length - owed.length} hostile shopkeeper(s) not collected from this week`);
       // 1.2.25 (B4, B9): grievances and refusals read every week; a sore
@@ -2098,7 +2147,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (weight.rackets >= 0.25 && !suspicionHigh) {
         const crewsToSend = easing ? Math.max(1, Math.floor(ready.length / 2)) : Math.max(1, Math.round(ready.length * Math.min(1, expansion)));
         const cap = Math.max(2, Math.round(weight.rackets * 5 * expansion));
-        const valid = buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b) && !dangerBlocks.has(claimOf(b.blockId))); // 1.2.38: not in or beside rival-held blocks
+        const valid = buildingList(w).filter((b) => isValidAreaTarget(w, gang.id, 'extort', b) && !dangerBlocks.has(claimOf(b.blockId))); // 1.2.38/1.2.39: not in rival-held or rival-sighted blocks
         if (goal === 'territory' || goal === 'office') {
           // 1.2.23 territory by extortion: a block counts once one standing
           // business in it is ours (owned or protected). One target in each
@@ -2509,6 +2558,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (target) suspects.delete(targetId);
   }
   // 1.2.38 (Robert): no gun for every man any more — only the violent jobs are armed.
+  // 1.2.39 (Robert): enough revolvers in the cache to arm every pool hood
+  // when the office is attacked (not counting the attack crew's reserve).
+  {
+    const poolHoods = gang.poolIds.filter((id) => w.people[id]?.role === 'hood' && w.people[id]?.status === 'active').length;
+    const cacheGuns = () => GUNS.reduce((sum, g) => sum + inStore(undefined, g), 0);
+    let n = 0;
+    while (cacheGuns() < poolHoods && gang.cash >= reserve + WEAPONS.pistol.cost && buyWeapon(w, gang.id, 'pistol').ok) n++;
+    if (n) actions.push(`OK buy ${n}× pistol for the cache — ${poolHoods} pool hood(s) to arm if the office is attacked (${cacheGuns()} guns there besides the attack crew's)`);
+    else if (cacheGuns() < poolHoods) actions.push(`NOTE cache: ${cacheGuns()} guns for ${poolHoods} pool hood(s) — the cash is down to the reserve`);
+  }
   if (armed && w.week >= 3) {
     // 1.2.34 (Robert): the attack crew may buy any weapon — twin pistols by
     // default, shotguns for attacks inside an office, rifles for road attacks,
@@ -2533,8 +2592,6 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       while (owned(item) < need && ok() && gang.cash >= reserve + WEAPONS[item].cost && buyForAttack(item).ok) n++;
       if (n) actions.push(`OK buy ${n}× ${item} for the attack crew's store (${owned(item)} for ${need} men)`);
     }
-    const took = kitted.has(armed.id) ? [] : kitFor(armed, 'street', gunLimit(armed));
-    if (took.length) actions.push(`NOTE ${armed.name} takes ${took.join(', ')} from the store (street order)`);
   }
   // 1.2.37: what the attack crew holds now, kept for next week (a crew broken up keeps its guns reserved).
   if (attackCrew && crewsOf().includes(attackCrew)) attackHeld.set(w, { teamId: attackCrew.id, weapons: { ...attackCrew.weapons } as Partial<Record<WeaponId, number>> });
@@ -2789,7 +2846,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const hqProp = proposals.find((p) => p.label.startsWith('HQ attack'));
     if (hqProp) hqProp.value = Math.max(hqProp.value, HQ_FIRST_VALUE);
     else if (hqTarget && armed && w.week - desk.lastHqStrike >= HQ_STRIKE_GAP) proposeHqStrike(hqTarget, HQ_FIRST_VALUE, `strong enough — the rival HQ first (${w.gangs[hqTarget.ownerGangId!].name})`, 'strikeHQ');
-    const block = sightedBlocks()[0];
+    // 1.2.39 (Robert): no ambush while weak or going straight against a rival
+    // at war with us — only a block where a rival we may hit was seen.
+    const hittable = new Set(Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated && !noHitOn(g.id)).flatMap((g) => sightedBlocks(g.id)));
+    const block = sightedBlocks().find((b) => hittable.has(b));
+    if (block == null && sightedBlocks().length) actions.push('NOTE no ambush: the rival men last seen belong to gangs at war with us while we go straight');
     const ambushers = [armed, expCrew].filter((t): t is Team => !!t);
     if (block != null && ambushers.length) {
       propose({ label: `ambush rival men in block ${block} with rifles`, kind: 'violence', value: 1200, why: 'rival men seen there last; long range from cover', teams: ambushers, minFree: MINUTES_PER_WEEK,

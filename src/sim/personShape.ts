@@ -65,6 +65,7 @@ export function shapePerson(o: Person): Person {
     interrogationValue: o.interrogationValue,
     capturedBy: o.capturedBy,
     underFireUntil: o.underFireUntil,
+    underFireBy: o.underFireBy,
     beatenUntil: o.beatenUntil,
     resumeOrderId: o.resumeOrderId,
   };

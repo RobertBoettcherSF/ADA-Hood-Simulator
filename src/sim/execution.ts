@@ -1,4 +1,5 @@
 import { traceStop } from './devTrace';
+import { armedPoolDefenders, isGangOffice } from './officeDefence';
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
 import { noteMemberLoss } from './memberLosses';
 import { recruitJoin } from './recruitDestination';
@@ -824,6 +825,8 @@ export function completeAmbush(w: WorldState, actor: Person, victim: Person): vo
 function standingGuards(w: WorldState, b: Building): number {
   let n = b.guardIds.includes(-1) ? 1 : 0;
   for (const id of b.guardIds) if (id !== -1 && w.people[id]?.status === 'active') n++;
+  // 1.2.39 (Robert): armed pool hoods inside the office count as guards (as many as the cache has guns for).
+  if (isGangOffice(b, b.ownerGangId)) n += armedPoolDefenders(w, b);
   return n;
 }
 

@@ -215,6 +215,8 @@ export interface Person {
   } | null;
   /** Absolute minute until which he counts as under fire (shot at, hit or not). */
   underFireUntil?: number;
+  /** 1.2.39: who last fired at him (return fire, regardless of stance). */
+  underFireBy?: ID;
   /** Absolute minute at which a beaten man gets back on his feet. */
   beatenUntil?: number;
   /** The planned order a street order took him off; he goes back to it. */

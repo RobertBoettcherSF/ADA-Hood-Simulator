@@ -1,6 +1,7 @@
 import { WEAPONS } from './constants';
 import type { ID, Person, WeaponId, WorldState } from './types';
 import { peopleList } from './entityLists';
+import { officesUnderAttack } from './officeDefence';
 
 export type Firearm = Exclude<WeaponId, 'explosives'>;
 export type Loadout = ReadonlyMap<ID, Firearm>;
@@ -19,6 +20,7 @@ export function serviceWeapon(p: Pick<Person, 'role' | 'skills'>): Firearm | und
 export function allocateWeapons(w: WorldState): Loadout {
   const result = new Map<ID, Firearm>();
   const groups = new Map<Record<WeaponId, number>, Person[]>();
+  let defended: Set<ID> | undefined;
   for (const p of peopleList(w)) {
     if (p.status !== 'active') continue;
     if (p.role === 'police' || p.role === 'fbi') {
@@ -33,6 +35,13 @@ export function allocateWeapons(w: WorldState): Loadout {
     // A stale or foreign crew reference never grants access to its equipment.
     if (p.teamId != null && (!team || team.gangId !== gang.id ||
       (team.lieutenantId !== p.id && !team.memberIds.includes(p.id)))) continue;
+    // 1.2.39 (Robert): a pool hood (no crew) draws from the gang's cache only
+    // for a job of his own (an order or a street order), or inside the office
+    // while rival men break in (office defence). Otherwise he is unarmed.
+    if (!team && p.role === 'hood' && p.orderId == null && p.streetOrder == null) {
+      defended ??= new Set([...officesUnderAttack(w).keys()]);
+      if (p.buildingId == null || !defended.has(p.buildingId)) continue;
+    }
     const stock = team ? team.weapons : gang.weapons;
     const group = groups.get(stock);
     if (group) group.push(p); else groups.set(stock, [p]);

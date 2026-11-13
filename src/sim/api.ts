@@ -1,4 +1,5 @@
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
+import { isGangOffice } from './officeDefence';
 import { noteMemberLoss } from './memberLosses';
 import { huntStops, whereaboutsUnknown } from './execution';
 export { huntStops, whereaboutsUnknown };
@@ -617,6 +618,7 @@ export function hireRecruit(
   if (wantsLieutenant) {
     if (noSlot) {
       gang.poolIds.push(p.id);
+      if (office && isGangOffice(office, gangId)) p.buildingId = office.id;
       return ok(`${p.name} joined the pool — you have no free lieutenant slot.`);
     }
     promoteToLieutenant(w, gang, p);
@@ -631,6 +633,8 @@ export function hireRecruit(
     }
   }
   gang.poolIds.push(p.id);
+  // 1.2.39 (Robert): the pool waits inside the office.
+  if (office && isGangOffice(office, gangId)) p.buildingId = office.id;
   return ok(`${p.name} has joined the pool.`);
 }
 

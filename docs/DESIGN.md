@@ -238,6 +238,21 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.39 decisions
+
+The pool waits inside the office and defends it, return fire, attack guns kept in the cache, a bigger pool, and route and quota changes (Robert). Game rules 1–4 apply to every gang, the player's included.
+
+1. Pool inside the office (game rule). A hood in no crew who has nothing to do (no order, street order or walk) waits inside his gang's office, meaning its HQ or any office building it owns. He is off the street: no street combat, no random shots, and he can't be shot from outside. New recruits hired into the pool go straight inside, and a pool hood idle elsewhere walks home first. Idle crew men stand at the door as before. Street view never drew idle gang men, so nothing changes there.
+2. Office defence (game rule). Rival men break in when they work a raid, smash-up, torching, bombing, kidnapping, assault or killing at an office, within 8 m of its door. Then the pool hoods inside take the cache guns and fight them at the door, at the usual rate of fire, and an intruder answers the defender who fired at him. Outside a defence, a pool hood draws cache guns only for a job of his own.
+3. Pool guards (game rule). Armed pool hoods inside the office count as standing guards for raid, smash-up and torch difficulty, as many as the cache has guns. Auto gives no Guard Office order while at least one such hood is there (one man is what Guard Office posts). *(my call: one.)*
+4. Return fire (game rule). A man who is shot at fires back at the shooter for 30 minutes, whatever the stance or block. Other street rules are unchanged.
+5. Attack guns. The attack crew's shotguns and rifles stay in the cache, reserved for it. Before each mission the job's guns go to the crew (shotguns inside, rifles on the street and in ambushes), and at the next week's start they go back. No crew holds guns between jobs. Reserved guns arm pool men only during an office defence (game rule 2).
+6. Bigger pool. Firing starts only when the pool holds more than its spares (men lost in the last 4 weeks) plus 10 office defenders. The Expendables also form from that surplus. Auto buys revolvers until the cache, besides the attack reserve, holds a gun for every pool hood, while cash is above the reserve.
+7. Ambush. While weak or going straight, there is no ambush in a block where only rivals at war with us were seen.
+8. Routes. Rival-held and rival-sighted blocks are still skipped. The blocks next to them are risky but kept, and when a route is short of time Auto drops those stops first, farthest first, then the farthest of the rest.
+9. Firearms quota. The attack and Expendables crews each aim for 2 hoods with 3.5★ firearms. Auto takes them from the pool first, then from other crews (never the Business, Attack or Expendables crews, never a lieutenant, never a car crew's only driver). A full crew sends its weakest other man to the pool, and the attack crew's rebuild does not swap these men out.
+10. The revolver for every hood is gone (already true since 1.2.38). The thresholds are unchanged.
+
 ## v1.2.38 decisions
 
 Auto Test: guns by the real tables, armed only for violent jobs, a ceasefire stance, stricter retaliation and safer routes, to cut deaths (Robert). No game rule changes.

@@ -3,7 +3,8 @@ import { presentPhoto } from '../presentationEvents';
 import { specialistParticipants, specialistVisitTargets } from '../specialistJobs';
 import { clearDestination, noteEarlyStep, setDestination, stepPerson } from '../movement';
 import { trafficContext } from '../traffic';
-import { boardingCount } from '../transport';
+import { boardingCount, sendHome } from '../transport';
+import { isGangOffice } from '../officeDefence';
 import { peopleSlice } from '../peopleSlices';
 import type { Rng } from '../rng';
 import type { Block, Building, Person, WorldState } from '../types';
@@ -96,6 +97,23 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
       else if (p.dest) clearDestination(p);
       return;
     }
+    // 1.2.39 (Robert): the pool waits inside the office (off the street, out
+    // of street combat); a crew man idle at the office stands at the door as
+    // before. A pool hood idle away from any office walks home first.
+    if (p.role === 'hood' && p.gangId != null && !p.dest) {
+      const inOffice = isGangOffice(p.buildingId != null ? w.buildings[p.buildingId] : undefined, p.gangId);
+      if (p.teamId != null && inOffice) p.buildingId = null;
+      else if (p.teamId == null && p.buildingId == null) {
+        let home: Building | undefined, far = false;
+        for (const b of allBuildings(w)) {
+          if (!isGangOffice(b, p.gangId)) continue;
+          if (dist(buildingDoor(w, b), p.pos) < 24) { home = b; break; }
+          far = true;
+        }
+        if (home) { p.inVehicle = false; p.buildingId = home.id; p.pos = { ...w.lots[home.lotId].center }; return; }
+        if (far && !p.inVehicle) { sendHome(w, p); return; }
+      }
+    }
     if (p.buildingId != null && p.role !== 'police' && p.role !== 'fbi' && p.role !== 'snitch' && p.role !== 'reporter') {
       // Owners and managers stay at their premises.
       return;
@@ -161,7 +179,12 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
       case 'accountant':
       case 'lawyer': {
         // Gang members between jobs simply walk home.
-        if (p.dest && stepPerson(p, minutes, traffic) && (p.role === 'lawyer' || p.role === 'accountant')) {
+        const arrived = !!p.dest && stepPerson(p, minutes, traffic);
+        if (arrived && p.role === 'hood' && p.teamId == null) {
+          // 1.2.39: a pool hood home from a walk goes inside the office.
+          const home = officeNear(w, p);
+          if (home) { p.inVehicle = false; p.buildingId = home.id; p.pos = { ...w.lots[home.lotId].center }; }
+        } else if (arrived && (p.role === 'lawyer' || p.role === 'accountant')) {
           const home = officeAtHand(w, p);
           if (home) { p.inVehicle = false; p.buildingId = home.id; p.pos = { ...w.lots[home.lotId].center }; }
         }
@@ -172,6 +195,12 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
         break;
     }
   }
+}
+
+/** 1.2.39: any office of his gang within reach (where sendHome walks him). */
+function officeNear(w: WorldState, p: Person): Building | undefined {
+  for (const b of allBuildings(w)) if (isGangOffice(b, p.gangId) && dist(buildingDoor(w, b), p.pos) < 24) return b;
+  return undefined;
 }
 
 /** The gang's office within reach of a specialist who has walked home. (1.2.24: kept

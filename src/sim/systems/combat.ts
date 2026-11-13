@@ -3,6 +3,7 @@ import { noteMemberLoss } from '../memberLosses';
 import { cityBlockAt } from '../cityLayout';
 import { inAmbushArea, isOnStreet, validAmbushTarget } from '../ambush';
 import { clearDestination } from '../movement';
+import { poolHoodInside, officesUnderAttack } from '../officeDefence';
 import { allocateWeapons, attackProfile, type Loadout } from '../weapons';
 import { addMessage, recordCrime } from '../events';
 import { completeAmbush, killPerson } from '../execution';
@@ -153,6 +154,7 @@ function exchange(w: WorldState, rng: Rng, a: Person, b: Person, loadout: Loadou
   ));
   presentAttack(w, a, b, weapon, hit);
   b.underFireUntil = absoluteMinute(w) + UNDER_FIRE_MINUTES;
+  b.underFireBy = a.id;
   if (hit) {
     if (shot) { if (shot.kills) b.hp = 0; }
     else b.hp -= spec.damage * rng.range(0.7, 1.25);
@@ -269,7 +271,11 @@ export function tickCombat(
       }
 
       // ---- gang on gang
-      if (!gangHostile(w, a, b, territory)) continue;
+      // 1.2.39 (Robert): a man shot at fires back at the shooter, whatever
+      // the stance or the block (game rule for every gang).
+      const returnFire = a.gangId != null && b.gangId != null && a.gangId !== b.gangId &&
+        a.underFireBy === b.id && (a.underFireUntil ?? 0) > absoluteMinute(w);
+      if (!returnFire && !gangHostile(w, a, b, territory)) continue;
       const { spec, weapon } = attackProfile(loadout, a);
       const range = spec.range;
       if (dist2(a.pos, b.pos) > range * range) continue;
@@ -292,5 +298,36 @@ export function tickCombat(
     if (!target) continue;
     const probability = Math.min(1, 0.0001 * Math.max(0, 2.5 - a.skills.intelligence) * Math.max(0, minutes));
     if (peaceFireOpportunity(rng.state, w.week, w.minute, a.id, probability)) exchange(w, rng, a, target, loadout);
+  }
+}
+
+/**
+ * 1.2.39 (Robert): office defence. While rival men break into a gang's
+ * office (officesUnderAttack), the gang's pool hoods inside fight them at the
+ * door with the cache guns allocateWeapons hands them for it (fists without);
+ * a man they shoot at answers the defender who fired. Each defender fires at
+ * the nearest intruder at the usual rate of fire.
+ */
+export function tickOfficeDefence(w: WorldState, rng: Rng, minutes: number, loadout: Loadout = allocateWeapons(w)): void {
+  const attacks = officesUnderAttack(w);
+  if (!attacks.size) return;
+  const now = absoluteMinute(w);
+  for (const [officeId, intruders] of attacks) {
+    const office = w.buildings[officeId];
+    const gang = office?.ownerGangId != null ? w.gangs[office.ownerGangId] : undefined;
+    if (!office || !gang) continue;
+    const defenders = gang.poolIds.map((id) => w.people[id]).filter((p): p is Person => !!p && poolHoodInside(w, p, office));
+    for (const d of defenders) {
+      const live = intruders.filter((p) => p.status === 'active');
+      if (!live.length || d.status !== 'active') break;
+      const target = live.sort((x, y) => dist2(d.pos, x.pos) - dist2(d.pos, y.pos) || x.id - y.id)[0];
+      if (rng.chance(0.09 * fireRate(attackProfile(loadout, d).weapon) * minutes)) exchange(w, rng, d, target, loadout);
+    }
+    for (const p of intruders) {
+      if (p.status !== 'active' || p.underFireBy == null || (p.underFireUntil ?? 0) <= now) continue;
+      const shooter = w.people[p.underFireBy];
+      if (!shooter || !defenders.includes(shooter) || shooter.status !== 'active') continue;
+      if (rng.chance(0.09 * fireRate(attackProfile(loadout, p).weapon) * minutes)) exchange(w, rng, p, shooter, loadout);
+    }
   }
 }
