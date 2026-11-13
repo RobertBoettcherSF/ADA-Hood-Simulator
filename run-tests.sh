@@ -29,6 +29,12 @@ if [ ! -d node_modules ] || [ package-lock.json -nt node_modules ]; then
   { echo "== npm install"; npm install --no-audit --no-fund 2>&1; echo "exit $?"; echo; } >> "$REPORT"
 fi
 
+if [ ! -f public/asset-manifest.json ]; then
+  echo "Note: no art in public/ (run bash fetch-assets.sh first). Tests that check the art files will fail without it."
+  echo "Note: no art in public/ — tests that check the art files need bash fetch-assets.sh first." >> "$REPORT"
+  echo >> "$REPORT"
+fi
+
 echo "Typecheck..."
 { echo "== typecheck"; npm run --silent typecheck 2>&1; echo "exit $?"; echo; } >> "$REPORT"
 
