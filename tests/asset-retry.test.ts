@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { withRetry } from '../src/render/textures';
+import { ASSET_TRIES, ASSET_TRY_MS, withRetry } from '../src/render/textures';
 
 const now = () => Promise.resolve();
 
@@ -19,5 +19,9 @@ describe('picture loader retry', () => {
   it('returns null when every try fails or throws', async () => {
     const got = await withRetry(async () => { throw new Error('404'); }, [20], 2, now);
     expect(got).toBeNull();
+  });
+  it('gives a picture 10 s and one retry before the painted colour stays (1.2.24)', () => {
+    expect(ASSET_TRIES).toBe(2);
+    expect(ASSET_TRY_MS.slice(0, ASSET_TRIES)).toEqual([10_000, 10_000]);
   });
 });

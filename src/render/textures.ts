@@ -805,9 +805,11 @@ const FACADE_FILES: Record<string, string> = {
 
 const SIGN_FILES = ['sign-green', 'sign-oxblood', 'sign-navy', 'sign-walnut', 'sign-olive', 'sign-plum'];
 
-/** A picture that fails or hangs is tried again: up to three tries, each with a time limit (1.2.19). */
-export const ASSET_TRIES = 3;
-export const ASSET_TRY_MS = [20_000, 30_000, 45_000];
+/** A picture that fails or hangs is tried once more (1.2.24: 10 s each, two tries — the
+ * 1.2.19 limits of 20 + 30 + 45 s left a slow CDN's facades blank for ~96 s). After
+ * that the painted texture in the palette's own colour stays in use. */
+export const ASSET_TRIES = 2;
+export const ASSET_TRY_MS = [10_000, 10_000];
 
 /** Run `attempt` up to `tries` times; each try gives up after its time limit. A late
  * answer from a timed-out try is ignored. Resolves null when every try failed. */
