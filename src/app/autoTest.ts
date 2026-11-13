@@ -849,7 +849,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const accountantInt = accountantMan && accountantMan.status === 'active' ? accountantMan.skills.intelligence : null;
   const coverEstimate = accountantInt != null ? lastLegal * (0.5 + accountantInt * 0.22) + accountantInt * 400 : lastLegal * 0.2;
   const riskyLast = Math.max(0, gang.lastWeekIncome.illegal) + Math.max(0, gang.lastWeekIncome.protection);
-  actions.push(`SUSPICION ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''}: risky $${Math.round(riskyLast)} (rackets $${Math.round(Math.max(0, gang.lastWeekIncome.illegal))}, protection $${Math.round(Math.max(0, gang.lastWeekIncome.protection))}), cover $${Math.round(coverEstimate)} (legal $${Math.round(lastLegal)}, ${accountantInt != null ? 'accountant' : 'no accountant'}), uncovered $${Math.round(gang.riskyMoney ?? 0)}, untaxed $${Math.round(gang.uncoveredTax ?? 0)}${cooling ? ' — cooling off' : ''}`);
+  if (!w.cityLayout?.original) actions.push(`SUSPICION ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''}: risky $${Math.round(riskyLast)} (rackets $${Math.round(Math.max(0, gang.lastWeekIncome.illegal))}, protection $${Math.round(Math.max(0, gang.lastWeekIncome.protection))}), cover $${Math.round(coverEstimate)} (legal $${Math.round(lastLegal)}, ${accountantInt != null ? 'accountant' : 'no accountant'}), uncovered $${Math.round(gang.riskyMoney ?? 0)}, untaxed $${Math.round(gang.uncoveredTax ?? 0)}${cooling ? ' — cooling off' : ''}`);
   // The 40 × 32 city weighs suspicion differently: the FBI's total loses a tenth
   // a week and rises by 2 × (office takings / premises takings − the accountant's
   // limit). Collecting is not cut there — more legal premises and a clever
@@ -864,7 +864,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const officeRatio = office / premisesBase;
   /** True when the office/premises ratio nears the limit: legal premises and the accountant come first. */
   const legalPush = originalCity && officeRatio >= ratioLimit * 0.8;
-  if (originalCity) actions.push(`SUSPICION ratio: office takings $${Math.round(office)} / premises base $${premisesBase} = ${officeRatio.toFixed(1)} vs limit ${ratioLimit.toFixed(1)} (${accountantInt != null ? `accountant ${accountantInt.toFixed(1)}★` : 'no accountant'}) — rise about ${Math.max(0, Math.trunc((Math.trunc(officeRatio) - ratioLimit) * 2))} a week${legalPush ? '; legal premises and the accountant first' : ''}`);
+  if (originalCity) actions.push(`SUSPICION ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''} ratio: office takings $${Math.round(office)} / premises base $${premisesBase} = ${officeRatio.toFixed(1)} vs limit ${ratioLimit.toFixed(1)} (${accountantInt != null ? `accountant ${accountantInt.toFixed(1)}★` : 'no accountant'}) — rise about ${Math.max(0, Math.trunc((Math.trunc(officeRatio) - ratioLimit) * 2))} a week${legalPush ? '; legal premises and the accountant first' : ''}`);
   // Elsewhere, while suspicion is 50 or more, protection is collected only up to the cover left after the rackets.
   const collectBudget = !originalCity && gang.suspicion >= SUSPICION_LIE_LOW ? Math.max(0, coverEstimate - Math.max(0, gang.lastWeekIncome.illegal)) : Infinity;
   // Risky street work is capped so one raid cannot take the whole gang.
@@ -887,15 +887,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     const name = w.people[team.lieutenantId]?.name ?? 'crew';
     const risky = RISKY_ORDERS.has(input.type);
-    // 1.2.24: while suspicion is high (or the police hostile) an unarmed crew with
-    // no criminal work stays off the street: no scouting or guarding walks, and
-    // none at all when its lieutenant is hot (an arrest takes his crew with him).
-    if (!risky && (gang.suspicion >= SUSPICION_LIE_LOW || policeHostile) && !crewArmed(team)) {
-      const hotLt = heatOfMan(team.lieutenantId) >= STREET_HEAT_BACK;
-      if (OFF_STREET_ORDERS.has(input.type) || (hotLt && input.type !== 'buyPremises' && input.type !== 'setUpBusiness')) {
-        actions.push(`NOTE ${label} not given — ${name}'s crew is unarmed and stays off the street (suspicion ${Math.round(gang.suspicion)}${policeHostile ? ', police hostile' : ''}${hotLt ? `, lieutenant's street heat ${Math.round(heatOfMan(team.lieutenantId))}` : ''})`);
-        return { ok: false, error: 'Off the street this week.' };
-      }
+    // 1.2.24: while suspicion is high an unarmed crew with no criminal work
+    // stays off the street: no scouting or guarding walks (hot men already rest).
+    if (!risky && gang.suspicion >= SUSPICION_LIE_LOW && !crewArmed(team) && OFF_STREET_ORDERS.has(input.type)) {
+      actions.push(`NOTE ${label} not given — ${name}'s crew is unarmed and stays off the street (suspicion ${Math.round(gang.suspicion)})`);
+      return { ok: false, error: 'Off the street this week.' };
     }
     // 1.2.23: lying low stops the violence; extortion stops only past SUSPICION_EASE.
     if (risky && ((lieLow && input.type !== 'extort') || cooling)) {
