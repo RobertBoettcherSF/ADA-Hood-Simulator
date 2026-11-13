@@ -693,6 +693,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   /** 4★ lead: intimidation 4★ in intelligence, organization and intimidation; any other crew 4★ in intelligence, organization or its own skills. */
   const leadQualified = (role: CrewRole, p: Person) => role === 'intimidation'
     ? s3(p).every((v) => v >= 4)
+    : role === 'business' ? p.skills.business >= 4 // 1.2.34: business skill alone
     : p.skills.intelligence >= 4 || p.skills.organization >= 4 || roleStars(p, role) >= 4;
   /** 3★ lead: the same at 3★ (business: 3★ business, as in 1.2.30). */
   const leadInterim = (role: CrewRole, p: Person) => role === 'intimidation' ? s3(p).every((v) => v >= 3)
@@ -700,12 +701,12 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     : p.skills.intelligence >= 3 || p.skills.organization >= 3 || roleStars(p, role) >= 3;
   const leadTier = (role: CrewRole, p: Person) => leadQualified(role, p) ? 2 : leadInterim(role, p) ? 1 : 0;
   const leadFit = (role: CrewRole, p: Person) => role === 'intimidation' ? s3(p).reduce((a, v) => a + Math.min(4, v), 0) * 10 + s3(p).reduce((a, v) => a + v, 0)
-    : role === 'business' ? roleStars(p, 'business') * 10 + p.skills.business : roleStars(p, role);
+    : roleStars(p, role);
   const describeLead = (role: CrewRole, p: Person) => role === 'intimidation'
     ? `int ${p.skills.intelligence.toFixed(1)}★, org ${p.skills.organization.toFixed(1)}★, intimidation ${p.skills.intimidation.toFixed(1)}★`
     : `int ${p.skills.intelligence.toFixed(1)}★, org ${p.skills.organization.toFixed(1)}★, ${roleStars(p, role).toFixed(1)}★ ${role}${role === 'business' ? ` (business ${p.skills.business.toFixed(1)}★)` : ''}`;
   const leadNeed = (role: CrewRole) => role === 'intimidation' ? '3★ or more in intelligence, organization and intimidation (4★ in each to lead it for good)'
-    : role === 'business' ? `4★ in intelligence, organization or ${ROLE_SKILLS.business.join('/')}, or 3★ business`
+    : role === 'business' ? '4★ business (3★ until one is recruited)'
     : `3★ or more (4★ to lead it for good) in intelligence, organization or ${ROLE_SKILLS[role].join('/')}`;
   const freeHood = (p: Person | undefined): p is Person => !!p && p.role === 'hood' && p.status === 'active' && !restingMen.has(p.id);
   const poolHoods = () => gang.poolIds.map((id) => w.people[id]).filter(freeHood);
@@ -928,6 +929,18 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // 1.2.22, the business crew (Robert's method): hoods with more than three
   // business stars join it (1.2.31: no weekly limit), it gets a car, and it does the buying.
   const bizCrew = crewsOf().find((team) => roles.get(team.id) === 'business');
+  // 1.2.34 (Robert): every man in the business crew needs 3★ business; one
+  // below it goes to the pool (and from there to a crew his skills fit).
+  if (bizCrew) {
+    for (const id of [...bizCrew.memberIds]) {
+      const p = w.people[id];
+      if (!p || p.skills.business >= 3 || p.orderId != null) continue;
+      const result = moveToPool(w, gang.id, id);
+      logResult(actions, `business crew: ${p.name} leaves (business ${p.skills.business.toFixed(1)}★, below 3★)`, result.ok, result.ok ? '' : result.error);
+    }
+    const lt = w.people[bizCrew.lieutenantId];
+    if (lt && lt.skills.business < 3) actions.push(`NOTE business crew: lead ${lt.name} has business ${lt.skills.business.toFixed(1)}★, below 3★ — he gives way when a 3★ hood is recruited`);
+  }
   if (bizCrew) {
     // 1.2.23: each buy or set-up leaves a hood behind as manager, so the crew
     // refills every week — from the pool first, then from the other crews,
@@ -1180,6 +1193,27 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       return { ok: false, error: 'Not enough time left this week (time ledger).' };
     }
     if (fits < targets && input.buildingIds) input = { ...input, buildingIds: input.buildingIds.slice(0, fits) };
+    // 1.2.34 (Robert): an armed crew carries the gun for the job — shotguns
+    // inside an office, rifles on the road — from the store, one per man.
+    {
+      const target = input.buildingIds?.length ? w.buildings[input.buildingIds[0]] : input.personId != null ? (() => { const v = w.people[input.personId!]; return v?.buildingId != null ? w.buildings[v.buildingId] : undefined; })() : undefined;
+      const attack = ['kill', 'smashUp', 'bomb', 'raid', 'assault', 'ambush', 'kidnap'].includes(input.type);
+      const prefer: WeaponId | undefined = !attack || gunLimit(team) === 0 ? undefined
+        : target && (target.typeId === 'office' || target.isHQ) ? 'shotgun'
+        : !target && (input.personId != null || input.type === 'ambush') ? 'rifle' : undefined;
+      if (prefer) {
+        const took: string[] = [];
+        while ((team.weapons[prefer] ?? 0) < gunLimit(team) && (gang.weapons[prefer] ?? 0) > 0) {
+          if (gunsOf(team) >= gunLimit(team)) {
+            const out = GUNS.find((g) => g !== prefer && (team.weapons[g] ?? 0) > 0);
+            if (!out || !transferWeapon(w, gang.id, out, team.id, false).ok) break;
+          }
+          if (!transferWeapon(w, gang.id, prefer, team.id, true).ok) break;
+          took.push(prefer);
+        }
+        if (took.length) actions.push(`NOTE ${name} takes ${took.length}× ${prefer} from the store for ${label}`);
+      }
+    }
     const usedBefore = team.timeUsed;
     let result = issueOrder(w, gang.id, { ...input, teamId: team.id });
     // Undermanned for the whole area, take the part the lieutenant offers.
@@ -2022,21 +2056,24 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (target) suspects.delete(targetId);
   }
   if (armed && w.week >= 3) {
-    // 1.2.32 (Robert): the attack crew's buys — up to 10 twin pistols, 10
-    // shotguns and 10 explosives, counting what it carries and the store.
-    // Bought into the store; each man still carries one gun (the best).
-    const ATTACK_STOCK = 10;
+    // 1.2.34 (Robert): the attack crew may buy any weapon — twin pistols by
+    // default, shotguns for attacks inside an office, rifles for road attacks,
+    // tommy guns too. No buy limit of 10 any more: enough of each for every
+    // man of the crew to carry it (one gun per man), bought into the store.
     const owned = (item: WeaponId) => (armed.weapons[item] ?? 0) + (gang.weapons[item] ?? 0);
+    const need = armed.memberIds.length + 1;
     const wants: [WeaponId, () => boolean][] = [
       ['twinPistols', () => true],
       ['shotgun', () => true],
+      ['rifle', () => true],
+      ['tommy', () => true],
       ['explosives', () => policy.violence !== 'low' && gang.cash > reserve + 3000 && actionRanks.bombRival >= 0.4],
     ];
     for (const [item, ok] of wants) {
       let n = 0;
-      while (owned(item) < ATTACK_STOCK && ok() && gang.cash >= reserve + WEAPONS[item].cost && buyWeapon(w, gang.id, item).ok) n++;
-      if (n) actions.push(`OK buy ${n}× ${item} for the attack crew's store (${owned(item)} of ${ATTACK_STOCK})`);
-      if (item !== 'explosives') for (let i = 0; i < n; i++) if (!supply(armed, item, false).ok) break;
+      while (owned(item) < need && ok() && gang.cash >= reserve + WEAPONS[item].cost && buyWeapon(w, gang.id, item).ok) n++;
+      if (n) actions.push(`OK buy ${n}× ${item} for the attack crew's store (${owned(item)} for ${need} men)`);
+      if (item === 'twinPistols') for (let i = 0; i < n; i++) if (!supply(armed, item, false).ok) break;
     }
   }
 
@@ -2385,7 +2422,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         if (!supply(t, BEST_GUN, true).ok) break;
         bought.push(`${BEST_GUN} for ${w.people[t.lieutenantId]?.name ?? 'crew'}${fromStore ? ' (from the store)' : ''}`);
       }
-      if (role === 'muscle' && carried(t, 'explosives') < 10 && afford(WEAPONS.explosives.cost) && buyWeapon(w, gang.id, 'explosives').ok) bought.push('explosives for the store');
+      if (role === 'muscle' && carried(t, 'explosives') < t.memberIds.length + 1 && afford(WEAPONS.explosives.cost) && buyWeapon(w, gang.id, 'explosives').ok) bought.push('explosives for the store');
     }
     const counts = new Map<string, number>();
     for (const item of bought) counts.set(item, (counts.get(item) ?? 0) + 1);

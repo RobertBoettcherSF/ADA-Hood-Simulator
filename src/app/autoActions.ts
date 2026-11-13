@@ -197,7 +197,7 @@ export const ROLE_SKILLS: Record<CrewRole, readonly (keyof Person['skills'])[]> 
   muscle: ['firearms', 'fists', 'stealth'],
   collect: ['driving', 'organization'],
   recruit: ['intelligence', 'organization'],
-  business: ['business', 'organization'],
+  business: ['business'], // 1.2.34 (Robert): business skill alone
   scout: ['stealth', 'intelligence', 'driving'],
 };
 export const roleStars = (p: Person, role: CrewRole) => ROLE_SKILLS[role].reduce((sum, k) => sum + (p.skills[k] ?? 0), 0) / ROLE_SKILLS[role].length;

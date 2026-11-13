@@ -222,6 +222,14 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## v1.2.34 decisions
+
+Auto Test business crew and the attack crew's weapons (Robert). No game rule changes.
+
+1. **Collecting needs no skill.** Unchanged: a hood who fits no crew's job collects protection — the one move below 3★.
+2. **Business by business skill alone.** The business crew's job skill is now business alone (no longer the mean of business and organization). Every man in it needs 3★ business: pool placement, the refill, the weekly rebuild, new-crew men and the men moved back after a lead swap all check it, and a man below 3★ business already in the crew goes to the pool. Its lead aims for 4★ business, else 3★, and gives way (the lead swap) when a better one is recruited; a lead below 3★ is reported each week until then.
+3. **Attack crew weapons, no buy limit.** The attack crew may buy any weapon: twin pistols by default, shotguns for attacks inside an office (a rival HQ), rifles for road attacks (a man not inside a building), tommy guns too. The 10-per-type limit is gone (Robert): each type is bought into the store until there is one for every man of the attack crew, explosives as well (with the old conditions: violence on, bombing ranked, cash to spare). When an armed crew is given an attack, it takes the gun for the job from the store, one per man, handing other guns to the store. Each man still carries one gun; extras stay in the store, which has no limit. There is still no separate buy just before an attack.
+
 ## v1.2.33 decisions
 
 Auto Test crew moves and the attack crew (Robert). No game rule changes.
