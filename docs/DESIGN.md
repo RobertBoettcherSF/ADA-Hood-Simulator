@@ -222,6 +222,15 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## v1.2.33 decisions
+
+Auto Test crew moves and the attack crew (Robert). No game rule changes.
+
+1. **3★ for every move into a crew.** The double moves in the 1.2.31 report came from the "a new crew gets two men from the biggest crew" step: it moved the newest hand of the biggest crew into any crew with fewer than two men (Business included) with no skill check. It now moves only hoods with 3★ or more for the receiving crew's job. The same check now also applies to the hood moved to a crew that ran out of time, to the men moved back after a lead swap, and to the man a full crew trades back to the other crew in the weekly rebuild (below 3★ he goes to the pool). The pool placement, the business refill and the rebuild already checked it. The one move below 3★ left is the 1.2.30 rule that a hood fitting no crew's job collects protection.
+2. **No buy before an attack.** The separate tommy gun and explosive buys before an HQ attack or an attack on a suspected HQ are gone; an attack uses what the crew and the store hold.
+3. **New crews get men without a weekly limit.** A crew with fewer than two men takes hoods (3★ for its job) from the biggest crews (four men or more, never the business crew) until it has two, every week, with no limit on moves.
+4. **The attack crew collects armed.** Collecting protection never made a crew hand in guns; only the collecting, business and intimidation crews carry none. The attack crew keeps its guns when it collects.
+
 ## v1.2.32 decisions
 
 Auto Test crews and the attack crew (Robert). No game rule changes.
