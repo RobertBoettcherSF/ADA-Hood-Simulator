@@ -272,6 +272,7 @@ export function newRecruitMemory(): RecruitMemory {
 
 let recruitMemory = newRecruitMemory();
 /** 1.2.24: our businesses (id → manager) last Monday, to log managers killed and businesses lost. */
+const coolingOff = new WeakMap<object, boolean>();
 const ownedLastWeek = new WeakMap<object, Map<number, number | null>>();
 
 /** A rumour first, then last week's productive venues, then the rest; a venue empty three weeks running is skipped. */
@@ -821,6 +822,22 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   suspicionLastWeek.set(w, gang.suspicion);
   const heat = heatLevel(gang.suspicion, suspicionBefore);
   const lieLow = heat >= 2;
+  // 1.2.24: extortion stops at SUSPICION_EASE and resumes only below SUSPICION_LIE_LOW.
+  const wasCooling = coolingOff.get(w) ?? false;
+  const cooling = gang.suspicion >= SUSPICION_EASE || (wasCooling && gang.suspicion >= SUSPICION_LIE_LOW);
+  coolingOff.set(w, cooling);
+  if (wasCooling && !cooling) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} below ${SUSPICION_LIE_LOW} — extortion resumes`);
+  // 1.2.24: why suspicion moved. Risky money (rackets and protection) beyond the
+  // cover the legal books give raises it; it cools 1.6 a week only in a week
+  // with nothing uncovered (the FBI cannot be bribed).
+  const lastLegal = Math.max(0, gang.lastWeekIncome.legal);
+  const accountantMan = gang.accountantId == null ? undefined : w.people[gang.accountantId];
+  const accountantInt = accountantMan && accountantMan.status === 'active' ? accountantMan.skills.intelligence : null;
+  const coverEstimate = accountantInt != null ? lastLegal * (0.5 + accountantInt * 0.22) + accountantInt * 400 : lastLegal * 0.2;
+  const riskyLast = Math.max(0, gang.lastWeekIncome.illegal) + Math.max(0, gang.lastWeekIncome.protection);
+  actions.push(`SUSPICION ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''}: risky $${Math.round(riskyLast)} (rackets $${Math.round(Math.max(0, gang.lastWeekIncome.illegal))}, protection $${Math.round(Math.max(0, gang.lastWeekIncome.protection))}), cover $${Math.round(coverEstimate)} (legal $${Math.round(lastLegal)}, ${accountantInt != null ? 'accountant' : 'no accountant'}), uncovered $${Math.round(gang.riskyMoney ?? 0)}, untaxed $${Math.round(gang.uncoveredTax ?? 0)}${cooling ? ' — cooling off' : ''}`);
+  // While suspicion is 50 or more, protection is collected only up to the cover left after the rackets.
+  const collectBudget = gang.suspicion >= SUSPICION_LIE_LOW ? Math.max(0, coverEstimate - Math.max(0, gang.lastWeekIncome.illegal)) : Infinity;
   // Risky street work is capped so one raid cannot take the whole gang.
   const riskyCap = Math.max(2, Math.floor(Math.max(1, gangManpower(w, gang)) * (heat >= 1 ? RISKY_SHARE_EASING : RISKY_SHARE)));
   let riskyMen = 0;
@@ -842,7 +859,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const name = w.people[team.lieutenantId]?.name ?? 'crew';
     const risky = RISKY_ORDERS.has(input.type);
     // 1.2.23: lying low stops the violence; extortion stops only past SUSPICION_EASE.
-    if (risky && ((lieLow && input.type !== 'extort') || gang.suspicion >= SUSPICION_EASE)) {
+    if (risky && ((lieLow && input.type !== 'extort') || cooling)) {
       actions.push(`NOTE ${label} not given — lying low`);
       return { ok: false, error: 'Lying low this week.' };
     }
@@ -1032,7 +1049,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   if (w.week >= 3 && gang.accountantId == null) {
     const desk = deskFor('accountant');
     // 1.2.23: after the hoods, unless suspicion is high (his books lower it).
-    if (desk) propose({ label: 'recruit accountant', kind: 'safety', value: gang.suspicion >= SUSPICION_EASE ? 1500 : 200, why: gang.suspicion >= SUSPICION_EASE ? `suspicion ${Math.round(gang.suspicion)}` : 'hoods first',
+    if (desk) propose({ label: 'recruit accountant', kind: 'safety', value: gang.suspicion >= SUSPICION_LIE_LOW ? 6000 : gang.suspicion >= SUSPICION_BRIBE ? 1500 : 200, why: gang.suspicion >= SUSPICION_BRIBE ? `suspicion ${Math.round(gang.suspicion)}` : 'hoods first',
       input: { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'accountant' } } });
   }
 
@@ -1273,7 +1290,19 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         const stopMinutes = Math.max(10, timeLedger[ledgerKey('collectProtection', false)] ?? 30);
         const centre = (b: Building) => w.lots[b.lotId].center;
         const perMinute = (b: Building) => (b.protection?.weekly ?? 0) / (stopMinutes + dist(centre(b), origin) / WALK_SPEED);
-        const left = [...owed].sort((a, b) => perMinute(b) - perMinute(a));
+        let left = [...owed].sort((a, b) => perMinute(b) - perMinute(a));
+        if (Number.isFinite(collectBudget)) {
+          // The best-paying shops first, up to what the books can explain.
+          let room = collectBudget;
+          const kept = [...owed].sort((a, b) => (b.protection?.weekly ?? 0) - (a.protection?.weekly ?? 0)).filter((b) => {
+            const pay = b.protection?.weekly ?? 0;
+            if (pay > room) return false;
+            room -= pay; return true;
+          });
+          const keptIds = new Set(kept.map((b) => b.id));
+          left = left.filter((b) => keptIds.has(b.id));
+          actions.push(`NOTE suspicion ${Math.round(gang.suspicion)}: collecting ${kept.length} of ${owed.length} shops ($${Math.round(collectBudget - room)} of $${Math.round(owed.reduce((sum, b) => sum + (b.protection?.weekly ?? 0), 0))}) — no more than the legal books cover ($${Math.round(collectBudget)})`);
+        }
         const collected = new Set<number>();
         while (left.length) {
           const team = freest(collected, 'collect');
@@ -1294,8 +1323,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // Expand. 1.2.23: past SUSPICION_EASE no new rackets at all (protection
       // money is what the Bureau cannot explain); lying low below it, one crew
       // half the crews take new blocks only.
-      const suspicionHigh = gang.suspicion >= SUSPICION_EASE;
-      if (suspicionHigh && weight.rackets >= 0.25) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} ≥ ${SUSPICION_EASE} — no extortion this week; legal buys, the accountant and bribes instead`);
+      const suspicionHigh = cooling;
+      if (suspicionHigh && weight.rackets >= 0.25) actions.push(`NOTE suspicion ${Math.round(gang.suspicion)} — no extortion until it is below ${SUSPICION_LIE_LOW}; legal buys and the accountant instead`);
       if (weight.rackets >= 0.25 && !suspicionHigh) {
         const crewsToSend = easing ? Math.max(1, Math.floor(ready.length / 2)) : Math.max(1, Math.round(ready.length * Math.min(1, expansion)));
         const cap = Math.max(2, Math.round(weight.rackets * 5 * expansion));
