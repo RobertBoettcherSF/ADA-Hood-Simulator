@@ -16,7 +16,7 @@ import {
   setPay,
   setRunForOffice,
 } from '../../sim/api';
-import { GO_STRAIGHT_ASSETS, MINUTES_PER_WEEK } from '../../sim/constants';
+import { GO_STRAIGHT_ASSETS } from '../../sim/constants';
 import { campaignWeeklyCost, officeEntryCheck, electionBlocksRequired } from '../../sim/systems/politics';
 import type { CourtCase, Person, WorldState } from '../../sim/types';
 import { gangAssets, money, territoryCount } from '../../sim/world';
@@ -25,6 +25,7 @@ import { VEHICLES, VEHICLE_ORDER } from '../../sim/constants';
 import { SpecialistJobList } from '../SpecialistJobCard';
 import { peopleList } from '../../sim/entityLists';
 import { quitGangPayroll } from '../../sim/payrollMark';
+import { crewFreeMinutes } from '../../sim/crewTime';
 
 const CASE_STATUS: Record<CourtCase['status'], string> = {
   awaiting: 'Awaiting trial',
@@ -486,7 +487,7 @@ function CrewPicker({ personIds, onClose }: { personIds: number[]; onClose: () =
       {crews.map((t) => (
         <label key={t.id} className="wood-field" style={{ display: 'flex', gap: 6 }}>
           <input type="radio" name="intimidate-crew" checked={teamId === t.id} onChange={() => setTeamId(t.id)} />
-          <span>{w.people[t.lieutenantId]?.name ?? 'Crew'} — {t.name} · {Math.max(0, Math.round(MINUTES_PER_WEEK - t.timeUsed))} min free{t.id === nearest?.id ? ' · nearest' : ''}</span>
+          <span>{w.people[t.lieutenantId]?.name ?? 'Crew'} — {t.name} · {Math.max(0, Math.round(crewFreeMinutes(w, t)))} man-min free{t.id === nearest?.id ? ' · nearest' : ''}</span>
         </label>
       ))}
     </Modal>

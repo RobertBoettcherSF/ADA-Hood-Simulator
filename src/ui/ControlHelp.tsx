@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useGame } from '../app/store';
-import { MINUTES_PER_WEEK } from '../sim/constants';
+
 import { SKILLS, SKILL_LABELS } from '../sim/types';
 import { skillStars } from './preferredCrew';
 import { CONTROL_EXCLUDE, CONTROL_SCOPE, CONTROL_SELECTOR, controlHelp, controlHelpFor, controlLabel, keyFromTip } from './controlHelp';
 import { isTyping } from './input';
+import { crewUsedShare } from '../sim/crewTime';
 
 interface Shown {
   kind: 'tip' | 'card';
@@ -47,7 +48,7 @@ function crewRows(teamId: number): { title: string; rows: Shown['rows'] } | null
     rows: [
       { label: 'Crew', value: team.name },
       { label: 'People', value: String(team.memberIds.length + 1) },
-      { label: 'Week given out', value: `${Math.round((team.timeUsed / MINUTES_PER_WEEK) * 100)}%` },
+      { label: 'Week given out', value: `${Math.round(crewUsedShare(sim.world, team) * 100)}%` },
       { label: 'Orders', value: String(orders) },
       ...(lt ? [{ label: 'Loyalty', value: String(Math.round(lt.loyalty)) }, { label: 'Status', value: lt.status }] : []),
     ],
