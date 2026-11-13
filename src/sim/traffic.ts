@@ -492,6 +492,33 @@ export function crossingOf(at: Vec2, next: Vec2): OccupiedCrossing {
     : { axisX: true, line: Math.round(my / CELL), s: mx, mx, my, wx: at.x, wy: at.y };
 }
 
+/**
+ * 1.2.24: the walking scan's crossings are reused from minute to minute rather
+ * than made anew (about 0.9 GB a week of short-lived objects on a 36 × 28 city).
+ * A scan's crossings are read in the minute it is made and the next (its tick,
+ * the traffic context, crossingsInUse) and never later, so two pools taken in
+ * turn by the minute's parity are safe to hand out again.
+ */
+// Two pools, by the minute's parity: a scan made in one minute is still read
+// (as the traffic context and crossingsInUse) through the next.
+const crossingPools: [OccupiedCrossing[], OccupiedCrossing[]] = [[], []];
+let poolWorld: WorldState | null = null;
+let poolMinute = -1;
+let poolUsed = 0;
+function pooledCrossing(w: WorldState, at: Vec2, next: Vec2): OccupiedCrossing {
+  if (w !== poolWorld || w.minute !== poolMinute) { poolWorld = w; poolMinute = w.minute; poolUsed = 0; }
+  const pool = crossingPools[w.minute & 1];
+  const c = pool[poolUsed] ?? (pool[poolUsed] = { axisX: false, line: 0, s: 0, mx: 0, my: 0, wx: 0, wy: 0 });
+  poolUsed++;
+  const mx = (at.x + next.x) / 2;
+  const my = (at.y + next.y) / 2;
+  const alongX = Math.abs(next.x - at.x) >= Math.abs(next.y - at.y);
+  // Same numbers as crossingOf.
+  c.axisX = !alongX; c.line = Math.round((alongX ? mx : my) / CELL); c.s = alongX ? my : mx;
+  c.mx = mx; c.my = my; c.wx = at.x; c.wy = at.y;
+  return c;
+}
+
 let usedWorld: WorldState | null = null;
 let usedMinute = -1;
 let usedCache: OccupiedCrossing[] = [];
@@ -549,7 +576,7 @@ export function streetScanCollector(w: WorldState): { part: ReturnType<typeof sc
     const cross = nextPointCross(p);
     if (cross === 0) return;
     const d = Math.hypot(nextPointX(p) - p.pos.x, nextPointY(p) - p.pos.y);
-    if (d < cross - 0.75) part.crossings.push(crossingOf(p.pos, p.path[0]));
+    if (d < cross - 0.75) part.crossings.push(pooledCrossing(w, p.pos, p.path[0]));
   };
   return { part, add };
 }
