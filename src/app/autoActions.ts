@@ -7,6 +7,7 @@
  * it down. The table is kept in the diary, so later runs start from it.
  */
 import type { Rng } from '../sim/rng';
+import { buildingMapIntel } from '../sim/mapIntel';
 import type { Building, Gang, ID, Order, Person, Team, WorldState } from '../sim/types';
 
 export const ACTION_KEYS = ['raid', 'pressRefuser', 'torchRival', 'bombRival', 'kidnapRival', 'killRival', 'snitch',
@@ -200,37 +201,37 @@ export const ROLE_SKILLS: Record<CrewRole, readonly (keyof Person['skills'])[]> 
 export const roleStars = (p: Person, role: CrewRole) => ROLE_SKILLS[role].reduce((sum, k) => sum + (p.skills[k] ?? 0), 0) / ROLE_SKILLS[role].length;
 /** A crew's job read back from its auto name ("Eddie's Strike"), or null. */
 export function crewRoleFromName(name: string): CrewRole | null {
+  if (/^Business( \d+)?$/.test(name.trim())) return 'business';
   for (const [role, job] of Object.entries(CREW_JOBS) as [CrewRole, string][]) if (new RegExp(`'s ${job}( \\d+)?$`).test(name)) return role;
   return null;
 }
 const totalSkill = (p: Person) => Object.values(p.skills).reduce((a, b) => a + b, 0);
 
 /**
- * Give each crew a role from its men's talents: the best business crew buys
- * and runs shops, the most intimidating crew extorts (unarmed), a crew with
- * guns and stealth does the rough work, and the rest collect.
+ * 1.2.25 (Robert's rule): crews open in this order — recruiting, extortion,
+ * collecting protection, then the business crew; later crews do the rough
+ * work, the scouting, and then collect. Until the business crew exists nobody
+ * buys.
  */
-export function assignCrewRoles(w: WorldState, teams: readonly Team[]): Map<ID, CrewRole> {
-  const roles = new Map<ID, CrewRole>();
-  const avg = (t: Team, f: (p: Person) => number) => {
-    const men = [t.lieutenantId, ...t.memberIds].map((id) => w.people[id]).filter((p): p is Person => !!p);
-    return men.length ? men.reduce((s, p) => s + f(p), 0) / men.length : 0;
-  };
-  const free = [...teams];
-  const take = (role: CrewRole, f: (p: Person) => number) => {
-    if (!free.length) return;
-    free.sort((a, b) => avg(b, f) - avg(a, f) || a.id - b.id);
-    roles.set(free.shift()!.id, role);
-  };
-  // 1.2.17: three crews at least (extortion to expand, recruiting, collection),
-  // six ideally (plus business, strike and scouting); the rest collect.
-  take('extortion', extortionTalent);
-  if (teams.length >= 3) take('recruit', recruitTalent);
-  if (teams.length >= 4) take('business', businessTalent);
-  if (teams.length >= 5) take('muscle', muscleTalent);
-  if (teams.length >= 6) take('scout', scoutTalent);
-  for (const t of free) roles.set(t.id, 'collect');
-  return roles;
+export const CREW_OPENING_ORDER: readonly CrewRole[] = ['recruit', 'extortion', 'collect', 'business', 'muscle', 'scout'];
+
+/**
+ * Each crew keeps its job for as long as it exists (a lieutenant in custody
+ * does not hand his crew's job to another crew). A crew without a job takes
+ * the job its auto name says, else the first job in the opening order no crew
+ * holds yet, else collecting. `kept` is updated in place.
+ */
+export function assignCrewRoles(teams: readonly Team[], kept: Map<ID, CrewRole>): Map<ID, CrewRole> {
+  const ids = new Set(teams.map((t) => t.id));
+  for (const id of [...kept.keys()]) if (!ids.has(id)) kept.delete(id);
+  for (const t of [...teams].sort((a, b) => a.id - b.id)) {
+    if (kept.has(t.id)) continue;
+    const held = new Set(kept.values());
+    const named = crewRoleFromName(t.name);
+    const role = named && (named === 'collect' || !held.has(named)) ? named : CREW_OPENING_ORDER.find((r) => !held.has(r)) ?? 'collect';
+    kept.set(t.id, role);
+  }
+  return new Map(teams.map((t) => [t.id, kept.get(t.id)!] as const));
 }
 
 /** Swap men so each crew gets the hoods its role wants. Returns the moves to make. */
@@ -243,7 +244,8 @@ export function talentSwaps(w: WorldState, teams: readonly Team[], roles: Map<ID
     // 1.2.24: crews are filled to the maximum, no longer evened out.
     if (!team || team.memberIds.length >= 9) continue;
     // The best man for this role who sits in a crew with a different role.
-    const candidates = teams.filter((t) => t !== team && roles.get(t.id) !== role && t.memberIds.length > 2)
+    // 1.2.25: the business crew lends nobody to another crew.
+    const candidates = teams.filter((t) => t !== team && roles.get(t.id) !== role && roles.get(t.id) !== 'business' && t.memberIds.length > 2)
       .flatMap((t) => t.memberIds.map((id) => w.people[id]).filter((p): p is Person => !!p && p.status === 'active' && p.orderId == null && !moved.has(p.id)));
     const mine = team.memberIds.map((id) => w.people[id]).filter((p): p is Person => !!p);
     const worstMine = mine.length ? Math.min(...mine.map(score[role])) : -Infinity;
@@ -262,10 +264,15 @@ export function carMinutesSaved(distanceMetres: number, walkPerMinute: number, d
   return trips * (distanceMetres / walkPerMinute - distanceMetres / drivePerMinute);
 }
 
-/** A rich site worth robbing: a rival's trading premises or a bank or jeweller. */
+/**
+ * A rich site worth robbing: a bank or jeweller, or premises our map shows as
+ * a rival's (1.2.25: only what the player can see — the map's owner, never the
+ * stock inside or an owner our scouts have not found).
+ */
 export function raidValue(b: Building, gangId: ID): number {
-  if (b.state !== 'trading' || b.ownerGangId === gangId || b.cls === 'municipal' || b.cls === 'empty') return 0;
-  const goods = b.stock.liquor + b.stock.stolen + b.stock.counterfeit * 10;
+  if (b.state !== 'trading' || b.cls === 'municipal' || b.cls === 'empty') return 0;
+  const owner = buildingMapIntel(b, gangId).ownerGangId;
+  if (b.ownerGangId === gangId || owner === gangId) return 0;
   const rich = /bank|jewel|furrier|financeCompany|departmentStore/i.test(b.typeId) ? 40 : 0;
-  return goods + rich + (b.ownerGangId != null ? 10 : 0);
+  return rich + (owner != null ? 10 : 0);
 }
