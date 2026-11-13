@@ -251,47 +251,58 @@ export function takeAutoTestMemoryStop(): boolean {
   return was;
 }
 
-/** Weeks a recruiting venue is skipped after a crew found nobody there. */
+/** Weeks a recruiting venue is skipped once it has come up empty EMPTY_VENUE_STREAK weeks running. */
 export const EMPTY_VENUE_SKIP_WEEKS = 4;
+/** 1.2.24 (Robert's rule): a venue with no recruits three weeks running is skipped, unless a rumour points at it. */
+export const EMPTY_VENUE_STREAK = 3;
 
 export interface RecruitMemory {
   hintIds: number[];
   /** Building id → first week the venue may be tried again. */
   emptyUntil: Map<number, number>;
+  /** 1.2.24: building id → weeks running it came up empty. */
+  emptyStreak: Map<number, number>;
+  /** 1.2.24: venues that gave us recruits last week, tried first after a rumour. */
+  yieldedIds: number[];
 }
 
 export function newRecruitMemory(): RecruitMemory {
-  return { hintIds: [], emptyUntil: new Map() };
+  return { hintIds: [], emptyUntil: new Map(), emptyStreak: new Map(), yieldedIds: [] };
 }
 
 let recruitMemory = newRecruitMemory();
 
-/** Prefer last week's "looking for work" tip; skip venues that just came up empty. */
+/** A rumour first, then last week's productive venues, then the rest; a venue empty three weeks running is skipped. */
 export function chooseHoodRecruitSites<T extends { id: number }>(
   sites: T[],
   memory: RecruitMemory = recruitMemory,
   week = 0,
 ): T[] {
   const open = (site: T) => (memory.emptyUntil.get(site.id) ?? 0) <= week;
-  const hinted: T[] = [];
+  const picked: T[] = [];
   const seen = new Set<number>();
+  // A rumour points at a venue whatever its record.
   for (const id of memory.hintIds) {
     const site = sites.find((entry) => entry.id === id);
-    if (!site || seen.has(id) || !open(site)) continue;
-    hinted.push(site);
-    seen.add(id);
+    if (!site || seen.has(id)) continue;
+    picked.push(site); seen.add(id);
   }
-  const rest = sites.filter((site) => !seen.has(site.id) && open(site));
-  const picked = [...hinted, ...rest];
+  for (const id of memory.yieldedIds) {
+    const site = sites.find((entry) => entry.id === id);
+    if (!site || seen.has(id) || !open(site)) continue;
+    picked.push(site); seen.add(id);
+  }
+  for (const site of sites) if (!seen.has(site.id) && open(site)) { picked.push(site); seen.add(site.id); }
   // If every known venue is still cooling down, try them anyway rather than hiring nowhere.
   return picked.length ? picked : sites;
 }
 
 export function rememberRecruitResults(
-  orders: { type: string; recruitHintId?: number | null; emptyRecruitIds?: number[]; opts?: { recruitAs?: string } }[],
+  orders: { type: string; recruitHintId?: number | null; emptyRecruitIds?: number[]; targetBuildingIds?: number[]; opts?: { recruitAs?: string } }[],
   week: number,
   memory: RecruitMemory = recruitMemory,
 ): void {
+  const yielded: number[] = [];
   for (const order of orders) {
     // 1.2.21: only hood recruiting feeds the hood venues' memory; an accountant's
     // or lawyer's tip points at their own offices, never the gyms and pool halls.
@@ -299,11 +310,19 @@ export function rememberRecruitResults(
     if (order.recruitHintId != null) {
       memory.hintIds = [order.recruitHintId, ...memory.hintIds.filter((id) => id !== order.recruitHintId)];
     }
-    for (const id of order.emptyRecruitIds ?? []) {
-      memory.emptyUntil.set(id, week + EMPTY_VENUE_SKIP_WEEKS);
-      memory.hintIds = memory.hintIds.filter((hint) => hint !== id);
+    const empty = new Set(order.emptyRecruitIds ?? []);
+    for (const id of empty) {
+      const streak = (memory.emptyStreak.get(id) ?? 0) + 1;
+      memory.emptyStreak.set(id, streak);
+      if (streak >= EMPTY_VENUE_STREAK) memory.emptyUntil.set(id, week + EMPTY_VENUE_SKIP_WEEKS);
+    }
+    for (const id of order.targetBuildingIds ?? []) {
+      if (empty.has(id)) continue;
+      memory.emptyStreak.delete(id); memory.emptyUntil.delete(id);
+      yielded.push(id);
     }
   }
+  memory.yieldedIds = [...new Set(yielded)];
 }
 
 function hqCenter(w: Sim['world'], gangId: number): { x: number; y: number } {
