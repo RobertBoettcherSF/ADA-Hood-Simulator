@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import thickened from '../public/art/icons-small/index.json';
+import thickened from '../src/data/icons-small-index.json';
 import { iconUrl, SMALL_ICON_PX } from '../src/ui/art';
 
 describe('thickened small icons (A23-S03)', () => {

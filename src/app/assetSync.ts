@@ -7,6 +7,7 @@
 import { fetchAsset, loadAssetManifest, type AssetFile } from './assetCache';
 import { deviceIsPhone, resolvedGraphics } from './device';
 import { activeWorldStore } from './worldFolder';
+import { artUrl } from './artBase';
 
 export interface AssetProgress {
   done: number;
@@ -99,7 +100,7 @@ export async function syncWorldAssets(onProgress?: (progress: AssetProgress) => 
       // The browser's own cache is fine: a file the reel just fetched is not fetched twice.
       let body: Uint8Array;
       try {
-        const response = await fetchAsset(`${import.meta.env.BASE_URL}${file.path}`);
+        const response = await fetchAsset(artUrl(file.path));
         if (!response.ok) { failed += 1; continue; }
         body = new Uint8Array(await response.arrayBuffer());
       } catch {

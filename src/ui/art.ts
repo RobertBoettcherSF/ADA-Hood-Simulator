@@ -2,8 +2,9 @@ import type { Person } from '../sim/types';
 import { assetUrl, enqueueAssetLoad } from '../app/assetCache';
 import { resolvedGraphics } from '../app/device';
 import { noteAssetLoad } from '../app/assetTiming';
-import thickenedIcons from '../../public/art/icons-small/index.json';
+import thickenedIcons from '../data/icons-small-index.json';
 import { registerProbe } from '../sim/memProbe';
+import { artMissing, artUrl } from '../app/artBase';
 
 /**
  * Where the delivered artwork lives and how the interface names it. Every
@@ -11,7 +12,7 @@ import { registerProbe } from '../sim/memProbe';
  * fall back from and the manifest in public/art stays the single inventory.
  */
 
-export const ART_ROOT = `${import.meta.env.BASE_URL}art`;
+export const ART_ROOT = artUrl('art');
 
 export function art(path: string): string {
   return assetUrl(`art/${path}`);
@@ -101,6 +102,8 @@ function keepImage(src: string, img: HTMLImageElement): void {
 
 /** Load an image once and share it; rejects if the file is not there. */
 export function loadImage(src: string): Promise<HTMLImageElement> {
+  // 1.2.29: with no art present nothing is fetched; callers fall back as for a missing file.
+  if (artMissing()) return Promise.reject(new Error(`no art (${src})`));
   let p = cache.get(src);
   if (!p) {
     p = enqueueAssetLoad(() => new Promise((resolve, reject) => {

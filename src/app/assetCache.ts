@@ -6,6 +6,7 @@
 import { activeWorldStore } from './worldFolder';
 import { resolvedGraphics } from './device';
 import { registerProbe } from '../sim/memProbe';
+import { artUrl } from './artBase';
 
 export interface AssetFile {
   path: string;
@@ -66,7 +67,7 @@ let manifestPromise: Promise<Manifest | null> | null = null;
 
 export function loadAssetManifest(): Promise<Manifest | null> {
   if (!manifestPromise) {
-    manifestPromise = fetchAsset(`${import.meta.env.BASE_URL}asset-manifest.json`)
+    manifestPromise = fetchAsset(artUrl('asset-manifest.json'))
       .then((response) => response.ok ? response.json() as Promise<Manifest> : null)
       .catch(() => null);
   }
@@ -75,7 +76,7 @@ export function loadAssetManifest(): Promise<Manifest | null> {
 
 /** A stable URL: no cache-busting query string, so the browser can reuse the file. */
 export function assetUrl(path: string): string {
-  return cache.get(path) ?? `${import.meta.env.BASE_URL}${path}`;
+  return cache.get(path) ?? artUrl(path);
 }
 
 export function assetMemoryBytes(): number {

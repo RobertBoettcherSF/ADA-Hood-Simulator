@@ -1,5 +1,6 @@
 import { audio } from './audio';
 import { registerProbe } from '../sim/memProbe';
+import { artPresent, artUrl } from '../app/artBase';
 
 /**
  * Recorded effects and street beds in public/audio. They load in the
@@ -23,9 +24,11 @@ export function loadSamples(loaded?: (name: SampleName) => void): Promise<void> 
   const bus = audio.bus();
   if (!bus || loading) return loading ?? Promise.resolve();
   loading = (async () => {
+    // 1.2.29: with no art present no sample is fetched.
+    if (!(await artPresent())) return;
     for (const name of ALL) {
       try {
-        const res = await fetch(`${import.meta.env.BASE_URL}audio/${name}.mp3`);
+        const res = await fetch(artUrl(`audio/${name}.mp3`));
         if (!res.ok) continue;
         buffers.set(name, await bus.ctx.decodeAudioData(await res.arrayBuffer()));
         loaded?.(name);

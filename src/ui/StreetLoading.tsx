@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { useGame } from '../app/store';
 import { DialogFrame } from './DialogFrame';
 import { Rivets } from './common';
+import { artUrl } from '../app/artBase';
 
 /** The backdrop is decoded while the player plans, not while the city is being
  * built (which holds the main thread and would leave the screen black). */
-export const LOADING_ART = `${import.meta.env.BASE_URL}art/brand/key-art-city.jpg`;
+export const LOADING_ART = artUrl('art/brand/key-art-city.jpg');
 export function preloadLoadingArt(): void {
   if (typeof Image === 'undefined') return;
   const img = new Image(); img.src = LOADING_ART; void img.decode?.().catch(() => {});

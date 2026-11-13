@@ -15,6 +15,7 @@ import { noteAssetLoad } from '../app/assetTiming';
 import { assetUrl, enqueueAssetLoad } from '../app/assetCache';
 import { BUILDING_TYPES } from '../sim/data/buildings';
 import { TILE_BAYS, TILE_STOREYS, mulberry32 } from './util';
+import { artPresent } from '../app/artBase';
 
 function makeCanvas(w: number, h: number): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
   const canvas = document.createElement('canvas');
@@ -893,6 +894,10 @@ let artLoading: Promise<CityArt> | null = null;
 export function loadCityArt(): Promise<CityArt> {
   if (artLoading) return artLoading;
   artLoading = (async () => {
+    // 1.2.29: with no art present, every painted texture stays (no file is asked for).
+    if (!(await artPresent())) {
+      return { facades: FACADE_PALETTES.map(() => null), roof: null, storefront: null, plinth: null, pavement: null, kerb: null, awning: null, sawtooth: null, signs: null, road: null };
+    }
     // Queue the street and facade files first so they take the first slots.
     // The later files join the same queue and start as those slots free.
     const first = Promise.all([

@@ -5,6 +5,7 @@
  */
 import { readLocalData } from '../app/localData';
 import { registerProbe } from '../sim/memProbe';
+import { artPresent, artUrl } from '../app/artBase';
 
 export type MusicCategory =
   | 'menu' | 'planner' | 'street' | 'action' | 'win' | 'loss'
@@ -85,7 +86,7 @@ function formatMediaError(node: HTMLAudioElement | null | undefined): string {
 async function mediaUrl(src: string): Promise<string> {
   const cached = objectUrls.get(src);
   if (cached) return cached;
-  const direct = `${import.meta.env.BASE_URL}${src}`;
+  const direct = artUrl(src);
   // Githack hands binary files on to raw.githubusercontent.com, which drops
   // requests when a page asks for a lot at once ("Failed to fetch"). Try
   // again after a pause before giving up on the track.
@@ -201,10 +202,12 @@ export async function loadMusicPool(): Promise<PoolTrack[]> {
   if (!loading) {
     loading = (async () => {
       try {
-        let response = await fetch(`${import.meta.env.BASE_URL}audio/music-pool.json`).catch(() => null);
+        // 1.2.29: with no art present there is no score to stream.
+        if (!(await artPresent())) return tracks;
+        let response = await fetch(artUrl('audio/music-pool.json')).catch(() => null);
         if (!response?.ok) {
           await new Promise((resolve) => setTimeout(resolve, 3000));
-          response = await fetch(`${import.meta.env.BASE_URL}audio/music-pool.json`);
+          response = await fetch(artUrl('audio/music-pool.json'));
         }
         if (!response.ok) return tracks;
         const body = await response.json() as { tracks?: PoolTrack[] };

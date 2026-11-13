@@ -5,7 +5,10 @@ import {CharacterActions,actionFlash} from '../src/render/characterActions';
 import {CharacterMotion,characterClips} from '../src/render/characterMotion';
 import type {Person,WorldState,WeaponId} from '../src/sim/types';
 import {presentAttack,presentDeath,presentThrow} from '../src/sim/presentationEvents';
-import data from '../public/art/city/sculpt/weapon-handling.json';
+import {readFileSync} from 'node:fs';
+import type {WeaponMotions} from '../src/render/weaponMotions';
+// 1.2.29: the art lives in the asset repository (bash fetch-assets.sh puts it in public/).
+const data:WeaponMotions=JSON.parse(readFileSync(new URL('../public/art/city/sculpt/weapon-handling.json',import.meta.url),'utf8'));
 
 describe('authored weapon handling',()=>{
  it('bakes all three supplied clips onto ten rigs with finite unit rotations',()=>{

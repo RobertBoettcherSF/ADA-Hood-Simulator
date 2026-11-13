@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {FireVolume} from './fireVolume';
 import {BodySmoke} from './bodySmoke';
+import { artUrl } from '../app/artBase';
 
 export const MAX_BURNING_ACTORS=8,FLAMES_PER_ACTOR=3;
 const UP=new THREE.Vector3(0,1,0);
@@ -18,7 +19,7 @@ export class BurningPeople {
   constructor(private scene:THREE.Scene){
     this.smoke=new BodySmoke(scene,MAX_BURNING_ACTORS);
     this.texture=typeof document==='undefined'?new THREE.Texture():new THREE.TextureLoader().load(
-      `${import.meta.env.BASE_URL}art/effects/three-fire.png`,texture=>{if(this.disposed)texture.dispose();});
+      artUrl('art/effects/three-fire.png'),texture=>{if(this.disposed)texture.dispose();});
     this.texture.generateMipmaps=false;
     this.texture.minFilter=this.texture.magFilter=THREE.LinearFilter;
   }

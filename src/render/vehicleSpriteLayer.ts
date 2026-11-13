@@ -3,12 +3,13 @@ import type { VehicleId } from '../sim/types';
 import { InstancePool } from './pool';
 import { patchInstancedUv } from './materialUv';
 import { VEHICLE_PROFILE } from './vehicles';
+import { artUrl } from '../app/artBase';
 
 const DIRECTIONS = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'] as const;
 const ROW: Record<VehicleId, number> = { coupe: 0, truck: 1, speedster: 2 };
 const WORLD_CELL: Record<VehicleId, number> = { coupe: 5.1, truck: 5.55, speedster: 5.0 };
-const ATLAS_IMAGE = `${import.meta.env.BASE_URL}art/city/vehicle-fleet-eight-atlas.png`;
-const ATLAS_REPORT = `${import.meta.env.BASE_URL}art/city/vehicle-fleet-eight-atlas.json`;
+const ATLAS_IMAGE = artUrl('art/city/vehicle-fleet-eight-atlas.png');
+const ATLAS_REPORT = artUrl('art/city/vehicle-fleet-eight-atlas.json');
 
 interface FrameBounds { bbox: [number, number, number, number] }
 interface AtlasReport {

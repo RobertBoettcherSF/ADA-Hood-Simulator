@@ -8,6 +8,7 @@ import {ShopfrontFire,buildingFireBays,fireBayGrowth,fireBayLocal,type FireBay} 
 import {ExplosionDebris,type DebrisSource} from './explosionDebris';
 import {FACADE_PALETTES} from './textures';
 import {createSmokeTexture} from './smokeTexture';
+import { artUrl } from '../app/artBase';
 
 interface Emitter {event:PresentationEvent;time:number;x:number;z:number;height:number;radius:number;sideX:number;sideZ:number;bays:FireBay[];debris?:DebrisSource;debrisStarted?:boolean}
 interface SmolderSite {id:number;x:number;z:number;height:number;width:number;depth:number}
@@ -43,7 +44,7 @@ export class CityEffects {
     this.week=world.week;this.sequence=presentationEvents(world).sequence;
     this.debris=new ExplosionDebris(scene);
     if(typeof document!=='undefined'){
-      this.fireTexture=new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}art/effects/three-fire.png`,texture=>{
+      this.fireTexture=new THREE.TextureLoader().load(artUrl('art/effects/three-fire.png'),texture=>{
         if(this.disposed){texture.dispose();return;}this.textureReady=true;
       });
       this.fireTexture.generateMipmaps=false;this.fireTexture.minFilter=this.fireTexture.magFilter=THREE.LinearFilter;

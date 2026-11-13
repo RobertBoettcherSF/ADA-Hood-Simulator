@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import motionData from '../../public/art/city/sculpt/actions.json';
-import nativeMotionData from '../../public/art/city/sculpt/native-actions.json';
-import throwData from '../../public/art/city/sculpt/throw.json';
+import motionData from '../data/sculpt-actions.json';
+import nativeMotionData from '../data/sculpt-native-actions.json';
+import throwData from '../data/sculpt-throw.json';
 import {actionEnvelope,liveCharacterAction, type CharacterAction} from './characterActions';
 import {handlingAction,longGun,handlingDuration} from './weaponHandling';
 import type {WeaponMotions} from './weaponMotions';

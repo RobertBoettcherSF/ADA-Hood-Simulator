@@ -11,6 +11,8 @@ import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
 
 const root = process.argv.slice(2).find(a => !a.startsWith('--')) ?? 'dist/art';
 const dry = process.argv.includes('--dry');
+// 1.2.29: the art is optional (fetch-assets.sh); with none there is nothing to optimise.
+if (!(await import('node:fs')).existsSync(root)) { console.log(`optimize-art: no ${root}, nothing to do`); process.exit(0); }
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 
 async function* glbs(dir) {

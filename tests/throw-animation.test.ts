@@ -8,7 +8,7 @@ import {Rng} from '../src/sim/rng';
 import {presentationEvents,THROW_TIMING} from '../src/sim/presentationEvents';
 import {CharacterEquipment} from '../src/render/characterEquipment';
 import {EquipmentModels} from '../src/render/equipmentModels';
-import data from '../public/art/city/sculpt/throw.json';
+import data from '../src/data/sculpt-throw.json';
 
 describe('user throw animation',()=>{
  it('retains the source timing, finite unit rotations and in-place horizontal roots',()=>{

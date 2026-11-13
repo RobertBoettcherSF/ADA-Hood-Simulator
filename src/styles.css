@@ -3137,7 +3137,7 @@ button:disabled {
 
 /* Brand. */
 .desk.key-art {
-  background-image: url('/art/brand/key-art.jpg');
+  background-image: var(--art-key-art, none);
   background-size: cover;
   background-position: center top;
 }
@@ -3789,8 +3789,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .scene > * { position: relative; z-index: 1; }
 /* Sheets opened over a scene cover it, centred and dimmed, as anywhere else. */
 .scene > .modal-back { position: fixed; z-index: 80; }
-.scene-casino { background-image: url('/art/ui/menu-casino.jpg'); }
-.scene-desk { background-image: url('/art/ui/newgame-desk.jpg'); }
+.scene-casino { background-image: var(--art-menu-casino, none); }
+.scene-desk { background-image: var(--art-newgame-desk, none); }
 
 /* A lamp's warmth that breathes a little, as a filament does. */
 .scene-light {
@@ -3868,7 +3868,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 4px 28px 5px;
   border: 0;
   border-radius: 3px;
-  background: url('/art/ui/plaque.jpg') center / 100% 100% no-repeat, #e8dcc0;
+  background: var(--art-plaque, none) center / 100% 100% no-repeat, #e8dcc0;
   color: #2b1d10;
   cursor: pointer;
   box-shadow:
@@ -4055,7 +4055,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   padding: 4px 14px;
   border: 0;
   border-radius: 2px;
-  background: url('/art/ui/plaque.jpg') center / 100% 100% no-repeat, #e8dcc0;
+  background: var(--art-plaque, none) center / 100% 100% no-repeat, #e8dcc0;
   font: 700 13px/1 'Cinzel', serif;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -4264,7 +4264,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* Bakelite for every button in the game; brass stays brass. */
 .btn {
-  background: url('/art/ui/plaque.jpg') center / 100% 100% no-repeat, var(--paper-button);
+  background: var(--art-plaque, none) center / 100% 100% no-repeat, var(--paper-button);
   border: 1px solid #7a5716;
   border-radius: 2px;
   color: #33210f;
@@ -4291,7 +4291,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .organizer-frame .journal-tabs .jtab {
   border: 0;
   border-radius: 7px 7px 0 0;
-  background: #4a1a14 url('/art/ui/leather-oxblood.jpg') center / 260px;
+  background: #4a1a14 var(--art-leather-oxblood, none) center / 260px;
   color: #e8c778;
   box-shadow: inset 0 1px 0 rgba(255, 210, 150, 0.25), inset 0 0 0 1px rgba(0, 0, 0, 0.5), 0 -2px 8px rgba(0, 0, 0, 0.45);
   filter: brightness(0.82);
@@ -4309,7 +4309,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .organizer-frame .journal-tabs .jtab .label .icon { filter: sepia(1) saturate(2.5) brightness(1.4); }
 .organizer-frame .journal-tabs .jtab.on {
-  background: #efe5cc url('/art/ui/page-blank.jpg') center top / 600px;
+  background: #efe5cc var(--art-page-blank, none) center top / 600px;
   color: #2b1d10;
   filter: none;
   transform: none;
@@ -4321,7 +4321,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* ---- The binding ---- */
 .organizer-frame .planning-journal {
-  background: #3d140f url('/art/ui/leather-oxblood.jpg') center / 420px;
+  background: #3d140f var(--art-leather-oxblood, none) center / 420px;
   border-radius: 6px;
   box-shadow:
     0 40px 80px -10px rgba(0, 0, 0, 0.85),
@@ -4352,7 +4352,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .organizer-frame .planning-journal .page {
   background:
     radial-gradient(ellipse 80% 75% at 50% 45%, transparent 55%, rgba(120, 78, 28, 0.22) 100%),
-    #efe5cc url('/art/ui/page-blank.jpg') center / cover;
+    #efe5cc var(--art-page-blank, none) center / cover;
   border-radius: 2px;
   box-shadow: inset 0 0 0 1px rgba(90, 60, 20, 0.35), inset 14px 0 18px -14px rgba(60, 35, 10, 0.45), 0 2px 6px rgba(0, 0, 0, 0.45);
 }
@@ -4371,7 +4371,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* Order groups: larger bakelite tiles. */
 .group-btn {
-  background: url('/art/ui/plaque.jpg') center / 100% 100% no-repeat, var(--paper-button);
+  background: var(--art-plaque, none) center / 100% 100% no-repeat, var(--paper-button);
   border: 1px solid #7a5716;
   border-radius: 2px;
   box-shadow: 0 1px 0 rgba(255, 250, 230, 0.6) inset, 0 3px 6px rgba(0, 0, 0, 0.3);
@@ -4391,13 +4391,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .city-plan-heading h2 { font-size: 26px; }
 .city-plan-key { background: transparent; }
 .city-plan-tools button {
-  background: url('/art/ui/plaque.jpg') center / 100% 100% no-repeat, #efe6cf;
+  background: var(--art-plaque, none) center / 100% 100% no-repeat, #efe6cf;
   border: 1px solid #7a5716;
   border-radius: 2px;
   color: #33210f;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
-.city-plan-tools button:hover { color: #33210f; background: url('/art/ui/plaque.jpg') center / 100% 100% no-repeat, #efe6cf; border-color: #7a5716; filter: brightness(1.08); }
+.city-plan-tools button:hover { color: #33210f; background: var(--art-plaque, none) center / 100% 100% no-repeat, #efe6cf; border-color: #7a5716; filter: brightness(1.08); }
 .planning-interface .blueprint {
   background-color: #1a0f08;
   background-image:
@@ -4448,7 +4448,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .modal-back.street-loading {
   background:
     radial-gradient(ellipse 70% 60% at 50% 50%, rgba(10, 6, 3, .35), rgba(10, 6, 3, .85) 100%),
-    #10100e url('/art/brand/key-art-city.jpg') center / cover;
+    #10100e var(--art-key-art-city, none) center / cover;
 }
 .street-loading-card h2 { font-family: var(--font-display); font-weight: 800; letter-spacing: .05em; font-size: 26px; }
 .street-loading-tip {

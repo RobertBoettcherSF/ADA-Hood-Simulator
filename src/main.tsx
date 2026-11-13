@@ -1,4 +1,5 @@
 import './memProbeInstall';
+import { installArtPlaceholders } from './ui/artPlaceholders';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
@@ -14,6 +15,9 @@ void loadCityArt();
 
 // The desktop app's interface scale, before the first frame is drawn.
 installUiScale(() => useGame.getState().uiScale);
+
+// 1.2.29: the game runs with no art; missing pictures become placeholders.
+installArtPlaceholders();
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Root element missing');
