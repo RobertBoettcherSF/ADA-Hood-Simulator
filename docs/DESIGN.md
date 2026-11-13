@@ -238,6 +238,35 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.40 decisions
+
+Auto Test plays the office screens Robert listed: crackdown, graphs, loyalty, diplomacy, accountant, prisoners, patrol, refusers, charity, selling, staff cars and the FBI-agent hit, and reads only what a player can see (Robert). No game rule changes.
+
+1. Crackdown. Auto doesn't buy the newspaper or bribe reporters, because neither changes crackdowns. When our paper says the Mayor named us last week, Auto lies low that week and the lawyer pays the police chief.
+2. Paper business moves. No change: the game already puts a rival's reported purchases on our map.
+3. Rival strength. A rival's strength is the larger of the men we have identified and its manpower on the graph for last week.
+4. Fast-rising rival. A rival whose assets on the graph top ours 2 weeks running gets struck at its known banks, hotels or department stores: a trading bank is raided, the others are bombed (with dynamite) or torched. This needs the attack or Expendables crew, and doesn't happen while we are weak or the rival is off limits.
+5. Loyalty. When cash is below the reserve, pay is cut only to $20 under each man's ask, which costs no weekly loyalty (the cut itself costs 6 once). Only men above loyalty 30 are cut, never managers, and raises wait.
+6. Crimes. Risky targets stay below the top rival's crime count on last week's graph, because the Mayor names only the single most active gang. Auto tallies each man's heavy-crime points as the FBI files them (fading a tenth a week) and gives no heavy job that would push a man of the crew past 200. Lying low from suspicion 50 keeps us below the FBI case line (78 on the graph).
+7. Diplomacy. Auto mirrors each rival: we offer the stance it last offered us. This replaces the 1.2.38 ceasefire toward all.
+8. Tax. The accountant holds tax back while the held-back sum stays under $2,000 and his evasion weeks in the last 16 stay within his safe count at the FBI's worst-case zeal: (intelligence byte ÷ 2) + 150 ≥ 207 + 10 × weeks. He stops for good once the FBI says it wants him.
+9. Audit. One audit a week, on the manager of our most profitable illegal business, taking each in turn. A manager who took in more than he declared is raised to his ask if he's underpaid. Otherwise he is replaced: the manager swap takes him first, without the 10% rule.
+10. Prisoners. Each prisoner gets a d4 each week: 1–2 means interrogate while he has something left to tell; 3 means kill if his gang is at war with us, otherwise interrogate; 4 means release.
+11. Patrol. An armed crew (attack or Expendables) patrols our blocks where rival men were reported last week. Full movement planning comes later.
+12. Refusers. A shop that refused us is intimidated. If it refuses again, it is smashed up. If it still refuses, it is bought when the price leaves the cash above the reserve.
+13. Charity. When cash is above the reserve, a random 33–66% of the excess goes to the church or orphanage in the poorest block, ours first.
+14. Selling. Any weapon kind above 50 in the cache is sold down to 50. Guns with crews and the attack crew's reserved guns don't count.
+15. Losing premises. Premises that trade with no profit for 3 weeks running are shut down.
+16. Office guard. Guard Office stays while the office was attacked in the last 3 weeks (our men lost there, or the office damaged), or while no armed pool hood is inside. After that the pool defends it. The pool keeps 10 defenders plus 10 per rival at war with us, and Auto buys a shotgun for the cache for every pool hood instead of revolvers.
+17. Staff cars. The lawyer, then the accountant, gets the cheapest car when the cash stays above the reserve after buying it.
+18. Kill and kidnap targets. Targets are picked by role (lieutenant first), then by the last-seen place nearest our office, never by their skills.
+19. Retaliation crew size. A target's crew is the known men of his gang reported in the same block at the same minute as his last sighting.
+20. Officials. Auto acts on the band the Lawyer tab shows (friendly above +20, hostile below −20). The chief is paid when his band drops or after a crackdown naming, the mayor when his band drops. The police count as hostile when most officers show hostile.
+21. Squealers. Each squealer is bribed by a crew while cash above the reserve covers it. The others are intimidated, but only at a business of theirs that refused us, as the game allows. Campaign collecting skips squealers instead of reading hostility.
+22. Rival deaths. A rival man who leaves our identified list is missing, with his last sighting kept. He counts as dead only once a message, news item or our report names him dead. Auto never reads true status.
+23. FBI log. The log names the site where the agent was seen, not the agent's hidden assignment.
+24. FBI agents. Agents seen within 30 m of our HQ, offices, illegal businesses or their fronts are targeted, and only an Expendable is sent. The hit also goes out while lying low.
+
 ## v1.2.39 decisions
 
 The pool waits inside the office and defends it, return fire, attack guns kept in the cache, a bigger pool, and route and quota changes (Robert). Game rules 1–4 apply to every gang, the player's included.
