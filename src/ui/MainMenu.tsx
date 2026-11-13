@@ -11,6 +11,7 @@ import { HelpSheet } from './HelpSheet';
 import { applyTutorial, tutorialById, TUTORIALS } from '../app/tutorials';
 import { HallOfFame } from './HallOfFame';
 import { Leaderboard } from './Leaderboard';
+import { isTyping, TYPING_FIELDS, useWindowKey } from './input';
 
 type Sheet = null | 'load' | 'tutorials' | 'hall' | 'leaderboard' | 'help' | 'credits';
 
@@ -112,21 +113,17 @@ export function MainMenu() {
   useEffect(() => { audio.music(sheet === 'credits' ? 'credits' : 'menu'); }, [sheet]);
 
   // The table answers the keyboard as the original's menus did.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (document.querySelector('[aria-modal="true"]')) return;
-      if ((e.target as HTMLElement)?.closest('input, select, textarea, a, [contenteditable="true"]')) return;
-      if (sheet) {
-        if (e.key === 'Escape') setSheet(null);
-        return;
-      }
-      if (e.key === 'ArrowDown') { setCursor((c) => Math.min(entries.length - 1, c + 1)); audio.hover(); }
-      else if (e.key === 'ArrowUp') { setCursor((c) => Math.max(0, c - 1)); audio.hover(); }
-      else if (e.key === 'Enter' && !(e.target as HTMLElement)?.closest('button')) { audio.plaque(); entries[cursor]?.go(); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [sheet, cursor, entries]);
+  useWindowKey((e) => {
+    if (document.querySelector('[aria-modal="true"]')) return;
+    if (isTyping(e.target, `${TYPING_FIELDS}, a`)) return;
+    if (sheet) {
+      if (e.key === 'Escape') setSheet(null);
+      return;
+    }
+    if (e.key === 'ArrowDown') { setCursor((c) => Math.min(entries.length - 1, c + 1)); audio.hover(); }
+    else if (e.key === 'ArrowUp') { setCursor((c) => Math.max(0, c - 1)); audio.hover(); }
+    else if (e.key === 'Enter' && !isTyping(e.target, 'button')) { audio.plaque(); entries[cursor]?.go(); }
+  });
 
   return (
     <div className="scene scene-casino">

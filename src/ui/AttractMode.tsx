@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useGame } from '../app/store';
+import { addAnyInputListener, swallow } from './input';
 
 const SHOT_MS = 9000;
 
@@ -12,10 +13,7 @@ export function AttractMode() {
   const endAttract = useGame((s) => s.endAttract);
   useEffect(() => {
     // Captured first, so nothing in the city or its keyboard handlers acts on it.
-    const leave = (e: Event) => { e.preventDefault(); e.stopImmediatePropagation(); endAttract(); };
-    window.addEventListener('keydown', leave, true);
-    window.addEventListener('pointerdown', leave, true);
-    window.addEventListener('wheel', leave, { capture: true, passive: false });
+    const stop = addAnyInputListener((e) => { swallow(e); endAttract(); }, true);
     const cut = () => {
       const { sim, requestCamera } = useGame.getState();
       if (!sim || sim.world.phase !== 'week') return;
@@ -26,9 +24,7 @@ export function AttractMode() {
     const first = window.setTimeout(cut, 1500);
     const timer = window.setInterval(cut, SHOT_MS);
     return () => {
-      window.removeEventListener('keydown', leave, true);
-      window.removeEventListener('pointerdown', leave, true);
-      window.removeEventListener('wheel', leave, true);
+      stop();
       window.clearTimeout(first); window.clearInterval(timer);
     };
   }, [endAttract]);

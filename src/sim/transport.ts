@@ -29,13 +29,21 @@ export const PURSUIT_PACE = 1.5;
 export function runningCivilian(p: Person): boolean {
   if (p.role !== 'citizen' || p.inVehicle || p.dest == null) return false;
   // Asked every minute for every walker: remembered per leg (the dest object).
-  const dest = p.dest;
-  if (runningLeg[p.id] === dest) return runningFlag[p.id] === 1;
-  const running = hash32(p.id * 7919 + Math.round(dest.x * 4) * 131 + Math.round(dest.y * 4)) % 64 === 0;
-  runningLeg[p.id] = dest; runningFlag[p.id] = running ? 1 : 0;
+  const dest = p.dest, id = p.id;
+  if (id < runningLeg.length && runningLeg[id] === dest) return runningFlag[id] === 1;
+  const running = hash32(id * 7919 + Math.round(dest.x * 4) * 131 + Math.round(dest.y * 4)) % 64 === 0;
+  if (id >= runningLeg.length) growRunning(id);
+  runningLeg[id] = dest; runningFlag[id] = running ? 1 : 0;
   return running;
 }
-const runningLeg: (Vec2 | undefined)[] = [], runningFlag: number[] = [];
+// Dense arrays sized past the highest id: written at scattered ids, a plain
+// [] fell back to a slow dictionary and this lookup cost more than the walk.
+let runningLeg: (Vec2 | null)[] = [], runningFlag = new Uint8Array(0);
+function growRunning(id: number): void {
+  const size = Math.max(id + 1, runningLeg.length * 2, 1024);
+  runningLeg = runningLeg.concat(new Array<Vec2 | null>(size - runningLeg.length).fill(null));
+  const flags = new Uint8Array(size); flags.set(runningFlag); runningFlag = flags;
+}
 export function transportSpeed(p: Person, w?: WorldState): number {
   // Someone sent after a person on foot hurries, or an ambling target would
   // keep the same lead for ever at the original's walking pace.
@@ -82,12 +90,16 @@ export function syncVehicle(w: WorldState, v: FleetVehicle): void {
     p.path = d.path.map(x => ({...x})); p.halted = d.halted;
   }
 }
+/** Boardings so far (any world): ambient.ts reuses a slice's list of riders only while nobody has boarded since. */
+let boardings = 0;
+export function boardingCount(): number { return boardings; }
 export function tryBoard(w: WorldState, v: FleetVehicle): void {
   if (!v.boarding || !v.occupantIds.length) return;
   if (v.boardAfter != null) { if (absoluteMinute(w) < v.boardAfter) return; delete v.boardAfter; }
   const people = v.occupantIds.map(id=>w.people[id]);
   if (people.some(p=>!p || dist(p.pos,v.pos)>3)) return;
   v.boarding = false;
+  boardings++;
   for(const p of people){p.inVehicle=true;p.pos={...v.pos};clearDestination(p);}
   const driver = w.people[v.driverId!];
   if(v.destination)setDestination(w,driver,v.destination);

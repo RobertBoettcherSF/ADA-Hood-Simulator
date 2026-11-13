@@ -12,7 +12,6 @@ import type { Building, Gang, ID, Order, Person, Team, WorldState } from '../sim
 export const ACTION_KEYS = ['raid', 'pressRefuser', 'torchRival', 'bombRival', 'kidnapRival', 'killRival', 'snitch',
   'bribeJudge', 'bribeDA', 'bribeWitness', 'scareWitness', 'bribeJuror', 'strikeFbi', 'strikeHQ'] as const;
 /** Answers to a trial: chosen only while one of the gang's men is up before a court. */
-export const TRIAL_KEYS: readonly ActionKey[] = ['bribeJudge', 'bribeDA', 'bribeWitness', 'scareWitness', 'bribeJuror'];
 export type ActionKey = (typeof ACTION_KEYS)[number];
 export type ActionRanks = Record<ActionKey, number>;
 
@@ -157,6 +156,8 @@ export const isAutoCrewName = (name: string) => AUTO_NAME.test(name.trim());
 /** The lieutenant's first name and the crew's job; null when the player named the crew. */
 export function crewNameFor(current: string, role: CrewRole, lieutenantName: string): string | null {
   if (!isAutoCrewName(current)) return null;
+  // 1.2.23 (Robert): the crew that buys and sets up is simply "Business".
+  if (role === 'business') return CREW_JOBS.business;
   const first = lieutenantName.trim().split(/\s+/)[0] || 'The';
   return `${first}'s ${CREW_JOBS[role]}`;
 }

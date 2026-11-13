@@ -229,10 +229,6 @@ export function playbookForNewCity(diary: Diary | null): RivalPlaybook | null {
   return { weights: { ...best.strategy.weights }, priority: [...best.strategy.priority] };
 }
 
-export function strategyLines(strategy: PlayStrategy): string {
-  return formatStrategy(strategy).join('\n');
-}
-
 export interface BalanceWeek {
   week: number;
   cash: number;

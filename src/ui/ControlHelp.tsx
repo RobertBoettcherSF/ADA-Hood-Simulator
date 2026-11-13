@@ -4,6 +4,7 @@ import { MINUTES_PER_WEEK } from '../sim/constants';
 import { SKILLS, SKILL_LABELS } from '../sim/types';
 import { skillStars } from './preferredCrew';
 import { CONTROL_EXCLUDE, CONTROL_SCOPE, CONTROL_SELECTOR, controlHelp, controlHelpFor, controlLabel, keyFromTip } from './controlHelp';
+import { isTyping } from './input';
 
 interface Shown {
   kind: 'tip' | 'card';
@@ -140,7 +141,7 @@ export function ControlHelp() {
       if (event.defaultPrevented) return;
       const target = event.target instanceof Element ? event.target : null;
       if (!target || !target.closest(CONTROL_SCOPE) || target.closest(CONTROL_EXCLUDE)) return;
-      if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (isTyping(target)) return;
       event.preventDefault();
       const el = controlAt(target);
       window.clearTimeout(timer);

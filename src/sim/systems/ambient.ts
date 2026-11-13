@@ -1,8 +1,9 @@
 import { BLOCK_SIZE, CELL } from '../constants';
 import { presentPhoto } from '../presentationEvents';
 import { specialistParticipants, specialistVisitTargets } from '../specialistJobs';
-import { clearDestination, earlySteps, setDestination, stepPerson } from '../movement';
+import { clearDestination, noteEarlyStep, setDestination, stepPerson } from '../movement';
 import { trafficContext } from '../traffic';
+import { boardingCount } from '../transport';
 import { peopleSlice } from '../peopleSlices';
 import type { Rng } from '../rng';
 import type { Block, Person, WorldState } from '../types';
@@ -21,7 +22,14 @@ export function tickAmbient(w: WorldState, rng: Rng, minutes: number,
   const traffic = slice?.traffic ?? trafficContext(w);
   const meeting = specialistParticipants(w), awaited = specialistVisitTargets(w);
   // One slice of the city at a time (sim.ts), or everyone; both in id order.
-  const people = slice ? peopleSlice(w, slice.index, slice.count) : Object.values(w.people);
+  // The tick's drivers-only pass over a slice that ran ahead walks the riders
+  // that slice left behind (same people, same id order) while nobody has
+  // boarded and nobody been born since: touching all its people again just to
+  // find the few in cars cost a tenth of the minute.
+  const kept = slice?.vehicles === 'only' ? keptRiders(w, slice.index, slice.count) : undefined;
+  const people = kept ?? (slice ? peopleSlice(w, slice.index, slice.count) : Object.values(w.people));
+  const riders: Person[] | undefined = slice?.vehicles === 'skip' ? [] : undefined;
+  const boardedBefore = riders ? boardingCount() : 0, bornBefore = w.nextId;
   const one = (p: Person): void => {
     if (p.status !== 'active' || p.burningEscape?.week===w.week || p.emergencyResponse || p.shockReaction) return;
     // Cars are drawn along the minute they drove since the tick, so they drive
@@ -36,13 +44,36 @@ export function tickAmbient(w: WorldState, rng: Rng, minutes: number,
       // slice leaves alone (crews on orders) are drawn as before.
       const x = p.pos.x, y = p.pos.y, path = p.path;
       ambientPerson(w, rng, p, minutes, traffic, meeting, awaited);
-      if (p.pos.x !== x || p.pos.y !== y || p.path !== path) earlySteps.set(p, { x, y });
+      if (p.pos.x !== x || p.pos.y !== y || p.path !== path) noteEarlyStep(p, x, y);
       return;
     }
     ambientPerson(w, rng, p, minutes, traffic, meeting, awaited);
   };
+  if (riders) {
+    if (scan) for (const p of people) { one(p); scan(p); if (p.inVehicle) riders.push(p); }
+    else for (const p of people) { one(p); if (p.inVehicle) riders.push(p); }
+    if (boardingCount() === boardedBefore && w.nextId === bornBefore) keepRiders(w, slice!.index, slice!.count, riders);
+    else keepRiders(w, slice!.index, slice!.count, undefined);
+    return;
+  }
   if (scan) for (const p of people) { one(p); scan(p); }
   else for (const p of people) one(p);
+}
+
+/** Riders per early slice, for the coming minute; dropped when anyone boards or is born before the tick. */
+let ridersKept: { world: WorldState; minute: number; count: number; boarded: number; born: number; lists: (Person[] | undefined)[] } | null = null;
+function keepRiders(w: WorldState, index: number, count: number, list: Person[] | undefined): void {
+  if (!ridersKept || ridersKept.world !== w || ridersKept.minute !== w.minute || ridersKept.count !== count)
+    ridersKept = { world: w, minute: w.minute, count, boarded: boardingCount(), born: w.nextId, lists: new Array(count) };
+  // Every slice's list must hold at the tick: a boarding or a birth since any of them voids all.
+  if (ridersKept.boarded !== boardingCount() || ridersKept.born !== w.nextId) ridersKept.lists = new Array(count);
+  ridersKept.boarded = boardingCount(); ridersKept.born = w.nextId;
+  ridersKept.lists[index] = list;
+}
+function keptRiders(w: WorldState, index: number, count: number): Person[] | undefined {
+  const k = ridersKept;
+  if (!k || k.world !== w || k.minute !== w.minute || k.count !== count || k.boarded !== boardingCount() || k.born !== w.nextId) return undefined;
+  return k.lists[index];
 }
 
 /** One person's ambient minute (everyone not on an order). */
@@ -73,7 +104,7 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
     switch (p.role) {
       case 'citizen':
       case 'snitch': {
-        if (!p.dest) {
+        if (p.dest == null) {
           // The original's civilians are nearly always walking: on arrival a
           // wait of rand & 7 ticks, then the next errand (0x5D2740 idle branch,
           // 0x5D25A0). A brief pause here — about two real seconds.
@@ -108,7 +139,7 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
         break;
       }
       case 'police': {
-        if (!p.dest) {
+        if (p.dest == null) {
           // Officers off duty walk their beat rather than stand on the kerb.
           if (rng.chance(Math.min(1, BEAT_RESTART * minutes))) wanderTo(w, rng, p, 2);
         } else {

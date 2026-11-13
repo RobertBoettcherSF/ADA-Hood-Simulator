@@ -11,6 +11,7 @@ import { ElevatedTrains } from './elevatedTrains';
 import { StreetTrams } from './streetTrams';
 import { cityTramLines } from '../sim/trams';
 import { BLOCK_MODULE_BY_ID, modulePoint, moduleRect } from '../sim/blockModules';
+import { EDGE_PARK_WIDTH, edgeParkTrees } from './edgeParks';
 
 /** Static, batched municipal grounds and inset tram rails, with the trams that run on them. */
 export class CityLandscape {
@@ -79,6 +80,37 @@ export class CityLandscape {
     const gravelMap = new THREE.CanvasTexture(gravel); gravelMap.colorSpace = THREE.SRGBColorSpace;
     gravelMap.wrapS = gravelMap.wrapT = THREE.RepeatWrapping; gravelMap.anisotropy = 8;
     materials[9].map = gravelMap; this.textures.push(gravelMap);
+
+    // 1.2.23: parkland round the city's edge, so the city ends in green and not
+    // in the dark. Scenery only: outside every block, never counted or walked.
+    {
+      const cityW = w.gridW * CELL, cityH = w.gridH * CELL, band = EDGE_PARK_WIDTH, y = -.02;
+      const strip = (x: number, z: number, sw: number, sh: number) => {
+        const g = new THREE.PlaneGeometry(sw, sh).rotateX(-Math.PI / 2);
+        const pos = g.getAttribute('position'), uv = g.getAttribute('uv');
+        for (let n = 0; n < uv.count; n++) uv.setXY(n, (pos.getX(n) + x + sw / 2) / 9, (pos.getZ(n) + z + sh / 2) / 9);
+        add(g, 0, x + sw / 2, y, z + sh / 2);
+      };
+      strip(-band, -band, cityW + band * 2, band);
+      strip(-band, cityH, cityW + band * 2, band);
+      strip(-band, 0, band, cityH);
+      strip(cityW, 0, band, cityH);
+      // A gravel walk round the city.
+      const walk = band * .52;
+      line(9, -walk, -walk, cityW + walk, -walk, y + .02, 2.4, .02);
+      line(9, -walk, cityH + walk, cityW + walk, cityH + walk, y + .02, 2.4, .02);
+      line(9, -walk, -walk, -walk, cityH + walk, y + .02, 2.4, .02);
+      line(9, cityW + walk, -walk, cityW + walk, cityH + walk, y + .02, 2.4, .02);
+      for (const [i, t] of edgeParkTrees(w).entries()) {
+        const height = 5.1 + r01(i, 1987) * .9;
+        if (detailedTrees) this.trees.push({ kind: TREE_KINDS[i % TREE_KINDS.length], x: t.x, y, z: t.y, height, angle: r01(i, 1988) * Math.PI * 2 });
+        else {
+          add(new THREE.CylinderGeometry(.10, .19, height * .6, 6), 4, t.x, y + height * .3, t.y);
+          const crown = new THREE.IcosahedronGeometry(1.7, 1); crown.scale(1, 1.35, 1);
+          add(crown, 5, t.x, y + height * .7, t.y);
+        }
+      }
+    }
 
     for (const b of activeBlocks(w)) {
       const placement = b.layout?.module, module = placement && BLOCK_MODULE_BY_ID[placement.id];

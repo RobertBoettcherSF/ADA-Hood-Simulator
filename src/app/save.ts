@@ -53,10 +53,12 @@ export function utf8Length(text: string): number {
   return bytes;
 }
 
-let lastSave: { world: WorldState; week: number; bytes: number } | null = null;
+/** 1.2.23: keyed weakly, so a finished city is not held in memory by its last save's size. */
+const lastSave = new WeakMap<WorldState, { week: number; bytes: number }>();
 /** Size of the save just written for this world and week, so Auto Test need not stringify the city again. */
 export function lastSavedBytes(world: WorldState): number | null {
-  return lastSave && lastSave.world === world && lastSave.week === world.week ? lastSave.bytes : null;
+  const last = lastSave.get(world);
+  return last && last.week === world.week ? last.bytes : null;
 }
 
 // Identity belongs to the save envelope, not deterministic simulation state.
@@ -153,7 +155,7 @@ export async function saveGame(name: string, world: WorldState, frozen = false):
     const worldJson = await stringifyFrozenWorld(world);
     const boss = Object.values(world.gangs).find((g) => g.isPlayer);
     await living.write(instanceFile('world.json'), worldJson);
-    lastSave = { world, week: world.week, bytes: utf8Length(worldJson) };
+    lastSave.set(world, { week: world.week, bytes: utf8Length(worldJson) });
     await living.write(instanceFile('manifest.json'), JSON.stringify({
       format: 1,
       game: 'ada-hood-simulator',
@@ -195,7 +197,7 @@ export async function saveGame(name: string, world: WorldState, frozen = false):
       tx.onabort = () => reject(tx.error ?? new Error('Save transaction aborted'));
       tx.objectStore(STORE).put(slot);
     });
-    lastSave = { world, week: world.week, bytes: utf8Length(worldJson) };
+    lastSave.set(world, { week: world.week, bytes: utf8Length(worldJson) });
   } finally {
     db.close();
   }

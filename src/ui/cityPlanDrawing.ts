@@ -4,6 +4,7 @@ import { buildingMapIntel } from '../sim/mapIntel';
 import type { Block, Building, BuildingClass, ID, WorldState } from '../sim/types';
 import { activeBlocks, blockRect } from '../sim/cityLayout';
 import { cityTramLines } from '../sim/trams';
+import { EDGE_PARK_WIDTH, edgeParkTrees } from '../render/edgeParks';
 
 /**
  * The City Plan, drawn after the original's organizer map: dark asphalt
@@ -95,8 +96,24 @@ export function planIcon(b: Building): PlanIcon | null {
   if (b.typeId === 'fbiHQ') return 'fbi';
   return null;
 }
-/** Kept for callers that only need to know whether a site is a public landmark. */
-export function planLandmark(b: Building): string | null { return planIcon(b); }
+
+// ---------------------------------------------------------------- the edge
+
+/** The band of parkland outside the city's edge, so the plan ends in green rather than black. */
+function drawEdgeParks(ctx: CanvasRenderingContext2D, w: WorldState,
+  X: (x: number) => number, Y: (y: number) => number, S: (n: number) => number): void {
+  const cityW = w.gridW * CELL, cityH = w.gridH * CELL, band = EDGE_PARK_WIDTH;
+  ctx.fillStyle = PLAN.park;
+  ctx.fillRect(X(-band), Y(-band), S(cityW + band * 2), S(cityH + band * 2));
+  // A footpath running round the city just outside its edge.
+  ctx.strokeStyle = PLAN.parkPath; ctx.lineWidth = Math.max(1, S(2));
+  ctx.strokeRect(X(-band * .52), Y(-band * .52), S(cityW + band * 1.04), S(cityH + band * 1.04));
+  if (S(1) >= .25) {
+    ctx.fillStyle = PLAN.tree;
+    const r = Math.max(1, S(3.2));
+    for (const t of edgeParkTrees(w)) { ctx.beginPath(); ctx.arc(X(t.x), Y(t.y), r, 0, Math.PI * 2); ctx.fill(); }
+  }
+}
 
 // ---------------------------------------------------------------- the network
 
@@ -104,6 +121,7 @@ export function planLandmark(b: Building): string | null { return planIcon(b); }
 export function drawCityLandscape(ctx: CanvasRenderingContext2D, w: WorldState,
   X: (x: number) => number, Y: (y: number) => number, S: (n: number) => number): void {
   const blocks = activeBlocks(w), px = S(1);
+  drawEdgeParks(ctx, w, X, Y, S);
   // Asphalt across the whole city; each block then sits on its pavement.
   ctx.fillStyle = PLAN.road; ctx.fillRect(X(0), Y(0), S(w.gridW * CELL), S(w.gridH * CELL));
   // The original city's wide stone pavements and narrow carriageways.

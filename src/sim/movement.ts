@@ -308,8 +308,49 @@ export function stepPerson(p: Person, minutes: number, traffic?: TrafficContext,
   // same: afterTransportStep returns arrived at once when there is no vehicle.
   return world && p.vehicleKey ? afterTransportStep(world,p,arrived) : arrived;
 }
+/**
+ * Each walker's next waypoint, copied out of his route (x, y and the crossing
+ * length, 0 for none) and keyed by the route array it came from. Routes are
+ * only ever replaced (a new array) or shortened at the front by stepRoute,
+ * which drops the copy (dropFront), so a copy whose array is still the
+ * person's route is still its first point.
+ */
+let cachedPath: (PathPoint[] | null)[] = new Array<PathPoint[] | null>(1024).fill(null);
+let cachedX = new Float64Array(1024), cachedY = new Float64Array(1024), cachedCross = new Float64Array(1024);
+/** Fill the copy of p's next waypoint; false when the route is empty. */
+export function nextPoint(p: Person): boolean {
+  const id = p.id, path = p.path;
+  if (id < cachedPath.length && cachedPath[id] === path) return true;
+  if (!path.length) return false;
+  if (id >= cachedPath.length) {
+    // Dense, never holey: scattered writes would turn a plain array into a slow dictionary.
+    const size = Math.max(id + 1, cachedPath.length * 2);
+    const grow = (a: Float64Array) => { const b = new Float64Array(size); b.set(a); return b; };
+    cachedX = grow(cachedX); cachedY = grow(cachedY); cachedCross = grow(cachedCross);
+    cachedPath = cachedPath.concat(new Array<PathPoint[] | null>(size - cachedPath.length).fill(null));
+  }
+  const next = path[0];
+  cachedX[id] = next.x; cachedY[id] = next.y; cachedCross[id] = next.cross || 0;
+  cachedPath[id] = path;
+  return true;
+}
+/** The copied next waypoint of p (call nextPoint first): x, y, crossing length (0 for none). */
+export function nextPointX(p: Person): number { return cachedX[p.id]; }
+export function nextPointY(p: Person): number { return cachedY[p.id]; }
+export function nextPointCross(p: Person): number { return cachedCross[p.id]; }
+
+/** path.splice(0, n) without building the array of removed points (a walker turns a corner thousands of times a minute citywide). */
+function dropFront(p: Person, path: PathPoint[], n: number): void {
+  // Its first point changes: the walker's copy no longer stands for it. (A
+  // route is never shared between people: each is built for its walker.)
+  const len = path.length;
+  if (p.id < cachedPath.length && cachedPath[p.id] === path) cachedPath[p.id] = null;
+  for (let i = n; i < len; i++) path[i - n] = path[i];
+  path.length = len - n;
+}
 function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?: WorldState): boolean {
-  if (!p.dest) { if (p.commandFraction !== undefined) p.commandFraction = undefined; return true; }
+  // `== null`, not `!p.dest`: the same test for a point or nothing, without reading the point.
+  if (p.dest == null) { if (p.commandFraction !== undefined) p.commandFraction = undefined; return true; }
   // Most walkers carry no command fraction; skip the map write for them.
   const fraction = p.commandFraction;
   if (fraction !== undefined) { minutes = Math.max(0, minutes - fraction); p.commandFraction = undefined; }
@@ -319,11 +360,14 @@ function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?:
   // still short of it. Footways are axis-aligned, so the distance is |dx| or
   // |dy|, which matches Math.hypot when the other side is exactly 0. The move
   // is the same (dx/d)*budget, written as a signed budget along that axis.
-  if (!p.inVehicle && p.path.length) {
-    const pos = p.pos, next = p.path[0];
-    const dx = next.x - pos.x, dy = next.y - pos.y;
+  // 1.2.23: the next corner comes from the walker's cached copy (nextPoint),
+  // not from his route's array and point objects: the same numbers, without
+  // three more reads from far apart in memory for every walker every minute.
+  if (!p.inVehicle && nextPoint(p)) {
+    const pos = p.pos, nx = cachedX[p.id], ny = cachedY[p.id], cross = cachedCross[p.id];
+    const dx = nx - pos.x, dy = ny - pos.y;
     const d = dy === 0 ? (dx < 0 ? -dx : dx) : dx === 0 ? (dy < 0 ? -dy : dy) : Math.hypot(dx, dy);
-    if (traffic && next.cross && d >= next.cross - 0.75 && crossingHasTraffic(traffic, pos, next)) {
+    if (traffic && cross !== 0 && d >= cross - 0.75 && crossingHasTraffic(traffic, pos, p.path[0])) {
       p.halted = true;
       return false;
     }
@@ -347,7 +391,7 @@ function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?:
     if (index >= path.length) {
       p.pos.x = p.dest.x;
       p.pos.y = p.dest.y;
-      if (index) path.splice(0, index);
+      if (index) dropFront(p, path, index);
       clearDestination(p);
       return true;
     }
@@ -358,20 +402,20 @@ function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?:
     // Still on the kerb at the start of a crossing: look before stepping off.
     if (traffic && next.cross && !p.inVehicle && d >= next.cross - 0.75 && crossingHasTraffic(traffic, p.pos, next)) {
       p.halted = true;
-      if (index) path.splice(0, index);
+      if (index) dropFront(p, path, index);
       return false;
     }
     // At the wheel: somebody on a crossing ahead means a stop. Standing on
     // the waypoint itself there is no heading yet; take it first.
     if (traffic && p.inVehicle && d > 0.5 && roadAheadBlocked(traffic, p.pos, next)) {
       p.halted = true;
-      if (index) path.splice(0, index);
+      if (index) dropFront(p, path, index);
       return false;
     }
     // A slower car in front: close up behind it and keep its pace.
     if (traffic && p.inVehicle && d > 0.5) {
       budget = Math.min(budget, roadAheadRoom(traffic, p.pos, next, vehicleDriver(world ?? traffic.world!, p), path[index + 1]));
-      if (budget <= 0) { if (index) path.splice(0, index); return false; }
+      if (budget <= 0) { if (index) dropFront(p, path, index); return false; }
     }
     if (d <= budget) {
       p.pos.x = next.x;
@@ -380,7 +424,7 @@ function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?:
       budget -= d;
       if (p.inVehicle) { noteDrive(p, p.pos, true); if (car) noteDrive(car, p.pos, true); }
       if (index >= path.length) {
-        if (index) path.splice(0, index);
+        if (index) dropFront(p, path, index);
         clearDestination(p);
         return true;
       }
@@ -390,7 +434,7 @@ function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?:
       budget = 0;
     }
   }
-  if (index) path.splice(0, index);
+  if (index) dropFront(p, path, index);
   return false;
 }
 
@@ -402,6 +446,20 @@ function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?:
  * step put them; a minute's walk is about half a metre, so a straight line is exact.
  */
 export const earlySteps = new Map<Person, Vec2>();
+/** The points earlySteps holds, reused minute after minute: the tick clears the
+ * map before the next slice writes, and nobody keeps a point past it. A new
+ * point per walker per slice was about 50 million objects a week for the
+ * collector, most of the garbage the browser stopped to sweep. */
+const earlyPoints: Vec2[] = [];
+let earlyUsed = 0;
+export function noteEarlyStep(p: Person, x: number, y: number): void {
+  // An empty map holds no point, so every point is free again.
+  if (earlySteps.size === 0) earlyUsed = 0;
+  let v = earlyPoints[earlyUsed];
+  if (!v) { v = { x, y }; earlyPoints.push(v); } else { v.x = x; v.y = y; }
+  earlyUsed++;
+  earlySteps.set(p, v);
+}
 
 /**
  * Cars and lorries, where the minute's tick found them (keyed by the driver,

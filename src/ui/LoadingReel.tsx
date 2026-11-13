@@ -6,6 +6,7 @@ import { CityRenderer } from '../render/scene';
 import { VIEW_ZOOM } from '../render/viewModes';
 import { yieldForInput } from '../yieldForInput';
 import { LOADING_TIPS } from './StreetLoading';
+import { swallow } from './input';
 import {
   REEL_DUSK_MINUTE,
   REEL_DUSK_SPEED,
@@ -90,8 +91,7 @@ export function LoadingReel({ percent, ready, onSkip, onFallback }: {
 
     const skip = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
+      swallow(event);
       finish();
     };
     window.addEventListener('keydown', skip, true);

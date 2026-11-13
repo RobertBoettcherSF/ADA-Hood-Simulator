@@ -1,4 +1,5 @@
-import { devJournalWeeks, splitReport } from './devJournal';
+import { devJournalDropped, devJournalWeeks, splitReport } from './devJournal';
+import { startingConditions } from './startingConditions';
 import { instanceFile } from './instance';
 import { ERA_2032_ENABLED, ACTIVE_ERA } from './era';
 import { formatMemberLoss, memberLosses } from '../sim/memberLosses';
@@ -170,6 +171,8 @@ export function buildDebugReport(world: WorldState | null, version: string, comm
   lines.push(`Latest commit on main: ${commit ?? 'unavailable'}`);
   lines.push(`Storage: ${store ? `${store.kind} — ${store.label}` : 'not chosen'}`);
   lines.push('');
+  for (const line of startingConditions(world)) lines.push(line);
+  lines.push('');
   lines.push('Device');
   if (typeof navigator !== 'undefined') {
     lines.push(`User agent: ${navigator.userAgent}`);
@@ -286,9 +289,10 @@ export function buildDebugReport(world: WorldState | null, version: string, comm
   if (!errors.length) lines.push('(none)');
   for (const error of errors) lines.push(error);
   lines.push('');
-  // 1.2.21: the developer's full view, week by week (no size cap).
+  // 1.2.21: the developer's full view, week by week (1.2.23: the last JOURNAL_WEEKS kept).
   const journal = devJournalWeeks();
-  lines.push(`Developer journal (${journal.length} week${journal.length === 1 ? '' : 's'} this session)`);
+  const dropped = devJournalDropped();
+  lines.push(`Developer journal (${journal.length} week${journal.length === 1 ? '' : 's'} this session${dropped ? `; the ${dropped} oldest let go to bound memory` : ''})`);
   if (!journal.length) lines.push('(no week played this session)');
   for (const week of journal) lines.push(week);
   return lines.join('\n');

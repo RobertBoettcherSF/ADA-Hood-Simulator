@@ -12,11 +12,9 @@
  *   a few weeks.
  * - Rival HQs are only those the gang's own scouting has identified.
  */
-import { previewOrder, type IssueOrderInput } from '../sim/api';
 import { buildingMapIntel } from '../sim/mapIntel';
 import { buildingList } from '../sim/entityLists';
-import { MINUTES_PER_WEEK } from '../sim/constants';
-import type { Building, Gang, Team, WorldState } from '../sim/types';
+import type { Building, Gang, WorldState } from '../sim/types';
 
 /** Failures before a target is dropped, and for how many weeks. */
 export const FAILS_TO_DROP = 2;
@@ -92,15 +90,6 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
 export function buyAllowed(m: DeskMemory, teamId: number, buildingId: number): boolean {
   return !m.dropped.has(buildingId) && !m.failedPairs.has(`${teamId}:${buildingId}`);
 }
-
-/** The game's estimate for the order, times what the desk has learned it really takes. */
-export function realisticMinutes(w: WorldState, gangId: number, input: IssueOrderInput, m: DeskMemory): number | null {
-  const order = previewOrder(w, gangId, input);
-  if (!order) return null;
-  return Math.round(order.estimatedMinutes * m.ratio);
-}
-
-export const freeMinutes = (team: Team) => Math.max(0, MINUTES_PER_WEEK - team.timeUsed);
 
 export function moveRefused(m: DeskMemory, personId: number, teamId: number): boolean {
   return m.refusedMoves.has(`${personId}>${teamId}`) || m.refusedMoves.has(`>${teamId}`);
