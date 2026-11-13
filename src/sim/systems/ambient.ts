@@ -6,7 +6,7 @@ import { trafficContext } from '../traffic';
 import { boardingCount } from '../transport';
 import { peopleSlice } from '../peopleSlices';
 import type { Rng } from '../rng';
-import type { Block, Person, WorldState } from '../types';
+import type { Block, Building, Person, WorldState } from '../types';
 import { allBuildings, buildingDoor, dist } from '../world';
 
 /**
@@ -162,7 +162,7 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
       case 'lawyer': {
         // Gang members between jobs simply walk home.
         if (p.dest && stepPerson(p, minutes, traffic) && (p.role === 'lawyer' || p.role === 'accountant')) {
-          const home = allBuildings(w).find(b => b.ownerGangId === p.gangId && b.isHQ && dist(buildingDoor(w, b), p.pos) < 24);
+          const home = officeAtHand(w, p);
           if (home) { p.inVehicle = false; p.buildingId = home.id; p.pos = { ...w.lots[home.lotId].center }; }
         }
         break;
@@ -172,6 +172,14 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
         break;
     }
   }
+}
+
+/** The gang's office within reach of a specialist who has walked home. (1.2.24: kept
+ * out of ambientPerson — a closure there made V8 allocate a context on every call,
+ * about 1.3 GB a week of garbage on a 36 × 28 city.) */
+function officeAtHand(w: WorldState, p: Person): Building | undefined {
+  for (const b of allBuildings(w)) if (b.ownerGangId === p.gangId && b.isHQ && dist(buildingDoor(w, b), p.pos) < 24) return b;
+  return undefined;
 }
 
 /** Restart chances per simulated minute: civilians ~0.33 min (≈2 s real),

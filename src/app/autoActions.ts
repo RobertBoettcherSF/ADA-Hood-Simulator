@@ -240,9 +240,8 @@ export function talentSwaps(w: WorldState, teams: readonly Team[], roles: Map<ID
   const moved = new Set<ID>();
   for (const role of ['business', 'extortion', 'muscle'] as const) {
     const team = teams.find((t) => roles.get(t.id) === role);
-    // A crew already two above the smallest would only be evened out again on Monday.
-    const smallest = Math.min(...teams.map((t) => t.memberIds.length));
-    if (!team || team.memberIds.length >= 8 || team.memberIds.length + 1 - smallest >= 3) continue;
+    // 1.2.24: crews are filled to the maximum, no longer evened out.
+    if (!team || team.memberIds.length >= 9) continue;
     // The best man for this role who sits in a crew with a different role.
     const candidates = teams.filter((t) => t !== team && roles.get(t.id) !== role && t.memberIds.length > 2)
       .flatMap((t) => t.memberIds.map((id) => w.people[id]).filter((p): p is Person => !!p && p.status === 'active' && p.orderId == null && !moved.has(p.id)));
