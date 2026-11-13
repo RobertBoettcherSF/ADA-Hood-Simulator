@@ -8,3 +8,11 @@ Thumbs.db
 .memrun/
 memory-report-*.txt
 tests-report.txt
+# 1.2.29: the art lives in RobertBoettcherSF/ADA-Hood-Simulator-Assets; bash fetch-assets.sh puts it here.
+public/art/
+public/audio/
+public/asset-manifest.json
+play/art/
+play/audio/
+play/asset-manifest.json
+.assets/
