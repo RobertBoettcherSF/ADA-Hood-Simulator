@@ -850,8 +850,23 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const coverEstimate = accountantInt != null ? lastLegal * (0.5 + accountantInt * 0.22) + accountantInt * 400 : lastLegal * 0.2;
   const riskyLast = Math.max(0, gang.lastWeekIncome.illegal) + Math.max(0, gang.lastWeekIncome.protection);
   actions.push(`SUSPICION ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''}: risky $${Math.round(riskyLast)} (rackets $${Math.round(Math.max(0, gang.lastWeekIncome.illegal))}, protection $${Math.round(Math.max(0, gang.lastWeekIncome.protection))}), cover $${Math.round(coverEstimate)} (legal $${Math.round(lastLegal)}, ${accountantInt != null ? 'accountant' : 'no accountant'}), uncovered $${Math.round(gang.riskyMoney ?? 0)}, untaxed $${Math.round(gang.uncoveredTax ?? 0)}${cooling ? ' — cooling off' : ''}`);
-  // While suspicion is 50 or more, protection is collected only up to the cover left after the rackets.
-  const collectBudget = gang.suspicion >= SUSPICION_LIE_LOW ? Math.max(0, coverEstimate - Math.max(0, gang.lastWeekIncome.illegal)) : Infinity;
+  // The 40 × 32 city weighs suspicion differently: the FBI's total loses a tenth
+  // a week and rises by 2 × (office takings / premises takings − the accountant's
+  // limit). Collecting is not cut there — more legal premises and a clever
+  // accountant bring the ratio down.
+  const originalCity = !!w.cityLayout?.original;
+  const office = Math.max(0, gang.lastWeekIncome.protection + gang.lastWeekIncome.other);
+  const premisesTakings = Math.max(0, gang.lastWeekIncome.legal + gang.lastWeekIncome.illegal);
+  const opponentsWeight = w.options.opponents === 'passive' ? 16 : w.options.opponents === 'aggressive' ? 8 : 10;
+  const premisesBase = Math.max(100, Math.trunc(premisesTakings * opponentsWeight / 10));
+  const accountantByte = accountantInt != null ? Math.trunc(Math.round(Math.max(0, Math.min(5, accountantInt)) / 5 * 255) * 2 / 3) : 0;
+  const ratioLimit = 0.12 * (accountantByte || 1) + 9.88;
+  const officeRatio = office / premisesBase;
+  /** True when the office/premises ratio nears the limit: legal premises and the accountant come first. */
+  const legalPush = originalCity && officeRatio >= ratioLimit * 0.8;
+  if (originalCity) actions.push(`SUSPICION ratio: office takings $${Math.round(office)} / premises base $${premisesBase} = ${officeRatio.toFixed(1)} vs limit ${ratioLimit.toFixed(1)} (${accountantInt != null ? `accountant ${accountantInt.toFixed(1)}★` : 'no accountant'}) — rise about ${Math.max(0, Math.trunc((Math.trunc(officeRatio) - ratioLimit) * 2))} a week${legalPush ? '; legal premises and the accountant first' : ''}`);
+  // Elsewhere, while suspicion is 50 or more, protection is collected only up to the cover left after the rackets.
+  const collectBudget = !originalCity && gang.suspicion >= SUSPICION_LIE_LOW ? Math.max(0, coverEstimate - Math.max(0, gang.lastWeekIncome.illegal)) : Infinity;
   // Risky street work is capped so one raid cannot take the whole gang.
   const riskyCap = Math.max(2, Math.floor(Math.max(1, gangManpower(w, gang)) * (heat >= 1 ? RISKY_SHARE_EASING : RISKY_SHARE)));
   let riskyMen = 0;
@@ -1073,7 +1088,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   if (w.week >= 3 && gang.accountantId == null) {
     const desk = deskFor('accountant');
     // 1.2.23: after the hoods, unless suspicion is high (his books lower it).
-    if (desk) propose({ label: 'recruit accountant', kind: 'safety', value: gang.suspicion >= SUSPICION_LIE_LOW ? 6000 : gang.suspicion >= SUSPICION_BRIBE ? 1500 : 200, why: gang.suspicion >= SUSPICION_BRIBE ? `suspicion ${Math.round(gang.suspicion)}` : 'hoods first',
+    if (desk) propose({ label: 'recruit accountant', kind: 'safety', value: gang.suspicion >= SUSPICION_LIE_LOW || legalPush ? 6000 : gang.suspicion >= SUSPICION_BRIBE ? 1500 : 200, why: gang.suspicion >= SUSPICION_BRIBE ? `suspicion ${Math.round(gang.suspicion)}` : 'hoods first',
       input: { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'accountant' } } });
   }
 
@@ -1438,21 +1453,22 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // Legal takings weigh against protection money in the Bureau's sums, so
     // a suspicious gang buys shops whatever the strategy's buying weight.
     // While suspicion is up, legal cover comes before saving for a racket.
-    if (easing) savingFor.delete(w);
+    if (easing || legalPush) savingFor.delete(w);
     const saving = savingFor.get(w);
     if (key === 'buying' && saving && gang.cash < saving.cost * 1.5) {
       actions.push(`NOTE saving toward a ${saving.name} ($${saving.cost}) — no other premises this week`);
-    } else if (key === 'buying' && w.week >= 4 && (weight.buying >= 0.3 || easing)) {
-      const gate = easing ? 3000 : 8000 + (1 - weight.buying) * 8000;
-      const fraction = easing ? 0.75 : 0.15 + weight.buying * 0.5;
+    } else if (key === 'buying' && w.week >= 4 && (weight.buying >= 0.3 || easing || legalPush)) {
+      const coverFirst = easing || legalPush;
+      const gate = coverFirst ? 3000 : 8000 + (1 - weight.buying) * 8000;
+      const fraction = coverFirst ? 0.75 : 0.15 + weight.buying * 0.5;
       if (gang.cash > gate) {
         const sites = buildingList(w).filter((b) => {
           const cost = BUILDING_BY_ID[b.typeId]?.cost ?? 0;
           return b.ownerGangId == null && b.state === 'trading' && cost > 0 && cost < gang.cash * fraction;
         }).sort(nearer);
         // Legal takings cover the money the Bureau cannot explain: worth more while suspicion is up.
-        if (sites.length) planBuy('buy', sites, undefined, (b) => (BUILDING_BY_ID[b.typeId]?.profit ?? 0) * (easing ? 12 : 4), undefined, gang.cash * fraction);
-        else if (easing) actions.push(`NOTE no legal premises for sale under $${Math.round(gang.cash * fraction)}`);
+        if (sites.length) planBuy(legalPush ? 'buy (premises takings vs office takings)' : 'buy', sites, undefined, (b) => (BUILDING_BY_ID[b.typeId]?.profit ?? 0) * (coverFirst ? 12 : 4), undefined, gang.cash * fraction);
+        else if (coverFirst) actions.push(`NOTE no legal premises for sale under $${Math.round(gang.cash * fraction)}`);
       }
     }
     if (key === 'violence' && w.week >= 8 && policy.violence !== 'low' && (weight.violence >= 0.45 || policy.violence === 'high')) {
