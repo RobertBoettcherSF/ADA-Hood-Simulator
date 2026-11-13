@@ -222,6 +222,17 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## v1.2.31 decisions
+
+Auto Test crews and explosives (Robert). No game rule changes.
+
+1. **Refilling.** A crew refills with no weekly limit while there are hoods with 3★ or more for its skill (the business crew's four-a-week limit is gone).
+2. **Every crew lead.** Every crew (Recruit, Business, Collect, Intimidation and the rest) aims for a lead with 4★ in its lead skills — intimidation: intelligence, organization and intimidation; business and the others: intelligence, organization or the crew's own skills — and with none takes one with at least 3★ (business: 3★ business). When a better lead is recruited he takes over any crew by the 1.2.30 swap (the crew is broken up, he is promoted, the men and cars move back; the swap waits while the crew has orders running).
+3. **Big buildings.** As in 1.2.30.
+4. **Fill first.** Further crews open only once every crew is full and men wait in the pool (the "useful size" and "crews wanted" rules are gone); the basic crews still form as soon as a lead qualifies. The game has no way for the player to reorder the lieutenant list, so crews are not sorted by job.
+5. **Explosives.** Only a crew holding a bombing order carries explosives; every other crew hands them to the store every Monday. Explosives are bought into the store, and one goes from the store to the crew when it is given a bomb order. Whether a crew can bomb is judged by the store.
+6. **Attack.** Auto Test report text says "attack" for what it called a strike (HQ attack, the attack crew; the rough work crew is now "X's Attack", old "X's Strike" crews are renamed). Action keys stay as they were. HQ attacks themselves are unchanged.
+
 ## v1.2.30 decisions
 
 Auto Test crews, weapons and cars (Robert's plan). No game rule changes.

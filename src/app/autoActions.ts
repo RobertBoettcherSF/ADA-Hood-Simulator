@@ -22,8 +22,8 @@ export const ACTION_LABELS: Record<ActionKey, string> = {
   snitch: 'buy a snitch\'s names',
   bribeJudge: 'bribe the judge on a case', bribeDA: 'bribe the DA for the witness and juror lists',
   bribeWitness: 'pay a witness to forget', scareWitness: 'rough up a witness', bribeJuror: 'pay a juror',
-  strikeFbi: 'strike the FBI: kill its director',
-  strikeHQ: 'strike a rival HQ our scouts found',
+  strikeFbi: 'attack the FBI: kill its director',
+  strikeHQ: 'attack a rival HQ our scouts found',
 };
 
 export const RANK_MIN = 0.2;
@@ -147,12 +147,12 @@ export type CrewRole = 'business' | 'intimidation' | 'collect' | 'muscle' | 'rec
 
 /** The job word in a crew's name: "Eddie's Protection", "Eddie's Strike" (1.2.18). */
 export const CREW_JOBS: Record<CrewRole, string> = {
-  collect: 'Protection', recruit: 'Recruiting', intimidation: 'Intimidation', business: 'Business', muscle: 'Strike', scout: 'Scouting',
+  collect: 'Protection', recruit: 'Recruiting', intimidation: 'Intimidation', business: 'Business', muscle: 'Attack', scout: 'Scouting',
 };
 /** Names Auto Test (or the game) gave: the default "X's Crew", 1.2.17's bare job names, and "X's <Job>". */
 const OLD_NAMES = ['Collect Protection', 'Recruiting', 'Extortion', 'Business', 'Strike', 'Scouting'];
-/** 1.2.30: the job words crews carried before the extortion crew was renamed Intimidation. */
-const OLD_JOBS = ['Extortion'];
+/** 1.2.30: the job words crews carried before the extortion crew was renamed Intimidation (1.2.30) and the strike crew Attack (1.2.31). */
+const OLD_JOBS = ['Extortion', 'Strike'];
 const AUTO_NAME = new RegExp(`^(.+'s (Crew|${Object.values(CREW_JOBS).join('|')}|${OLD_JOBS.join('|')})|${OLD_NAMES.join('|')})( \\d+)?$`);
 /** Whether a crew still carries a name the player did not choose. */
 export const isAutoCrewName = (name: string) => AUTO_NAME.test(name.trim());
@@ -205,6 +205,7 @@ export const roleStars = (p: Person, role: CrewRole) => ROLE_SKILLS[role].reduce
 export function crewRoleFromName(name: string): CrewRole | null {
   if (/^Business( \d+)?$/.test(name.trim())) return 'business';
   if (/'s Extortion( \d+)?$/.test(name)) return 'intimidation';
+  if (/'s Strike( \d+)?$/.test(name)) return 'muscle';
   for (const [role, job] of Object.entries(CREW_JOBS) as [CrewRole, string][]) if (new RegExp(`'s ${job}( \\d+)?$`).test(name)) return role;
   return null;
 }

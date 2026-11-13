@@ -6,7 +6,7 @@ describe('crew names', () => {
   it('names crews after the lieutenant and the job', () => {
     expect(crewNameFor("Marco's Crew", 'collect', 'Eddie Chin')).toBe("Eddie's Protection");
     expect(crewNameFor('Collect Protection 2', 'intimidation', 'Eddie Chin')).toBe("Eddie's Intimidation");
-    expect(crewNameFor("Eddie's Protection", 'muscle', 'Gina Vanetti')).toBe("Gina's Strike");
+    expect(crewNameFor("Eddie's Protection", 'muscle', 'Gina Vanetti')).toBe("Gina's Attack");
     expect(crewNameFor("Gina's Crew", 'scout', 'Gina Vanetti')).toBe("Gina's Scouting");
     expect(crewNameFor("Gina's Crew", 'recruit', 'Gina Vanetti')).toBe("Gina's Recruiting");
     expect(crewNameFor("Gina's Crew", 'business', 'Gina Vanetti')).toBe('Business');
