@@ -4,7 +4,7 @@ import { act, useGame } from '../app/store';
 import { recordAction } from '../app/actionLog';
 import { defaultOptions, issueOrder, previewOrder, replaceOrder, validBuildingTarget } from '../sim/api';
 import { selectableOrderPerson, selectableOrderSite } from '../app/orderSelection';
-import { MINUTES_PER_WEEK, ORDERS, ORDER_GROUPS } from '../sim/constants';
+import { ORDERS, ORDER_GROUPS } from '../sim/constants';
 import { BUILDING_BY_ID, ILLEGAL_TYPES, ESTABLISHABLE_TYPES, coverQuality } from '../sim/data/buildings';
 import { expandTargets } from '../sim/execution';
 import { donationAmount } from '../sim/charity';
@@ -13,6 +13,7 @@ import { orderCashCost, spendableCash } from '../sim/orderCost';
 import { buildingName, buildingsOfBlock, money } from '../sim/world';
 import { Icon, Kicker, Rivets, Stars } from './common';
 import { preferredCrewLabel, preferredCrewOrder } from './preferredCrew';
+import { crewCapacity, crewFreeMinutes, crewHasTime, orderManMinutes, orderMen } from '../sim/crewTime';
 
 /** The job card occupies the journal page, leaving the map available for targets. */
 export function JobCardPanel() {
@@ -99,9 +100,11 @@ export function JobCardPanel() {
     ? { ...jc.opts, amount: donationAmount(w, land) } : jc.opts;
   const draft = previewOrder(w, gang.id, { ...jc, opts });
   const dispatchIssue = staffing?.reason ?? (jc.type==='export'&&!team?.vehicles.truck ? 'Allocate a truck to this crew to export goods.' : null);
-  const estimate = draft ? (draft.estimatedMinutes / 60).toFixed(1) + 'h estimated crew time' : 'Choose a crew';
-  const committed = Math.max(0, (team?.timeUsed ?? 0) - (jc.editingOrderId != null ? w.orders[jc.editingOrderId]?.estimatedMinutes ?? 0 : 0));
-  const exceedsBudget = !!team && !!draft && committed + draft.estimatedMinutes > MINUTES_PER_WEEK * 1.02;
+  // 1.2.27: man-hours — the job's hours for each man it takes, against the crew's man-hours.
+  const estimate = draft && team ? `${(draft.estimatedMinutes / 60).toFixed(1)}h × ${orderMen(w, team, draft)} = ${(orderManMinutes(w, team, draft) / 60).toFixed(1)} man-hours` : draft ? (draft.estimatedMinutes / 60).toFixed(1) + 'h estimated crew time' : 'Choose a crew';
+  const capacity = team ? crewCapacity(w, team) : 0;
+  const committed = team ? Math.max(0, capacity - crewFreeMinutes(w, team, jc.editingOrderId ?? undefined)) : 0;
+  const exceedsBudget = !!team && !!draft && !crewHasTime(w, team, draft, jc.editingOrderId ?? undefined);
 
   const send = (buildingIds: number[], blockIds: number[]) => {
     const res = act((s) => {
@@ -359,7 +362,7 @@ export function JobCardPanel() {
             <div className="row between tiny muted" style={{ borderTop: '1px dotted var(--dots)', paddingTop: 8 }}>
               <span>Crew of {people.length} · {staffing?.available ?? 0} available</span>
               <span>
-                {Math.round((committed / MINUTES_PER_WEEK) * 100)}% of the week already committed
+                {capacity > 0 ? Math.round((committed / capacity) * 100) : 100}% of the crew's man-hours already committed
                 {!dispatchIssue && <> · this job {estimate}{exceedsBudget ? ' · exceeds remaining week' : ''}</>}
               </span>
             </div>

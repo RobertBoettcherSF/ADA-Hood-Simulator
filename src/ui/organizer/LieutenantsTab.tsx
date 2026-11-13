@@ -11,7 +11,7 @@ import {
   repeatOrder,
   sackPerson,
 } from '../../sim/api';
-import { MINUTES_PER_WEEK, ORDERS, ORDER_GROUPS } from '../../sim/constants';
+import { ORDERS, ORDER_GROUPS } from '../../sim/constants';
 import { STATUS_LABELS, type ID, type Order, type Team, type WorldState } from '../../sim/types';
 import { buildingName, money } from '../../sim/world';
 import { ConfirmDialog, Dial, Empty, Hint, Icon, Kicker, Pill, SkillList, Stamp } from '../common';
@@ -20,6 +20,7 @@ import { resourceDragProps, resourceJustDropped, useResourceDrop } from '../reso
 import { SLOT_COUNT, moveSlot, slotLayout } from '../lieutenantSlots';
 import { Advisor } from './Advisor';
 import { ABSENT, PayRoll, hours } from './RightSheet';
+import { crewUsedShare } from '../../sim/crewTime';
 
 type Mode = 'orders' | 'reports';
 
@@ -133,7 +134,7 @@ export function LieutenantsTab() {
   }
 
   const lt = w.people[team.lieutenantId];
-  const timePct = (team.timeUsed / MINUTES_PER_WEEK) * 100;
+  const timePct = crewUsedShare(w, team) * 100;
   const members = team.memberIds.map((id) => w.people[id]).filter(Boolean);
   const guns = Object.entries(team.weapons).reduce((s, [id, n]) => s + (id === 'explosives' ? 0 : n), 0);
   const cars = Object.values(team.vehicles).reduce((s, n) => s + n, 0);
@@ -511,7 +512,7 @@ function LieutenantTab({ team: t, index, selected, onSelect }: { team: Team; ind
   const [dropProps, dropOver] = useResourceDrop({ kind: 'team', teamId: t.id });
   const w = sim.world, gang = sim.playerGang;
   const lt = w.people[t.lieutenantId];
-  const pct = Math.round((t.timeUsed / MINUTES_PER_WEEK) * 100);
+  const pct = Math.round(crewUsedShare(w, t) * 100);
   return (
     <button
       data-team-id={t.id}

@@ -4,7 +4,7 @@ import { WeekReports } from '../WeekReports';
 import { JobCardPanel } from '../JobCardPanel';
 import { useGame, type OrganizerTab } from '../../app/store';
 import type { OverlayKind } from '../../render/scene';
-import { MINUTES_PER_WEEK, ORDERS } from '../../sim/constants';
+import { ORDERS } from '../../sim/constants';
 import { gangAssets, territoryCount, gangManpower, money } from '../../sim/world';
 import { spendableCash } from '../../sim/orderCost';
 import { cameraApi } from '../CityView';
@@ -24,6 +24,7 @@ import { TutorialPanel } from '../TutorialPanel';
 import { SpecialistJobCard } from '../SpecialistJobCard';
 import { SPECIALIST_JOB_NAMES } from '../../sim/specialistJobs';
 import { buildingList } from '../../sim/entityLists';
+import { crewCapacity } from '../../sim/crewTime';
 
 const TABS: { id: OrganizerTab; label: string; key: string }[] = [
   { id: 'lieutenants', label: 'Lieutenants', key: 'F1' },
@@ -178,11 +179,10 @@ export function Organizer() {
   }
 
   const boss = w.people[gang.bossId];
-  const totalCommitted = gang.teamIds
-    .map((id) => w.teams[id])
-    .filter(Boolean)
-    .reduce((s, t) => s + t.timeUsed, 0);
-  const capacity = Math.max(1, gang.teamIds.length) * MINUTES_PER_WEEK;
+  // 1.2.27: man-hours, the same count as each crew's dial.
+  const crews = gang.teamIds.map((id) => w.teams[id]).filter(Boolean);
+  const totalCommitted = crews.reduce((s, t) => s + Math.min(t.timeUsed, crewCapacity(w, t)), 0);
+  const capacity = Math.max(1, crews.reduce((s, t) => s + crewCapacity(w, t), 0));
   const pct = Math.round((totalCommitted / capacity) * 100);
   const ordersQueued = Object.values(w.orders).filter((o) => o.gangId === gang.id && o.state === 'queued').length +
     Object.values(w.specialistJobs ?? {}).filter(j => j.gangId === gang.id && j.week === w.week && j.state === 'queued').length;

@@ -6,12 +6,12 @@ import { LEFT_GANG, NO_ORIGINAL_CHANNEL, opinionSet } from './attitudes';
 import { originalStartingWage } from './originalWages';
 import { cityBlockAt } from './cityLayout';
 import { orderStaffing } from './orderStaffing';
+import { crewHasTime, crewUsedShare, syncCrewTime } from './crewTime';
 import { committedCash } from './orderCost';
 import { observeTargetRace } from './targetRace';
 import {
   MAX_TEAMS,
   MAX_TEAM_SIZE,
-  MINUTES_PER_WEEK,
   ORDERS,
   VEHICLES,
   WEAPONS,
@@ -252,12 +252,13 @@ export function issueOrder(w: WorldState, gangId: ID, input: IssueOrderInput): A
     return fail(`You cannot afford it: it costs $${Math.round(price).toLocaleString('en-US')} and $${Math.max(0, Math.round(freeCash)).toLocaleString('en-US')} is left after this week's orders.`);
   }
 
-  if (team.timeUsed + order.estimatedMinutes > MINUTES_PER_WEEK * 1.02) {
+  // 1.2.27: man-hours — the crew's free man-minutes, and each man's own week.
+  if (!crewHasTime(w, team, order)) {
     // Undermanned for the whole area, the lieutenant offers what he can manage.
     if (def.target === 'area' && targetBuildingIds.length > 1) {
       for (let k = targetBuildingIds.length - 1; k >= 1; k--) {
         const part = { ...order, targetBuildingIds: targetBuildingIds.slice(0, k), targetBlockIds: [] };
-        if (team.timeUsed + estimateMinutes(w, team, part) <= MINUTES_PER_WEEK * 1.02) {
+        if (crewHasTime(w, team, { ...part, estimatedMinutes: estimateMinutes(w, team, part) })) {
           return {
             ok: false,
             error: `${lt.name} has not got the time for all ${targetBuildingIds.length} sites — he could manage ${k} of them.`,
@@ -273,7 +274,7 @@ export function issueOrder(w: WorldState, gangId: ID, input: IssueOrderInput): A
   order.id = newId(w);
   w.orders[order.id] = order;
   team.orderIds.push(order.id);
-  team.timeUsed += order.estimatedMinutes;
+  syncCrewTime(w, team);
   if (w.options.tutorialId === 4 && gang.isPlayer && input.type === 'explore') {
     // Capture the target's allegiance when the order is accepted: territory
     // may change before the lesson card is next shown or the save is loaded.
@@ -294,24 +295,23 @@ export function issueOrder(w: WorldState, gangId: ID, input: IssueOrderInput): A
  * As the original selects an area: when the crew has not got the time for
  * every site picked, the farthest from its office are left off until the rest
  * fit the week. Null when everything fits (or the order is not an area order);
- * an empty list when not even one site would. `editingMinutes` is the time
- * of a queued order being replaced, which is given back.
+ * an empty list when not even one site would. `editingOrderId` is a queued
+ * order being replaced, whose man-hours are given back (1.2.27).
  */
-export function fitAreaToWeek(w: WorldState, gangId: ID, input: IssueOrderInput, editingMinutes = 0):
+export function fitAreaToWeek(w: WorldState, gangId: ID, input: IssueOrderInput, editingOrderId?: ID):
   { buildingIds: ID[]; dropped: number; total: number } | null {
   const team = w.teams[input.teamId], def = ORDERS[input.type];
   if (!team || def?.target !== 'area') return null;
   const order = previewOrder(w, gangId, input);
   if (!order || order.targetBuildingIds.length < 2) return null;
-  const free = MINUTES_PER_WEEK * 1.02 - Math.max(0, team.timeUsed - editingMinutes);
-  if (order.estimatedMinutes <= free) return null;
+  if (crewHasTime(w, team, order, editingOrderId)) return null;
   const office = nearestOffice(w, gangId, w.blocks[0].center);
   const from = office ? w.lots[office.lotId].center : null;
   const sites = [...order.targetBuildingIds].sort((a, b) => from
     ? dist(from, w.lots[w.buildings[a].lotId].center) - dist(from, w.lots[w.buildings[b].lotId].center) : 0);
   for (let k = sites.length - 1; k >= 1; k--) {
     const part = { ...order, targetBuildingIds: sites.slice(0, k), targetBlockIds: [] };
-    if (estimateMinutes(w, team, part) <= free) return { buildingIds: part.targetBuildingIds, dropped: sites.length - k, total: sites.length };
+    if (crewHasTime(w, team, { ...part, estimatedMinutes: estimateMinutes(w, team, part) }, editingOrderId)) return { buildingIds: part.targetBuildingIds, dropped: sites.length - k, total: sites.length };
   }
   return { buildingIds: [], dropped: sites.length, total: sites.length };
 }
@@ -324,13 +324,16 @@ export function replaceOrder(w: WorldState, gangId: ID, orderId: ID, input: Issu
   const old = w.orders[orderId], team = w.teams[input.teamId];
   if (!old || old.gangId !== gangId || old.teamId !== input.teamId || old.state !== 'queued' || w.phase !== 'planning' || !team)
     return fail('Only a queued order can be edited.');
-  const committed = team.timeUsed, index = team.orderIds.indexOf(orderId);
-  team.timeUsed = Math.max(0, committed - old.estimatedMinutes);
+  // 1.2.27: the old order's man-hours are given back while the new one is checked.
+  const index = team.orderIds.indexOf(orderId);
+  team.orderIds.splice(index, 1);
+  syncCrewTime(w, team);
   const result = issueOrder(w, gangId, input);
-  if (!result.ok) { team.timeUsed = committed; return result; }
+  if (!result.ok) { team.orderIds.splice(index, 0, orderId); syncCrewTime(w, team); return result; }
   const replacement = team.orderIds.pop()!;
-  team.orderIds.splice(index, 1, replacement);
+  team.orderIds.splice(index, 0, replacement);
   delete w.orders[orderId];
+  syncCrewTime(w, team);
   return result;
 }
 
@@ -388,7 +391,7 @@ export function cancelOrder(w: WorldState, orderId: ID): ApiResult {
   const team = w.teams[order.teamId];
   if (team) {
     team.orderIds = team.orderIds.filter((id) => id !== orderId);
-    team.timeUsed = Math.max(0, team.timeUsed - order.estimatedMinutes);
+    syncCrewTime(w, team);
   }
   for (const id of order.assignedIds) {
     if (order.type === 'guardBusiness') releaseGuardPost(w, id);
@@ -436,13 +439,13 @@ export function rolloverOrders(w: WorldState): void {
           order.targetBuildingIds = expandTargets(w, order.gangId, order.type, order.targetBlockIds, picked, order.opts);
         }
         order.estimatedMinutes = estimateMinutes(w, team, order);
-        team.timeUsed += order.estimatedMinutes;
         keep.push(oid);
       } else {
         delete w.orders[oid];
       }
     }
     team.orderIds = keep;
+    syncCrewTime(w, team);
   }
 }
 
@@ -1304,7 +1307,7 @@ export function setWaiting(w: WorldState, orderId: ID, waiting: boolean): ApiRes
   return ok();
 }
 
-/** How much of a team's week is already committed, 0..1. */
-export function teamTimeFraction(team: Team): number {
-  return Math.min(1, team.timeUsed / MINUTES_PER_WEEK);
+/** How much of a team's man-hours are already committed, 0..1 (1.2.27). */
+export function teamTimeFraction(w: WorldState, team: Team): number {
+  return crewUsedShare(w, team);
 }

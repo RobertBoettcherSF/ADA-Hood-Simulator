@@ -251,8 +251,7 @@ function fitJobCard(sim: Sim | null, jc: JobCard, refit = false): JobCard {
   if (refit && card.requested) { card.buildingIds = [...card.requested.buildingIds]; card.blockIds = [...card.requested.blockIds]; }
   else card.requested = { buildingIds: [...card.buildingIds], blockIds: [...card.blockIds] };
   if (!sim) return card;
-  const editing = card.editingOrderId != null ? sim.world.orders[card.editingOrderId]?.estimatedMinutes ?? 0 : 0;
-  const fit = fitAreaToWeek(sim.world, sim.playerGang.id, card, editing);
+  const fit = fitAreaToWeek(sim.world, sim.playerGang.id, card, card.editingOrderId ?? undefined);
   if (!fit || !fit.buildingIds.length) return card;
   return { ...card, buildingIds: fit.buildingIds, blockIds: [], trimmed: { dropped: fit.dropped, total: fit.total } };
 }
