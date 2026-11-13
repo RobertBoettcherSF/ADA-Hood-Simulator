@@ -222,6 +222,24 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## v1.2.28 decisions
+
+A memory-diagnosis build. No game rule and no Auto Test decision changes; nothing is fixed yet.
+
+1. **MEMPROBE line.** Every Auto Test week now logs a `MEMPROBE …` line next to `SIZES …` (`src/sim/memProbe.ts`). It counts what lives outside the world state:
+   - heap (Chrome's `performance.memory`; in Node `process.memoryUsage`);
+   - the Auto Test run's own lists (report lines, weeks, notes, results, losses);
+   - object lifetimes: every `Sim`, world, world copy (save clones) and city renderer made, disposed and collected by the garbage collector (via `FinalizationRegistry`), so objects that are never freed show up;
+   - timers: pending timeouts, live intervals, pending animation frames, object URLs not revoked;
+   - event listeners added and not removed, by event type;
+   - the page: DOM nodes, canvases, images;
+   - module state: Auto Test, the dev journal, the debug report, the action log, asset load timings, the asset cache, the art picture cache, card and city-plan listeners, figure watchers, system timings, stop traces, the sighting look-ahead table, traffic caches, walker waypoint copies, music and sound buffers, saves begun and finished;
+   - the city renderer: live renderers (and disposed ones still alive), Three.js geometries, textures, shader programs, scene objects and Three's file cache.
+   The probe counts only; it holds nothing alive itself.
+2. **Evidence at 2 GB.** When used heap passes 2 GB, Auto Test writes `memory-evidence-….txt` to 09 Reports (and downloads it, as reports are) with the timeline, every `MEMPROBE`/`SIZES` line and the actions so far, then pauses the run; the usual report follows.
+3. **run-memory.sh.** Runs Auto Test in Node with no renderer (`scripts/memory-run.ts`, built with esbuild), Full Game 40 × 32, seed 3064130186, 20 weeks by default, with `--expose-gc` so each week's heap is measured after a full collection. It writes the weekly heap and `MEMPROBE` line to `memory-report-<time>.txt` as each week ends, and the Auto Test report beside it. Growth there is in the simulation or Auto Test; growth only in the browser is in drawing or the page.
+4. **run-tests.sh.** Installs packages if needed, typechecks, runs the test suite and a short headless Auto Test (3 weeks), and writes `tests-report.txt`.
+
 ## v1.2.27 decisions
 
 A deliberate core-rule change, shared by the player, the computer gangs and Auto Test: crew time is counted in man-hours (`src/sim/crewTime.ts`).
