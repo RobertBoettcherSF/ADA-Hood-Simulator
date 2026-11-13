@@ -4,8 +4,8 @@
  * crews and orders, the collection rounds stop by stop, minutes planned and
  * used, the news and its causes, wages asked against wages paid, and a world
  * snapshot (block grid with overlays). It lives in memory for the session,
- * is never saved with the city, and has no size cap: the report is split into
- * part files when large. The Auto Test log keeps only in-game knowledge.
+ * is never saved with the city, and keeps the last JOURNAL_WEEKS weeks (1.2.23):
+ * the report is split into part files when large. The Auto Test log keeps only in-game knowledge.
  */
 import { takeStopTraces, type StopTrace } from '../sim/devTrace';
 import { MAX_TEAMS, MAX_TEAM_SIZE } from '../sim/constants';
@@ -17,12 +17,18 @@ import type { Gang, Order, Person, WorldState } from '../sim/types';
 import { gangHoldings, gangManpower, powerRating, territoryCount, teamsOf } from '../sim/world';
 
 const weeks: string[] = [];
+/** 1.2.23: the most weeks the journal holds in memory. */
+export const JOURNAL_WEEKS = 60;
+let droppedWeeks = 0;
+/** Weeks let go from the front of the journal this session. */
+export function devJournalDropped(): number { return droppedWeeks; }
 /** 1.2.22: the Auto Test desk's own notes for the week (business crew, buy targets, drops, HQ scouting and strikes). */
 const deskLines: string[] = [];
 export function noteDevDesk(line: string): void { deskLines.push(line); }
 
 export function clearDevJournal(): void {
   weeks.length = 0;
+  droppedWeeks = 0;
   deskLines.length = 0;
   takeStopTraces();
 }
@@ -229,6 +235,9 @@ export function captureDevWeek(w: WorldState): void {
   lines.push('', ...snapshot(w, player));
   lines.push('');
   weeks.push(lines.join('\n'));
+  // 1.2.23: bounded — the last JOURNAL_WEEKS weeks are kept (a year and more);
+  // the oldest go first, and the report says how many were let go.
+  if (weeks.length > JOURNAL_WEEKS) { droppedWeeks += weeks.length - JOURNAL_WEEKS; weeks.splice(0, weeks.length - JOURNAL_WEEKS); }
 }
 
 /** The report split into parts of at most `size` characters, never cutting a line. */

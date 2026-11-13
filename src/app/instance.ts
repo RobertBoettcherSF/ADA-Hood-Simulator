@@ -10,10 +10,6 @@ const KEY = 'hood.instance';
 let tag = '';
 let claimed = false;
 
-export function instanceTag(): string {
-  return tag;
-}
-
 /** `name` with this tab's tag before the extension: world.json → world-k3f9.json. */
 export function instanceFile(name: string): string {
   if (!tag) return name;

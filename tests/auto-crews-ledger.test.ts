@@ -9,7 +9,7 @@ describe('crew names', () => {
     expect(crewNameFor("Eddie's Protection", 'muscle', 'Gina Vanetti')).toBe("Gina's Strike");
     expect(crewNameFor("Gina's Crew", 'scout', 'Gina Vanetti')).toBe("Gina's Scouting");
     expect(crewNameFor("Gina's Crew", 'recruit', 'Gina Vanetti')).toBe("Gina's Recruiting");
-    expect(crewNameFor("Gina's Crew", 'business', 'Gina Vanetti')).toBe("Gina's Business");
+    expect(crewNameFor("Gina's Crew", 'business', 'Gina Vanetti')).toBe('Business');
   });
   it('leaves a crew the player renamed alone', () => {
     expect(crewNameFor('The Night Shift', 'collect', 'Eddie Chin')).toBeNull();

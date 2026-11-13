@@ -14,6 +14,7 @@ import { Icon } from './common';
 import { Plaque } from './Plaque';
 import { audio } from '../audio/audio';
 import { Portrait } from './Portrait';
+import { useWindowKey } from './input';
 
 /** Step through the selected 64-male or 32-female pool, preserving the name sentinel. */
 function stepPortrait(current: number, dir: 1 | -1, female: boolean): number {
@@ -98,14 +99,10 @@ export function NewGameScreen() {
     setPage('desk');
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      if (page === 'desk') setScreen('menu');
-      else closePage(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+  useWindowKey((e) => {
+    if (e.key !== 'Escape') return;
+    if (page === 'desk') setScreen('menu');
+    else closePage(false);
   });
 
   // The original's nationality and face traits: a heritage's painted sitters,

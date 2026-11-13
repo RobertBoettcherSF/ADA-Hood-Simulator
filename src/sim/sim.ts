@@ -1,6 +1,6 @@
 import {settleBurningEscapes, tickBuildingEmergencies} from './systems/buildingEmergency';
 import { driveFrom, earlySteps, finishMovementTick, repairVehicleRoutes } from './movement';
-import { reconcileTransport, resetWeekTransport, restoreLegacyTransport } from './transport';
+import { boardingCount, reconcileTransport, resetWeekTransport, restoreLegacyTransport } from './transport';
 import { recoverExportGoods } from './exportGoods';
 import { availableSpecialist } from './specialists';
 import { beginSpecialistJobs, settleSpecialistJobs, tickSpecialistJobs } from './specialistJobs';
@@ -195,8 +195,13 @@ export class Sim {
       const minute = w.minute, traffic = trafficContext(w);
       w.minute = minute + 1;
       try {
-        tickAmbient(w, this.rng, 1, { index, count: AMBIENT_SLICES, early: true, traffic, vehicles: 'skip' });
-        scanStreetSlice(w, index, AMBIENT_SLICES);
+        // Scanned as each man steps (as the tick's slices are); a birth or a
+        // boarding during the slice could change someone already scanned, so
+        // then the slice is scanned again as it stands.
+        const born = w.nextId, boarded = boardingCount(), scan = streetScanCollector(w);
+        tickAmbient(w, this.rng, 1, { index, count: AMBIENT_SLICES, early: true, traffic, vehicles: 'skip' }, scan.add);
+        if (w.nextId === born && boardingCount() === boarded) storeStreetSlice(w, index, AMBIENT_SLICES, scan.part);
+        else scanStreetSlice(w, index, AMBIENT_SLICES);
       } finally { w.minute = minute; }
       w.ambientSlicesDone = index + 1;
     }

@@ -222,6 +222,54 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## v1.2.23 decisions
+
+Rivals' behaviour and the core game rules are unchanged. What changes: Auto Test's behaviour, the UI code's structure, speed, memory, and one piece of scenery.
+
+1. **End Week speed (same results).** The background citizens ("ambient") were the most expensive system. Their cost grows with the number of people, about 0.6 ms per person per week, not faster than that. Generated maps hold about 23 people per block against 6.6 on the original 40 × 32 layout, which is why bigger maps looked superlinear.
+   - Route steps no longer splice arrays: `dropFront` shifts in place.
+   - Each walker's next waypoint is cached in typed arrays, keyed by the route array.
+   - Riders found in the early slices are reused by the drivers-only pass.
+   - Sparse per-id arrays in transport are dense now.
+   - The early-step positions use pooled objects.
+   - The same seed gives the same weekly fingerprint as before (rng state, every person's position and status, each gang's cash, ids, score) in both tick and frame modes.
+   - Measured on 40 × 32, seed 2407541768: ambient cost fell about 25–30%, and End Week fell about 15% in tick mode and about 15–20% in frame mode.
+2. **One input layer** (`src/ui/input.ts`): `useWindowKey`, `isTyping`, `swallow`, `addAnyInputListener`. Menus, the ending card, the inspect card, the title, the attract mode, the loading reel, help and the always-on keys use it, and the two always-on key listeners are one. Removed exports nothing used: `realisticMinutes`, `freeMinutes`, `TRIAL_KEYS`, `currentTimeLedger`, `currentActionRanks`, `instanceTag`, `strategyLines`, `planLandmark`. There was only one button component, so no buttons were merged.
+3. **One weekly decision loop** (`src/app/autoDecide.ts`). Every part of the desk proposes orders: label, kind (men, money, territory, business, safety, violence, intel), value, and why.
+   - The loop scores each order as value × the goal's weight for that kind, best first.
+   - Each order goes to the crew suited to it, or else the one with the most free minutes. It tries up to three crews, and moves to another crew only when the order was refused for lack of time.
+   - The log shows `DECIDE`, then one `WON … score = value × weight — why; N min free` or `NOT GIVEN … reason` line for each order.
+4. **Suspicion.**
+   - At 60 or more there is no new extortion. Legal buys are worth three times as much, the accountant is hired first, and bribes go ahead.
+   - Lying low (50–60) stops violence. Extortion of new blocks and all low-suspicion work (collecting, recruiting, buying, scouting) carry on.
+   - Hostile police are paid off whatever the suspicion. The lawyer may then spend up to 60% of cash on the chief.
+5. **Territory by extortion.** In territory and office games, extortion takes one target in each block we do not claim (the game's rule: one standing business owned or protected), nearest first, in up to one group per crew, before deepening blocks we already hold. Each target is marked "new block" or "already ours". Raids are robbery only, kind "money".
+6. **Early hiring.** Cash counts: hiring goes ahead while two weeks' wages stay covered and the rest carries the new men for eight weeks. Lying low no longer holds recruiting below the hiring floor. Hoods come before the lawyer and the accountant, unless a trial or high suspicion makes them urgent.
+7. **Reserve cap.** The cash reserve is 1.5 weeks' payroll when takings cover wages, otherwise 3 weeks. It is at least $1,500 and at most $12,000 (plus any campaign fund). A crew left with no order gets a `NOTE … has no order: reason` line.
+8. **Starting conditions** appear at the top of the Auto Test report and the debug report, written once per game: game type, victory target, scenario, starting money, hoods and businesses, map size, city seed, economy, opponents setting, and each rival with its personality (plus the Auto Test seed).
+9. **HQ strike.**
+   - The strike goes only to a crew with at least 240 minutes free. That is the strike crew, or another street crew given its tommy guns and dynamite.
+   - The suspected-HQ strike follows the same rule.
+   - The business crew is named "Business".
+10. See the before/after table below.
+11. **Edge parks.** A band of parkland 1.5 cells wide lies outside the map edge in the City Plan and in the 3D city: lawn, a gravel walk and two loose rows of trees. It is scenery only: no blocks, no lots, no paths.
+12. **Business crew.**
+    - It does only three jobs: buy a business, buy empty land, set up a business on our land.
+    - It takes as many as the game accepts for its week. There is no longer a minutes gate of Auto Test's own (the learned factor and the ledger gate). The 1.2.22 failure blacklist stays.
+    - It refills every week from the pool first, then from other crews, with hoods above three business stars (up to four a week). If there are none, it logs that it is short.
+    - With more than $40k idle, a street crew with nothing better may take a buy once the business crew's week is full.
+13. **Surplus cash.**
+    - Surplus means more than $30k above need with the crews at 85% or more of capacity, or more than $100k above need at any size.
+    - The lawyer bribes the mayor or the chief and puts the police on our blocks on the payroll.
+    - The business desk buys free premises in blocks rivals claim. A rival's own premises cannot be bought; the game sells only unowned sites.
+    - The strongest rival's known HQ is struck.
+14. **Memory.**
+    - Headless, the heap after garbage collection is stable over 40 weeks (42 → 65 MB while the population grows by 2%).
+    - The world's tables stay flat: people about 9.7–10 MB, news 161 items by week 36.
+    - The only growing store was the developer journal, about 70k characters a week. It is now capped at the last 60 weeks, and the report says how many were let go.
+    - The last save's size is now kept in a WeakMap, so a finished city is no longer held in memory.
+    - The browser's climb that later drops is uncollected garbage, not something being kept. It is reduced by the allocation cuts in item 1.
+
 ## v1.2.22 decisions
 
 Only Auto Test's behaviour changes. Game rules, prices, estimates and the rival AI are unchanged. The Auto Test log and the new "Auto Test desk" section of the debug report record every step below.

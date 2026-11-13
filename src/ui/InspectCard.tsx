@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useGame } from '../app/store';
 import { closeInspect, inspectFacts, inspectPlacement, onInspect } from './inspectCard';
+import { swallow } from './input';
 
 /** A wooden plaque at the cursor. Escape or the next click puts it away. */
 export function InspectCard() {
@@ -18,8 +19,7 @@ export function InspectCard() {
     const close = () => closeInspect();
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
+      swallow(event);
       close();
     };
     const timer = window.setTimeout(() => window.addEventListener('pointerdown', close), 0);

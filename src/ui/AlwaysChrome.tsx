@@ -12,6 +12,7 @@ import { campaignLabel, isDefaultCampaign } from '../app/strategy';
 import { installCrashReports, noteAutoTestStopped, setReportWish, setReportWorld, writeDebugReport } from '../app/debugReport';
 import { checkForUpdate, type UpdateOffer } from '../app/versionCheck';
 import { activeWorldStore } from '../app/worldFolder';
+import { isTyping } from './input';
 
 /** Version, update offer, and the debug button. Visible on every screen, including before a city is open. */
 export function AlwaysChrome() {
@@ -30,12 +31,11 @@ export function AlwaysChrome() {
     installCrashReports();
     let cancel = false;
     void checkForUpdate(__APP_VERSION__).then((next) => { if (!cancel) setOffer(next); });
+    // One key listener for the always-on keys: F9 asks for a report, M mutes the music.
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'F9' || event.repeat) return;
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('input, textarea')) return;
-      event.preventDefault();
-      setAsking(true);
+      if (event.repeat || isTyping(event.target, 'input, textarea')) return;
+      if (event.key === 'F9') { event.preventDefault(); setAsking(true); }
+      else if (event.key === 'm' || event.key === 'M') { event.preventDefault(); setMuted(audio.toggleMusicMuted()); }
     };
     const onClick = (event: MouseEvent) => {
       const el = event.target instanceof Element ? event.target.closest('button, a, [role="tab"]') : null;
@@ -43,19 +43,10 @@ export function AlwaysChrome() {
       const label = (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim();
       if (label) recordAction('click', label);
     };
-    const onMuteKey = (event: KeyboardEvent) => {
-      if ((event.key !== 'm' && event.key !== 'M') || event.repeat) return;
-      const target = event.target as HTMLElement | null;
-      if (target?.closest('input, textarea')) return;
-      event.preventDefault();
-      setMuted(audio.toggleMusicMuted());
-    };
-    window.addEventListener('keydown', onMuteKey);
     window.addEventListener('keydown', onKey);
     document.addEventListener('click', onClick, true);
     return () => {
       cancel = true;
-      window.removeEventListener('keydown', onMuteKey);
       window.removeEventListener('keydown', onKey);
       document.removeEventListener('click', onClick, true);
     };

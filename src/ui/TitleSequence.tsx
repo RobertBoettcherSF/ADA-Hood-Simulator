@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { art } from './art';
 import { audio } from '../audio/audio';
+import { addAnyInputListener, swallow } from './input';
 
 const LENGTH_MS = 6200;
 
@@ -22,10 +23,8 @@ export function TitleSequence({ onDone }: { onDone: () => void }) {
     };
     const timer = window.setTimeout(finish, LENGTH_MS);
     // Captured first, so the menu waiting beneath never acts on the key.
-    const skip = (e: Event) => { e.preventDefault(); e.stopImmediatePropagation(); audio.ensure(); finish(); };
-    window.addEventListener('keydown', skip, true);
-    window.addEventListener('pointerdown', skip, true);
-    return () => { window.clearTimeout(timer); window.removeEventListener('keydown', skip, true); window.removeEventListener('pointerdown', skip, true); };
+    const stop = addAnyInputListener((e) => { swallow(e); audio.ensure(); finish(); });
+    return () => { window.clearTimeout(timer); stop(); };
   }, [onDone]);
 
   return (

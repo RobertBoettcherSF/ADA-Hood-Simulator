@@ -6,6 +6,7 @@ import { useGame } from '../app/store';
 import { gangManpower, territoryCount, money } from '../sim/world';
 import { MASTHEADS, art } from './art';
 import { HallOfFame } from './HallOfFame';
+import { useWindowKey } from './input';
 
 /** The week's paper, with the boss's fate across the front page and a brass medal for the score. */
 export function GameOverScreen({ recordResult = true }: { recordResult?: boolean } = {}) {
@@ -126,10 +127,9 @@ export function GameOverScreen({ recordResult = true }: { recordResult?: boolean
 export function EndingSequence({ won, boss, reason, onDone }: { won: boolean; boss: string; reason: string; onDone: () => void }) {
   useEffect(() => {
     const timer = window.setTimeout(onDone, 4500);
-    const key = () => onDone();
-    window.addEventListener('keydown', key);
-    return () => { window.clearTimeout(timer); window.removeEventListener('keydown', key); };
+    return () => window.clearTimeout(timer);
   }, [onDone]);
+  useWindowKey(() => onDone());
   return (
     <div className={`ending-sequence ${won ? 'won' : 'lost'}`} role="status" aria-live="polite" onClick={onDone}>
       <div className="ending-card">

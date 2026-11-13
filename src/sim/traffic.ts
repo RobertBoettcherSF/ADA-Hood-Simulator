@@ -10,6 +10,7 @@ import { MINUTES_PER_SECOND } from './constants';
  */
 
 import { CELL, LANE_OFFSET, MINUTES_PER_WEEK, STREET_WIDTH } from './constants';
+import { nextPoint, nextPointCross, nextPointX, nextPointY } from './movement';
 import { h2, r01, rint } from './hash';
 import { C as OC } from './originalCityGen';
 import type { Person, Vec2, WorldState } from './types';
@@ -538,15 +539,17 @@ let slices: { world: WorldState; minute: number; count: number; parts: (ReturnTy
 export function streetScanCollector(w: WorldState): { part: ReturnType<typeof scanStreets>; add: (p: Person) => void } {
   const part: ReturnType<typeof scanStreets> = { crossings: [], drivers: [] };
   const add = (p: Person) => {
-    if (!p.dest || p.status !== 'active') return;
+    if (p.dest == null || p.status !== 'active') return;
     if (p.inVehicle) {
       if (!p.vehicleKey || w.vehicleFleet?.[p.vehicleKey]?.driverId === p.id) part.drivers.push(p);
       return;
     }
-    const next = p.path[0];
-    if (!next?.cross) return;
-    const d = Math.hypot(next.x - p.pos.x, next.y - p.pos.y);
-    if (d < next.cross - 0.75) part.crossings.push(crossingOf(p.pos, next));
+    // The walker's copied next waypoint (movement.ts nextPoint): same numbers, fewer reads.
+    if (!nextPoint(p)) return;
+    const cross = nextPointCross(p);
+    if (cross === 0) return;
+    const d = Math.hypot(nextPointX(p) - p.pos.x, nextPointY(p) - p.pos.y);
+    if (d < cross - 0.75) part.crossings.push(crossingOf(p.pos, p.path[0]));
   };
   return { part, add };
 }
