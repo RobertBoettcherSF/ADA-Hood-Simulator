@@ -222,6 +222,13 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## v1.2.26 decisions
+
+Only Auto Test changes.
+
+1. **Surplus buys by size, not price (A10).** A building's size is its number of squares in the block, from the `size` field of the game's economics record for its business (1, 3 = one block side, 8 = the ring, 9 = the whole block). (a) Big buildings take up the whole block (8 or 9 squares: radio station, newspaper, large bank, department store) and are bought first in unclaimed blocks. (b) 1- or 3-square businesses (ordinary shops; banks, restaurants and the like) that make good fronts, in unclaimed blocks. (c) 1- or 3-square businesses in blocks where a rival has a visible claim. The $20,000 price split is gone. A building with no economics record has no size and is not a surplus buy.
+2. **B6 on every city size.** The suspicion forecast from our own books (office takings against premises takings) drives the legal push on Small, Standard and Large maps, not only on 40 × 32.
+
 ## v1.2.25 decisions
 
 Only Auto Test changes. Core game rules and rival behaviour are unchanged. Auto Test adds no exceptions, overflows, fallbacks, caps or thresholds of its own beyond the ones listed here.
@@ -237,7 +244,7 @@ Only Auto Test changes. Core game rules and rival behaviour are unchanged. Auto 
 7. **Resting** is decided by wanted level alone. There is no share of crews that must keep working.
 8. **No peeking.** Rival premises, men and HQs come only from what the player's map shows: identified sites, visible claims, sighting reports, scouting, snitches and bribes. With no known rival site, Auto Test scouts the block where the rival's men were reported.
 9. **Lawyer and accountant** are hired only through recruitment. Below 3★ (intelligence) recruiting keeps looking for a better one to swap in; above 3★ it keeps looking at lower priority, and it stops at 5★. The boss no longer hires the cleverest free lawyer himself.
-10. **Surplus.** Reserve = 3 weeks of wages, at most $50,000. Surplus = cash − reserve − $20,000. Surplus buying starts once the surplus passes $50,000. The business crew buys, in order: (a) big buildings in unclaimed blocks, (b) 1–3 square fronts in unclaimed blocks, (c) 1–3 square businesses in rival-claimed blocks. There is no share of cash and no site limit. The mayor and chief bribes stay. Equipping keeps its threshold and has no cap. Collectors and the extortion crew stay unarmed.
+10. **Surplus.** Reserve = 3 weeks of wages, at most $50,000. Surplus = cash − reserve − $20,000. Surplus buying starts once the surplus passes $50,000. The business crew buys, in order: (a) big buildings in unclaimed blocks, (b) 1- or 3-square fronts in unclaimed blocks, (c) 1- or 3-square businesses in rival-claimed blocks (size by squares since 1.2.26). There is no share of cash and no site limit. The mayor and chief bribes stay. Equipping keeps its threshold and has no cap. Collectors and the extortion crew stay unarmed.
 11. **Spares.** Pool hoods are kept by ability (3★ or more in some crew's skill, or firearms above 3★, gunmen first), as many as the hoods and lieutenants lost in the last four weeks. The rest are let go, with a log line.
 12. **Bomb-then-buy** is off.
 
@@ -248,7 +255,7 @@ Only Auto Test changes. Core game rules and rival behaviour are unchanged. Auto 
 3. Police presence and squalor: extortion goes to the blocks with the fewest police first; reinvestment ties go to the cleaner block.
 4. Refusals and grievances are logged.
 5. Damage: a damaged business is repaired when the cost fits the cash above the reserve.
-6. Suspicion forecast from our own books (office takings against premises takings) drives the legal push.
+6. Suspicion forecast from our own books (office takings against premises takings) drives the legal push (every city size since 1.2.26).
 7. Court cases: the case nearest trial, then the strongest, is dealt with first.
 8. Rival men: the target for a kidnap or a killing is the least dangerous known man (firearms × 2 + fists).
 9. Popularity: shops are eased while campaigning or when popularity is below zero.
