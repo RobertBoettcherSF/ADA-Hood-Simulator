@@ -271,6 +271,8 @@ export function newRecruitMemory(): RecruitMemory {
 }
 
 let recruitMemory = newRecruitMemory();
+/** 1.2.24: our businesses (id → manager) last Monday, to log managers killed and businesses lost. */
+const ownedLastWeek = new WeakMap<object, Map<number, number | null>>();
 
 /** A rumour first, then last week's productive venues, then the rest; a venue empty three weeks running is skipped. */
 export function chooseHoodRecruitSites<T extends { id: number }>(
@@ -388,6 +390,8 @@ const menBlocks = new WeakMap<Sim['world'], { men: number; blocks: number }[]>()
 const chiefOpinionLastWeek = new WeakMap<Sim['world'], number>();
 /** A crew is worth starting only when every existing one has this many hoods. */
 const USEFUL_CREW = 4;
+/** 1.2.24: crews opened at a useful size, one per kind of work (extortion, recruiting, collecting, business). */
+const KIND_CREWS = 4;
 /** 1.2.21: eight lieutenants with nine hoods each — the most men the crews can use. */
 const CREW_CAPACITY = MAX_TEAMS * MAX_TEAM_SIZE;
 /** Idle hoods kept in the pool as replacements; more are sacked, the weakest first. */
@@ -526,9 +530,28 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   }
   const goal = goalState.goal;
   // Few men and plenty of cash: rebuild the gang first, whatever the goal.
-  const rebuild = gangManpower(w, gang) < 10 && gang.cash > 50000;
+  // 1.2.24: managers running our businesses never count against a headcount
+  // (Robert: the long game's 92 men were 28 in crews and 64 managers, so hiring stalled).
+  const rebuild = crewMen() < 10 && gang.cash > 50000;
   const policy = rebuild ? { ...GOAL_POLICY[goal], violence: 'low' as const, expansion: Math.min(0.6, GOAL_POLICY[goal].expansion) } : GOAL_POLICY[goal];
-  if (rebuild) actions.push(`NOTE rebuilding the gang first: ${gangManpower(w, gang)} men and $${Math.round(gang.cash)} — recruiting comes before everything, no rough work`);
+  if (rebuild) actions.push(`NOTE rebuilding the gang first: ${crewMen()} men and $${Math.round(gang.cash)} — recruiting comes before everything, no rough work`);
+  const managerCount = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.managerId != null && w.people[b.managerId]?.status !== 'dead').length;
+  actions.push(`NOTE men: ${crewMen()} in crews and pool, ${managerCount} managers (not counted against any limit)`);
+  // 1.2.24: a manager killed or an owned business lost since last Monday is logged.
+  {
+    const before = ownedLastWeek.get(w);
+    const now = new Map<number, number | null>();
+    for (const b of buildingList(w)) if (b.ownerGangId === gang.id && !b.isHQ) now.set(b.id, b.managerId ?? null);
+    for (const [id, managerId] of before ?? []) {
+      const b = w.buildings[id];
+      const m = managerId == null ? undefined : w.people[managerId];
+      const label = `${BUILDING_BY_ID[b?.typeId ?? '']?.name ?? b?.typeId ?? 'business'} #${id}`;
+      if (!b || b.state === 'destroyed') actions.push(`LOSS ${label} destroyed${m ? ` (manager ${m.name} ${m.status === 'dead' ? 'killed' : m.status})` : ''}`);
+      else if (b.ownerGangId !== gang.id) actions.push(`LOSS ${label} no longer ours`);
+      else if (m && m.status === 'dead') actions.push(`LOSS manager ${m.name} of ${label} killed`);
+    }
+    ownedLastWeek.set(w, now);
+  }
 
   for (const id of [...gang.recruitIds]) {
     const person = w.people[id];
@@ -536,7 +559,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       actions.push(`NOTE hire ${person.name} held — the crews are full (${crewMen()} of ${CREW_CAPACITY}) and ${idlePool().length} wait in the pool`);
       continue;
     }
-    const room = crewsOf().filter((team) => team.memberIds.length < MAX_TEAM_SIZE - 1).sort((a, b) => a.memberIds.length - b.memberIds.length)[0];
+    // 1.2.24: the business crew first, then the fullest crew with room — a crew is filled before the next.
+    const hireRoles = assignCrewRoles(w, crewsOf());
+    const room = crewsOf().filter((team) => team.memberIds.length < MAX_TEAM_SIZE - 1)
+      .sort((a, b) => Number(hireRoles.get(b.id) === 'business') - Number(hireRoles.get(a.id) === 'business') || b.memberIds.length - a.memberIds.length || a.id - b.id)[0];
     const result = hireRecruit(w, gang.id, id, room ? 'team' : 'pool', room?.id);
     logResult(actions, `hire ${person?.name ?? id}`, result.ok, result.ok ? result.message ?? '' : result.error);
   }
@@ -557,7 +583,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     actions.push(`NOTE ${short.length} underpaid m${short.length === 1 ? 'an' : 'en'} ($${raise} a week short) — the books cannot carry the raise`);
   }
   const lastMen = menLastWeek.get(w);
-  const menNow = gangManpower(w, gang);
+  const menNow = crewMen();
   const shrinking = rebuild || menNow < 12 || (lastMen != null && menNow < lastMen);
   menLastWeek.set(w, menNow);
   const menBlocksHistory = [...(menBlocks.get(w) ?? []), { men: menNow, blocks: territoryCount(w, gang.id) }].slice(-4);
@@ -633,10 +659,18 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // 1.2.21: fill a crew to a useful size before another lieutenant is made.
     // Room for one more crew only when every crew, the new one too, can have a lieutenant and USEFUL_CREW hoods.
     const allUseful = () => crewsOf().every((team) => team.memberIds.length >= USEFUL_CREW) && hoods() >= (gang.teamIds.length + 1) * (USEFUL_CREW + 1);
-    for (let tries = 0; tries < 3 && gang.teamIds.length < wanted() && (allUseful() || gang.teamIds.length === 0); tries++) {
+    // 1.2.24 (Robert's rules): one crew per kind of work — extortion, recruiting,
+    // collecting and business open at a useful size; any further crew only once
+    // every crew is full, with men waiting in the pool to fill it.
+    const allFull = () => crewsOf().every((team) => team.memberIds.length >= MAX_TEAM_SIZE - 1);
+    const poolWaiting = () => gang.poolIds.filter((id) => !restingMen.has(id)).length;
+    const mayOpen = () => gang.teamIds.length === 0
+      || (gang.teamIds.length < KIND_CREWS && gang.teamIds.length < wanted() && allUseful())
+      || (gang.teamIds.length < MAX_TEAMS && allFull() && poolWaiting() >= 2);
+    for (let tries = 0; tries < 3 && mayOpen(); tries++) {
       const poolFree = gang.poolIds.filter((id) => !restingMen.has(id));
       const fromPool = poolFree.length ? rng.pick(poolFree) : undefined;
-      const biggest = crewsOf().filter((team) => team.memberIds.length >= 4).sort((a, b) => b.memberIds.length - a.memberIds.length)[0];
+      const biggest = gang.teamIds.length < KIND_CREWS ? crewsOf().filter((team) => team.memberIds.length >= 4).sort((a, b) => b.memberIds.length - a.memberIds.length)[0] : undefined;
       const id = fromPool ?? biggest?.memberIds[biggest.memberIds.length - 1];
       if (id == null) break;
       const result = promote(w, gang.id, id);
@@ -648,18 +682,17 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // job he raises most (his stars for that job against the crew's average).
     const provisional = assignCrewRoles(w, crewsOf());
     const roleOf = (team: Team) => provisional.get(team.id) ?? 'collect';
-    const crewStars = (team: Team) => {
-      const men = team.memberIds.map((m) => w.people[m]).filter((p): p is Person => !!p);
-      return men.length ? men.reduce((sum, p) => sum + roleStars(p, roleOf(team)), 0) / men.length : 0;
-    };
     const bestStars = (p: Person) => Math.max(...crewsOf().map((team) => roleStars(p, roleOf(team))), 0);
     const placeable = gang.poolIds.filter((id) => !restingMen.has(id)).map((id) => w.people[id]).filter((p): p is Person => !!p && p.role === 'hood' && p.status === 'active')
       .sort((a, b) => bestStars(b) - bestStars(a) || a.id - b.id);
     for (const p of placeable) {
       const open = crewsOf().filter((team) => team.memberIds.length < MAX_TEAM_SIZE - 1);
-      const short = open.filter((team) => team.memberIds.length < USEFUL_CREW);
-      const gain = (team: Team) => roleStars(p, roleOf(team)) - crewStars(team);
-      const crew = (short.length ? short : open).sort((a, b) => gain(b) - gain(a) || a.memberIds.length - b.memberIds.length)[0];
+      // 1.2.24: a crew without a man is helped first; then a hood with 3★ or more
+      // for a job fills that crew (the business crew first), else the fullest open crew.
+      const empty = open.filter((team) => team.memberIds.length === 0);
+      const talented = open.filter((team) => roleStars(p, roleOf(team)) >= 3);
+      const pick = empty.length ? empty : talented.length ? talented : open;
+      const crew = pick.sort((a, b) => Number(roleOf(b) === 'business') - Number(roleOf(a) === 'business') || b.memberIds.length - a.memberIds.length || roleStars(p, roleOf(b)) - roleStars(p, roleOf(a)) || a.id - b.id)[0];
       if (!crew) break;
       const result = moveToTeam(w, gang.id, p.id, crew.id);
       logResult(actions, `to crew ${p.name} (${roleStars(p, roleOf(crew)).toFixed(1)}★ for ${roleOf(crew)})`, result.ok, result.ok ? result.message ?? '' : result.error);
@@ -690,12 +723,13 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         logResult(actions, `sack ${p.name} — idle in the pool, the crews are full (${bestStars(p).toFixed(1)}★ best)`, result.ok, result.ok ? result.message ?? '' : result.error);
       }
     }
-    // A new crew gets men from the biggest one, so no lieutenant walks alone.
-    for (let moves = 0; moves < 8; moves++) {
+    // A new crew gets two men from the biggest one, so no lieutenant walks alone
+    // (1.2.24: no more evening out — crews are filled, not balanced).
+    for (let moves = 0; moves < 4; moves++) {
       const sorted = crewsOf().sort((a, b) => a.memberIds.length - b.memberIds.length);
       const small = sorted[0];
       const big = sorted[sorted.length - 1];
-      if (!small || !big || big === small || big.memberIds.length - small.memberIds.length < 3) break;
+      if (!small || !big || big === small || small.memberIds.length >= 2 || big.memberIds.length < 4) break;
       // Keep the men the talent pass placed; move a newer hand instead.
       const id = [...big.memberIds].reverse().find((member) => !talentPlaced.has(member)) ?? big.memberIds[big.memberIds.length - 1];
       const result = moveToTeam(w, gang.id, id, small.id);
@@ -748,6 +782,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (name && name !== team.name) team.name = name;
   }
   if (roles.size) actions.push(`NOTE crews: ${[...roles].map(([id, role]) => `${w.people[w.teams[id]?.lieutenantId]?.name ?? id} ${role}`).join(', ')}`);
+  // 1.2.24: crew sizes every week (hoods of the most a crew can hold, lieutenant apart).
+  actions.push(`CREWS ${crewsOf().map((t) => `${t.name} ${t.memberIds.length}/${MAX_TEAM_SIZE - 1}`).join(', ') || 'none'}; pool ${gang.poolIds.length}`);
   const GUNS: WeaponId[] = ['pistol', 'shotgun', 'rifle', 'tommy', 'twinPistols'];
   const roleCrew = (role: CrewRole) => crewsOf().find((team) => roles.get(team.id) === role);
   const extortionCrew = roleCrew('extortion');
@@ -1158,7 +1194,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // The rule of thumb: keep hiring while the week's takings cover the
       // extra wages (or the cash would carry them for a year); below the
       // floor, hire whatever the books say. No fixed cap on men.
-      const men = gangManpower(w, gang);
+      // 1.2.24: crews and pool only — managers never hold hiring back.
+      const men = crewMen();
+      const crewRoom = crewsOf().some((team) => team.memberIds.length < MAX_TEAM_SIZE - 1);
       const floor = goal === 'territory' ? CREW_CAPACITY : Math.max(18, Math.round(10 + weight.hiring * 12), Math.min(60, Math.round(territoryCount(w, gang.id) * 2)));
       const newMen = shrinking ? 4 : 2;
       // 1.2.21: wages never exceed income. New men are hired only when last
@@ -1176,7 +1214,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // men for eight weeks (seen: 6 men for weeks 2-7 with ~$5.5k cash).
       const cashCarries = gang.cash - wageBill * 2 >= averageWage * newMen * 8;
       const affordable = takings >= wageBill + averageWage * newMen || territoryHire || cashCarries;
-      const pays = affordable && (men < floor || shortLastWeek || weeklyNet >= averageWage * newMen || gang.cash >= (wageBill + averageWage * newMen) * 52);
+      const pays = affordable && (men < floor || crewRoom || shortLastWeek || weeklyNet >= averageWage * newMen || gang.cash >= (wageBill + averageWage * newMen) * 52);
       const idle = idlePool().length;
       const full = crewMen() >= CREW_CAPACITY;
       if (full && idle >= POOL_RESERVE) {
@@ -1187,7 +1225,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         actions.push(`NOTE recruit held — the last men hired added no blocks (${menBlocksHistory.map((h) => `${h.men} men/${h.blocks} blocks`).join(' → ')})`);
       } else if (!affordable && hoodSites.length) {
         actions.push(`NOTE recruit held — wages $${Math.round(wageBill)} + about $${Math.round(averageWage * newMen)} for ${newMen} more would exceed last week's takings $${Math.round(takings)} and cash $${Math.round(gang.cash)} does not carry them`);
-      } else if (lieLow && !shrinking && men >= floor) {
+      } else if (lieLow && !shrinking && men >= floor && !crewRoom) {
         actions.push('NOTE recruit held — lying low');
       } else if (pays && hoodSites.length) {
         // Several venues, one man each: a two-man order waits for a second free hand.
@@ -1203,7 +1241,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           const stops = hoodSites.slice(0, venues).filter((_, i) => i % parts === k).map((b) => b.id);
           if (!stops.length) continue;
           propose({ label: `recruit (${stops.length} stop${stops.length > 1 ? 's' : ''})`, kind: 'men', role: 'recruit', input: { type: 'recruit', buildingIds: stops, opts: { manpower: 1 } },
-            value: (men < floor || shrinking ? 4000 : 1000) * stops.length, why: `${men} men${men < floor ? ` (below ${floor})` : ''}${cashCarries && !(takings >= wageBill + averageWage * newMen) ? ', cash carries the wages' : ''}` });
+            value: (men < floor || shrinking || crewRoom ? 4000 : 1000) * stops.length, why: `${men} men${men < floor ? ` (below ${floor})` : ''}${crewRoom ? ', a crew has room' : ''}${cashCarries && !(takings >= wageBill + averageWage * newMen) ? ', cash carries the wages' : ''}` });
         }
       } else if (hoodSites.length === 0) {
         actions.push('NOTE no hoods standing at a hiring place');
