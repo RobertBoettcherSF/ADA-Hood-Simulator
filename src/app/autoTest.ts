@@ -3051,13 +3051,14 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const squealers = peopleList(w).filter((p) => p.role === 'owner' && p.status === 'active' && (p.opinion[gang.id] ?? 0) < SQUEALER_OPINION && p.gangId !== gang.id);
       let room = gang.cash - cashReserve;
       for (const p of squealers) {
-        const cost = Math.round(300 + p.skills.intelligence * 260);
+        // The game's own bribe sum, at its top (a 5★ man), so no hidden skill is read.
+        const cost = 300 + 5 * 260;
         // The game lets a squealer be intimidated only at his business that refused us (as the Lawyer tab does).
         const shop = buildingList(w).find((b) => (b.ownerPersonId === p.id || b.managerId === p.id) && isValidAreaTarget(w, gang.id, 'intimidate', b));
         if (cost <= room) {
           room -= cost;
           propose({ label: `bribe squealer ${p.name}`, kind: 'safety', value: 300, why: 'on the squealer list', teams: sharpCrews(),
-            input: (team) => ({ type: 'bribe', personId: p.id, opts: { manpower: manpowerFor(team, 2), amount: cost, ...sharp(team) } as IssueOrderInput['opts'] }) });
+            input: (team) => ({ type: 'bribe', personId: p.id, opts: { manpower: manpowerFor(team, 2), ...sharp(team) } as IssueOrderInput['opts'] }) });
         } else if (shop) {
           propose({ label: `intimidate squealer ${p.name}`, kind: 'safety', value: 300, why: 'on the squealer list; no cash to bribe', role: 'intimidation',
             input: (team) => ({ type: 'intimidate', buildingIds: [shop.id], opts: { manpower: manpowerFor(team, 3) } }) });
