@@ -1,4 +1,6 @@
 import { learnedBlock } from './diary';
+import { skimRate } from '../sim/finances';
+import { originalSkimFraction } from '../sim/originalWages';
 import { moveSlot, slotLayout } from '../ui/lieutenantSlots';
 import { devJournalWeeks, splitReport } from './devJournal';
 import { peekStopTraces } from '../sim/devTrace';
@@ -700,23 +702,39 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     : role === 'business' ? p.skills.business >= 3
     : p.skills.intelligence >= 3 || p.skills.organization >= 3 || roleStars(p, role) >= 3;
   const leadTier = (role: CrewRole, p: Person) => leadQualified(role, p) ? 2 : leadInterim(role, p) ? 1 : 0;
+  /**
+   * 1.2.35: how close a hood comes to the lead goal, within his tier: for
+   * intimidation the three skills (each counted up to 4★, then in full), for
+   * business the business skill, for every other crew the best of
+   * intelligence, organization and the crew's own skills.
+   */
   const leadFit = (role: CrewRole, p: Person) => role === 'intimidation' ? s3(p).reduce((a, v) => a + Math.min(4, v), 0) * 10 + s3(p).reduce((a, v) => a + v, 0)
-    : roleStars(p, role);
+    : role === 'business' ? p.skills.business
+    : Math.max(p.skills.intelligence, p.skills.organization, roleStars(p, role));
+  /** 1.2.35: a lead is better when he reaches a higher goal (4★, 3★, below), or the same goal short of 4★ more closely. */
+  const betterLead = (role: CrewRole, p: Person, than: Person) => leadTier(role, p) > leadTier(role, than)
+    || (leadTier(role, p) === leadTier(role, than) && leadTier(role, p) < 2 && leadFit(role, p) > leadFit(role, than));
   const describeLead = (role: CrewRole, p: Person) => role === 'intimidation'
     ? `int ${p.skills.intelligence.toFixed(1)}★, org ${p.skills.organization.toFixed(1)}★, intimidation ${p.skills.intimidation.toFixed(1)}★`
     : `int ${p.skills.intelligence.toFixed(1)}★, org ${p.skills.organization.toFixed(1)}★, ${roleStars(p, role).toFixed(1)}★ ${role}${role === 'business' ? ` (business ${p.skills.business.toFixed(1)}★)` : ''}`;
-  const leadNeed = (role: CrewRole) => role === 'intimidation' ? '3★ or more in intelligence, organization and intimidation (4★ in each to lead it for good)'
-    : role === 'business' ? '4★ business (3★ until one is recruited)'
-    : `3★ or more (4★ to lead it for good) in intelligence, organization or ${ROLE_SKILLS[role].join('/')}`;
+  const leadNeed = (role: CrewRole) => role === 'intimidation' ? 'intelligence, organization and intimidation'
+    : role === 'business' ? 'business'
+    : `intelligence, organization or ${ROLE_SKILLS[role].join('/')}`;
+  const leadGoalNote = (role: CrewRole, p: Person) => leadQualified(role, p) ? '' : leadInterim(role, p) ? ' — 3★, until a 4★ hood is recruited' : ' — below 3★, the closest there is, until a better hood is recruited';
   const freeHood = (p: Person | undefined): p is Person => !!p && p.role === 'hood' && p.status === 'active' && !restingMen.has(p.id);
   const poolHoods = () => gang.poolIds.map((id) => w.people[id]).filter(freeHood);
   const crewHoods = () => crewsOf().filter((t) => keptRoles.get(t.id) !== 'business')
     .flatMap((t) => t.memberIds.map((id) => w.people[id])).filter((p): p is Person => freeHood(p) && p.orderId == null);
-  /** The best lead for a crew: 4★ before 3★, from the pool first, then from a crew (never the business crew). */
+  /**
+   * The best lead for a crew (1.2.35, Robert): goal 1 a 4★ lead, goal 2 a 3★
+   * lead, goal 3 the hood closest to 3★ — so a crew never fails to form for
+   * want of a 3★ hood. Each goal from the pool first, then from a crew
+   * (never the business crew's men).
+   */
   const pickLead = (role: CrewRole, from: () => Person[] = () => [...poolHoods(), ...crewHoods()]) => {
     const byFit = (a: Person, b: Person) => fit2(b) - fit2(a) || a.id - b.id;
     const fit2 = (p: Person) => leadFit(role, p);
-    for (const ok of [(p: Person) => leadQualified(role, p), (p: Person) => leadInterim(role, p)]) {
+    for (const ok of [(p: Person) => leadQualified(role, p), (p: Person) => leadInterim(role, p), () => true]) {
       const pool = poolHoods().filter((p) => from().includes(p)).filter(ok).sort(byFit)[0];
       if (pool) return pool;
       const crew = from().filter((p) => !gang.poolIds.includes(p.id)).filter(ok).sort(byFit)[0];
@@ -730,7 +748,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const role = rolesNow().get(team.id);
     const lt = w.people[team.lieutenantId];
     if (!role || !lt || leadQualified(role, lt)) continue;
-    const better = poolHoods().filter((p) => leadTier(role, p) > leadTier(role, lt)).sort((a, b) => leadTier(role, b) - leadTier(role, a) || leadFit(role, b) - leadFit(role, a) || a.id - b.id)[0];
+    const better = poolHoods().filter((p) => betterLead(role, p, lt)).sort((a, b) => leadTier(role, b) - leadTier(role, a) || leadFit(role, b) - leadFit(role, a) || a.id - b.id)[0];
     if (!better) continue;
     if (team.orderIds.length) { actions.push(`NOTE ${team.name}: ${better.name} (${describeLead(role, better)}) would lead it better — the swap for ${lt.name} waits until the crew's orders are done`); continue; }
     const members = [...team.memberIds];
@@ -742,7 +760,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     logResult(actions, `${role} crew: ${better.name} (${describeLead(role, better)}) takes over from ${lt.name} (${describeLead(role, lt)})`, !!newTeam, up.ok ? '' : up.error);
     if (!newTeam) continue;
     keptRoles.set(newTeam.id, role);
-    for (const id of [lt.id, ...members]) if (gang.poolIds.includes(id) && newTeam.memberIds.length < MAX_TEAM_SIZE - 1 && w.people[id] && roleStars(w.people[id], role) >= 3) moveToTeam(w, gang.id, id, newTeam.id);
+    // 1.2.35: every man moves back — a member leaves only when a better hood replaces him.
+    for (const id of [lt.id, ...members]) if (gang.poolIds.includes(id) && newTeam.memberIds.length < MAX_TEAM_SIZE - 1 && w.people[id]) moveToTeam(w, gang.id, id, newTeam.id);
     for (const [kind, n] of Object.entries(cars) as [keyof typeof VEHICLES, number][]) for (let i = 0; i < (n ?? 0); i++) transferVehicle(w, gang.id, kind, newTeam.id, true);
   }
   // 1.2.32 (Robert): existing crews are filled before any new crew is formed,
@@ -760,14 +779,14 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const result = promote(w, gang.id, lead.id);
       const newTeam = result.ok && lead.teamId != null ? w.teams[lead.teamId] : undefined;
       if (newTeam) keptRoles.set(newTeam.id, role);
-      logResult(actions, `promote ${lead.name} to lead the ${role} crew (${describeLead(role, lead)}${leadQualified(role, lead) ? '' : ' — until a 4★ hood is recruited'})${why}`, !!newTeam, result.ok ? result.message ?? '' : result.error);
+      logResult(actions, `promote ${lead.name} to lead the ${role} crew (${describeLead(role, lead)}${leadGoalNote(role, lead)})${why}`, !!newTeam, result.ok ? result.message ?? '' : result.error);
       return !!newTeam;
     };
     // 1.2.32 (Robert): an attack crew as soon as our map shows a rival HQ or one is suspected.
     const hqSeen = knownRivalHQs(w, gang).length > 0 || (suspectedHQ.get(w)?.size ?? 0) > 0;
     if (hqSeen && !heldRoles().includes('muscle')) {
       const lead = pickLead('muscle');
-      if (!lead) actions.push(`NOTE no attack crew although a rival HQ is ${knownRivalHQs(w, gang).length ? 'known' : 'suspected'}: no free hood with ${leadNeed('muscle')}`);
+      if (!lead) actions.push(`NOTE no attack crew although a rival HQ is ${knownRivalHQs(w, gang).length ? 'known' : 'suspected'}: no free hood at all to lead it (${leadNeed('muscle')})`);
       else if (gang.teamIds.length >= MAX_TEAMS) actions.push(`NOTE no attack crew although a rival HQ is known or suspected: already ${MAX_TEAMS} lieutenants (${lead.name} would lead it)`);
       else open('muscle', lead, ' — a rival HQ is known or suspected');
     }
@@ -785,7 +804,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         const role = missing[0];
         const lead = pickLead(role);
         if (!lead) {
-          for (const r of missing) actions.push(`BASIC CREW ${r} not ${w.week > 1 ? 'formed or rebuilt' : 'formed'}: ${r === role ? `no free hood in the pool or a crew with ${leadNeed(r)}` : `waits for the ${role} crew`}`);
+          for (const r of missing) actions.push(`BASIC CREW ${r} not ${w.week > 1 ? 'formed or rebuilt' : 'formed'}: ${r === role ? `no free hood at all in the pool or a crew to lead it (${leadNeed(r)})` : `waits for the ${role} crew`}`);
           break;
         }
         if (!open(role, lead, '')) break;
@@ -794,7 +813,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (poolWaiting() < 1) break;
       const nextRole = CREW_OPENING_ORDER.find((r) => !heldRoles().includes(r)) ?? 'collect';
       const lead = pickLead(nextRole, poolHoods);
-      if (!lead) { actions.push(`NOTE no new ${nextRole} crew: no free pool hood with ${leadNeed(nextRole)}`); break; }
+      if (!lead) { actions.push(`NOTE no new ${nextRole} crew: no free pool hood to lead it`); break; }
       if (!open(nextRole, lead, '')) break;
     }
   }
@@ -812,24 +831,34 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     for (const p of placeable) {
       const crew = crewsOf().filter((team) => team.memberIds.length < MAX_TEAM_SIZE - 1 && roleStars(p, roleOf(team)) >= 3)
         .sort((a, b) => roleStars(p, roleOf(b)) - roleStars(p, roleOf(a)) || b.memberIds.length - a.memberIds.length || a.id - b.id)[0];
-      if (!crew) {
-        // 1.2.30 (Robert): a hood who fits no crew's job goes to protection collecting.
-        const collect = crewsOf().filter((team) => roleOf(team) === 'collect' && team.memberIds.length < MAX_TEAM_SIZE - 1)
-          .sort((a, b) => b.memberIds.length - a.memberIds.length || a.id - b.id)[0];
-        if (!collect) continue;
-        const result = moveToTeam(w, gang.id, p.id, collect.id);
-        logResult(actions, `to crew ${p.name} (fits no crew's job, ${bestStars(p).toFixed(1)}★ best) — collects protection`, result.ok, result.ok ? result.message ?? '' : result.error);
-        continue;
-      }
+      if (!crew) continue;
       const result = moveToTeam(w, gang.id, p.id, crew.id);
       logResult(actions, `to crew ${p.name} (${roleStars(p, roleOf(crew)).toFixed(1)}★ for ${roleOf(crew)})`, result.ok, result.ok ? result.message ?? '' : result.error);
     }
-    // A full crew swaps its weakest free hand for a better man in the pool
-    // (3★ or more for that crew's job), every such swap.
+    // 1.2.35 (Robert): a crew no 3★ hood can join this week fills with the
+    // pool hoods closest to 3★ for its job (the collecting crews come last);
+    // the hoods left, who fit no crew, go to protection collecting.
+    for (const p of [...placeable].filter((x) => gang.poolIds.includes(x.id))) {
+      const crew = crewsOf().filter((team) => roleOf(team) !== 'collect' && team.memberIds.length < MAX_TEAM_SIZE - 1)
+        .sort((a, b) => roleStars(p, roleOf(b)) - roleStars(p, roleOf(a)) || b.memberIds.length - a.memberIds.length || a.id - b.id)[0];
+      if (crew) {
+        const result = moveToTeam(w, gang.id, p.id, crew.id);
+        logResult(actions, `to crew ${p.name} (${roleStars(p, roleOf(crew)).toFixed(1)}★ for ${roleOf(crew)}, the closest to 3★ there is)`, result.ok, result.ok ? result.message ?? '' : result.error);
+        continue;
+      }
+      // 1.2.30 (Robert): a hood who fits no crew's job goes to protection collecting.
+      const collect = crewsOf().filter((team) => roleOf(team) === 'collect' && team.memberIds.length < MAX_TEAM_SIZE - 1)
+        .sort((a, b) => b.memberIds.length - a.memberIds.length || a.id - b.id)[0];
+      if (!collect) continue;
+      const result = moveToTeam(w, gang.id, p.id, collect.id);
+      logResult(actions, `to crew ${p.name} (fits no crew's job, ${bestStars(p).toFixed(1)}★ best) — collects protection`, result.ok, result.ok ? result.message ?? '' : result.error);
+    }
+    // A full crew swaps its weakest free hand for a better man in the pool,
+    // every such swap (1.2.35: a weaker member leaves only for a better one).
     for (const p of [...placeable].filter((x) => gang.poolIds.includes(x.id))) {
       let best: { team: Team; weak: Person; gain: number } | undefined;
       for (const team of crewsOf()) {
-        if (team.memberIds.length < MAX_TEAM_SIZE - 1 || roleStars(p, roleOf(team)) < 3) continue;
+        if (team.memberIds.length < MAX_TEAM_SIZE - 1) continue;
         const weak = team.memberIds.map((m) => w.people[m]).filter((x): x is Person => !!x && x.status === 'active' && x.orderId == null && !talentPlaced.has(x.id))
           .sort((a, b) => roleStars(a, roleOf(team)) - roleStars(b, roleOf(team)))[0];
         const gain = weak ? roleStars(p, roleOf(team)) - roleStars(weak, roleOf(team)) : 0;
@@ -929,40 +958,44 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // 1.2.22, the business crew (Robert's method): hoods with more than three
   // business stars join it (1.2.31: no weekly limit), it gets a car, and it does the buying.
   const bizCrew = crewsOf().find((team) => roles.get(team.id) === 'business');
-  // 1.2.34 (Robert): every man in the business crew needs 3★ business; one
-  // below it goes to the pool (and from there to a crew his skills fit).
   if (bizCrew) {
-    for (const id of [...bizCrew.memberIds]) {
-      const p = w.people[id];
-      if (!p || p.skills.business >= 3 || p.orderId != null) continue;
-      const result = moveToPool(w, gang.id, id);
-      logResult(actions, `business crew: ${p.name} leaves (business ${p.skills.business.toFixed(1)}★, below 3★)`, result.ok, result.ok ? '' : result.error);
-    }
+    // 1.2.35 (Robert): the business crew takes the best business hands from
+    // the pool and from every crew (never a lieutenant; this overrides the
+    // crews keeping to their jobs and the donor sizes). With room it takes
+    // the best there is — 3★ business first, else the closest to 3★; full,
+    // it trades its weakest man (to the pool) for a better one. A weaker man
+    // leaves only when a better one replaces him. Each move raises the
+    // crew's business stars, so the pass ends.
     const lt = w.people[bizCrew.lieutenantId];
-    if (lt && lt.skills.business < 3) actions.push(`NOTE business crew: lead ${lt.name} has business ${lt.skills.business.toFixed(1)}★, below 3★ — he gives way when a 3★ hood is recruited`);
-  }
-  if (bizCrew) {
-    // 1.2.23: each buy or set-up leaves a hood behind as manager, so the crew
-    // refills every week — from the pool first, then from the other crews,
-    // hoods above three business stars only. With none, it works short-handed.
-    let moved = 0;
-    // 1.2.25: 3★ or more for the business crew's job (business and organization), as for every crew.
-    const bizStars = (p: Person) => roleStars(p, 'business');
-    const fromPool = idlePool().map((id) => w.people[id]).filter((p): p is Person => !!p && p.orderId == null && bizStars(p) >= 3);
-    const talents = [...fromPool.sort((a, b) => bizStars(b) - bizStars(a)), ...crewsOf().filter((t) => t.id !== bizCrew.id && t.memberIds.length > 2)
-      .flatMap((t) => t.memberIds.map((id) => w.people[id])).filter((p): p is Person => !!p && p.status === 'active' && p.orderId == null && bizStars(p) >= 3)
-      .sort((a, b) => bizStars(b) - bizStars(a))];
+    if (lt && lt.skills.business < 3) actions.push(`NOTE business crew: lead ${lt.name} has business ${lt.skills.business.toFixed(1)}★ — the closest there is; a better hood takes over when one is recruited`);
     const want = MAX_TEAM_SIZE - 1 - bizCrew.memberIds.length;
-    for (const p of talents) {
-      if (bizCrew.memberIds.length >= MAX_TEAM_SIZE - 1) break;
-      const result = tryMove(p.id, bizCrew.id, `business crew: ${p.name} (${bizStars(p).toFixed(1)}★ business) joins`);
-      if (result.ok) { moved++; talentPlaced.add(p.id); }
+    let moved = 0;
+    const free = (p: Person | undefined): p is Person => !!p && p.status === 'active' && p.role === 'hood' && p.orderId == null && !restingMen.has(p.id);
+    const others = () => [...idlePool().map((id) => w.people[id]), ...crewsOf().filter((t) => t.id !== bizCrew.id).flatMap((t) => t.memberIds.map((id) => w.people[id]))]
+      .filter(free).sort((x, y) => y.skills.business - x.skills.business || Number(gang.poolIds.includes(y.id)) - Number(gang.poolIds.includes(x.id)) || x.id - y.id);
+    for (;;) {
+      const best = others()[0];
+      if (!best) break;
+      const from = crewsOf().find((t) => t.memberIds.includes(best.id));
+      if (bizCrew.memberIds.length < MAX_TEAM_SIZE - 1) {
+        const result = tryMove(best.id, bizCrew.id, `business crew: ${best.name} (business ${best.skills.business.toFixed(1)}★${best.skills.business < 3 ? ', the closest to 3★ there is' : ''}) joins${from ? ` from ${from.name}` : ' from the pool'}`);
+        if (!result.ok) break;
+        moved++; talentPlaced.add(best.id);
+        continue;
+      }
+      const weak = bizCrew.memberIds.map((id) => w.people[id]).filter(free).sort((x, y) => x.skills.business - y.skills.business || y.id - x.id)[0];
+      if (!weak || best.skills.business <= weak.skills.business) break;
+      const out = moveToPool(w, gang.id, weak.id);
+      if (!out.ok) break;
+      const result = tryMove(best.id, bizCrew.id, `business crew: ${best.name} (business ${best.skills.business.toFixed(1)}★${from ? `, from ${from.name}` : ', from the pool'}) in for ${weak.name} (${weak.skills.business.toFixed(1)}★, to the pool)`);
+      if (!result.ok) { moveToTeam(w, gang.id, weak.id, bizCrew.id); break; }
+      talentPlaced.add(best.id);
     }
     if (!Object.values(bizCrew.vehicles).some((n) => n > 0) && gang.cash > VEHICLES.coupe.cost * 3) {
       const result = buyVehicle(w, gang.id, 'coupe', bizCrew.id);
       logResult(actions, `business crew: a car for ${w.people[bizCrew.lieutenantId]?.name ?? 'the crew'}`, result.ok, result.ok ? '' : result.error);
     }
-    if (want > moved && bizCrew.memberIds.length < 3) actions.push(`NOTE business crew short: ${bizCrew.memberIds.length + 1} men and no free hood with 3★ business to join — it works with who is left`);
+    if (want > moved && bizCrew.memberIds.length < 3) actions.push(`NOTE business crew short: ${bizCrew.memberIds.length + 1} men and no free hood left to join — it works with who is left`);
     const men = [bizCrew.lieutenantId, ...bizCrew.memberIds].map((id) => w.people[id]).filter((p): p is Person => !!p);
     const line = `NOTE business crew ${bizCrew.name}: ${men.length} men, business ${(men.reduce((s2, p) => s2 + p.skills.business, 0) / Math.max(1, men.length)).toFixed(1)}★ avg (${men.filter((p) => p.skills.business > 3).length} above 3★), ${Object.values(bizCrew.vehicles).some((n) => n > 0) ? 'with a car' : 'on foot'}`;
     actions.push(line); noteDevDesk(line);
@@ -1274,6 +1307,42 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const offered = new Set<number>();
   /** 1.2.25 (Robert): the reserve — three weeks of wages, at most RESERVE_CAP — used everywhere cash is kept back. */
   const cashReserve = Math.min(RESERVE_CAP, Math.round(wageBill * 3));
+  // 1.2.35 (Robert): managers by what they earn. A manager's takings follow
+  // the game's profit rule (0.45 + business × 0.16 + organization × 0.05)
+  // less what he skims; every week each manager is compared with the best
+  // free hood (pool or any crew, never a lieutenant). Where the newcomer
+  // earns more, the business crew is given Run Business for that site with
+  // him as the named hood, so he is the one who takes over (the old manager
+  // returns to the crew). It competes with the buys by its worth: the extra
+  // takings over the same four weeks a buy is valued on.
+  if (bizCrew && ready.includes(bizCrew)) {
+    const earns = (m: Person) => (0.45 + m.skills.business * 0.16 + m.skills.organization * 0.05)
+      * (1 - (w.cityLayout?.original ? originalSkimFraction(m, gang.id) : skimRate(m.loyalty, m.skills.organization)));
+    const taken = new Set<number>();
+    const lines: string[] = [];
+    const sites = buildingList(w).filter((b) => b.ownerGangId === gang.id && !b.isHQ && b.managerId != null && b.state === 'trading' && w.people[b.managerId])
+      .sort((a, b) => b.lastProfit - a.lastProfit || a.id - b.id);
+    for (const site of sites) {
+      const old = w.people[site.managerId!]!;
+      const pool = [...idlePool().map((id) => w.people[id]), ...crewsOf().flatMap((t) => t.memberIds.map((id) => w.people[id]))]
+        .filter((p): p is Person => !!p && p.status === 'active' && p.role === 'hood' && p.orderId == null && !restingMen.has(p.id) && !taken.has(p.id))
+        .sort((x, y) => earns(y) - earns(x) || x.id - y.id);
+      const cand = pool[0];
+      if (!cand || earns(cand) <= earns(old)) continue;
+      const gain = site.lastProfit > 0 ? Math.round(site.lastProfit * (earns(cand) / earns(old) - 1)) : 0;
+      const label = `${BUILDING_BY_ID[site.typeId]?.name ?? site.typeId} #${site.id}`;
+      if (gain <= 0) { lines.push(`${label}: ${cand.name} would earn more than ${old.name}, but the site made no profit last week`); continue; }
+      if (!bizCrew.memberIds.includes(cand.id)) {
+        if (bizCrew.memberIds.length >= MAX_TEAM_SIZE - 1) { lines.push(`${label}: ${cand.name} would earn $${gain} a week more than ${old.name}, but the business crew is full`); continue; }
+        if (!tryMove(cand.id, bizCrew.id, `manager swap: ${cand.name} joins the business crew to take over ${label}`).ok) continue;
+      }
+      taken.add(cand.id);
+      lines.push(`${label}: ${cand.name} (business ${cand.skills.business.toFixed(1)}★, org ${cand.skills.organization.toFixed(1)}★, loyalty ${Math.round(cand.loyalty)}) for ${old.name} (business ${old.skills.business.toFixed(1)}★, org ${old.skills.organization.toFixed(1)}★, loyalty ${Math.round(old.loyalty)}) — about $${gain} a week more`);
+      propose({ label: `manager swap at ${label}: ${cand.name} for ${old.name}`, kind: 'business', role: 'business', teams: [bizCrew], value: gain * 4,
+        why: `about $${gain} a week more takings`, input: { type: 'runBusiness', buildingIds: [site.id], opts: { manpower: 1, preferredHoodId: cand.id } } });
+    }
+    actions.push(`MANAGERS ${sites.length} run by our men; ${lines.length ? lines.join('; ') : 'no free hood would earn more than any of them'}`);
+  }
   /**
    * 1.2.23 (Robert's method): the business crew's three jobs — buy a business,
    * buy empty land, set up a business on our land. No minutes gate of our own
