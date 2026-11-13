@@ -138,6 +138,7 @@ import { memberLosses } from '../sim/memberLosses';
 import { availableSpecialist } from '../sim/specialists';
 import { queueSpecialistJob } from '../sim/specialistJobs';
 import { bribePrice, isBribableOfficial, refusesBribe } from '../sim/officials';
+import { memProbeLine, registerProbe } from '../sim/memProbe';
 import {
   balanceAnomalies,
   campaignLabel,
@@ -192,6 +193,8 @@ export const MEMORY_CHECK_SHARE = 0.6;
 export const MEMORY_STOP_SHARE = 0.8;
 /** Idle time given to the browser's garbage collector before the second check. */
 export const MEMORY_YIELD_MS = 3000;
+/** 1.2.28 (Robert's rule): past this much used heap Auto Test saves its evidence and pauses. */
+export const HEAP_EVIDENCE_BYTES = 2 * 1024 * 1024 * 1024;
 /** 1.2.24: used heap above which Auto Test idles HEAP_IDLE_MS between weeks. */
 export const HEAP_IDLE_MB = 1024;
 export const HEAP_IDLE_MS = 1500;
@@ -274,6 +277,9 @@ export function newRecruitMemory(): RecruitMemory {
 }
 
 let recruitMemory = newRecruitMemory();
+// 1.2.28: memory probe — Auto Test's own module state.
+registerProbe('autoTest', () => ({ pendingActions: pendingActions.length, talentPlaced: talentPlaced.size, runListeners: runListeners.size,
+  venueStreaks: recruitMemory.emptyStreak.size, hints: recruitMemory.hintIds.length, ledgerKeys: Object.keys(timeLedger).length }));
 const coolingOff = new WeakMap<object, boolean>();
 /** 1.2.24: our businesses (id → manager) last Monday, to log managers killed and businesses lost. */
 const ownedLastWeek = new WeakMap<object, Map<number, number | null>>();
@@ -2408,6 +2414,8 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     }
     const weekSnap = snapshot(sim, ms);
     actions.push(memorySizesLine(sim, actions));
+    // 1.2.28: what lives outside the world state, every week.
+    actions.push(memProbeLine({ reportLines: actions.length, weeks: weeks.length, notes: notes.length, resultsSaid: resultsSaid.size, lostTally: lostTally.size }));
     // A week that ends the game does not advance the calendar; label it as the week after the one played, like every other.
     weekSnap.week = Math.max(weekSnap.week, weekBefore + 1);
     if (weeks.length && weeks[weeks.length - 1].week >= weekSnap.week) weekSnap.week = weeks[weeks.length - 1].week + 1;
@@ -2451,6 +2459,30 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     if (flatRecruit >= 2) notes.push(`Stuck: men stayed ${men} and the pool stayed empty for ${flatRecruit} weeks.`);
     if (phase === 'gameOver') break;
     if (settings.weeks == null && sim.world.outcome) break;
+    // 1.2.28: past 2 GB of used heap, save the report so far and the probe
+    // lines at once (so they survive a crash), then pause the run.
+    if (memory.heap && memory.heap.used > HEAP_EVIDENCE_BYTES) {
+      const file = instanceFile(`memory-evidence-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`);
+      const evidence = [
+        `Memory evidence: used heap ${formatHeapMb(memory.heap)} of ${Math.round(memory.heap.limit / 1048576)} MB after week ${sim.world.week - 1}.`,
+        `City ${sim.world.gridW}×${sim.world.gridH}, city seed ${sim.world.options.seed}, Auto Test seed ${settings.seed}.`,
+        '', 'Timeline',
+        ...weeks.map((week) => `Week ${week.week}: cash ${week.cash} men ${week.men} end-week ${week.ms} ms save ${week.saveBytes} bytes${week.heapUsed != null && week.heapTotal != null ? ` heap ${formatHeapMb({ used: week.heapUsed, total: week.heapTotal })}` : ''}`),
+        '', 'Memory lines',
+        ...actions.filter((line) => line.startsWith('MEMPROBE') || line.startsWith('SIZES') || line.startsWith('-- week')),
+        '', 'Actions so far',
+        ...actions,
+      ].join('\n');
+      try {
+        const parts = splitReport(evidence);
+        for (let k = 0; k < parts.length; k++) await writeReportFile(parts.length === 1 ? file : file.replace(/\.txt$/, `-part${k + 1}of${parts.length}.txt`), parts[k]);
+        notes.push(`Paused: used heap passed 2 GB after week ${sim.world.week - 1} (${formatHeapMb(memory.heap)}). The report so far and the memory probe were saved to ${file}.`);
+      } catch (error) {
+        notes.push(`Paused: used heap passed 2 GB after week ${sim.world.week - 1}; the evidence file could not be written (${error instanceof Error ? error.message : String(error)}).`);
+      }
+      stoppedThisRun = true;
+      break;
+    }
     if (memory.stop && memory.heap) {
       memoryStopped = true;
       stoppedThisRun = true;
