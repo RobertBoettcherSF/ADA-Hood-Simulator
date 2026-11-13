@@ -143,11 +143,11 @@ export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, o
 
 // ------------------------------------------------------------ talent groups
 
-export type CrewRole = 'business' | 'intimidation' | 'collect' | 'muscle' | 'recruit' | 'scout';
+export type CrewRole = 'business' | 'intimidation' | 'collect' | 'muscle' | 'recruit' | 'scout' | 'expendables';
 
 /** The job word in a crew's name: "Eddie's Protection", "Eddie's Strike" (1.2.18). */
 export const CREW_JOBS: Record<CrewRole, string> = {
-  collect: 'Protection', recruit: 'Recruiting', intimidation: 'Intimidation', business: 'Business', muscle: 'Attack', scout: 'Scouting',
+  collect: 'Protection', recruit: 'Recruiting', intimidation: 'Intimidation', business: 'Business', muscle: 'Attack', scout: 'Scouting', expendables: 'Expendables',
 };
 /** Names Auto Test (or the game) gave: the default "X's Crew", 1.2.17's bare job names, and "X's <Job>". */
 const OLD_NAMES = ['Collect Protection', 'Recruiting', 'Extortion', 'Business', 'Strike', 'Scouting'];
@@ -181,24 +181,33 @@ export function crewNames(crews: { id: number; name: string; role: CrewRole; lie
   }
   return out;
 }
-export const recruitTalent = (p: Person) => p.skills.intelligence * 2 + p.skills.organization;
-export const scoutTalent = (p: Person) => p.skills.stealth * 2 + p.skills.intelligence + p.skills.driving * 0.5;
+// 1.2.37 (Robert): recruit on intelligence alone, scouts on stealth and intelligence.
+export const recruitTalent = (p: Person) => p.skills.intelligence;
+export const scoutTalent = (p: Person) => p.skills.stealth + p.skills.intelligence;
 
-export const businessTalent = (p: Person) => p.skills.business * 2 + p.skills.organization + p.skills.intelligence;
-export const intimidationTalent = (p: Person) => p.skills.intimidation * 2 + p.skills.fists * 0.5;
-export const muscleTalent = (p: Person) => p.skills.firearms * 2 + p.skills.stealth + p.skills.driving * 0.5 + p.skills.explosives * 0.5;
+export const businessTalent = (p: Person) => p.skills.business; // 1.2.37: business members ignore intelligence
+// 1.2.37 (Robert): intimidation alone; the attack crew on firearms and stealth.
+export const intimidationTalent = (p: Person) => p.skills.intimidation;
+export const muscleTalent = (p: Person) => p.skills.firearms + p.skills.stealth;
 /**
  * 1.2.21: the skills each crew job asks for, read as stars (the mean of the
  * listed skills). Extortion and strike want fists and guns, collection wants
  * driving and organisation, recruiting and bribes want brains.
  */
 export const ROLE_SKILLS: Record<CrewRole, readonly (keyof Person['skills'])[]> = {
-  intimidation: ['intimidation', 'fists'],
-  muscle: ['firearms', 'fists', 'stealth'],
-  collect: ['driving', 'organization'],
-  recruit: ['intelligence', 'organization'],
+  // 1.2.37 (Robert): intimidation alone (no fists); attack on firearms and
+  // stealth (no fists); collecting on intimidation (no driving or
+  // organization); recruiting on intelligence alone; scouts on stealth and
+  // intelligence (no driving).
+  intimidation: ['intimidation'],
+  muscle: ['firearms', 'stealth'],
+  collect: ['intimidation'],
+  recruit: ['intelligence'],
   business: ['business'], // 1.2.34 (Robert): business skill alone
-  scout: ['stealth', 'intelligence', 'driving'],
+  scout: ['stealth', 'intelligence'],
+  // 1.2.37 (Robert): the Expendables take hoods who fit no crew or are under
+  // 2.5★ intelligence — no skill rule; shown by firearms.
+  expendables: ['firearms'],
 };
 export const roleStars = (p: Person, role: CrewRole) => ROLE_SKILLS[role].reduce((sum, k) => sum + (p.skills[k] ?? 0), 0) / ROLE_SKILLS[role].length;
 /** A crew's job read back from its auto name ("Eddie's Strike"), or null. */
@@ -243,7 +252,7 @@ export function assignCrewRoles(teams: readonly Team[], kept: Map<ID, CrewRole>)
 /** Swap men so each crew gets the hoods its role wants. Returns the moves to make. */
 export function talentSwaps(w: WorldState, teams: readonly Team[], roles: Map<ID, CrewRole>, limit = 3): { personId: ID; toTeamId: ID }[] {
   const moves: { personId: ID; toTeamId: ID }[] = [];
-  const score: Record<CrewRole, (p: Person) => number> = { business: businessTalent, intimidation: intimidationTalent, muscle: muscleTalent, recruit: recruitTalent, scout: scoutTalent, collect: (p) => -totalSkill(p) };
+  const score: Record<CrewRole, (p: Person) => number> = { business: businessTalent, intimidation: intimidationTalent, muscle: muscleTalent, recruit: recruitTalent, scout: scoutTalent, collect: (p) => -totalSkill(p), expendables: (p) => -totalSkill(p) };
   const moved = new Set<ID>();
   for (const role of ['business', 'intimidation', 'muscle'] as const) {
     const team = teams.find((t) => roles.get(t.id) === role);

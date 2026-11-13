@@ -238,6 +238,23 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.37 decisions
+
+Auto Test: intelligence, stealth and intimidation as the game uses them, the Expendables crew, manager swaps by takings, and three fixes (Robert). No game rule changes.
+
+1. Leads. Every lead is judged on the average of organization and intelligence. The Business lead also needs business, and the attack lead also needs firearms and stealth: for those two the lower of the two averages counts. The Intimidation lead uses intimidation to break ties. The 4★ / 3★ / closest goals and the 0.5★ swap gain read this lead-fit value.
+2. Members. Recruit: intelligence alone. Scouts: stealth and intelligence (no driving). Intimidation and Collect: intimidation alone (no fists, driving or organization). Attack: firearms and stealth (no fists). Business: business alone. When the Business crew has room, it takes the lowest-intelligence 3★ business hand first. When it is full, it trades for more business.
+3. Bribes. Bribes go to the crew whose sharpest free man is sharpest, with that man named on the order. Auto Test never donates to charity, so nothing changed there.
+4. Guns. Guns belong to the crew. A Collect or Business crew holds one gun per man with 2.5★ intelligence or more. Every other crew holds one gun per man. Every crew arms its sharper men first, then its men under 2.5★ intelligence. Collect and Business take the plainest gun in the store and get no upgrades, neither from the store nor from surplus cash.
+5. Expendables. Before anyone is let go (every crew full, the basic crews held, more spare hoods in the pool than the losses allow), the spare hoods who fit no crew or have less than 2.5★ intelligence join the armed Expendables crew. It forms once three such hoods are spare, with the lead chosen on the organization/intelligence average. A hood is let go only when the Expendables crew is full too. The Expendables crew comes first for hits on rival men (rolled and in retaliation), the FBI director and FBI agents at our rackets, and torching rival premises. Bombs and the HQ attack stay with the attack crew, which holds the explosives. Expendables never count for fill-first and take no ordinary placements.
+6. Manager swaps. The estimated takings use only business and organization (the game's manager factor, 0.45 + business × 0.16 + organization × 0.05). A swap needs them 10% or more higher, which replaces the 0.5★ rule. At an illegal site the qualifying hood with the most business + stealth + organization is chosen, for safety from FBI raids. At a legal site the one with the highest takings is chosen.
+7. Fix: attack reserve. When the attack crew is broken up (a lead swap, a demote or a dead lieutenant), its guns and explosives go to the store and stay reserved for it. The reserve stays while no attack crew exists. The next attack crew arms first and takes the reserve back.
+8. Fix: swap and buys. The lieutenant counts as a business hand for a buy. When the swap hood is the only hand, the buy goes first and the swap waits until next week.
+9. Snitch. A snitch who had nothing new is asked again once the rivals have likely hired: after another snitch or another set of rival gangs, after 4 weeks, or after 2 weeks if rival men we know of have died in the meantime. Single deaths and sightings do not count on their own. *(my call: 4 and 2 weeks.)*
+10. Intimidation crews. Extortion groups are ranked hardest first: sites that refused us, then the farthest from the office. The hardest group goes first to the strongest Intimidation crew (most intimidation stars), the next to the next strongest.
+11. Recruiting. While the Business crew has room, recruiting keeps looking for 3★ business hands. The Expendables crew is never recruited for. The Business crew size is unchanged.
+12. Losses. The gang counts as weak when it has fewer than 75% of the biggest rival's known live men, or its cash is below the reserve (three weeks of wages). While weak, the armed crews keep out of rival blocks: no hits, kidnaps, torchings, bombings, smash-ups, retaliation or HQ strikes. Otherwise the rival HQ strike comes first (value 6000, the 4-week gap kept), and the attack and Expendables crews ambush rival men in the block where they were last seen, armed with rifles (the attack crew's from its reserve). *(my call: 75%, the reserve line and the 6000.)*
+
 ## v1.2.35 decisions
 
 Auto Test leads, members, the business crew and managers (Robert). No game rule changes.
