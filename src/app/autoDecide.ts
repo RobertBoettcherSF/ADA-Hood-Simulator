@@ -35,10 +35,8 @@ export interface Proposal<T> {
   teams?: T[];
   /** Called once the order is accepted. */
   onGiven?: (team: T, result: ApiResult) => void;
-  /** Called when no crew could take it (a fallback, such as the boss hiring a lawyer himself). */
+  /** Called when no crew could take it (for the log). */
   onSkipped?: () => void;
-  /** Business work any crew may take once the business crew's week is full (idle cash). */
-  anyCrew?: boolean;
   /** Least free minutes a crew needs for this one (a strike needs most of a day). */
   minFree?: number;
   /** Called on the chosen crew just before the order is issued (arm it for a strike). */
@@ -76,18 +74,20 @@ export function decideWeek<T>(
 ): { given: Decision[]; skipped: Decision[] } {
   const given: Decision[] = [], skipped: Decision[] = [];
   const ranked = proposals.map((p, i) => ({ p, i, score: scoreOf(goal, p) })).sort((a, b) => b.score - a.score || a.i - b.i);
-  const hasBusinessCrew = crews.some((c) => c.businessOnly);
   for (const { p, score } of ranked) {
-    const allowed = (c: CrewSlot<T>) => p.kind === 'business' ? !hasBusinessCrew || !!c.businessOnly || !!p.anyCrew : !c.businessOnly;
+    // 1.2.25 (Robert's rule): business work — buying a business, buying land,
+    // setting up on our land — goes to the business crew and nobody else; the
+    // business crew takes nothing else. No business crew: nobody buys.
+    const allowed = (c: CrewSlot<T>) => (p.kind === 'business') === !!c.businessOnly;
     const slots = p.teams
-      ? p.teams.map((t) => crews.find((c) => c.team === t)).filter((c): c is CrewSlot<T> => !!c && (p.kind === 'business' || !c.businessOnly))
-      : crews.filter(allowed).sort((a, b) => Number(!!b.businessOnly && p.kind === 'business') - Number(!!a.businessOnly && p.kind === 'business')
-        || Number(b.role === p.role && p.role != null) - Number(a.role === p.role && p.role != null) || b.free() - a.free());
+      ? p.teams.map((t) => crews.find((c) => c.team === t)).filter((c): c is CrewSlot<T> => !!c && allowed(c))
+      : crews.filter(allowed).sort((a, b) => Number(b.role === p.role && p.role != null) - Number(a.role === p.role && p.role != null) || b.free() - a.free());
     const open = slots.filter((c) => c.free() >= (p.minFree ?? MIN_FREE_MINUTES));
     const weight = KIND_WEIGHTS[goal][p.kind];
     const why = `score ${score} = value ${Math.round(p.value)} × ${goal} weight ${weight} for ${p.kind}${p.why ? ` — ${p.why}` : ''}`;
     if (!open.length) {
-      skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; no crew with time${p.teams ? ' among those fit for it' : ''}` });
+      const none = !slots.length && p.kind === 'business' ? 'no business crew yet — nobody else buys' : `no crew with time${p.teams ? ' among those fit for it' : ''}`;
+      skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; ${none}` });
       p.onSkipped?.();
       continue;
     }
