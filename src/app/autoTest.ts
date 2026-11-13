@@ -1621,7 +1621,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // 1.2.23 surplus: cash far above need with the crews full — the money goes on
   // bribes, buying into the blocks we share with rivals, and the strongest rival's HQ.
   const surplusCash = Math.round(gang.cash - Math.min(RESERVE_CAP, wageBill * 3) - 20000);
-  const surplus = crewMen() >= CREW_CAPACITY && surplusCash > 30000;
+  // (seen in 1.2.23 testing: $145k idle at 72 of 80 men, so near-full crews count too)
+  const surplus = (crewMen() >= CREW_CAPACITY * 0.85 && surplusCash > 30000) || surplusCash > 100000;
   const hqPriority = (g: Gang) => surplus ? powerRating(w, g) : goal === 'territory' ? -powerRating(w, g) : powerRating(w, g) / Math.max(1, knownMen(g));
   const priorityRival = [...liveRivals].sort((a, b) => hqPriority(b) - hqPriority(a))[0];
   const rivalHQs = knownRivalHQs(w, gang).sort((a, b) => hqPriority(w.gangs[b.ownerGangId!]) - hqPriority(w.gangs[a.ownerGangId!]));
