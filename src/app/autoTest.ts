@@ -65,6 +65,7 @@ import { buildingDoor, dist, gangAssets, gangManpower, gangMembers, powerRating,
 import { effectiveHostility } from '../sim/attitudes';
 import { buildingList, peopleList } from '../sim/entityLists';
 import { MAX_TEAM_SIZE, MAX_TEAMS, MINUTES_PER_WEEK } from '../sim/constants';
+import { crewFreeMinutes, crewLoads, crewUsedShare } from '../sim/crewTime';
 import { chooseGoal, formatGoalScores, goalsFor, GOAL_LABELS, GOAL_POLICY, GOAL_DROP_WEEKS, GOAL_REVIEW_WEEKS, GOAL_STALL_DROP, GOAL_STALL_PENALTY, goalScores, type VictoryGoal } from './autoGoals';
 import { campaignWeeklyCost, canRunForOffice, electionBlocksRequired } from '../sim/systems/politics';
 
@@ -911,10 +912,21 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const outOfTime = new Set<number>();
   let timeShort = false;
   /** The crew with the most time left this week, skipping those already given this kind of job. */
+  /**
+   * 1.2.27 (man-hours): the minutes an order taking `men` men can still have —
+   * the men-th freest man's free minutes, within the crew's free man-minutes
+   * shared between them.
+   */
+  const freeFor = (team: Team, men = 1) => {
+    const loads = crewLoads(w, team).sort((a, b) => a - b);
+    if (!loads.length) return 0;
+    const nth = MINUTES_PER_WEEK - loads[Math.min(Math.max(1, men), loads.length) - 1];
+    return Math.max(0, Math.min(nth, crewFreeMinutes(w, team) / Math.max(1, Math.min(men, loads.length))));
+  };
   const freest = (skip: Set<number> = new Set(), role?: CrewRole) => {
     const open = ready.filter((team) => !outOfTime.has(team.id) && !skip.has(team.id));
-    const preferred = role ? open.find((team) => roles.get(team.id) === role && team.timeUsed < MINUTES_PER_WEEK * 0.85) : undefined;
-    return preferred ?? open.sort((a, b) => a.timeUsed - b.timeUsed || a.id - b.id)[0];
+    const preferred = role ? open.find((team) => roles.get(team.id) === role && crewUsedShare(w, team) < 0.85) : undefined;
+    return preferred ?? open.sort((a, b) => crewFreeMinutes(w, b) - crewFreeMinutes(w, a) || a.id - b.id)[0];
   };
   const give = (label: string, team: (typeof ready)[number] | undefined, input: Omit<IssueOrderInput, 'teamId'>, kind?: OrderKind): ApiResult => {
     if (!team) {
@@ -971,9 +983,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const key = ledgerKey(input.type, hasCar);
     const targets = input.buildingIds?.length ?? 1;
     // Business work is sized by the game alone (1.2.23): no ledger gate of ours.
-    const fits = kind === 'business' ? targets : targetsThatFit(timeLedger, key, targets, MINUTES_PER_WEEK - team.timeUsed);
+    const men = Math.max(1, input.opts?.manpower ?? 1);
+    const fits = kind === 'business' ? targets : targetsThatFit(timeLedger, key, targets, freeFor(team, men));
     if (fits === 0) {
-      actions.push(`NOTE ${label} not given to ${name} — about ${timeLedger[key]} min a target, ${Math.max(0, MINUTES_PER_WEEK - team.timeUsed)} min left`);
+      actions.push(`NOTE ${label} not given to ${name} — about ${timeLedger[key]} min a target, ${Math.round(freeFor(team, men))} min left for ${men} man/men`);
       outOfTime.add(team.id); timeShort = true;
       return { ok: false, error: 'Not enough time left this week (time ledger).' };
     }
@@ -994,13 +1007,13 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (result.ok && risky) riskyMen += hands;
     if (result.ok) {
       const order = team.orderIds.length ? w.orders[team.orderIds[team.orderIds.length - 1]] : undefined;
-      const minutes = order?.estimatedMinutes || team.timeUsed - usedBefore;
+      const minutes = order?.estimatedMinutes || (team.timeUsed - usedBefore) / Math.max(1, order?.opts.manpower ?? 1);
       noteLedger(timeLedger, key, minutes / Math.max(1, order?.targetBuildingIds.length || 1));
     }
     return result;
   };
   /** Share of this crew's week still free. */
-  const freeShare = (team: (typeof ready)[number]) => 1 - team.timeUsed / MINUTES_PER_WEEK;
+  const freeShare = (team: (typeof ready)[number]) => 1 - crewUsedShare(w, team);
   const manpowerFor = (team: (typeof ready)[number], most: number) => Math.max(1, Math.min(most, team.memberIds.length + 1));
   // Blocks we claim now (one standing business owned or protected, as the game counts them).
   const territoryBlocksNow = claimedTerritoryBlocks(w, gang.id);
@@ -1060,8 +1073,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         onGiven: (team) => {
           const orderId = team.orderIds[team.orderIds.length - 1];
           const order = w.orders[orderId];
-          desk.pending.push({ orderId, buildingId: site.id, teamId: team.id, type: input.type, estimate: order?.estimatedMinutes ?? 0, free: Math.round(MINUTES_PER_WEEK - team.timeUsed), week: w.week });
-          const line = `NOTE business: ${label} ${site.typeId} (building ${site.id}) to ${team.name} — about ${order?.estimatedMinutes ?? '?'} min by the game's estimate, ${Math.round(MINUTES_PER_WEEK - team.timeUsed)} min left after it`;
+          desk.pending.push({ orderId, buildingId: site.id, teamId: team.id, type: input.type, estimate: order?.estimatedMinutes ?? 0, free: Math.round(freeFor(team)), week: w.week });
+          const line = `NOTE business: ${label} ${site.typeId} (building ${site.id}) to ${team.name} — about ${order?.estimatedMinutes ?? '?'} min by the game's estimate, ${Math.round(freeFor(team))} min left for the freest man, ${Math.round(crewFreeMinutes(w, team))} man-min for the crew after it`;
           actions.push(line); noteDevDesk(line);
         },
       });
@@ -1407,7 +1420,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           if (!team) break;
           collected.add(team.id);
           const hasCar = Object.values(team.vehicles).some((n) => n > 0);
-          const fit = Math.max(1, Math.min(share * 2, targetsThatFit(timeLedger, ledgerKey('collectProtection', hasCar), left.length, MINUTES_PER_WEEK - team.timeUsed) || 1));
+          const fit = Math.max(1, Math.min(share * 2, targetsThatFit(timeLedger, ledgerKey('collectProtection', hasCar), left.length, freeFor(team, 1)) || 1));
           const seed = left.shift()!;
           left.sort((a, b) => dist(centre(a), centre(seed)) - dist(centre(b), centre(seed)));
           const group = [seed, ...left.splice(0, fit - 1)];
@@ -1640,7 +1653,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (stocked.length && policy.illegal) {
       // 1.2.25: never the business crew (it only buys and sets up, and gets no truck).
       const street = ready.filter((t) => roles.get(t.id) !== 'business');
-      const team = street.find((t) => (t.vehicles.truck ?? 0) > 0 && freeShare(t) > 0.15) ?? street.filter((t) => !outOfTime.has(t.id)).sort((a, b) => a.timeUsed - b.timeUsed || a.id - b.id)[0];
+      const team = street.find((t) => (t.vehicles.truck ?? 0) > 0 && freeShare(t) > 0.15) ?? street.filter((t) => !outOfTime.has(t.id)).sort((a, b) => crewFreeMinutes(w, b) - crewFreeMinutes(w, a) || a.id - b.id)[0];
       if (team && (team.vehicles.truck ?? 0) === 0 && gang.cash > VEHICLES.truck.cost + 1000) {
         const result = buyVehicle(w, gang.id, 'truck', team.id);
         logResult(actions, `reinvest: buy truck for ${w.people[team.lieutenantId]?.name ?? 'crew'} to export`, result.ok, result.ok ? '' : result.error);
@@ -1713,7 +1726,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const saved = Math.round(carMinutesSaved(reach, WALK_SPEED, DRIVE_SPEED, 12));
     const carless = ready.filter((team) => !Object.values(team.vehicles).some((n) => n > 0));
     if (carless.length && saved >= 120 && gang.cash > reserve + VEHICLES.coupe.cost) {
-      const team = carless.sort((a, b) => b.timeUsed - a.timeUsed)[0];
+      const team = carless.sort((a, b) => crewFreeMinutes(w, a) - crewFreeMinutes(w, b))[0];
       const result = buyVehicle(w, gang.id, 'coupe', team.id);
       logResult(actions, `buy car for ${w.people[team.lieutenantId]?.name ?? 'crew'} (saves about ${saved} min a week, average run ${(reach / 54).toFixed(1)} blocks)`, result.ok, result.ok ? '' : result.error);
     } else if (carless.length) {
@@ -1752,7 +1765,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   }
   const armed = muscleCrew && ready.includes(muscleCrew) ? muscleCrew : undefined;
   /** Street crews fit for a strike: the armed crew first, then the freest others (never the business crew). */
-  const strikeCrews = (first: Team | undefined) => [...new Set([first, ...[...ready].filter((t) => t !== bizCrew && roles.get(t.id) !== 'business').sort((a, b) => a.timeUsed - b.timeUsed)])]
+  const strikeCrews = (first: Team | undefined) => [...new Set([first, ...[...ready].filter((t) => t !== bizCrew && roles.get(t.id) !== 'business').sort((a, b) => crewFreeMinutes(w, b) - crewFreeMinutes(w, a))])]
     .filter((t): t is Team => !!t && ready.includes(t));
   /** Hand the strike crew's heavy weapons to the crew that has the time. */
   /** 1.2.23: the HQ strike — to a crew with the time for it, armed from the strike crew (a bomb set off by a crew out of time was seen in 1.2.22). */
@@ -1786,7 +1799,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       },
       onGiven: (team) => {
         const order = w.orders[team.orderIds[team.orderIds.length - 1]];
-        noteDevDesk(`NOTE HQ strike on ${owner?.name}'s HQ (building ${target.id}): ${order?.type ?? '?'} by ${w.people[team.lieutenantId]?.name ?? 'crew'} with ${Math.round(MINUTES_PER_WEEK - team.timeUsed)} min of the week left after it, tommy ${team.weapons.tommy ?? 0}, explosives ${team.weapons.explosives ?? 0} — given`);
+        noteDevDesk(`NOTE HQ strike on ${owner?.name}'s HQ (building ${target.id}): ${order?.type ?? '?'} by ${w.people[team.lieutenantId]?.name ?? 'crew'} with ${Math.round(crewFreeMinutes(w, team))} man-min of the week left after it, tommy ${team.weapons.tommy ?? 0}, explosives ${team.weapons.explosives ?? 0} — given`);
         desk.lastHqStrike = w.week;
         pendingActions.push({ key, orderId: team.orderIds[team.orderIds.length - 1], targetBuildingId: target.id, targetPersonId, cashBefore });
       },
@@ -2114,7 +2127,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // best that fit go to the crews; the log says why each won or was not given.
   const crewName = (team: Team) => `${w.people[team.lieutenantId]?.name ?? 'crew'} (${named.get(team.id) ?? team.name})`;
   const slots = ready.map((team) => ({ team, name: crewName(team), role: roles.get(team.id), businessOnly: team === bizCrew,
-    free: () => outOfTime.has(team.id) ? 0 : MINUTES_PER_WEEK - team.timeUsed }));
+    free: () => outOfTime.has(team.id) ? 0 : freeFor(team) }));
   const decision = decideWeek(goal, proposals, slots, (label, team, p) => {
     const input = inputFor(p, team);
     const site = input.buildingIds?.[0];
@@ -2139,7 +2152,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const team = slot.team;
     if (team.orderIds.some((id) => w.orders[id]?.gangId === gang.id)) continue;
     const mine = proposals.filter((p) => slot.businessOnly ? p.kind === 'business' : p.kind !== 'business');
-    const reason = slot.free() < MIN_FREE_MINUTES ? `its week is full (${Math.round(Math.max(0, MINUTES_PER_WEEK - team.timeUsed))} min left${outOfTime.has(team.id) ? ', refused for time' : ''})`
+    const reason = slot.free() < MIN_FREE_MINUTES ? `its week is full (${Math.round(freeFor(team))} min left for the freest man${outOfTime.has(team.id) ? ', refused for time' : ''})`
       : slot.businessOnly && !mine.length ? `business crew: nothing to buy or set up within $${Math.round(Math.max(0, gang.cash)).toLocaleString('en-US')} cash this week`
       : !mine.length ? 'no candidate order this week'
       : lieLow ? `lying low (suspicion ${Math.round(gang.suspicion)}) — the ${mine.length} candidate(s) went to other crews or were refused`
