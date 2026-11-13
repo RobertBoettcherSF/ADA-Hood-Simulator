@@ -222,6 +222,19 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## v1.2.27 decisions
+
+A deliberate core-rule change, shared by the player, the computer gangs and Auto Test: crew time is counted in man-hours (`src/sim/crewTime.ts`).
+
+1. **Capacity.** A crew's week is 40 hours (`MINUTES_PER_WEEK`) for each man in it: the lieutenant and his hoods who are free to plan (managers running a business stay outside the crew).
+2. **Cost of an order.** An order costs its duration, as the game estimates it, for each man it takes (its manpower, no more than the crew has). A standing whole-week order holds its men for the whole week. The rest of the crew's man-hours stay free for other orders the same week. Group jobs (raids, strikes) cost their duration times the men sent.
+3. **One man, one week.** No man is booked for more than 40 hours: each order goes to the men with the most time left, and it is accepted only if each of them has its duration free. The game's 2% leeway on a week stays.
+4. **"Has not got the time"** means the crew lacks the free man-hours, or the men it would take lack the hours. Area orders that do not fit are trimmed the same way.
+5. **Display.** The crew dial, the crew tab, the crew card, the lawyer's crew list and the job card show man-hours; the gang total at the bottom adds the crews' man-hours, so it agrees with the dials. The job card shows "hours × men = man-hours".
+6. **Computer gangs** read the share of their man-hours given out where they read the share of the week before (90% and 45%).
+7. **Auto Test** plans with the same man-hours: the time an order can still have is the freest men's free hours within the crew's free man-hours.
+8. **Saves.** Old saves load; each crew's booked time is recounted from its orders when the save is opened.
+
 ## v1.2.26 decisions
 
 Only Auto Test changes.
