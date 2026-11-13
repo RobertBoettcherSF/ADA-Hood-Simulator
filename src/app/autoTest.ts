@@ -57,7 +57,7 @@ import { buildingMapIntel } from '../sim/mapIntel';
 import { claimedTerritoryBlocks } from '../sim/territory';
 import { BUILDING_BY_ID, ESTABLISHABLE_TYPES, ILLEGAL_TYPES } from '../sim/data/buildings';
 import { purchasablePremisesType } from '../sim/premises';
-import { isValidAreaTarget } from '../sim/execution';
+import { buildingValue, isValidAreaTarget } from '../sim/execution';
 import type { Sim } from '../sim/sim';
 import { buildingDoor, dist, gangAssets, gangManpower, gangMembers, powerRating, protectedBuildings, territoryBlocks, territoryCount } from '../sim/world';
 import { effectiveHostility } from '../sim/attitudes';
@@ -273,6 +273,8 @@ export function newRecruitMemory(): RecruitMemory {
 let recruitMemory = newRecruitMemory();
 /** 1.2.24: our businesses (id → manager) last Monday, to log managers killed and businesses lost. */
 const coolingOff = new WeakMap<object, boolean>();
+/** 1.2.24: blocks where we bombed a rival store to buy in (block → week). */
+const bombedBlocks = new WeakMap<object, Map<number, number>>();
 const ownedLastWeek = new WeakMap<object, Map<number, number | null>>();
 
 /** A rumour first, then last week's productive venues, then the rest; a venue empty three weeks running is skipped. */
@@ -410,6 +412,10 @@ const RESERVE_CAP = 12_000;
 const STRIKE_MIN_FREE = 240;
 /** 1.2.23: idle cash above which buys may go to other crews once the business crew's week is full. */
 const SPILL_CASH = 40_000;
+/** 1.2.24: an HQ strike needs a crew of at least this many men (lieutenant included), explosives and its whole week free. */
+const STRIKE_MIN_MEN = 5;
+/** 1.2.24: premises worth this much or more are the surplus's big buildings (banks, department stores, hotels…). */
+const BIG_BUILDING_COST = 20_000;
 /** Suspicion at which the gang lies low: collecting and legal buying only. */
 export const SUSPICION_LIE_LOW = 50;
 /** A rise this big in one week counts as one level hotter than the figure says. */
@@ -1658,7 +1664,22 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const owner = w.gangs[target.ownerGangId!];
     const cashBefore = gang.cash;
     let targetPersonId: number | undefined;
-    propose({ label: `HQ strike on ${owner?.name ?? 'a rival'}'s HQ`, kind: 'violence', value, why, minFree: STRIKE_MIN_FREE, teams: strikeCrews(armed), prepare: (team) => armFrom(armed, team),
+    // 1.2.24 (Robert): a strike only with explosives, enough men and a whole free week.
+    const spareExplosives = (armed?.weapons.explosives ?? 0) > 0;
+    const crewMenOf = (t: Team) => t.memberIds.length + 1;
+    const candidates = strikeCrews(armed);
+    const fit = candidates.filter((t) => !outOfTime.has(t.id) && t.timeUsed <= 0 && crewMenOf(t) >= STRIKE_MIN_MEN && ((t.weapons.explosives ?? 0) > 0 || spareExplosives));
+    if (!fit.length) {
+      const why2 = !candidates.length ? 'no street crew ready'
+        : !candidates.some((t) => (t.weapons.explosives ?? 0) > 0) && !spareExplosives ? 'no explosives in any strike crew'
+        : !candidates.some((t) => crewMenOf(t) >= STRIKE_MIN_MEN) ? `no crew with ${STRIKE_MIN_MEN} men (biggest ${Math.max(...candidates.map(crewMenOf))})`
+        : `no crew with ${STRIKE_MIN_MEN} men, explosives and its whole week free`;
+      const line = `HQ STRIKE not made on ${owner?.name ?? 'a rival'}'s HQ: ${why2}`;
+      actions.push(line); noteDevDesk(line);
+      return;
+    }
+    actions.push(`HQ STRIKE proposed on ${owner?.name ?? 'a rival'}'s HQ (${why}): ${fit.map((t) => `${w.people[t.lieutenantId]?.name ?? 'crew'} ${crewMenOf(t)} men, explosives ${(t.weapons.explosives ?? 0) || (spareExplosives ? 'from the strike crew' : 0)}`).join('; ')}`);
+    propose({ label: `HQ strike on ${owner?.name ?? 'a rival'}'s HQ`, kind: 'violence', value, why, minFree: MINUTES_PER_WEEK, teams: fit, prepare: (team) => armFrom(armed, team),
       input: (team) => {
         const strikeMen = manpowerFor(team, 4);
         const inside = peopleList(w).find((p) => p.status === 'active' && p.gangId === target.ownerGangId && p.buildingId === target.id && p.role !== 'boss');
@@ -1673,7 +1694,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         desk.lastHqStrike = w.week;
         pendingActions.push({ key, orderId: team.orderIds[team.orderIds.length - 1], targetBuildingId: target.id, targetPersonId, cashBefore });
       },
-      onSkipped: () => noteDevDesk(`NOTE HQ strike on ${owner?.name}'s HQ: no crew with ${STRIKE_MIN_FREE} min free this week`) });
+      onSkipped: () => { const line = `HQ STRIKE not made on ${owner?.name}'s HQ: the fit crews' week was taken by better-scored orders`; actions.push(line); noteDevDesk(line); } });
   };
   const armFrom = (from: Team | undefined, to: Team) => {
     if (!from || from === to) return;
@@ -1949,6 +1970,40 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       }
       proposeHqStrike(hqTarget, 3000, `surplus cash; ${w.gangs[hqTarget.ownerGangId!].name} is the strongest rival we know of (power ${powerRating(w, w.gangs[hqTarget.ownerGangId!])})`, 'strikeHQ');
     } else if (!hqTarget) actions.push(`NOTE surplus: no rival HQ known yet — scouting for ${priorityRival?.name ?? 'one'}`);
+    else if (!proposals.some((p) => p.label.startsWith('HQ strike'))) {
+      actions.push(`HQ STRIKE not made on ${w.gangs[hqTarget.ownerGangId!].name}'s HQ: ${!armed ? 'no armed strike crew ready' : policy.violence === 'low' ? 'violence is off for this goal' : lieLow ? `lying low (suspicion ${Math.round(gang.suspicion)})` : `last strike in week ${desk.lastHqStrike}, the next after ${HQ_STRIKE_GAP} weeks`}`);
+    }
+    // 1.2.24: the business crew also goes for the big buildings — banks,
+    // department stores, large hotels and the like — best takings first.
+    const big = buildingList(w).filter((b) => b.ownerGangId == null && b.state === 'trading' && (BUILDING_BY_ID[b.typeId]?.cost ?? 0) >= BIG_BUILDING_COST &&
+      (BUILDING_BY_ID[b.typeId]?.profit ?? 0) > 0 && purchasablePremisesType(b) && buildingValue(w, b) <= surplusCash)
+      .sort((a, b) => (BUILDING_BY_ID[b.typeId]?.profit ?? 0) - (BUILDING_BY_ID[a.typeId]?.profit ?? 0) || nearer(a, b));
+    if (big.length) planBuy('surplus: big building', big, undefined, (b) => (BUILDING_BY_ID[b.typeId]?.profit ?? 0) * 6 + 2000, (b) => buildingValue(w, b), surplusCash * 0.6);
+    else actions.push(`NOTE surplus: no big building (bank, department store…) for sale under $${surplusCash.toLocaleString('en-US')}`);
+    // 1.2.24 bomb-then-buy: a rival's store in a block we want is bombed by a
+    // crew with explosives and time; the next weeks the business crew buys what
+    // is for sale in that block. (The bombed site itself stays rubble — the game
+    // sells no destroyed premises — and a rival's standing premises cannot be bought.)
+    const forSaleIn = (blockId: number) => buildingList(w).filter((b) => b.blockId === blockId && b.ownerGangId == null && b.state !== 'destroyed' &&
+      buildingValue(w, b) > 0 && ((b.state === 'trading' && ['commercial', 'industrial', 'tenement'].includes(b.cls)) || (b.cls === 'empty' && w.lots[b.lotId]?.index !== 4 && purchasablePremisesType(b))));
+    const bombed = bombedBlocks.get(w) ?? new Map<number, number>();
+    bombedBlocks.set(w, bombed);
+    for (const [blockId, week] of [...bombed]) {
+      if (w.week - week > 4 || blockIsOurs(blockId)) { bombed.delete(blockId); continue; }
+      const sites = forSaleIn(blockId);
+      if (sites.length) planBuy(`bomb-then-buy: block ${blockId}`, sites, undefined, () => 2500, (b) => buildingValue(w, b), surplusCash * 0.5);
+    }
+    const bomber = (t: Team) => !outOfTime.has(t.id) && MINUTES_PER_WEEK - t.timeUsed >= STRIKE_MIN_FREE && ((t.weapons.explosives ?? 0) > 0 || (armed?.weapons.explosives ?? 0) > (proposals.some((p) => p.label.startsWith('HQ strike')) ? 1 : 0));
+    const bombers = strikeCrews(armed).filter(bomber);
+    const wanted = buildingList(w).filter((b) => b.ownerGangId != null && b.ownerGangId !== gang.id && !b.isHQ && b.state === 'trading' && b.cls !== 'illegal' &&
+      !blockIsOurs(b.blockId) && !bombed.has(b.blockId) && nearTerritory(w, gang.id, b.blockId, 2) && forSaleIn(b.blockId).length > 0).sort(nearer);
+    if (wanted.length && bombers.length && policy.violence !== 'low' && !lieLow) {
+      const site = wanted[0];
+      propose({ label: `bomb-then-buy: bomb ${w.gangs[site.ownerGangId!]?.name ?? 'a rival'}'s ${site.typeId} (building ${site.id}, block ${site.blockId})`, kind: 'violence', value: 1200,
+        why: `${forSaleIn(site.blockId).length} site(s) for sale in a block we want`, minFree: STRIKE_MIN_FREE, teams: bombers, prepare: (team) => armFrom(armed, team),
+        input: (team) => ({ type: 'bomb', buildingIds: [site.id], opts: { manpower: manpowerFor(team, 3) } }),
+        onGiven: () => { bombed.set(site.blockId, w.week); } });
+    } else if (wanted.length) actions.push(`NOTE bomb-then-buy not tried: ${!bombers.length ? 'no crew with explosives and the time' : policy.violence === 'low' ? 'violence is off for this goal' : 'lying low'}`);
   }
 
   // ---- 1.2.23: the decision. Every candidate is scored by the goal and the
@@ -1977,6 +2032,54 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       : lieLow ? `lying low (suspicion ${Math.round(gang.suspicion)}) — the ${mine.length} candidate(s) went to other crews or were refused`
       : `the ${mine.length} candidate(s) went to better-placed crews or were refused`;
     actions.push(`NOTE ${slot.name} has no order: ${reason}`);
+  }
+
+  // ---- 1.2.24: surplus cash equips the crews (Robert). After the reserve and
+  // this week's buys, everything left goes on cars and guns, strongest crews
+  // first: a seat for every man, then the best gun for every man. Collectors
+  // and the extortion crew stay unarmed (they hand their guns in) but get cars.
+  if (surplus) {
+    const committed = desk.pending.filter((p) => p.week === w.week).reduce((sum, p) => {
+      const order = w.orders[p.orderId];
+      const b = w.buildings[p.buildingId];
+      const type = order?.opts.businessTypeId ? BUILDING_BY_ID[order.opts.businessTypeId] : undefined;
+      return sum + (type ? type.cost : b && p.type === 'buyPremises' ? buildingValue(w, b) : 0);
+    }, 0);
+    const keep = Math.max(RESERVE_CAP, Math.round(wageBill * 3)) + campaignReserve + committed;
+    const before = gang.cash;
+    const strength = (t: Team) => [t.lieutenantId, ...t.memberIds].reduce((sum, id) => { const p = w.people[id]; return sum + (p ? Object.values(p.skills).reduce((a, b) => a + b, 0) : 0); }, 0);
+    const crews = crewsOf().sort((a, b) => strength(b) - strength(a) || a.id - b.id);
+    const bought: string[] = [];
+    const afford = (cost: number) => gang.cash - cost >= keep;
+    for (const t of crews) {
+      const men = t.memberIds.length + 1;
+      let seats = (Object.entries(t.vehicles) as [keyof typeof VEHICLES, number][]).reduce((sum, [id, n]) => sum + (VEHICLES[id]?.capacity ?? 0) * (n ?? 0), 0);
+      while (seats < men && afford(VEHICLES.coupe.cost)) {
+        if (!buyVehicle(w, gang.id, 'coupe', t.id).ok) break;
+        seats += VEHICLES.coupe.capacity; bought.push(`coupe for ${w.people[t.lieutenantId]?.name ?? 'crew'}`);
+      }
+    }
+    const BEST_GUN: WeaponId = 'twinPistols';
+    for (const t of crews) {
+      const role = roles.get(t.id);
+      if (role === 'collect' || role === 'extortion') continue;
+      const men = t.memberIds.length + 1;
+      let guns = GUNS.reduce((sum, g) => sum + (t.weapons[g] ?? 0), 0);
+      while (guns < men && afford(WEAPONS[BEST_GUN].cost)) {
+        if (!buyWeapon(w, gang.id, BEST_GUN, t.id).ok) break;
+        guns++; bought.push(`${BEST_GUN} for ${w.people[t.lieutenantId]?.name ?? 'crew'}`);
+      }
+      // Pistols give way to the best gun once every man has one.
+      while ((t.weapons.pistol ?? 0) > 0 && afford(WEAPONS[BEST_GUN].cost)) {
+        if (!transferWeapon(w, gang.id, 'pistol', t.id, false).ok) break;
+        if (!buyWeapon(w, gang.id, BEST_GUN, t.id).ok) break;
+        bought.push(`${BEST_GUN} for ${w.people[t.lieutenantId]?.name ?? 'crew'} (pistol to the store)`);
+      }
+      if (role === 'muscle' && (t.weapons.explosives ?? 0) < 2 && afford(WEAPONS.explosives.cost) && buyWeapon(w, gang.id, 'explosives', t.id).ok) bought.push(`explosives for ${w.people[t.lieutenantId]?.name ?? 'crew'}`);
+    }
+    const counts = new Map<string, number>();
+    for (const item of bought) counts.set(item, (counts.get(item) ?? 0) + 1);
+    actions.push(`EQUIP surplus: $${Math.round(before - gang.cash).toLocaleString('en-US')} spent, $${Math.round(gang.cash).toLocaleString('en-US')} left (keep $${keep.toLocaleString('en-US')}: reserve${campaignReserve ? ' + campaign' : ''} + $${Math.round(committed).toLocaleString('en-US')} for this week's buys)${counts.size ? ` — ${[...counts].map(([k, n]) => `${n}× ${k}`).join(', ')}` : ' — every crew already has seats and guns'}`);
   }
 
   // ---- the win itself
