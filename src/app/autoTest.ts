@@ -57,6 +57,7 @@ import type { Building, Gang, ID, Person, Team, WeaponId } from '../sim/types';
 import { buildingMapIntel, knownBlockOwners, personMapPosition } from '../sim/mapIntel';
 import { claimedTerritoryBlocks } from '../sim/territory';
 import { BUILDING_BY_ID, ESTABLISHABLE_TYPES, ILLEGAL_TYPES } from '../sim/data/buildings';
+import { ORIGINAL_ECONOMICS } from '../sim/data/originalEconomics';
 import { purchasablePremisesType } from '../sim/premises';
 import { buildingValue, isValidAreaTarget } from '../sim/execution';
 import type { Sim } from '../sim/sim';
@@ -407,8 +408,12 @@ const SURPLUS_START = 50_000;
 const STRIKE_MIN_FREE = 240;
 /** 1.2.24: an HQ strike needs a crew of at least this many men (lieutenant included), explosives and its whole week free. */
 const STRIKE_MIN_MEN = 5;
-/** 1.2.24: premises worth this much or more are the surplus's big buildings (banks, department stores, hotels…). */
-const BIG_BUILDING_COST = 20_000;
+/**
+ * 1.2.26: a business's size in squares of its block, from the game's
+ * economics record (`size`: 1, 3 = one block side, 8 = the ring, 9 = the
+ * whole block). A building without that record has no size.
+ */
+const squaresOf = (b: Building): number | undefined => b.originalKind != null ? ORIGINAL_ECONOMICS[b.originalKind]?.size : undefined;
 /** Suspicion at which the gang lies low: collecting and legal buying only. */
 export const SUSPICION_LIE_LOW = 50;
 /** A rise this big in one week counts as one level hotter than the figure says. */
@@ -893,8 +898,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const ratioLimit = 0.12 * (accountantByte || 1) + 9.88;
   const officeRatio = office / premisesBase;
   /** True when the office/premises ratio nears the limit: legal premises and the accountant come first. */
-  const legalPush = originalCity && officeRatio >= ratioLimit * 0.8;
-  // 1.2.25 (B6): the forecast from our own books drives the legal push.
+  const legalPush = officeRatio >= ratioLimit * 0.8;
+  // 1.2.25 (B6): the forecast from our own books drives the legal push;
+  // 1.2.26: on every city size.
   if (legalPush) actions.push(`B6 suspicion forecast: office/premises ${officeRatio.toFixed(1)} against a limit of ${ratioLimit.toFixed(1)} — legal premises and the accountant come first this week`);
   if (originalCity) actions.push(`SUSPICION ${Math.round(gang.suspicion)}${suspicionBefore != null ? ` (was ${Math.round(suspicionBefore)})` : ''} ratio: office takings $${Math.round(office)} / premises base $${premisesBase} = ${officeRatio.toFixed(1)} vs limit ${ratioLimit.toFixed(1)} (${accountantInt != null ? `accountant ${accountantInt.toFixed(1)}★` : 'no accountant'}) — rise about ${Math.max(0, Math.trunc((Math.trunc(officeRatio) - ratioLimit) * 2))} a week${legalPush ? '; legal premises and the accountant first' : ''}`);
   // Elsewhere, while suspicion is 50 or more, protection is collected only up to the cover left after the rackets.
@@ -2066,12 +2072,15 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // site limit — what the surplus can pay for:
     //  (a) big buildings in blocks nobody claims; (b) 1–3 square businesses in
     //  blocks nobody claims that make good fronts; (c) 1–3 square businesses in
-    //  blocks a rival claims. "Claims" is what our map shows; a big building
-    //  costs BIG_BUILDING_COST or more, the rest count as 1–3 squares.
+    //  blocks a rival claims. "Claims" is what our map shows. 1.2.26: size is
+    //  the building's squares — a big building takes up the whole block (8 or
+    //  9 squares: radio station, newspaper, big bank, department store); the
+    //  others are 1 or 3 squares.
     // (1.2.24's bomb-then-buy is off: the game sells no bombed site.)
     const unclaimed = (b: Building) => !blockIsOurs(b.blockId) && !rivalClaimSeen(b.blockId);
     const forSale = (b: Building) => b.ownerGangId == null && b.state === 'trading' && (BUILDING_BY_ID[b.typeId]?.cost ?? 0) > 0 && buildingValue(w, b) > 0;
-    const small = (b: Building) => ['commercial', 'industrial', 'tenement'].includes(b.cls) && (BUILDING_BY_ID[b.typeId]?.cost ?? 0) < BIG_BUILDING_COST;
+    const small = (b: Building) => ['commercial', 'industrial', 'tenement'].includes(b.cls) && (squaresOf(b) === 1 || squaresOf(b) === 3);
+    const wholeBlock = (b: Building) => (squaresOf(b) ?? 0) >= 8;
     const goodFront = (b: Building) => ILLEGAL_TYPES.some((t) => t.fronts?.includes(b.typeId));
     let left = surplusCash;
     const surplusBuy = (label: string, sites: Building[], worth: (b: Building) => number) => {
@@ -2079,7 +2088,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       left -= got.reduce((sum, b) => sum + buildingValue(w, b), 0);
       return got.length;
     };
-    const big = buildingList(w).filter((b) => forSale(b) && unclaimed(b) && (BUILDING_BY_ID[b.typeId]?.cost ?? 0) >= BIG_BUILDING_COST &&
+    const big = buildingList(w).filter((b) => forSale(b) && unclaimed(b) && wholeBlock(b) &&
       (BUILDING_BY_ID[b.typeId]?.profit ?? 0) > 0 && purchasablePremisesType(b))
       .sort((a, b) => (BUILDING_BY_ID[b.typeId]?.profit ?? 0) - (BUILDING_BY_ID[a.typeId]?.profit ?? 0) || nearer(a, b));
     const nBig = surplusBuy('surplus (a): big building in an unclaimed block', big, (b) => (BUILDING_BY_ID[b.typeId]?.profit ?? 0) * 6 + 3000);
