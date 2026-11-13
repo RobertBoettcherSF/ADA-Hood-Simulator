@@ -143,15 +143,17 @@ export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, o
 
 // ------------------------------------------------------------ talent groups
 
-export type CrewRole = 'business' | 'extortion' | 'collect' | 'muscle' | 'recruit' | 'scout';
+export type CrewRole = 'business' | 'intimidation' | 'collect' | 'muscle' | 'recruit' | 'scout';
 
 /** The job word in a crew's name: "Eddie's Protection", "Eddie's Strike" (1.2.18). */
 export const CREW_JOBS: Record<CrewRole, string> = {
-  collect: 'Protection', recruit: 'Recruiting', extortion: 'Extortion', business: 'Business', muscle: 'Strike', scout: 'Scouting',
+  collect: 'Protection', recruit: 'Recruiting', intimidation: 'Intimidation', business: 'Business', muscle: 'Strike', scout: 'Scouting',
 };
 /** Names Auto Test (or the game) gave: the default "X's Crew", 1.2.17's bare job names, and "X's <Job>". */
 const OLD_NAMES = ['Collect Protection', 'Recruiting', 'Extortion', 'Business', 'Strike', 'Scouting'];
-const AUTO_NAME = new RegExp(`^(.+'s (Crew|${Object.values(CREW_JOBS).join('|')})|${OLD_NAMES.join('|')})( \\d+)?$`);
+/** 1.2.30: the job words crews carried before the extortion crew was renamed Intimidation. */
+const OLD_JOBS = ['Extortion'];
+const AUTO_NAME = new RegExp(`^(.+'s (Crew|${Object.values(CREW_JOBS).join('|')}|${OLD_JOBS.join('|')})|${OLD_NAMES.join('|')})( \\d+)?$`);
 /** Whether a crew still carries a name the player did not choose. */
 export const isAutoCrewName = (name: string) => AUTO_NAME.test(name.trim());
 /** The lieutenant's first name and the crew's job; null when the player named the crew. */
@@ -183,7 +185,7 @@ export const recruitTalent = (p: Person) => p.skills.intelligence * 2 + p.skills
 export const scoutTalent = (p: Person) => p.skills.stealth * 2 + p.skills.intelligence + p.skills.driving * 0.5;
 
 export const businessTalent = (p: Person) => p.skills.business * 2 + p.skills.organization + p.skills.intelligence;
-export const extortionTalent = (p: Person) => p.skills.intimidation * 2 + p.skills.fists * 0.5;
+export const intimidationTalent = (p: Person) => p.skills.intimidation * 2 + p.skills.fists * 0.5;
 export const muscleTalent = (p: Person) => p.skills.firearms * 2 + p.skills.stealth + p.skills.driving * 0.5 + p.skills.explosives * 0.5;
 /**
  * 1.2.21: the skills each crew job asks for, read as stars (the mean of the
@@ -191,7 +193,7 @@ export const muscleTalent = (p: Person) => p.skills.firearms * 2 + p.skills.stea
  * driving and organisation, recruiting and bribes want brains.
  */
 export const ROLE_SKILLS: Record<CrewRole, readonly (keyof Person['skills'])[]> = {
-  extortion: ['intimidation', 'fists'],
+  intimidation: ['intimidation', 'fists'],
   muscle: ['firearms', 'fists', 'stealth'],
   collect: ['driving', 'organization'],
   recruit: ['intelligence', 'organization'],
@@ -202,18 +204,21 @@ export const roleStars = (p: Person, role: CrewRole) => ROLE_SKILLS[role].reduce
 /** A crew's job read back from its auto name ("Eddie's Strike"), or null. */
 export function crewRoleFromName(name: string): CrewRole | null {
   if (/^Business( \d+)?$/.test(name.trim())) return 'business';
+  if (/'s Extortion( \d+)?$/.test(name)) return 'intimidation';
   for (const [role, job] of Object.entries(CREW_JOBS) as [CrewRole, string][]) if (new RegExp(`'s ${job}( \\d+)?$`).test(name)) return role;
   return null;
 }
 const totalSkill = (p: Person) => Object.values(p.skills).reduce((a, b) => a + b, 0);
 
 /**
- * 1.2.25 (Robert's rule): crews open in this order — recruiting, extortion,
- * collecting protection, then the business crew; later crews do the rough
- * work, the scouting, and then collect. Until the business crew exists nobody
- * buys.
+ * 1.2.30 (Robert's rule): crews open in this order — recruiting first, then
+ * the business crew, then intimidation and protection collecting; later
+ * crews do the rough work, the scouting, and then collect. Until the
+ * business crew exists nobody buys.
  */
-export const CREW_OPENING_ORDER: readonly CrewRole[] = ['recruit', 'extortion', 'collect', 'business', 'muscle', 'scout'];
+export const CREW_OPENING_ORDER: readonly CrewRole[] = ['recruit', 'business', 'intimidation', 'collect', 'muscle', 'scout'];
+/** 1.2.30: the basic crews, formed (and rebuilt) before the gang expands. */
+export const BASIC_CREWS: readonly CrewRole[] = ['recruit', 'business', 'intimidation', 'collect'];
 
 /**
  * Each crew keeps its job for as long as it exists (a lieutenant in custody
@@ -237,9 +242,9 @@ export function assignCrewRoles(teams: readonly Team[], kept: Map<ID, CrewRole>)
 /** Swap men so each crew gets the hoods its role wants. Returns the moves to make. */
 export function talentSwaps(w: WorldState, teams: readonly Team[], roles: Map<ID, CrewRole>, limit = 3): { personId: ID; toTeamId: ID }[] {
   const moves: { personId: ID; toTeamId: ID }[] = [];
-  const score: Record<CrewRole, (p: Person) => number> = { business: businessTalent, extortion: extortionTalent, muscle: muscleTalent, recruit: recruitTalent, scout: scoutTalent, collect: (p) => -totalSkill(p) };
+  const score: Record<CrewRole, (p: Person) => number> = { business: businessTalent, intimidation: intimidationTalent, muscle: muscleTalent, recruit: recruitTalent, scout: scoutTalent, collect: (p) => -totalSkill(p) };
   const moved = new Set<ID>();
-  for (const role of ['business', 'extortion', 'muscle'] as const) {
+  for (const role of ['business', 'intimidation', 'muscle'] as const) {
     const team = teams.find((t) => roles.get(t.id) === role);
     // 1.2.24: crews are filled to the maximum, no longer evened out.
     if (!team || team.memberIds.length >= 9) continue;

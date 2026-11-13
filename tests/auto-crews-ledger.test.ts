@@ -5,7 +5,7 @@ import { ledgerKey, noteLedger, targetsThatFit } from '../src/app/autoTest';
 describe('crew names', () => {
   it('names crews after the lieutenant and the job', () => {
     expect(crewNameFor("Marco's Crew", 'collect', 'Eddie Chin')).toBe("Eddie's Protection");
-    expect(crewNameFor('Collect Protection 2', 'extortion', 'Eddie Chin')).toBe("Eddie's Extortion");
+    expect(crewNameFor('Collect Protection 2', 'intimidation', 'Eddie Chin')).toBe("Eddie's Intimidation");
     expect(crewNameFor("Eddie's Protection", 'muscle', 'Gina Vanetti')).toBe("Gina's Strike");
     expect(crewNameFor("Gina's Crew", 'scout', 'Gina Vanetti')).toBe("Gina's Scouting");
     expect(crewNameFor("Gina's Crew", 'recruit', 'Gina Vanetti')).toBe("Gina's Recruiting");
@@ -19,7 +19,7 @@ describe('crew names', () => {
       { id: 1, name: "Eddie's Crew", role: 'collect', lieutenantName: 'Eddie Chin' },
       { id: 2, name: "Eddie's Crew", role: 'collect', lieutenantName: 'Eddie Ross' },
       { id: 3, name: "Gina's Crew", role: 'collect', lieutenantName: 'Gina Vanetti' },
-      { id: 4, name: 'Night Shift', role: 'extortion', lieutenantName: 'Rosa Ricci' },
+      { id: 4, name: 'Night Shift', role: 'intimidation', lieutenantName: 'Rosa Ricci' },
     ]);
     expect(names.get(1)).toBe("Eddie's Protection");
     expect(names.get(2)).toBe("Eddie's Protection 2");

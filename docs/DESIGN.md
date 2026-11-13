@@ -222,6 +222,19 @@ Items marked *(my call)* are choices made while building, not asked for.
 4. End Week. The street scan now runs during the ambient walk, so the city is not walked twice. A closure that was made about 15 million times a week when dropping route waypoints is written out at each exit instead.
 5. Music and loading. Githack hands binary files on to raw.githubusercontent.com, which drops requests when a page asks for a lot at once. A music file is fetched twice more, after 2 s and 8 s, and if it still fails the player streams the file itself. The music list is fetched once more after 3 s. The artwork copy waits 45 s after the folder opens, then for an idle moment, so it no longer competes with the menu, the reel and the city's pictures. Progress is kept every ten files, and a dropped file is skipped and tried next time. Desk wood, paper and brass tiles now use an absolute URL in the CSS variable; a relative URL resolved against the stylesheet (`assets/`) in the play/ build and returned 404s. *(my call: the wait and the retry gaps.)*
 
+## v1.2.30 decisions
+
+Auto Test crews, weapons and cars (Robert's plan). No game rule changes.
+
+1. **Crew order.** Crews open Recruit first, then Business, then Intimidation and protection collecting (the basic crews); the rough work and scouting crews come after, then more collecting. Recruiting runs every week; new hoods fill crews and lead new ones. Further crews open only once every basic crew is formed.
+2. **Business crew.** Its lead needs the same qualifications as before (4★ in intelligence, organization or the business crew's skills). With nobody qualified, a hood with 3★ business leads it until a qualified hood is recruited, then the qualified hood takes over (the crew's men and cars move with him; the swap waits while the crew still has orders running). A lost business crew is formed again the same week; one left with no men refills as before. It is still the only crew that buys, buys land or sets up on our land.
+3. **Collecting.** A pool hood who fits no crew's job (3★ in its skills) goes to a protection crew with room.
+4. **Intimidation.** The old extortion crew is now the Intimidation crew everywhere in Auto Test (names, roles, logs; old "X's Extortion" crews are read as Intimidation and renamed). It forms as soon as a hood has 4★ intelligence, organization and intimidation; until then the closest fit with 3★ or more in each leads it and gives way when a 4★ hood is recruited.
+5. **Weapons.** A crew holds at most one gun per man, keeping the best (damage × accuracy); extras go to the gang store, which has no limit on guns, cars or explosives. A crew that loses men hands its extra guns in the next Monday. Collecting, business and intimidation crews carry no guns. Armed crews (strike first, then scouting, then recruiting) take store guns before anything is bought; the recruiting crew never gets guns bought for it. The pistol-for-twin-pistols swap is gone. Explosives stay in the store until the strike crew needs them for a strike. The strike crew is the rough work crew only (collectors no longer stand in for it).
+6. **Cars.** Every crew may have as many cars as it wants (the business crew's one-car rule is gone).
+7. **Big buildings.** tenementMid counted as a big building because tenement lots carry the economics record of a tenement block, whose footprint is the 8-square ring. A big building must now also be a business (commercial or industrial) with 8 or more squares.
+8. **Basic crew report.** Every week a basic crew (Recruit, Business, Intimidation, Collect) cannot be formed or rebuilt, a `BASIC CREW` line says why.
+
 ## v1.2.29 decisions
 
 The art is split from the logic. No game rule changes.
