@@ -681,7 +681,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const poolWaiting = () => gang.poolIds.filter((id) => !restingMen.has(id)).length;
     const mayOpen = () => gang.teamIds.length === 0
       || (gang.teamIds.length < KIND_CREWS && gang.teamIds.length < wanted() && allUseful())
-      || (gang.teamIds.length < MAX_TEAMS && allFull() && poolWaiting() >= 2);
+      || (gang.teamIds.length < MAX_TEAMS && allFull() && poolWaiting() >= 1);
     for (let tries = 0; tries < 3 && mayOpen(); tries++) {
       const poolFree = gang.poolIds.filter((id) => !restingMen.has(id));
       const fromPool = poolFree.length ? rng.pick(poolFree) : undefined;
@@ -1275,7 +1275,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const full = crewMen() >= CREW_CAPACITY;
       if (full && idle >= POOL_RESERVE) {
         actions.push(`NOTE recruit held — the crews are full (${crewMen()} of ${CREW_CAPACITY} men) and ${idle} wait in the pool`);
-      } else if (!full && idle > 0) {
+      } else if (!full && idle > 0 && crewRoom) {
         actions.push(`NOTE recruit held — ${idle} idle in the pool to place first`);
       } else if (pays && hiringStalled) {
         actions.push(`NOTE recruit held — the last men hired added no blocks (${menBlocksHistory.map((h) => `${h.men} men/${h.blocks} blocks`).join(' → ')})`);
