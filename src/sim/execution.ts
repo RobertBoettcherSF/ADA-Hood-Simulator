@@ -31,7 +31,7 @@ import { respondToBureauViolence } from './bureauViolence';
 import { presentDeath, presentAttack, presentBuildingEffect, presentThrow, THROW_TIMING } from './presentationEvents';
 import type { MessageCategory } from './types';
 import { hoodPayDemand, newId } from './citygen';
-import { payCash, receiveOrderCash } from './finances';
+import { noteBribe, payCash, receiveOrderCash } from './finances';
 import { resetBusinessInvestigation } from './businessState';
 import { isExportTerminal, nearestExportTerminal, recoverExportGoods } from './exportGoods';
 import { clearDestination, setDestination, stepPerson } from './movement';
@@ -1388,6 +1388,7 @@ function resolveTarget(
       if (!victim) return finishOrder(w, order, 'The target could not be found.');
       const cost = order.opts.amount ?? Math.round(300 + victim.skills.intelligence * 260);
       if (!spend(w, gang, cost)) return finishOrder(w, order, 'You could not cover the bribe.');
+      noteBribe(w, gang, cost);
       if (roll(rng, actors, ['intelligence'], 0.2 + Math.max(0, -(victim.opinion[gang.id] ?? 0)) / 200)) {
         victim.bribedBy = gang.id;
         // No bribe handler writes an attitude channel in the original.

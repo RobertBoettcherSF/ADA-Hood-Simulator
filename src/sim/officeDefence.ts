@@ -36,6 +36,12 @@ export const RAID_REACH = 12;
  */
 export const hqAvoidance = new WeakMap<WorldState, Map<ID, { hqId: ID; refugeId: ID | null }>>();
 
+/**
+ * 1.2.49 (Robert): gangs whose idle crew men and lieutenants wait inside an
+ * office (like the pool) instead of at the door — Auto sets this; not saved.
+ */
+export const idleInside = new WeakMap<WorldState, Set<ID>>();
+
 /** The gang's headquarters, if it has one standing. */
 export function gangOffice(w: WorldState, gangId: ID): Building | undefined {
   for (const id of Object.keys(w.buildings)) {

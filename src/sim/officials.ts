@@ -5,7 +5,7 @@ import type { ApiResult } from './api';
 import { activeBlocks, blockPavement } from './cityLayout';
 import { createPerson } from './citygen';
 import { addMessage, addNews } from './events';
-import { payCash } from './finances';
+import { noteBribe, payCash } from './finances';
 import { clearDestination } from './movement';
 import type { Rng } from './rng';
 import type { ID, Person, WorldState } from './types';
@@ -56,6 +56,7 @@ export function completeOfficialBribe(w: WorldState, gangId: ID, p: Person, pric
     return { ok: false, error: `${p.name} is too hostile to take your money.` };
   }
   payCash(w, gang, 'purchases', price);
+  noteBribe(w, gang, price);
   p.bribedBy = gangId;
   opinionSet(p, gangId, Math.min(100, (p.opinion[gangId] ?? 0) + 34), NO_ORIGINAL_CHANNEL);
   for (const c of Object.values(w.cases)) {

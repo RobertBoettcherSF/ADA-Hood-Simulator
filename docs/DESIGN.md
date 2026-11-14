@@ -238,6 +238,25 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.49 decisions
+
+Auto Test fixes after the 1.2.48 runs (Full game, Territory and the long Territory win) (Robert).
+
+1. Peace. Offered to a high-threat gang that killed more of ours than we of its only when it offers ceasefire or better (and does not treat us as the leader); otherwise aggression toward a hostile gang stays.
+2. Guard crew. The HQ guard takes the Expendables, else the attack crew, and the patrol never takes the guard crew (the patrol took it 25 and 70 times in the 1.2.48 runs).
+3. Guard size. Our men killed by rivals within 1 block of an office in the last 2 weeks plus the threat gangs' men first spotted near our offices last week; at least 3 (proposed) while a high-threat gang killed our men in the last 4 weeks, else at least one; at most 9; never more than the crew.
+4. Kills as sightings. Each of our men a gang killed counts as a sighting of that gang at the street block where he fell (the tip line reports each rival man only once, at his first spot).
+5. Idle men inside. Auto's gang keeps its idle crew men and lieutenants (on foot) inside an office like the pool, not at the door (`idleInside`, in memory, set by Auto each week; other gangs unchanged). A man of ours killed by a rival anywhere in the HQ block counts as office trouble.
+6. Land freeze. No land or new blocks only after one gang killed 3 or more of ours in 2 weeks (proposed), or on heavy-loss defence; high threat and the leader rule alone no longer freeze land.
+7. High threat from 6.
+8. Court and bribes. The boss's case is handled first; its judge, DA and juror bribes may use all cash not already booked for bribes, below the reserve and past the 70%/90% share. When nobody can be bought the note says whether cash, the reserve or the share blocked it. The lawyer's booked bribes (paid at the visit) count against the cash before any other spending that week.
+9. Guard kit. A guard order is kitted for the men posted, not the whole crew.
+10. Lines. THREAT per rival shows the blocks of first spots and the street blocks where our men were killed; LOST lines say "street block" (where the man stood, not the premises' own block).
+11. Asset strike. Not while lying low, and not on a gang with no threat that offers ceasefire or better.
+12. HQ strikes. On every path (rolled, highest threat first, surplus) only on the highest-threat gang or a gang at war or aggression with us; a note says when known HQs are not struck.
+13. Reinvest. This week's asks and upkeep (and booked bribes) stay on top of the reserve before anything is reinvested; RESERVE_CAP $50,000 stays.
+14. CASH line. Each week: last week's opening cash → cash now = takings − wages − upkeep − buys − bribes − tax ± other (the unexplained remainder). Bribes paid are noted by the sim in memory (not saved).
+
 ## v1.2.48 decisions
 
 Auto Test threat, arms and the leader rule, after the 1.2.47 Territory run's massacres (Robert).

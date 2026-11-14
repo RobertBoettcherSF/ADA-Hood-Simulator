@@ -4,7 +4,7 @@ import { specialistParticipants, specialistVisitTargets } from '../specialistJob
 import { clearDestination, noteEarlyStep, setDestination, stepPerson } from '../movement';
 import { trafficContext } from '../traffic';
 import { boardingCount, sendHome } from '../transport';
-import { hqAvoidance, isGangOffice, RAID_REACH } from '../officeDefence';
+import { hqAvoidance, idleInside, isGangOffice, RAID_REACH } from '../officeDefence';
 import { peopleSlice } from '../peopleSlices';
 import type { Rng } from '../rng';
 import type { Block, Building, ID, Person, WorldState } from '../types';
@@ -110,11 +110,14 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
       const refuge = avoid.refugeId != null ? w.buildings[avoid.refugeId] : undefined;
       if (refuge && refuge.state !== 'destroyed' && refuge.ownerGangId === p.gangId) { sendHome(w, p); return; }
     }
-    if (p.role === 'lieutenant' && p.gangId != null && !p.dest && p.buildingId != null && isGangOffice(w.buildings[p.buildingId], p.gangId)) p.buildingId = null;
-    if (p.role === 'hood' && p.gangId != null && !p.dest) {
+    // 1.2.49 (Robert): a gang that keeps its idle men inside (idleInside) sends
+    // its idle crew men and lieutenants into the office like the pool.
+    const inside = p.gangId != null && !p.dest && !p.inVehicle && (p.role === 'hood' || p.role === 'lieutenant') && !!idleInside.get(w)?.has(p.gangId);
+    if (p.role === 'lieutenant' && !inside && p.gangId != null && !p.dest && p.buildingId != null && isGangOffice(w.buildings[p.buildingId], p.gangId)) p.buildingId = null;
+    if ((p.role === 'hood' || inside) && p.gangId != null && !p.dest) {
       const inOffice = isGangOffice(p.buildingId != null ? w.buildings[p.buildingId] : undefined, p.gangId);
-      if (p.teamId != null && inOffice) p.buildingId = null;
-      else if (p.teamId == null && p.buildingId == null) {
+      if (p.teamId != null && inOffice && !inside) p.buildingId = null;
+      else if ((p.teamId == null || inside) && p.buildingId == null) {
         let home: Building | undefined, far = false;
         // 1.2.41: a hood stationed at an office of his gang waits only there.
         const station = p.homeOfficeId != null ? w.buildings[p.homeOfficeId] : undefined;

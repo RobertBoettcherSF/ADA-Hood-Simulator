@@ -85,6 +85,25 @@ export function payCash(w: WorldState, gang: Gang, kind: keyof FinanceReport['co
   if (kind !== 'tax') gang.lastWeekCosts[kind] += amount;
 }
 
+/** 1.2.49 (Robert): bribes paid, per gang and finance week (in memory, not saved), so the weekly cash line can show them apart from purchases. */
+const bribeLedger = new WeakMap<WorldState, Map<ID, Map<number, number>>>();
+
+/** A bribe paid out of the gang's purchases (officials, witnesses, jurors, squealers). */
+export function noteBribe(w: WorldState, gang: Gang, amount: number): void {
+  let byGang = bribeLedger.get(w);
+  if (!byGang) { byGang = new Map(); bribeLedger.set(w, byGang); }
+  let byWeek = byGang.get(gang.id);
+  if (!byWeek) { byWeek = new Map(); byGang.set(gang.id, byWeek); }
+  const week = currentFinances(w, gang).week;
+  byWeek.set(week, (byWeek.get(week) ?? 0) + amount);
+  for (const old of byWeek.keys()) if (old < week - 4) byWeek.delete(old);
+}
+
+/** Bribes the gang paid in one finance week (0 when none were noted). */
+export function bribesPaid(w: WorldState, gangId: ID, week: number): number {
+  return bribeLedger.get(w)?.get(gangId)?.get(week) ?? 0;
+}
+
 export function financeNet(report: FinanceReport): number {
   return Object.values(report.income).reduce((a, b) => a + b, 0) - Object.values(report.costs).reduce((a, b) => a + b, 0);
 }
