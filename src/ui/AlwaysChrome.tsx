@@ -6,13 +6,17 @@ import { Modal } from './common';
 import { InterfaceButton } from './InterfaceControls';
 import './interface.css';
 import { recordAction } from '../app/actionLog';
-import { runAutoTest, campaignOf, autoTestRunState, onAutoTestRun, takeAutoTestStopped, takeAutoTestMemoryStop, toggleAutoTestStop, type AutoTestSettings } from '../app/autoTest';
+import { runAutoTest, defaultAutoTestOptions, DEFAULT_AUTO_TEST_SEED, campaignOf, autoTestRunState, onAutoTestRun, takeAutoTestStopped, takeAutoTestMemoryStop, toggleAutoTestStop, type AutoTestSettings } from '../app/autoTest';
 import { folderDiary, importLearnedState } from '../app/diary';
 import { campaignLabel, isDefaultCampaign } from '../app/strategy';
 import { installCrashReports, noteAutoTestStopped, setReportWish, setReportWorld, writeDebugReport } from '../app/debugReport';
 import { checkForUpdate, type UpdateOffer } from '../app/versionCheck';
 import { activeWorldStore } from '../app/worldFolder';
 import { isTyping } from './input';
+import type { Sim } from '../sim/sim';
+
+/** 1.2.53 (proposed): how long the default start waits for the new city before giving up (the player may have kept the old one). */
+const NEW_CITY_WAIT_MS = 60_000;
 
 /** Version, update offer, and the debug button. Visible on every screen, including before a city is open. */
 export function AlwaysChrome() {
@@ -127,14 +131,26 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
   const sim = useGame((s) => s.sim);
   const [untilEnd, setUntilEnd] = useState(false);
   const [weeks, setWeeks] = useState(4);
-  const [seed, setSeed] = useState(sim?.world.options.seed ?? 1932);
+  // 1.2.53 (Robert): the default start is a new city on the default seed and settings; "This city" tests the open one.
+  const [fresh, setFresh] = useState(true);
+  const [seed, setSeed] = useState(DEFAULT_AUTO_TEST_SEED);
   const [speed, setSpeed] = useState(4);
   const [learn, setLearn] = useState(true);
   const [running, setRunning] = useState(false);
   const campaign = sim ? campaignOf(sim) : null;
+  /** 1.2.53: start a new city with the default Auto Test settings; resolves with it, or null when the player kept the old city. */
+  const newCity = (s: number) => new Promise<Sim | null>((resolve) => {
+    const before = useGame.getState().sim;
+    let settled = false;
+    const unsubscribe = useGame.subscribe((state) => { if (!settled && state.sim && state.sim !== before) { settled = true; unsubscribe(); resolve(state.sim); } });
+    useGame.getState().startGame(defaultAutoTestOptions(useGame.getState().options, s));
+    // startGame asks before replacing a city; when the player says no, nothing changes.
+    window.setTimeout(() => { if (!settled) { settled = true; unsubscribe(); resolve(null); } }, NEW_CITY_WAIT_MS);
+  });
   const start = async () => {
-    const current = useGame.getState().sim;
-    if (!current || running) return;
+    if (running) return;
+    const current = fresh ? await newCity(Math.round(seed) >>> 0) : useGame.getState().sim;
+    if (!current) return;
     const settings: AutoTestSettings = {
       weeks: untilEnd ? null : Math.max(1, Math.round(weeks) || 1),
       seed: Math.round(seed) || current.world.options.seed,
@@ -202,8 +218,14 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
             </label>
           )}
           <label className="wood-field">
+            <input type="checkbox" checked={fresh} onChange={(event) => setFresh(event.target.checked)} />
+            Default start: a new city — Full game, normal opponents, normal economy, 40×32, $6,000, 5 hoods, 3 businesses (off: test this city)
+          </label>
+          <label className="wood-field">
             Seed
             <input type="number" value={seed} aria-label="Auto test seed" onChange={(event) => setSeed(Number(event.target.value))} />
+            <button className="btn" type="button" onClick={() => setSeed(Math.floor(Math.random() * 0xffffffff) >>> 0)}>Random</button>
+            <button className="btn" type="button" onClick={() => setSeed(DEFAULT_AUTO_TEST_SEED)}>Default</button>
           </label>
           <label className="wood-field">
             Speed

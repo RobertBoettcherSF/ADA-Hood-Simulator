@@ -238,6 +238,30 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.53 decisions
+
+Fixes from the 1.2.52 run (seed 2077284302). Numbers marked *proposed* are ours, not Robert's. Where a point fits an existing fitness function, it goes through that function instead of a new hard gate.
+
+1. **Recruit gate:** each hire is weighed on its own, at λ for the cash left after that hire, and hiring goes on while the return still beats λ. In 1.2.52 every wanted hire was costed at once (35–80 hires), which kept λ at its below-R value for 62 weeks.
+2. **Office defenders** count towards the spares recruiting fills only once the crews hold 10 men (*proposed*).
+3. **Cash pass:** an order the pass took that no crew was given (or the game refused) has its cost released after the decision. Spends paid at once (police, cars, raises, the lawyer's bribes) that the pass turned down are weighed again with that cash. A CASH FIT "released" line reports it.
+4. **Buys waiting for a manager**, through man fitness:
+   - The crew may lend its manager below 3 men, keeping 1 besides the lieutenant (*proposed*), when the site's weekly profit is at least what that man earns in the crew.
+   - Otherwise the buy waits and is not put forward again for 4 weeks (*proposed*).
+5. **Wanted swap**, through man value. It applies only to a hood who still carries a risk: an FBI warrant, crime suspicion at 50% of the warrant bar (*proposed*), or a second arrest as in 1.2.51. The replacement needs at least his stars and his net value.
+6. **Police and chief:**
+   - The police value counts every police arrest. Each paid officer cuts the arrests away from a crime scene by 0.04 (*proposed*), like the 0.04 at a scene.
+   - The chief is priced at the number of bribes it takes to bring his opinion up to −20 (+34 each), with their benefit set against all their cost. One is paid at a time.
+7. **Crew switch:** the attack crew never switches while we are at war, nor the last attack crew.
+8. **Man value:** a job's weekly earnings are capped at 3 V (*proposed*) until each order type's efficiency leaves out lasting and set-up value.
+9. **Hostile police:** with the police opinion under −40 (*proposed*), the 25% (*proposed*) of collect routes with the lowest protection fitness are dropped. The chief bribe is in the cash pass at its multi-bribe price (point 6).
+10. **Police dismissal line:** the retainer is read before the dismissal (it printed $0).
+11. **Default Auto Test start:**
+    - A new city on seed 2158733425: Full game, normal opponents, normal economy, 40×32, $6,000, 5 hoods, 3 businesses.
+    - The player's own name and portrait are kept.
+    - A Random button picks a random seed, and unticking the default tests the open city.
+12. **BUILD line:** every Auto Test file opens with `BUILD <version> <commit>`. Actions files also carry the starting conditions. The commit is stamped in by the build ("+changes" when src/ differed from it).
+
 ## v1.2.52 decisions
 
 Cash becomes a fitness function on the 1.2.51 dollar scale (V, A, L). New modules: `src/app/autoCash.ts` (the cash need, λ and the one spending pass) and `src/app/autoMen.ts` (man fitness). Numbers marked *proposed* are ours, not Robert's.

@@ -52,9 +52,11 @@ export interface CashSpend {
   why: string;
   /** Carries the spend out (an API call or a proposed order); false when the game refused it. */
   run: () => boolean;
+  /** 1.2.53: paid at once (an API call), so it can still be taken after the decision with cash a refused order released. */
+  immediate?: boolean;
 }
 
-export interface CashPassResult { lines: string[]; spent: number; taken: number }
+export interface CashPassResult { lines: string[]; spent: number; taken: number; takenSet: Set<CashSpend> }
 
 /**
  * The one spending pass: best return per dollar first; a spend is taken while
@@ -64,6 +66,7 @@ export interface CashPassResult { lines: string[]; spent: number; taken: number 
 export function runCashPass(spends: CashSpend[], cash: number, R: number, floor: number, avgPay: number, scale: DollarScale): CashPassResult {
   const lines: string[] = [];
   let left = cash, spent = 0, taken = 0;
+  const takenSet = new Set<CashSpend>();
   const order = [...spends].sort((a, b) => b.ret - a.ret || a.cost - b.cost);
   for (const s of order) {
     const after = left - s.cost;
@@ -72,8 +75,8 @@ export function runCashPass(spends: CashSpend[], cash: number, R: number, floor:
     if (after < floor) { lines.push(`${line} — not taken: it would put the wage bill at risk`); continue; }
     if (s.ret < lambda) { lines.push(`${line} — not taken (${s.why})`); continue; }
     if (!s.run()) { lines.push(`${line} — taken but refused by the game (${s.why})`); continue; }
-    left = after; spent += s.cost; taken++;
+    left = after; spent += s.cost; taken++; takenSet.add(s);
     lines.push(`${line} — taken (${s.why})`);
   }
-  return { lines, spent, taken };
+  return { lines, spent, taken, takenSet };
 }

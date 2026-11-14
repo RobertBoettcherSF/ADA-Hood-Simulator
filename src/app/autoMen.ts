@@ -46,11 +46,18 @@ export interface ManContext {
 
 export interface ManValue { job: CrewRole | null; earn: number; lieutenant: number; bonus: number; wage: number; risk: number; net: number }
 
-/** Earnings a week in a job: its efficiency (or V spread over the week with no data, proposed) × minutes × stars ÷ 3. */
+/**
+ * 1.2.53 (Robert, proposed): a man earns at most this many V a week in any job,
+ * until each order type's efficiency leaves out lasting and set-up value
+ * (business and intimidation hoods read $7k–15k a week against V ≈ $800).
+ */
+export const JOB_EARN_CAP_V = 3;
+
+/** Earnings a week in a job: its efficiency (or V spread over the week with no data, proposed) × minutes × stars ÷ 3, at most JOB_EARN_CAP_V × V. */
 export function jobEarnings(p: Person, role: CrewRole, ctx: ManContext, weekMinutes: number): number {
   const e = ctx.eff(role);
   const perMinute = e ?? ctx.scale.V / weekMinutes;
-  return Math.max(0, perMinute) * ctx.workMinutes * ctx.stars(p, role) / 3;
+  return Math.min(JOB_EARN_CAP_V * ctx.scale.V, Math.max(0, perMinute) * ctx.workMinutes * ctx.stars(p, role) / 3);
 }
 
 /** The expected arrest cost a week: jail weeks × V + a court bribe (+ part of his crew for a lieutenant). */
