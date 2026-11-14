@@ -52,16 +52,28 @@ export const ORIGINAL_DESERTION_LOYALTY = loyaltyStep(16);
  * the wage against it. A penalty also adds 4 hostility towards the gang.
  */
 export function originalWeeklyWage(p: Person, gangId: ID): void {
-  const quote = originalWageQuote(p, gangId);
-  p.payDemand = Math.max(p.payDemand, p.pay);
-  if (p.payDemand + 20 < quote) p.payDemand = quote;
-  const short = p.payDemand - p.pay;
-  if (short <= 0) { p.loyalty = Math.min(100, p.loyalty + loyaltyStep(4)); return; }
-  if (short <= 20) return;
-  const ratio = 100 * p.pay / Math.max(1, p.payDemand);
-  const cut = ratio > 76 ? 4 : ratio > 51 ? 8 : ratio > 26 ? 16 : ratio > 1 ? 32 : 64;
-  p.loyalty = Math.max(0, p.loyalty - loyaltyStep(cut));
+  const effect = originalWageEffect(p, gangId, p.pay);
+  p.payDemand = effect.demand;
+  if (effect.loyalty > 0) { p.loyalty = Math.min(100, p.loyalty + effect.loyalty); return; }
+  if (effect.loyalty === 0) return;
+  p.loyalty = Math.max(0, p.loyalty + effect.loyalty);
   shiftAttitude(p, gangId, 4, 0);
+}
+
+/**
+ * 1.2.46: steps 6–7 for one member as if paid `pay`, without changing him —
+ * his demand after the ratchet and the loyalty it gains or costs this week.
+ */
+export function originalWageEffect(p: Person, gangId: ID, pay: number): { demand: number; loyalty: number } {
+  const quote = originalWageQuote(p, gangId);
+  let demand = Math.max(p.payDemand, pay);
+  if (demand + 20 < quote) demand = quote;
+  const short = demand - pay;
+  if (short <= 0) return { demand, loyalty: loyaltyStep(4) };
+  if (short <= 20) return { demand, loyalty: 0 };
+  const ratio = 100 * pay / Math.max(1, demand);
+  const cut = ratio > 76 ? 4 : ratio > 51 ? 8 : ratio > 26 ? 16 : ratio > 1 ? 32 : 64;
+  return { demand, loyalty: -loyaltyStep(cut) };
 }
 
 /**

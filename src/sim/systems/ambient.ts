@@ -4,7 +4,7 @@ import { specialistParticipants, specialistVisitTargets } from '../specialistJob
 import { clearDestination, noteEarlyStep, setDestination, stepPerson } from '../movement';
 import { trafficContext } from '../traffic';
 import { boardingCount, sendHome } from '../transport';
-import { isGangOffice } from '../officeDefence';
+import { hqAvoidance, isGangOffice, RAID_REACH } from '../officeDefence';
 import { peopleSlice } from '../peopleSlices';
 import type { Rng } from '../rng';
 import type { Block, Building, Person, WorldState } from '../types';
@@ -101,6 +101,14 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
     // of street combat); a crew man idle at the office stands at the door as
     // before. A pool hood idle away from any office walks home first.
     // 1.2.44 (Robert): an idle lieutenant waits at the office door like his men.
+    // 1.2.46 (Robert): while an FBI case is open nobody waits in or at the
+    // HQ; sendHome takes them to the gang's refuge instead.
+    const avoid = p.gangId != null && (p.role === 'hood' || p.role === 'lieutenant') && !p.dest ? hqAvoidance.get(w)?.get(p.gangId) : undefined;
+    const avoidedHq = avoid ? w.buildings[avoid.hqId] : undefined;
+    if (avoid && avoidedHq && (p.buildingId === avoidedHq.id || (!p.inVehicle && dist(p.pos, buildingDoor(w, avoidedHq)) <= RAID_REACH))) {
+      const refuge = avoid.refugeId != null ? w.buildings[avoid.refugeId] : undefined;
+      if (refuge && refuge.state !== 'destroyed' && refuge.ownerGangId === p.gangId) { sendHome(w, p); return; }
+    }
     if (p.role === 'lieutenant' && p.gangId != null && !p.dest && p.buildingId != null && isGangOffice(w.buildings[p.buildingId], p.gangId)) p.buildingId = null;
     if (p.role === 'hood' && p.gangId != null && !p.dest) {
       const inOffice = isGangOffice(p.buildingId != null ? w.buildings[p.buildingId] : undefined, p.gangId);
@@ -111,7 +119,7 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
         const station = p.homeOfficeId != null ? w.buildings[p.homeOfficeId] : undefined;
         const stationed = isGangOffice(station, p.gangId) ? station : undefined;
         for (const b of allBuildings(w)) {
-          if (!isGangOffice(b, p.gangId) || (stationed && b.id !== stationed.id)) continue;
+          if (!isGangOffice(b, p.gangId) || (stationed && b.id !== stationed.id) || b.id === avoid?.hqId) continue;
           if (dist(buildingDoor(w, b), p.pos) < 24) { home = b; break; }
           far = true;
         }

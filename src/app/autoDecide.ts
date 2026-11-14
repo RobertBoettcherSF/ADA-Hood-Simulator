@@ -41,6 +41,8 @@ export interface Proposal<T> {
   minFree?: number;
   /** Called on the chosen crew just before the order is issued (arm it for a strike). */
   prepare?: (team: T) => void;
+  /** 1.2.46: goes ahead of every proposal without it (a racket set-up before the surplus buys). */
+  first?: boolean;
 }
 
 export interface CrewSlot<T> {
@@ -75,7 +77,7 @@ export function decideWeek<T>(
   issue: (label: string, team: T, p: Proposal<T>) => ApiResult,
 ): { given: Decision[]; skipped: Decision[] } {
   const given: Decision[] = [], skipped: Decision[] = [];
-  const ranked = proposals.map((p, i) => ({ p, i, score: scoreOf(goal, p) })).sort((a, b) => b.score - a.score || a.i - b.i);
+  const ranked = proposals.map((p, i) => ({ p, i, score: scoreOf(goal, p) })).sort((a, b) => Number(!!b.p.first) - Number(!!a.p.first) || b.score - a.score || a.i - b.i);
   for (const { p, score } of ranked) {
     // 1.2.25 (Robert's rule): business work — buying a business, buying land,
     // setting up on our land — goes to the business crew and nobody else; the

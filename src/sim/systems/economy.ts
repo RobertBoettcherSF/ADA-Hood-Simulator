@@ -5,7 +5,7 @@ import { goodsRetailer } from '../goodsStorage';
 import { BUILDING_BY_ID } from '../data/buildings';
 import { addMessage } from '../events';
 import { currentFinances, payCash, receiveCash, recordRiskyIncome, recordTakings, skimRate } from '../finances';
-import { ORIGINAL_DESERTION_LOYALTY, originalRetainerFloor, originalSkimFraction, originalWeeklyWage } from '../originalWages';
+import { ORIGINAL_DESERTION_LOYALTY, originalRetainerFloor, originalSkimFraction, originalWageEffect, originalWeeklyWage } from '../originalWages';
 import { businessCarryingCost } from '../businessState';
 import { illegalSaturationFactor, marketShareFactor } from '../originalTables';
 import { rememberAccountantTax } from './taxes';
@@ -269,6 +269,25 @@ function letGo(w: WorldState, gang: Gang, o: Person, why: string): void {
   if (gang.isPlayer) addMessage(w, 'police', `${o.name} ${why}.`, o.pos, o.id);
 }
 
+/** 1.2.46: a member at or below this loyalty deserts at the week's end. */
+export function desertionLoyalty(w: WorldState): number {
+  return w.cityLayout?.original ? ORIGINAL_DESERTION_LOYALTY : STREET_DESERTION_LOYALTY;
+}
+const STREET_DESERTION_LOYALTY = 14;
+
+/** Outside the 40 × 32 city: +3 a fully paid week, else the shortfall share × 12 lost. */
+function streetWageLoyalty(p: Person, pay: number): number {
+  return pay >= p.payDemand ? 3 : -((p.payDemand - pay) / Math.max(1, p.payDemand)) * 12;
+}
+
+/**
+ * 1.2.46: the loyalty a member gains (or loses, negative) at this week's end
+ * if he is paid `pay` in full — the game's own wage rules, nothing changed.
+ */
+export function weeklyWageLoyalty(w: WorldState, p: Person, gangId: ID, pay: number): number {
+  return w.cityLayout?.original ? originalWageEffect(p, gangId, pay).loyalty : streetWageLoyalty(p, pay);
+}
+
 function applyLoyalty(w: WorldState, gang: Gang, paidFraction: number): void {
   for (const p of gangMembers(w, gang)) {
     if (p.role === 'boss') continue;
@@ -289,12 +308,9 @@ function applyLoyalty(w: WorldState, gang: Gang, paidFraction: number): void {
     }
     if (paidFraction < 1) {
       // (applied above)
-    } else if (p.pay >= p.payDemand) {
-      p.loyalty = Math.min(100, p.loyalty + 3);
     } else {
-      // Underpaid but not unpaid: resentment builds, and demands rise.
-      const shortfall = (p.payDemand - p.pay) / Math.max(1, p.payDemand);
-      p.loyalty -= shortfall * 12;
+      // Paid in full +3; underpaid but not unpaid, resentment builds.
+      p.loyalty += streetWageLoyalty(p, p.pay);
     }
     // Ambition: good hoods ask for more over time.
     if (w.week % 4 === 0) p.payDemand = Math.round(p.payDemand * 1.04);
@@ -303,7 +319,7 @@ function applyLoyalty(w: WorldState, gang: Gang, paidFraction: number): void {
 
   // Desertions.
   for (const p of gangMembers(w, gang)) {
-    if (p.role === 'boss' || p.loyalty > (w.cityLayout?.original ? ORIGINAL_DESERTION_LOYALTY : 14)) continue;
+    if (p.role === 'boss' || p.loyalty > desertionLoyalty(w)) continue;
     noteMemberLoss(w, p, `deserted: loyalty ${Math.round(p.loyalty)}; paid $${p.pay}, wanted $${p.payDemand}${paidFraction < 1 ? '; wages short this week' : ''}`, 'his own gang');
     defect(w, gang, p.id);
     if (gang.isPlayer) w.weekLog.push(`${p.name} walked out on ${gang.name}.`);

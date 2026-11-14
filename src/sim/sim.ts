@@ -33,6 +33,9 @@ import { weeklyEconomy } from './systems/economy';
 import { tickGoods } from './goodsDelivery';
 import { chargeRentedRooms } from './rentedRooms';
 import { resetSystemTimings, timeSystem } from './simTimings';
+
+/** 1.2.46: the end-of-week settlement stages by number (17 on: each rival gang plans), for the timing breakdown. */
+const SETTLEMENT_STAGE_NAMES = ['orders and jobs', 'economy', 'taxes', 'audits', 'law', 'FBI', 'opinion', 'territory goodwill', 'politics', 'news', 'diplomacy', 'command', 'history', 'succession', 'reserved', 'end conditions', 'next week'];
 import { dispatchFbi, normalizeFbiInvestigations, tickFbi, weeklyFbi } from './systems/fbi';
 import { weeklyLaw } from './systems/law';
 import { weeklyNews } from './systems/news';
@@ -379,6 +382,8 @@ export class Sim {
     if (this.resolveImmediateOutcome()) return;
     const stage = w.settlementStage ?? 0;
     w.settlementStage = stage + 1;
+    // 1.2.46 (Robert): each settlement stage is timed for the report's week-end breakdown.
+    timeSystem(`settlement: ${stage < SETTLEMENT_STAGE_NAMES.length ? SETTLEMENT_STAGE_NAMES[stage] : 'rival planning'}`, () => {
     switch (stage) {
       case 0: this.failUnfinishedOrders(); settleSpecialistJobs(w); settleBurningEscapes(w, this.rng); break;
       case 1: weeklyEconomy(w, this.rng); break;
@@ -432,6 +437,7 @@ export class Sim {
         }
       }
     }
+    });
     recordScorePeaks(w);
     observeTargetRace(w, undefined, 'boundary');
     this.resolveImmediateOutcome();

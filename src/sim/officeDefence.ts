@@ -26,6 +26,16 @@ export function poolHoodInside(w: WorldState, p: Person, office?: Building): boo
   return isGangOffice(b, p.gangId) && (!office || office.id === b.id);
 }
 
+/** 1.2.46: an FBI raid on an office takes everyone inside it or within this many metres of its door. */
+export const RAID_REACH = 12;
+
+/**
+ * 1.2.46 (Robert): gangs whose men keep away from their HQ this week (an FBI
+ * case is open — Auto sets this at planning; not saved). Gang id → the HQ and
+ * where the men go instead (another office, else one of the gang's premises).
+ */
+export const hqAvoidance = new WeakMap<WorldState, Map<ID, { hqId: ID; refugeId: ID | null }>>();
+
 /** The gang's headquarters, if it has one standing. */
 export function gangOffice(w: WorldState, gangId: ID): Building | undefined {
   for (const id of Object.keys(w.buildings)) {

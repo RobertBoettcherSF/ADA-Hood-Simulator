@@ -17,6 +17,7 @@ import { skillByte } from '../fireRoll';
 import type { Rng } from '../rng';
 import type { Building, Gang, ID, Person, Vec2, WorldState } from '../types';
 import { allBuildings, buildingDoor, buildingName, dist } from '../world';
+import { RAID_REACH } from '../officeDefence';
 
 const SEARCH_MINUTES = 20, RAID_MINUTES = 10, SEARCH_POINTS = [0, -5, 5];
 /** 0x4F6ED0: one agent leads the squad and up to seven more join it. */
@@ -824,7 +825,7 @@ export function raidHeadquarters(w: WorldState, rng: Rng, b: Building, agent?: P
   delete gang.fbiRaidWeek;
   const door = buildingDoor(w, b);
   const found = peopleList(w).filter(p => p.gangId === gang.id && p.status === 'active' &&
-    (p.buildingId === b.id || (!p.inVehicle && dist(p.pos, door) <= 12)))
+    (p.buildingId === b.id || (!p.inVehicle && dist(p.pos, door) <= RAID_REACH)))
     .sort((a, c) => a.id - c.id);
   const taken: Person[] = [];
   const arrest = (p: Person, mate?: Person) => {

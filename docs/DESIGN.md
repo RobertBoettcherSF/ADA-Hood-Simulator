@@ -238,6 +238,28 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.46 decisions
+
+Auto Test fixes from the second 1.2.45 run: spending, defence, wages and FBI exposure (Robert).
+
+1. Buyer naming. A buyer is named only for buys that install a manager (and only when swap candidates exist, as since 1.2.36): never for land, never the lieutenant — crew hoods only.
+2. Centre lots. An empty centre lot is bought only where we own a front good enough for the next illegal business.
+3. Business work in held blocks. Business-crew buys and set-ups in blocks we hold are exempt from the defence filter.
+4. Rackets first. Setting up a racket is ranked ahead of surplus buys, one per ready block per week. The racket is the next in the still/press pipeline, else a speakeasy, else the best-paying illegal type per dollar of cost (office, rented rooms, teamsters, still and press excluded from the per-dollar pick).
+5. Unmanned business. An unmanned business is filled by Run Business from the candidate's current crew (an exception to the business-crew-only rule); otherwise by the Business crew as before.
+6. Losses defence. It starts only with ≥5 kills AND ≥10% of our current men killed in 4 weeks; the line shows the start week and the kills.
+7. Defence zone. Defence uses the DANGER set of blocks; its size is logged weekly (DEFENCE ZONE).
+8. Charity. Each donation is capped at 4500 / (1 + squalor / 60) (the full opinion effect) and made only while goodwill is below 40.
+9. HOLDINGS counts empty lots only in blocks with our business.
+10. Notes. MANAGER buy waits and defence NOTEs are merged into one line per reason with a count.
+11. Week-end timing. The report gives the week-end time with the top systems (settlement stages timed by name) and the time outside the sim. Nested timings may overlap, so "outside the sim" is approximate.
+12. Recruit-empty count. Counted from actual hood recruit results (new members in pool or crews); it resets whenever a recruit run brings in a hood.
+13. Recruiting. Replaces the 1.2.25 rule: with 6 or more men, recruit only while last week's net (takings − wages − upkeep) covers about one new man's wage (the average demand of hoods and lieutenants) per hire; otherwise only replace last week's member losses. Below 6 men the 1.2.45 every-man rule stays.
+14. Cash-short pay. Replaces the $20-under rule: each man's pay (managers, lawyer and accountant excepted) is set to the lowest that keeps his loyalty just above the desertion line after the cut cost and the wage effect (demand rising with hostility).
+15. Sacking. No recruiting in a week that sacks for wages; after the oldest pool men kept as defenders, the lowest value per wage go first.
+16. FBI case. While a raid is due (fbiRaidWeek set), nobody waits in or at the HQ: men going home go to another office of ours, else our premises nearest the HQ outside the raid's 12 m reach; pool hoods do not enter the HQ and idle lieutenants do not wait at its door. Not saved; Auto sets it each week.
+17. FBI cap. Exception to 1.2.41: while the forecast FBI total (a tenth off, plus 2 × (office ÷ premises base − limit)) would pass 200, protection is collected only up to premises base × (limit + 10), best-paying shops first, and legal premises come first.
+
 ## v1.2.45 decisions
 
 Auto Test plans by how the game works: recruiting by venue supply, land and cover by the game's rules, and managers only where they beat running a business unmanned (Robert).

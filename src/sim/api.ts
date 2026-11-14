@@ -468,13 +468,17 @@ export function repeatOrder(w: WorldState, gangId: ID, archived: Order): ApiResu
 
 // ---------------------------------------------------------------- personnel
 
+/** 1.2.46: what a pay cut costs in loyalty at once, and what a raise to the full ask gains. */
+export const PAY_CUT_LOYALTY = 6;
+export const PAY_RAISE_LOYALTY = 4;
+
 export function setPay(w: WorldState, personId: ID, pay: number): ApiResult {
   const p = w.people[personId];
   if (!p) return fail('No such person.');
   const before = p.pay;
   p.pay = Math.max(0, Math.round(pay));
-  if (p.pay < before) p.loyalty = Math.max(0, p.loyalty - 6);
-  else if (p.pay >= p.payDemand) p.loyalty = Math.min(100, p.loyalty + 4);
+  if (p.pay < before) p.loyalty = Math.max(0, p.loyalty - PAY_CUT_LOYALTY);
+  else if (p.pay >= p.payDemand) p.loyalty = Math.min(100, p.loyalty + PAY_RAISE_LOYALTY);
   return ok();
 }
 
