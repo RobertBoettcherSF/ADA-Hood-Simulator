@@ -4780,7 +4780,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
 
     // (15) Losing premises: shut down after NO_PROFIT_WEEKS weeks running of trading with no profit.
-    for (const b of buildingList(w).filter((x) => x.ownerGangId === gang.id && !x.isHQ && x.typeId !== 'office' && x.cls !== 'empty')) {
+    // 1.2.53: a front hiding an illegal business is never shut down for its
+    // own profit — its worth is the cover, and the game refuses to shut it
+    // while the business behind it runs ("Shut the illegal business down first").
+    for (const b of buildingList(w).filter((x) => x.ownerGangId === gang.id && !x.isHQ && x.typeId !== 'office' && x.cls !== 'empty' && x.hidesId == null)) {
       if (b.state !== 'trading') continue;
       const n = b.lastProfit > 0 ? 0 : (mem.noProfit.get(b.id) ?? 0) + 1;
       mem.noProfit.set(b.id, n);
@@ -5425,6 +5428,14 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     const phase: string = sim.world.phase;
     if (phase === 'week') {
       notes.push('End Week returned while the week was still running.');
+      break;
+    }
+    // 1.2.53: End Week can return without playing the week (the desk was busy
+    // saving or loading). Planning again would only replay the same week —
+    // the start of a run once spun 120 passes of week 1 and wrote two files.
+    if (phase === 'planning' && sim.world.week === weekBefore) {
+      const line = `FAIL End Week did not play week ${weekBefore} — the week did not advance (the desk was busy, or the city on screen is not the one tested); the run stops here`;
+      actions.push(line); notes.push(line);
       break;
     }
     const weekSnap = snapshot(sim, ms);

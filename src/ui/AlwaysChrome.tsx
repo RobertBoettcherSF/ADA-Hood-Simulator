@@ -15,6 +15,15 @@ import { activeWorldStore } from '../app/worldFolder';
 import { isTyping } from './input';
 import type { Sim } from '../sim/sim';
 
+/** 1.2.53: resolves once the desk is neither saving, loading nor resolving a week. */
+function deskIdle(): Promise<void> {
+  const idle = (s: ReturnType<typeof useGame.getState>) => !s.savingSnapshot && s.loadingSave == null && !s.resolvingHeadless;
+  return new Promise((resolve) => {
+    if (idle(useGame.getState())) { resolve(); return; }
+    const unsubscribe = useGame.subscribe((s) => { if (idle(s)) { unsubscribe(); resolve(); } });
+  });
+}
+
 /** 1.2.53 (proposed): how long the default start waits for the new city before giving up (the player may have kept the old one). */
 const NEW_CITY_WAIT_MS = 60_000;
 
@@ -161,7 +170,10 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
     setRunning(true);
     setMusicHold(true);
     try {
-      await runAutoTest(current, settings, () => useGame.getState().endWeekNow());
+      // 1.2.53: End Week only once the desk is idle — a new city is still
+      // being saved when the run starts, and End Week returns without playing
+      // the week while a save is under way.
+      await runAutoTest(current, settings, async () => { await deskIdle(); await useGame.getState().endWeekNow(); });
       if (takeAutoTestStopped() && useGame.getState().sim?.world.phase === 'planning') useGame.getState().setTab('lieutenants');
       if (takeAutoTestMemoryStop()) useGame.getState().notify({ ok: false, error: 'Auto Test stopped: the browser is nearly out of memory. The city is saved and the report is in 09 Reports. Reload the page before running more weeks.' });
       else useGame.getState().notify('Auto test report written to 09 Reports.');

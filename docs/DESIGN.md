@@ -261,6 +261,8 @@ Fixes from the 1.2.52 run (seed 2077284302). Numbers marked *proposed* are ours,
     - The player's own name and portrait are kept.
     - A Random button picks a random seed, and unticking the default tests the open city.
 12. **BUILD line:** every Auto Test file opens with `BUILD <version> <commit>`. Actions files also carry the starting conditions. The commit is stamped in by the build ("+changes" when src/ differed from it).
+13. **Auto Test start (fix).** A new city starts saving the moment it opens, and End Week returns without playing a week while a save is under way. The run's End Week now waits until the desk is idle (not saving, loading or resolving). Before this fix the start of a run spun 59–120 planning passes of week 1 and wrote them out as actions files. If a week still does not advance, the run stops with a FAIL line instead of planning the same week again.
+14. **Fronts.** A front that hides an illegal business is no longer shut down for its own lack of profit. Its worth is the cover, and the game refuses the shut-down while the business behind it runs.
 
 ## v1.2.52 decisions
 
