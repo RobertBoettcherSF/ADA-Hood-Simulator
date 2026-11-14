@@ -238,6 +238,21 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.48 decisions
+
+Auto Test threat, arms and the leader rule, after the 1.2.47 Territory run's massacres (Robert).
+
+1. Stop the leader, predicted. In the original city each computer gang adds war hostility every week toward the gang it reads as the leader (aiStance `leadingRival`), and we learn its new stance a week late. Auto reads the same rule: a gang for which `leadingRival` names us now, or (Territory) every gang once our blocks plus last week's growth pass trunc(target × 60%) while we hold the most, is treated as at war with us — crews armed and the office guarded before the line is crossed. The margin of one week's growth is proposed. A LEADER line says which gangs and why. Other cities have no leader rule.
+2. Arms in hostility. While any gang is at war or aggression with us (known, or predicted by 1), every crew carries the fitting gun for each order (inside or street; the cheapest gun is bought above the reserve when short). Patrol and Guard Office always count as armed jobs. Assault stays unarmed. The 1.2.38 unarmed rule holds only while no gang is hostile.
+3. Our stance. Aggression toward a gang at war or aggression with us, or predicted by 1 (replaces 1.2.38's ceasefire and the 1.2.43 weak rules); toward the rest the 1.2.40 mirror.
+4. Threat per rival over 4 weeks = 3 × our men it killed + 2 × our sites it attacked (smash-up, raid, torch, bomb) + 1 × its distinct men seen within 1 block of our offices or businesses. High threat from 3 (proposed: one kill's worth), or at once for a gang treating us as the leader. Sightings are kept per week in Auto's memory.
+5. Targets. While any gang has threat, the attack and Expendables crews strike only the highest-threat gang, whatever its stance and armed: retaliation (when high), the strike beside our blocks, the asset strike, suspects, the rival HQ (its HQ the only one, and the priority rival) and ambushes. The weak gates on strikes are gone.
+6. Office guard. While any threat is above 0, an armed guard crew (the Expendables, else the attack crew) is posted at the HQ door ahead of every other order, as many men as the threat gangs' men seen within 1 block of our offices last week, at most 9, one when none were seen there. The armed pool hoods inside stay as the second line. Replaces Guard Office only after an attack and the pool alone after 3 quiet weeks.
+7. Defence zone. Only the blocks within 1 of a kill of ours, an attack on our site, or a sighting by a high-threat gang in the last 2 weeks; in force whenever it is not empty. Replaces the rival-held and rival-sighted zone under the gang-wide weak flag.
+8. Peace. Offered to a high-threat gang that killed more of our men than we of its over 4 weeks, only while it does not treat us as the leader (peace while we lead cannot hold against the leader hostility). It takes precedence over 3.
+9. Strength. The 1.2× strength rule is dropped; the threat score replaces it, with a THREAT line per rival every week. Where cash went to men first while weak (no land or new blocks; the attack crew's guns kept back), it now does while under threat (a high-threat gang, or the heavy-loss defence of 1.2.43/1.2.46).
+10. Loss lines. Each LOST line gives the block, the building (ours or whose) and the order the man was on. A new RIVALS KILLED BY US line lists the rival men our men killed last week, by gang, with role and block.
+
 ## v1.2.47 decisions
 
 Auto Test pay, reserve, sacking and recruiting by what the men ask, after the two 1.2.46 runs (Robert).
