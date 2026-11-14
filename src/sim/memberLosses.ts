@@ -20,18 +20,21 @@ export interface MemberLoss {
   pos?: Vec2;
   buildingId?: ID;
   orderType?: OrderType;
+  /** 1.2.51: the order the loss is charged to — the one he was on, or for a later arrest the order of the crime he answers for. */
+  orderId?: ID;
 }
 
 const LOSSES = new WeakMap<WorldState, MemberLoss[]>();
 const KEEP = 400;
 
-export function noteMemberLoss(w: WorldState, p: Person, cause: string, by?: string): void {
+export function noteMemberLoss(w: WorldState, p: Person, cause: string, by?: string, chargedOrderId?: ID): void {
   if (p.gangId == null) return;
   const list = LOSSES.get(w) ?? [];
   const order = p.orderId != null ? w.orders[p.orderId] : undefined;
   const buildingId = order?.targetBuildingIds[order.cursor] ?? p.buildingId ?? undefined;
   list.push({ week: w.week, personId: p.id, name: p.name, role: p.role, gangId: p.gangId, cause, by,
-    pos: p.pos ? { x: p.pos.x, y: p.pos.y } : undefined, buildingId: buildingId ?? undefined, orderType: order?.type });
+    pos: p.pos ? { x: p.pos.x, y: p.pos.y } : undefined, buildingId: buildingId ?? undefined, orderType: order?.type,
+    orderId: order?.id ?? chargedOrderId });
   if (list.length > KEEP) list.splice(0, list.length - KEEP);
   LOSSES.set(w, list);
 }

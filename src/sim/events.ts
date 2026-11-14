@@ -207,6 +207,8 @@ export function recordCrime(w: WorldState, rng: Rng, params: CrimeParams): Crime
     witnesses,
     arrestRisk: Math.max(0, arrestRisk),
     reported,
+    // 1.2.51: the order the man was on, so a later arrest is charged to it.
+    ...(perp?.orderId != null ? { orderId: perp.orderId } : {}),
   };
   w.crimes.push(crime);
   // The gang wronged takes it badly: the man's own gang, or the gang that

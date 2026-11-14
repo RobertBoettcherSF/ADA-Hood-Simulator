@@ -41,6 +41,8 @@ export interface DiaryEntry {
   anomalies: string[];
   /** Auto Test's ranked action table at the end of the run (1.2.16+). */
   actionRanks?: Partial<Record<string, number>>;
+  /** 1.2.51: Auto Test's order fitness — decayed sums of net dollars and man-minutes per order type. */
+  orderFitness?: Record<string, { net: number; manMinutes: number; orders: number }>;
   /** The win Auto Test was playing for at the end, and when it changed its mind (1.2.16+). */
   goal?: string;
   goalHistory?: string[];

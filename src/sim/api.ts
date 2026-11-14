@@ -440,6 +440,8 @@ export function rolloverOrders(w: WorldState): void {
         delete order.dispatchWaitReason;
         delete order.reportedCrewSize;
         delete order.workedMinutes;
+        // 1.2.51: the order's week of fitness starts afresh.
+        delete order.earned; delete order.spent; delete order.hired; delete order.finishedMinute; delete order.startedMinute; delete order.sentIds;
         if (order.type === 'collectProtection' && order.targetBlockIds.length) {
           const blocks = new Set(order.targetBlockIds);
           const picked = order.targetBuildingIds.filter(id => !blocks.has(w.buildings[id]?.blockId));

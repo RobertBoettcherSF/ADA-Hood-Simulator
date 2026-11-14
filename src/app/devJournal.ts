@@ -16,6 +16,7 @@ import { peopleList } from '../sim/entityLists';
 import type { Gang, Order, Person, WorldState } from '../sim/types';
 import { gangHoldings, gangManpower, powerRating, territoryCount, teamsOf } from '../sim/world';
 import { registerProbe } from '../sim/memProbe';
+import { hm } from '../sim/timeFormat';
 
 const weeks: string[] = [];
 /** 1.2.23: the most weeks the journal holds in memory. */
@@ -103,14 +104,14 @@ function ordersSection(w: WorldState, gang: Gang, traces: StopTrace[], visitsByB
     const tr = traces.filter((t) => t.teamId === team.id);
     const planned = mine.reduce((s, o) => s + (o.estimatedMinutes || 0), 0);
     const used = tr.length ? Math.max(...tr.map((t) => t.minute)) : 0;
-    out.push(`  crew ${team.name} (lt ${lt?.name ?? '?'} ${lt?.status ?? ''}, ${team.memberIds.length} men${crewStars(w, team.name, [team.lieutenantId, ...team.memberIds])}) planned ${Math.round(planned)} min · last stop at minute ${used}${carried.length ? ` · repeat carryover ${carried.length}` : ''}`);
+    out.push(`  crew ${team.name} (lt ${lt?.name ?? '?'} ${lt?.status ?? ''}, ${team.memberIds.length} men${crewStars(w, team.name, [team.lieutenantId, ...team.memberIds])}) planned ${hm(planned)} · last stop at minute ${used}${carried.length ? ` · repeat carryover ${carried.length}` : ''}`);
     for (const o of mine) out.push(...orderLines(w, o, tr.filter((t) => t.orderId === o.id), visitsByBuilding));
   }
   return out;
 }
 
 function orderLines(w: WorldState, o: Order, tr: StopTrace[], visitsByBuilding: Map<number, number[]>): string[] {
-  const out = [`    ${o.type}#${o.id} ${o.state} targets ${o.targetBuildingIds.length} done ${o.completedTargets} est ${Math.round(o.estimatedMinutes)} min worked ${Math.round(o.workedMinutes ?? 0)}${o.opts.repeat ? ' repeat' : ''}${o.failReason ? ` — ${o.failReason}` : ''}`];
+  const out = [`    ${o.type}#${o.id} ${o.state} targets ${o.targetBuildingIds.length} done ${o.completedTargets} est ${hm(o.estimatedMinutes)} worked ${hm(o.workedMinutes ?? 0)}${o.opts.repeat ? ' repeat' : ''}${o.failReason ? ` — ${o.failReason}` : ''}`];
   if (o.type === 'collectProtection' || o.type === 'extort' || o.targetBuildingIds.length > 1) {
     let lastEnd = 0;
     o.targetBuildingIds.forEach((id, i) => {
@@ -123,7 +124,7 @@ function orderLines(w: WorldState, o: Order, tr: StopTrace[], visitsByBuilding: 
       const travel = arrive ? arrive.minute - lastEnd : 0;
       const stay = arrive && end ? end.minute - arrive.minute : 0;
       if (end) lastEnd = end.minute;
-      out.push(`      ${i + 1}. ${blockLabel(w, id)} travel ${travel} min · at stop ${stay} min · ${end?.event ?? 'unfinished'}${end?.note ? ` (${end.note})` : ''}${b?.protection ? ` · pays ${$(b.protection.weekly)}` : ''}${dbl}`);
+      out.push(`      ${i + 1}. ${blockLabel(w, id)} travel ${hm(travel)} · at stop ${hm(stay)} · ${end?.event ?? 'unfinished'}${end?.note ? ` (${end.note})` : ''}${b?.protection ? ` · pays ${$(b.protection.weekly)}` : ''}${dbl}`);
     });
   }
   return out;

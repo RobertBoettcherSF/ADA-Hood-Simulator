@@ -55,6 +55,7 @@ import { gangAssets, gangWealth, gangLoyalty, gangManpower, money, ownedBuilding
 import { peopleList, buildingList } from './entityLists';
 import { syncCrewTime } from './crewTime';
 import { trackLifetime } from './memProbe';
+import { hm } from './timeFormat';
 
 /** The clock lives with the other units; see constants.ts. */
 export { MINUTES_PER_SECOND } from './constants';
@@ -463,7 +464,7 @@ export class Sim {
             order.type === 'guardBusiness' && order.targetBuildingIds[0] != null
               ? placeName(w, w.buildings[order.targetBuildingIds[0]])
               : `${blocks} block${blocks === 1 ? '' : 's'}`;
-          const duration = order.workedMinutes == null ? '' : ` for ${Math.round(order.workedMinutes)} minutes`;
+          const duration = order.workedMinutes == null ? '' : ` for ${hm(order.workedMinutes)}`;
           order.results.push(
             order.type === 'guardBusiness'
               ? `Stood guard at ${where}${duration}.`

@@ -90,6 +90,16 @@ export function originalCivicBlocks(city: OriginalElectionCity, claimed: Readonl
  */
 export function originalBlockVoterAverage(block: OriginalVoteBlock, slot: GangSlot): number | null {
   if ([4, 7, 9, 11, 12, 13, 14].includes(block.content)) return null;
+  const { count, sum } = blockVoters(block, slot);
+  return count ? Math.trunc(sum / count) : 0;
+}
+
+/** 1.2.51: how many voters a block counts (Auto ranks campaign intimidation by voters per crew minute). */
+export function originalBlockVoterCount(block: OriginalVoteBlock, slot: GangSlot): number {
+  return blockVoters(block, slot).count;
+}
+
+function blockVoters(block: OriginalVoteBlock, slot: GangSlot): { count: number; sum: number } {
   let count = 0, sum = 0;
   for (const cell of block.cells) {
     const p = cell.owner;
@@ -102,7 +112,7 @@ export function originalBlockVoterAverage(block: OriginalVoteBlock, slot: GangSl
     sum += originalEffectiveHostility(p, slot, suppressSelf);
     count++;
   }
-  return count ? Math.trunc(sum / count) : 0;
+  return { count, sum };
 }
 
 /** 0x4BDA70 consumes one gang's expanded bitmap. Special kinds bypass rejection:

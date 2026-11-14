@@ -8,7 +8,7 @@
  */
 import type { Rng } from '../sim/rng';
 import { buildingMapIntel } from '../sim/mapIntel';
-import type { Building, Gang, ID, Order, Person, Team, WorldState } from '../sim/types';
+import type { Building, Gang, ID, Order, OrderType, Person, Team, WorldState } from '../sim/types';
 
 export const ACTION_KEYS = ['raid', 'pressRefuser', 'torchRival', 'bombRival', 'kidnapRival', 'killRival', 'snitch',
   'bribeJudge', 'bribeDA', 'bribeWitness', 'scareWitness', 'bribeJuror', 'strikeFbi', 'strikeHQ'] as const;
@@ -53,6 +53,37 @@ export function rollAction(ranks: ActionRanks, available: readonly ActionKey[], 
   let roll = rng.next() * total;
   for (const key of available) { roll -= ranks[key]; if (roll < 0) return key; }
   return available[available.length - 1] ?? null;
+}
+
+/** 1.2.51 (Robert): the order type behind each order-based action (its order fitness ranks it). */
+export const ACTION_ORDER_TYPE: Partial<Record<ActionKey, OrderType>> = {
+  raid: 'raid', pressRefuser: 'extort', torchRival: 'torch', bombRival: 'bomb', kidnapRival: 'kidnap', killRival: 'kill', strikeFbi: 'kill',
+};
+
+/**
+ * 1.2.51 (Robert): roll one action weighted by its expected net (running
+ * efficiency × the man-minutes it takes) instead of rank bumps. An action
+ * whose type has no data yet weighs its default rank × the average positive
+ * expected net (a prior, proposed); with no data at all the ranks alone
+ * decide. An action expected to lose money is not rolled.
+ */
+export function rollByFitness(ranks: ActionRanks, available: readonly ActionKey[], expected: (key: ActionKey) => number | null, rng: Rng): { key: ActionKey | null; why: string } {
+  const known = available.map((k) => [k, expected(k)] as const).filter(([, v]) => v != null) as [ActionKey, number][];
+  const positive = known.filter(([, v]) => v > 0);
+  const losing = known.filter(([, v]) => v <= 0).map(([k, v]) => `${k} $${Math.round(v)}`);
+  const prior = positive.length ? positive.reduce((n, [, v]) => n + v, 0) / positive.length : null;
+  const defaults = defaultActionRanks();
+  const weights = available.map((k) => {
+    const v = expected(k);
+    if (v != null) return [k, Math.max(0, v)] as const;
+    return [k, prior != null ? defaults[k] * prior : ranks[k]] as const;
+  }).filter(([, wt]) => wt > 0);
+  const total = weights.reduce((n, [, wt]) => n + wt, 0);
+  const why = `${weights.map(([k, wt]) => `${k} ${expected(k) != null ? `$${Math.round(wt)}` : prior != null ? `prior $${Math.round(wt)}` : `rank ${wt}`}`).join(', ')}${losing.length ? `; expected to lose: ${losing.join(', ')}` : ''}`;
+  if (total <= 0) return { key: null, why };
+  let roll = rng.next() * total;
+  for (const [k, wt] of weights) { roll -= wt; if (roll < 0) return { key: k, why }; }
+  return { key: weights[weights.length - 1][0], why };
 }
 
 export function rankUp(ranks: ActionRanks, key: ActionKey): number { return (ranks[key] = clampRank(ranks[key] * 1.25 + 0.05)); }
@@ -104,8 +135,10 @@ export function judgeAction(w: WorldState, gang: Gang, pending: PendingAction, o
   // when the week ran out) is not in last week's list. That says nothing about
   // the action itself: no rank change, and the reason in plain words.
   if (!order) return { ok: null, why: 'the order did not run to the end of the week (cancelled or not reached)' };
-  const lost = order.assignedIds.filter((id) => LOST.has(w.people[id]?.status ?? 'active'));
-  if (lost.length) return { ok: false, why: `${lost.length} man${lost.length === 1 ? '' : 'en'} lost (${lost.map((id) => w.people[id]?.status).join(', ')})` };
+  // 1.2.51 (Robert): the men sent on the order (recorded when they set out) —
+  // assignedIds is emptied when the order finishes.
+  const lost = (order.sentIds ?? []).filter((id) => LOST.has(w.people[id]?.status ?? 'active'));
+  if (lost.length) return { ok: false, why: `${lost.length} ${lost.length === 1 ? 'man' : 'men'} lost (${lost.map((id) => w.people[id]?.status).join(', ')})` };
   // Running out of week says nothing about the action itself: no rank change.
   if (order.failReason && OUT_OF_TIME.test(order.failReason) && !order.completedTargets) return { ok: null, why: order.failReason };
   if (order.failReason) return { ok: false, why: order.failReason };

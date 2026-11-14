@@ -15,7 +15,7 @@ export interface ProtectionWeek {
   claimed: number;
   /** Owed by the shops that paid in the week (the full amount, before any skim). */
   collected: number;
-  /** Owed by shops whose owner refused in the week. */
+  /** Owed by shops whose owner refused in the week, or that are marked as refusing. */
   refused: number;
   /** Owed by shops not trading (nothing to collect). */
   closed: number;
@@ -30,7 +30,8 @@ export function protectionWeek(w: WorldState, gangId: ID, week: number): Protect
     const owed = b.protection!.weekly;
     out.shops++; out.claimed += owed;
     if (b.protection!.collectedWeek === week) out.collected += owed;
-    else if (b.protection!.refusedWeek === week) out.refused += owed;
+    // 1.2.51: a shop marked as refusing counts as refused even when nobody called.
+    else if (b.protection!.refusedWeek === week || b.protection!.refusing) out.refused += owed;
     else if (b.state !== 'trading') out.closed += owed;
     else out.notVisited += owed;
   }

@@ -507,6 +507,8 @@ export interface SpecialistJob {
   targetPos: Vec2 | null;
   result: string;
   paused?: boolean;
+  /** 1.2.51: an Employ Police tour hires at most this many officers (the payroll limit less those already paid). */
+  maxHires?: number;
 }
 
 export interface OrderOptions {
@@ -567,6 +569,18 @@ export interface Order {
   /** Street orders are transient and re-entrant. */
   isStreetOrder: boolean;
   completedTargets: number;
+  /** 1.2.51: cash the order took in, gross (before any skim): protection, raid hauls, export sales. */
+  earned?: number;
+  /** 1.2.51: the week minute the order finished (done or failed). */
+  finishedMinute?: number;
+  /** 1.2.51: hoods the order signed on this week. */
+  hired?: number;
+  /** 1.2.51: cash the order paid out this week (prices, fit-outs, bribes, gifts). */
+  spent?: number;
+  /** 1.2.51: the week minute its men first set out. */
+  startedMinute?: number;
+  /** 1.2.51: every man sent on the order this week (assignedIds empties when it finishes). */
+  sentIds?: ID[];
   /** Continue releases this week's initial Wait without changing the planning option. */
   waitReleased?: boolean;
   /** Resume the same phase and remaining work after a live pause. */
@@ -750,6 +764,8 @@ export interface Gang {
   /** Campaign highs used by the final score; independent of rolling graph history. */
   scorePeaks?: ScoreMeasures;
   lastWeekIncome: { legal: number; illegal: number; protection: number; other: number };
+  /** 1.2.51: protection collected in a week, the full amount owed and what reached the safe after the skim. */
+  protectionTake?: { week: number; full: number; declared: number };
   lastWeekCosts: { wages: number; purchases: number; upkeep: number };
   /** Monday planning through Friday settlement; optional for older saves. */
   finances?: FinanceReport;
@@ -806,6 +822,8 @@ export interface CrimeRecord {
   /** 0..1 chance the police can build a case. */
   arrestRisk: number;
   reported: boolean;
+  /** 1.2.51: the order the perpetrator was on, so a later arrest for it is charged to that order. */
+  orderId?: ID;
   /** The charge laid at an arrest, not a fresh crime: weekly passes that
    * count the week's crimes (suspicion, the newspaper, opinion, history) skip it. */
   charge?: true;

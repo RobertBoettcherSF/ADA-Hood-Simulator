@@ -24,6 +24,12 @@ export function receiveOrderCash(w: WorldState, gang: Gang, order: Order, kind: 
   const declared = collector && gross > 0 ? Math.round(gross * (1 - rate)) : gross;
   if (collector) recordTakings(w, collector.id, gross, declared);
   receiveCash(w, gang, kind, declared);
+  // 1.2.51: the order's own takings, and the week's protection, full and after the skim.
+  order.earned = (order.earned ?? 0) + gross;
+  if (kind === 'protection') {
+    if (gang.protectionTake?.week !== w.week) gang.protectionTake = { week: w.week, full: 0, declared: 0 };
+    gang.protectionTake.full += gross; gang.protectionTake.declared += declared;
+  }
   return declared;
 }
 

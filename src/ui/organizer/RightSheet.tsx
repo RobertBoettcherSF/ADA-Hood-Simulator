@@ -30,10 +30,10 @@ import { selectableOrderPerson, selectableOrderSite, selectedOrderSites } from '
 import { resourceDragProps, useResourceDrop } from '../resourceDrag';
 
 import { buildingList } from '../../sim/entityLists';
+import { hm } from '../../sim/timeFormat';
+/** 1.2.51 (Robert): "9h 6m", never decimal hours. */
 export function hours(minutes: number): string {
-  if (minutes < 60) return `${Math.round(minutes)}m`;
-  const h = minutes / 60;
-  return `${h % 1 === 0 ? h : h.toFixed(1)}h`;
+  return hm(minutes);
 }
 
 /** What an order promises in time: per site, or the whole week. */

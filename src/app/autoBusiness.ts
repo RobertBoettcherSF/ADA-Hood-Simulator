@@ -15,6 +15,7 @@
 import { buildingMapIntel } from '../sim/mapIntel';
 import { buildingList } from '../sim/entityLists';
 import type { Building, Gang, WorldState } from '../sim/types';
+import { hm } from '../sim/timeFormat';
 
 /** Failures before a target is dropped, and for how many weeks. */
 export const FAILS_TO_DROP = 2;
@@ -65,7 +66,7 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
     if (ok) {
       m.fails.delete(p.buildingId);
       m.ratio = Math.max(1.2, Math.round(m.ratio * 0.95 * 100) / 100);
-      out.push(`NOTE business: ${label} done (estimate ${p.estimate} min of ${p.free} free; minutes factor now ×${m.ratio})`);
+      out.push(`NOTE business: ${label} done (estimate ${hm(p.estimate)} of ${hm(p.free)} free; minutes factor now ×${m.ratio})`);
       continue;
     }
     const n = (m.fails.get(p.buildingId) ?? 0) + 1;

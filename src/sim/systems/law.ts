@@ -75,7 +75,7 @@ function investigateCrimes(w: WorldState, rng: Rng, records = w.crimes): void {
     if (perp.orderId != null && w.orders[perp.orderId]?.opts.priority) risk *= 1.25;
 
     if (rng.chance(Math.max(0, Math.min(0.95, risk)))) {
-      noteMemberLoss(w, perp, 'arrested at the scene of a crime', 'the police');
+      noteMemberLoss(w, perp, 'arrested at the scene of a crime', 'the police', crime.orderId);
       perp.status = 'arrested';
       perp.dest = null;
       perp.path = [];

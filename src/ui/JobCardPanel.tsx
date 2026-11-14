@@ -15,6 +15,7 @@ import { buildingName, buildingsOfBlock, money } from '../sim/world';
 import { Icon, Kicker, Rivets, Stars } from './common';
 import { preferredCrewLabel, preferredCrewOrder } from './preferredCrew';
 import { crewCapacity, crewFreeMinutes, crewHasTime, orderManMinutes, orderMen } from '../sim/crewTime';
+import { hm } from '../sim/timeFormat';
 
 /** The job card occupies the journal page, leaving the map available for targets. */
 export function JobCardPanel() {
@@ -102,7 +103,8 @@ export function JobCardPanel() {
   const draft = previewOrder(w, gang.id, { ...jc, opts }, jc.editingOrderId ?? undefined);
   const dispatchIssue = staffing?.reason ?? (jc.type==='export'&&!team?.vehicles.truck ? 'Allocate a truck to this crew to export goods.' : null);
   // 1.2.27: man-hours — the job's hours for each man it takes, against the crew's man-hours.
-  const estimate = draft && team ? `${(draft.estimatedMinutes / 60).toFixed(1)}h × ${orderMen(w, team, draft)} = ${(orderManMinutes(w, team, draft) / 60).toFixed(1)} man-hours` : draft ? (draft.estimatedMinutes / 60).toFixed(1) + 'h estimated crew time' : 'Choose a crew';
+  // 1.2.51 (Robert): times read "9h 6m", never decimal hours.
+  const estimate = draft && team ? `${hm(draft.estimatedMinutes)} × ${orderMen(w, team, draft)} = ${hm(orderManMinutes(w, team, draft))} man-time` : draft ? `${hm(draft.estimatedMinutes)} estimated crew time` : 'Choose a crew';
   const capacity = team ? crewCapacity(w, team) : 0;
   const committed = team ? Math.max(0, capacity - crewFreeMinutes(w, team, jc.editingOrderId ?? undefined)) : 0;
   const exceedsBudget = !!team && !!draft && !crewHasTime(w, team, draft, jc.editingOrderId ?? undefined);

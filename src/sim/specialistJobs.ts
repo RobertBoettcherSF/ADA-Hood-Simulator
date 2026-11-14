@@ -32,7 +32,7 @@ export function specialistTargetEligible(w: WorldState, gangId: ID, type: Specia
     allBuildings(w).some(b => b.ownerGangId === gangId && b.managerId === p.id);
 }
 
-export function queueSpecialistJob(w: WorldState, gangId: ID, type: SpecialistJob['type'], targetPersonId: ID | null, blockIds: ID[] = []): ApiResult {
+export function queueSpecialistJob(w: WorldState, gangId: ID, type: SpecialistJob['type'], targetPersonId: ID | null, blockIds: ID[] = [], maxHires?: number): ApiResult {
   const gang = w.gangs[gangId];
   if (!gang) return { ok: false, error: 'No such gang.' };
   const actor = availableSpecialist(w, gang, roleFor({ type }));
@@ -43,6 +43,7 @@ export function queueSpecialistJob(w: WorldState, gangId: ID, type: SpecialistJo
   if (targetPersonId != null && (!target || !specialistTargetEligible(w, gangId, type, target)))
     return { ok: false, error: 'That person is not an available target for this order.' };
   if (!target && (type !== 'employPolice' || !blocks.length)) return { ok: false, error: 'Choose a target or tour area.' };
+  if (maxHires != null && (!Number.isInteger(maxHires) || maxHires < 1)) return { ok: false, error: 'No officer may be hired.' };
   const price = type === 'bribeOfficials' ? bribePrice(w, target!, gangId) : 0;
   if (price > gang.cash) return { ok: false, error: `That will cost ${price.toLocaleString('en-US')}.` };
   const pending = Object.values(w.specialistJobs ?? {}).filter(j => j.gangId === gangId && j.week === w.week && specialistJobActive(j));
@@ -53,7 +54,7 @@ export function queueSpecialistJob(w: WorldState, gangId: ID, type: SpecialistJo
     return { ok: true, message: 'That police visit is already scheduled.' };
   const job: SpecialistJob = { id: audit?.id ?? newId(w), gangId, actorId: actor.id, week: w.week, type,
     targetPersonId, blockIds: blocks, state: 'queued', quotedPrice: price, workLeft: 0, visitedPersonIds: [],
-    completed: 0, patrolIndex: 0, targetPos: null, result: '' };
+    completed: 0, patrolIndex: 0, targetPos: null, result: '', ...(maxHires != null ? { maxHires } : {}) };
   (w.specialistJobs ??= {})[job.id] = job;
   if (type === 'audit') w.auditTargets[gangId] = targetPersonId!;
   return { ok: true, message: `${SPECIALIST_JOB_NAMES[type]} scheduled for ${actor.name}${price ? '; payment is due at the visit' : ''}.` };
@@ -183,6 +184,8 @@ export function tickSpecialistJobs(w: WorldState, minutes: number): void {
     if (j.type === 'employPolice') {
       const total = Object.values(w.specialistJobs ?? {}).filter(x => x.gangId === gang.id && x.week === w.week && x.type === 'employPolice').reduce((n, x) => n + x.completed, 0);
       if (total >= (gang.staffVehicles?.lawyer ? 8 : 4)) { finish(w, j, 'done', 'The lawyer has reached this week\'s police tour capacity.'); continue; }
+      // 1.2.51: a tour sent with a hiring limit stops at it.
+      if (j.maxHires != null && j.completed >= j.maxHires) { finish(w, j, 'done', `${j.completed} officer(s) hired — the payroll limit for this tour.`); continue; }
     }
     let target = j.targetPersonId == null ? undefined : w.people[j.targetPersonId];
     if (areaTour) {

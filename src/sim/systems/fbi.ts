@@ -423,7 +423,7 @@ function outOfCar(w: WorldState, p: Person): void {
 /** Arrest a gang person where he stands and charge him. */
 function takeIntoCustody(w: WorldState, p: Person, gangId: ID, kind: string, buildingId: ID | null, agent?: Person, how?: string): void {
   outOfCar(w, p);
-  noteMemberLoss(w, p, how ? `arrested ${how} (charged: ${kind})` : `arrested (${kind})`, 'the FBI');
+  noteMemberLoss(w, p, how ? `arrested ${how} (charged: ${kind})` : `arrested (${kind})`, 'the FBI', crimeOrderOf(w, p));
   p.status = 'arrested'; p.buildingId = null; p.inVehicle = false;
   p.orderId = null; p.streetOrder = null; clearDestination(p);
   w.crimes.push({id:w.sequences.crime++,week:w.week,gangId,perpetratorId:p.id,
@@ -472,6 +472,15 @@ export function serveAccountantWarrants(w: WorldState, rng: Rng): void {
       if (gang.isPlayer) addMessage(w, 'police', `Federal agents came for your ${who}, ${p.name}; he ${how}.`, p.pos, agent.id);
     }
   }
+}
+
+/** 1.2.51: the order behind the last crime on a man's record (not a charge), for order fitness. */
+function crimeOrderOf(w: WorldState, p: Person): ID | undefined {
+  for (let i = w.crimes.length - 1; i >= 0; i--) {
+    const c = w.crimes[i];
+    if (c.perpetratorId === p.id && !c.charge && c.orderId != null) return c.orderId;
+  }
+  return undefined;
 }
 
 /** The kind of the last crime on a man's record (remake mapping for the

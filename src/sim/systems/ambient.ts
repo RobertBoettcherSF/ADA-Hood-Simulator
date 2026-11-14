@@ -104,7 +104,8 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
     // 1.2.44 (Robert): an idle lieutenant waits at the office door like his men.
     // 1.2.46 (Robert): while an FBI case is open nobody waits in or at the
     // HQ; sendHome takes them to the gang's refuge instead.
-    const avoid = p.gangId != null && (p.role === 'hood' || p.role === 'lieutenant') && !p.dest ? hqAvoidance.get(w)?.get(p.gangId) : undefined;
+    // 1.2.51 (Robert): the boss too stays out of the HQ during a raid.
+    const avoid = p.gangId != null && (p.role === 'hood' || p.role === 'lieutenant' || p.role === 'boss') && !p.dest ? hqAvoidance.get(w)?.get(p.gangId) : undefined;
     const avoidedHq = avoid ? w.buildings[avoid.hqId] : undefined;
     if (avoid && avoidedHq && (p.buildingId === avoidedHq.id || (!p.inVehicle && dist(p.pos, buildingDoor(w, avoidedHq)) <= RAID_REACH))) {
       const refuge = avoid.refugeId != null ? w.buildings[avoid.refugeId] : undefined;

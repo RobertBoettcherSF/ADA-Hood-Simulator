@@ -1,6 +1,7 @@
 import type { ApiResult, IssueOrderInput } from '../sim/api';
 import type { CrewRole } from './autoActions';
 import type { VictoryGoal } from './autoGoals';
+import { hm } from '../sim/timeFormat';
 
 /**
  * 1.2.23: Auto Test's one weekly decision loop. Every part of the planning desk
@@ -101,7 +102,7 @@ export function decideWeek<T>(
       p.prepare?.(slot.team);
       const result = issue(p.label, slot.team, p);
       if (result.ok) {
-        given.push({ label: p.label, crew: slot.name, score, line: `WON ${p.label} → ${slot.name}: ${why}; ${free} min free before it` });
+        given.push({ label: p.label, crew: slot.name, score, line: `WON ${p.label} → ${slot.name}: ${why}; ${hm(free)} free before it` });
         p.onGiven?.(slot.team, result);
         done = true;
         break;

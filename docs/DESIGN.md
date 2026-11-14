@@ -238,6 +238,27 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.51 decisions
+
+Fitness on one dollar scale, bribes and the police payroll by value, wanted men, man-minute routes, the Standard election on every size (Robert). Numbers marked (proposed) were not given by Robert.
+
+1. **FITNESS protection.** The game records each stop's full amount and the after-skim amount at collection (`Gang.protectionTake`), so after skim never tops full. Shops marked as refusing count as refused.
+2. **Police tour limit.** An Employ Police tour hires at most the payroll limit less the officers already paid (`SpecialistJob.maxHires`).
+3. **Violent-job judging** reads the men sent (`Order.sentIds`, recorded when they set out), not the emptied `assignedIds`. Each man counts once in the loss tally; a man lost again is marked as a re-arrest.
+4. **Order fitness.** Every order Auto gives is recorded (id, men, manpower, estimate, start minute). The game records `earned`, `spent`, `hired`, `startedMinute`, `finishedMinute` on the order and `orderId` on member losses and crimes, so a later FBI arrest is charged to its order. net = value − cash cost − men lost × L − arrests × A; efficiency = net ÷ man-minutes (whole minutes). V = last week's takings ÷ men; hire = 2 weeks' average pay + a pistol (proposed); A = 4 × V + hire (proposed); L = 26 × V + hire. Values: collect, raid and export the cash taken; extortion the new protection × our collection rate × 12 weeks (proposed); buy and set-up the profit × 12 (proposed); recruit the men hired × V × 12 (proposed); an attack the target's profit × 4 (proposed) once it no longer trades; a hit V × 12 (proposed) once the target is out. Sums per type decay ×0.9 a week (proposed) and are kept in the diary.
+5. **Ranking.** Order-based actions are rolled by each type's expected net (efficiency × the man-minutes such an order takes); a type with no data yet weighs its old default rank × the average positive expected net (proposed); a type expected to lose money is not rolled. No rank bumps for order or court actions; the snitch and the HQ strike keep ranks.
+6. **Bribe fitness.** Each bribe is expected benefit ÷ cost in dollars and is taken at 1 or more (proposed). Court: the drop in the conviction chance (the trial formula, both sides × U(0.85, 1.15)) × the stake (a hood 4 × V (proposed); the boss all cash + 52 weeks' takings (proposed)); the DA's list is costed with $1,300 (proposed) to buy the man it opens; roughing up a witness costs 0.3 of an arrest (proposed) plus its suspicion at A/200 a point. Chief: +34 opinion cuts scene arrests by (1 − opinion/260) and presence to 0.6 above +20; mayor worth 0 while the chief is above +20; both counted over 4 weeks (proposed). Hard limits stay: the boss's case may take all the cash, no bribe above hostility 224, clean dismissals one a week. BRIBES lines in the report.
+7. **Police payroll by value.** An officer is worth 0.04 of the scene arrests a week (8-week average, proposed) × A, plus three quarters of his illegal-business beat's arrests. Hire while one more is worth a retainer, up to the game's limit of 10; dismiss the lowest-value officer first when worth less than his retainer or the forecast fails, one a week; no rehire for 4 weeks.
+8. **Wanted men.** A man released after an arrest, or with an FBI warrant out, lies low in the pool for 6 weeks (proposed), off every order and so off heavy crimes. An ordinary hood (not the boss, a lieutenant or a business manager) is sacked on his second arrest (proposed).
+9. **Man-minutes.** A crew's week is its men's minutes; orders no longer have to fit one after another. Collect routes run side by side, one man each; a route that ran out of week caps that crew's routes at the most stops one route finished. With shops left over a Protection crew is bought a coupe, up to 2 a crew (proposed). Pool men fill the Protection crews first.
+10. **Extort brake.** No new extortion while last week's collected ÷ claimed is under 60% (proposed, from week 3). The extortion shadow score is scaled by the collection rate.
+11. **Campaign.** Intimidation is ranked by votes gained per crew minute (each cowed shopkeeper −32 on his value ÷ the block's voters; 30 minutes a stop before the ledger has one, proposed). New-block extortion is held to the Intimidation crews' free man-time in block leans, less the reluctant blocks waiting.
+12. **Report.** Election POLL and RESULT lines, SKIPPED shops at 180+ hostility (weekly and the run total), a SQUALOR line (high at 50+, proposed), SCALE, ORDER FIT, BRIBES and POLICE value lines.
+13. **Standard election on every size.** Small and Large cities count the Standard election; they have no avenue rows or columns.
+14. **Charity land.** With no empty non-centre lot of ours where it is wanted, our weakest legal business there (not the HQ, a front or a centre lot) is shut down and the charity set up on it.
+15. **Raids.** The boss stays out of the HQ during a raid, like his men.
+16. **Times** read "9h 6m" in the UI and the reports.
+
 ## v1.2.50 decisions
 
 Auto Test, charity, squalor and one ruleset (Robert). Numbers marked (proposed) were not given by Robert.

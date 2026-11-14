@@ -19,14 +19,18 @@ import {
 import { BUILDING_BY_ID } from './data/buildings';
 import type { Building, ID, Person, WorldState } from './types';
 import { territoryBlocks } from './world';
+import { standardRules } from './rules';
 
 const GANG_OCCUPIER = 30, SHOPKEEPER = 15, GANG_MEMBER = 29;
 
 function four<T>(f: (slot: number) => T): Four<T> { return [f(0), f(1), f(2), f(3)] as const; }
 
 export function originalElectionCity(w: WorldState): OriginalElectionCity | null {
+  // 1.2.51 (Robert): the Standard election on every city size. A Small or
+  // Large city has no avenue rows or columns of its own (none are skipped).
   const layout = w.cityLayout?.original;
-  if (!layout) return null;
+  if (!layout && !standardRules(w)) return null;
+  const avenues = layout ? layout.avenues : { rows: [] as number[], cols: [] as number[] };
   const gangIds = Object.keys(w.gangs).map(Number);
   const slotOf = new Map<ID, GangSlot>(gangIds.slice(0, 4).map((id, i) => [id, i as GangSlot]));
   const voter = (p: Person | undefined | null, role: number, gangSlot: GangSlot | null): OriginalVoter | null =>
@@ -77,7 +81,7 @@ export function originalElectionCity(w: WorldState): OriginalElectionCity | null
     .map(c => slotOf.get(c.gangId!)!);
   return {
     width: w.gridW, height: w.gridH, blocks,
-    avenueRows: layout.avenues.rows, avenueColumns: layout.avenues.cols,
+    avenueRows: avenues.rows, avenueColumns: avenues.cols,
     riverBlocks: w.blocks.filter(b => b.layout?.use === 'water').map(b => b.id),
     territories: four(s => gangIds[s] == null ? [] : territoryBlocks(w, gangIds[s]).map(b => b.id)),
     teamstersWeights: teamsters,
@@ -87,8 +91,8 @@ export function originalElectionCity(w: WorldState): OriginalElectionCity | null
 }
 
 /**
- * Poll the current ballot with the original rules. Returns each candidate's
- * percentage in ballot order, or null outside the original city.
+ * Poll the current ballot with the Standard rules. Returns each candidate's
+ * percentage in ballot order, or null for a game not on the Standard rules.
  */
 export function originalElectionPoll(w: WorldState): { votes: Map<ID, number>; result: OriginalVoteResult } | null {
   const city = originalElectionCity(w);

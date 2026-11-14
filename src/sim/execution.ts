@@ -244,9 +244,11 @@ export function extortDifficulty(w: WorldState, gangId: ID, building: Building, 
   return 0.12 + Math.min(0.5, distance / 900) + Math.max(0, -(owner?.opinion[gangId] ?? 0)) / 240;
 }
 
-function spend(w: WorldState, gang: Gang, amount: number, treatment: 'operating' | 'capital' = 'operating'): boolean {
+function spend(w: WorldState, gang: Gang, amount: number, order: Order, treatment: 'operating' | 'capital' = 'operating'): boolean {
   if (gang.cash < amount) return false;
   payCash(w, gang, 'purchases', amount, treatment);
+  // 1.2.51: the order's cash cost, for order fitness.
+  order.spent = (order.spent ?? 0) + amount;
   return true;
 }
 
@@ -520,6 +522,9 @@ function assignOrder(w: WorldState, team: Team, order: Order, atWeekStart = fals
   // 1.2.50 (Robert): a man waiting inside his own office walks out to take the order.
   for (const p of chosen) if (waitingInside(w, p)) { const office = w.buildings[p.buildingId!]; p.buildingId = null; p.pos = buildingDoor(w, office); }
   order.assignedIds = chosen.map((p) => p.id);
+  // 1.2.51: who went and when, kept after the order finishes (order fitness).
+  order.sentIds = [...new Set([...(order.sentIds ?? []), ...order.assignedIds])];
+  order.startedMinute ??= Math.round(w.minute);
   delete order.dispatchWaitReason;
   // The hunt is planned again as the crew sets out: the gang may have learnt
   // where he is since it was ordered (a snitch, an interrogation).
@@ -899,6 +904,7 @@ function finishOrder(w: WorldState, order: Order, failReason: string | null): vo
   const partly = !!failReason && order.completedTargets > 0;
   order.state = failReason && !partly ? 'failed' : 'done';
   order.failReason = failReason;
+  order.finishedMinute = Math.round(w.minute);
   delete order.dispatchWaitReason;
   delete order.ambushTargetId;
   delete order.targetPaid;
@@ -1116,7 +1122,7 @@ function resolveTarget(
       if (building.state === 'destroyed' || !purchasablePremisesType(building))
         return finishOrder(w, order, 'Those premises are no longer available to buy.');
       const cost = buildingValue(w, building);
-      if (!spend(w, gang, cost, 'capital')) return finishOrder(w, order, 'You could not cover the asking price.');
+      if (!spend(w, gang, cost, order, 'capital')) return finishOrder(w, order, 'You could not cover the asking price.');
       building.acquisitionCost = cost;
       // 0x4CC8F0: the occupant who sold halves their hostility toward the
       // buyer and loses 64 fear of it.
@@ -1159,7 +1165,7 @@ function resolveTarget(
         if (front.hidesId != null && front.hidesId !== building.id)
           return finishOrder(w, order, 'That front already hides another operation.');
       }
-      if (!spend(w, gang, t.cost, 'capital')) return finishOrder(w, order, 'You could not afford the fit-out.');
+      if (!spend(w, gang, t.cost, order, 'capital')) return finishOrder(w, order, 'You could not afford the fit-out.');
       building.acquisitionCost = (building.acquisitionCost ?? buildingValue(w, building)) + t.cost;
 
       building.typeId = t.id;
@@ -1328,7 +1334,7 @@ function resolveTarget(
       const blk = w.blocks[building.blockId];
       const amount = order.opts.amount ?? donationAmount(w, building);
       if (!Number.isFinite(amount) || amount <= 0) return finishOrder(w, order, 'No donation was offered.');
-      if (!spend(w, gang, amount)) return finishOrder(w, order, 'You could not spare the money.');
+      if (!spend(w, gang, amount, order)) return finishOrder(w, order, 'You could not spare the money.');
       const impact = (amount / 1000) * (1 + blk.squalor / 60);
       shiftLocalOpinion(w, here, 90, gang.id, Math.min(18, impact * 4));
       gang.goodwill = Math.min(40, gang.goodwill + Math.min(4, impact));
@@ -1345,7 +1351,7 @@ function resolveTarget(
     case 'cleanUp': {
       // 1.2.50 (Robert): a paid clean-up, one site at a time.
       if (!building) return;
-      if (!spend(w, gang, CLEANUP_COST_PER_SITE)) return finishOrder(w, order, 'You could not pay for the clean-up.');
+      if (!spend(w, gang, CLEANUP_COST_PER_SITE, order)) return finishOrder(w, order, 'You could not pay for the clean-up.');
       const blk = cityBlockAt(w, w.blocks[building.blockId].gx, w.blocks[building.blockId].gy)!;
       blk.squalor = Math.max(0, blk.squalor - CLEANUP_SQUALOR);
       for (const p of peopleNear(w, here, CLEANUP_REACH)) shiftAttitude(p, gang.id, -CLEANUP_HOSTILITY, 0);
@@ -1449,6 +1455,8 @@ function resolveTarget(
         else pool++;
       }
       const joined = crew + pool;
+      // 1.2.51: hoods signed on by the order, for order fitness.
+      order.hired = (order.hired ?? 0) + joined;
       const hired = !joined
         ? 'Nobody new was willing to work for you.'
         : toPool
@@ -1463,7 +1471,7 @@ function resolveTarget(
     case 'bribe': {
       if (!victim) return finishOrder(w, order, 'The target could not be found.');
       const cost = order.opts.amount ?? Math.round(300 + victim.skills.intelligence * 260);
-      if (!spend(w, gang, cost)) return finishOrder(w, order, 'You could not cover the bribe.');
+      if (!spend(w, gang, cost, order)) return finishOrder(w, order, 'You could not cover the bribe.');
       noteBribe(w, gang, cost);
       if (roll(rng, actors, ['intelligence'], 0.2 + Math.max(0, -(victim.opinion[gang.id] ?? 0)) / 200)) {
         victim.bribedBy = gang.id;
