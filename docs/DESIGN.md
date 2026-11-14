@@ -238,6 +238,22 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.44 decisions
+
+Crew time updates as soon as men and cars change, and protection collecting is planned as routes for the player and for Auto (Robert).
+
+1. Crew moves. A man who joins a crew or becomes a lieutenant steps out of our office at once (his place inside is cleared) and counts as free to plan. Loading a save does the same for crew men and lieutenants left inside an office of their gang.
+2. Lieutenants. An idle lieutenant inside our office steps to the door like his men.
+3. Crew panel. A crew with no orders shows 0% of its week assigned. A crew with nobody free to plan says "Nobody free to plan" instead of 100%.
+4. Re-timing. A car bought for, moved to or taken from a crew, and a hood joining or leaving it, re-times its queued orders at once (estimate and booked man-minutes).
+5. Auto and cars. When a crew's week is full and orders were left over for lack of time, Auto moves a spare car from the cache to it, or buys a coupe if the cash stays above the reserve. It does this only when a test shows the car frees the time for at least one of the left-over orders, which is then given. One car per crew a week.
+6. Route order. Every Collect Protection order (player and Auto) walks its stops in the shortest order: nearest-next with crossings removed (the routing now lives in the sim), from the gang's office nearest the crew's lieutenant. Order estimates also measure from that office, not the office nearest block 0.
+7. Trimming. An area order too long for the week drops, one at a time, the stop whose removal saves the most walking (the farthest off the route) until it fits. The job card's suggestion and the area fit both use this.
+8. Collect all owed. A button on the Collect Protection card fills the crew with the nearest owed shops that are neither paid this week nor in any crew's queued route: one 1-man route per free man, each grown nearest-next while it still fits that man's week (2,400 minutes plus the game's 2%, so 2,448).
+9. Claimed shops. A shop that paid this week, or is in another crew's queued collect route, cannot be picked or added by block. It is not highlighted as selectable on the map. The card shows how many owed shops are still unassigned this week.
+10. Auto collecting. Each crew (the collect crew first) gets one 1-man route per free man, each starting at the best-paying shop left and taking the nearest that fit that man's free time. This goes on until every owed shop is covered or no man is free. The old cap of twice the even share is gone.
+11. Protection lists (City Maps tab). "Shops That Owe Us": every protected shop with its status last week (paid, refused, refusing, or not collected), the crew that has it queued this week, and what it pays, plus the count unassigned. "Extortion Tries": every shop we asked, agreed or refused, the week and the crew. Both lists sort, and a click shows the shop on the map. The extortion tries are kept in the save (the player gang's latest try per shop, so one entry per shop). The owed list reads what the game already keeps.
+
 ## v1.2.43 decisions
 
 Auto Test compares its strength with every hostile gang together, defends and makes peace when weak, and moves its recruiting when the venues run dry (Robert).

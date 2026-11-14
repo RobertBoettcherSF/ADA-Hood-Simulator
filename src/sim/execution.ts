@@ -154,6 +154,13 @@ function takeOnHood(w: WorldState, gang: Gang, team: Team, person: Person, force
   return 'pool';
 }
 
+/** 1.2.44 (Robert): the player gang's extortion tries, one entry per shop (the latest), for the Protection lists. */
+function noteExtortTry(w: WorldState, gang: Gang, buildingId: ID, agreed: boolean, team: Team | undefined): void {
+  if (!gang.isPlayer) return;
+  const log = (w.extortLog ??= {});
+  log[buildingId] = { week: w.week, agreed, teamId: team?.id ?? null, crew: team?.name ?? '' };
+}
+
 export function nearestOffice(w: WorldState, gangId: ID, near: Vec2): Building | null {
   let best: Building | null = null;
   let bestD = Infinity;
@@ -283,7 +290,8 @@ export function isValidAreaTarget(
         b.ownerGangId == null
       );
     case 'collectProtection':
-      return b.protection?.gangId === gangId;
+      // 1.2.44 (Robert): a shop that already paid this week cannot be picked.
+      return b.protection?.gangId === gangId && b.protection.collectedWeek !== _w.week;
     case 'adjustProtection':
       return b.protection?.gangId === gangId;
     case 'intimidate':
@@ -396,7 +404,8 @@ export function estimateMinutes(w: WorldState, team: Team, order: Order): number
   let work = def.minutesPerTarget * targets * efficiency;
 
   // Travel: rough march from the office through the targets.
-  const office = nearestOffice(w, order.gangId, w.blocks[0].center);
+  // 1.2.44 (Robert): from the crew's nearest office (the lieutenant's), not the office nearest block 0.
+  const office = nearestOffice(w, order.gangId, w.people[team.lieutenantId]?.pos ?? w.blocks[0].center);
   let travel = 0;
   let cur: Vec2 | null = office ? w.lots[office.lotId].center : null;
   const list = def.target === 'area' ? order.targetBuildingIds : order.targetBuildingIds.slice(0, 1);
@@ -1459,7 +1468,9 @@ function resolveTarget(
         // Recode reading of the extortion write-back: hostility −16, fear +16.
         if (owner) opinionShift(owner, gang.id, -8, { hostility: -16, fear: 16 });
         signUp(building);
+        noteExtortTry(w, gang, building.id, true, team);
       } else {
+        noteExtortTry(w, gang, building.id, false, team);
         if (owner) {
           // A refused extortion writes no attitude in 0x4DD9C0; the original only
           // reports when the owner's squeal byte (+0x20) exceeds 200, which the
@@ -2038,6 +2049,8 @@ export function promoteToLieutenant(w: WorldState, gang: Gang, hood: Person): Te
   }
   gang.poolIds = gang.poolIds.filter((id) => id !== hood.id);
   hood.role = 'lieutenant';
+  // 1.2.44 (Robert): a new lieutenant steps out of our office at once (free to plan).
+  if (hood.buildingId != null && isGangOffice(w.buildings[hood.buildingId], gang.id)) hood.buildingId = null;
   setLieutenantPay(w, gang, hood);
   const team: Team = {
     id: newId(w),

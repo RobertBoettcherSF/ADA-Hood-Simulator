@@ -20,7 +20,7 @@ import { resourceDragProps, resourceJustDropped, useResourceDrop } from '../reso
 import { SLOT_COUNT, moveSlot, slotLayout } from '../lieutenantSlots';
 import { Advisor } from './Advisor';
 import { ABSENT, PayRoll, hours } from './RightSheet';
-import { crewUsedShare } from '../../sim/crewTime';
+import { crewCapacity, crewUsedShare } from '../../sim/crewTime';
 
 type Mode = 'orders' | 'reports';
 
@@ -135,6 +135,9 @@ export function LieutenantsTab() {
 
   const lt = w.people[team.lieutenantId];
   const timePct = crewUsedShare(w, team) * 100;
+  // 1.2.44 (Robert): nobody free to plan is said in words, not as 100%.
+  const nobodyFree = crewCapacity(w, team) === 0;
+  const timeLabel = nobodyFree ? 'nobody free to plan' : `${Math.round(timePct)}% of this crew's week assigned`;
   const members = team.memberIds.map((id) => w.people[id]).filter(Boolean);
   const guns = Object.entries(team.weapons).reduce((s, [id, n]) => s + (id === 'explosives' ? 0 : n), 0);
   const cars = Object.values(team.vehicles).reduce((s, n) => s + n, 0);
@@ -183,8 +186,8 @@ export function LieutenantsTab() {
             <div style={{ minWidth: 0 }}>
               <div className="row" style={{ gap: 12, alignItems: 'center' }}>
                 <h3 className={lt.pay < lt.payDemand ? 'unhappy' : ''}>{lt.name}</h3>
-                <span data-help="week assigned" aria-label="Week assigned" title={`${Math.round(timePct)}% of this crew's week assigned`}>
-                <Dial pct={timePct} size={36} title={`${Math.round(timePct)}% of this crew's week assigned`} />
+                <span data-help="week assigned" aria-label="Week assigned" title={timeLabel}>
+                <Dial pct={timePct} size={36} title={timeLabel} />
                 </span>
               </div>
               <div className="counters">
@@ -319,7 +322,7 @@ export function LieutenantsTab() {
               Reports
             </button>
           </div>
-          <span className="planning-time" data-help="week assigned" aria-label="Week assigned">{Math.round(timePct)}% of this crew’s week assigned</span>
+          <span className="planning-time" data-help="week assigned" aria-label="Week assigned">{nobodyFree ? 'Nobody free to plan' : `${Math.round(timePct)}% of this crew’s week assigned`}</span>
         </div>
         <div className="lb-body">
           {mode === 'orders' ? (

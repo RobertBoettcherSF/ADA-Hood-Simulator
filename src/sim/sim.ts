@@ -1,3 +1,4 @@
+import { isGangOffice } from './officeDefence';
 import {settleBurningEscapes, tickBuildingEmergencies} from './systems/buildingEmergency';
 import { driveFrom, earlySteps, finishMovementTick, repairVehicleRoutes } from './movement';
 import { boardingCount, reconcileTransport, resetWeekTransport, restoreLegacyTransport } from './transport';
@@ -123,6 +124,11 @@ export class Sim {
     normalizeFbiInvestigations(state);
     restoreElectionTiming(state);
     // 1.2.27: crew time is man-hours; a save's booked time is recounted from its orders.
+    // 1.2.44 (Robert): crew men and lieutenants left inside an office of their gang step out (free to plan).
+    for (const team of Object.values(state.teams)) for (const id of [team.lieutenantId, ...team.memberIds]) {
+      const p = state.people[id];
+      if (p && p.buildingId != null && p.gangId != null && isGangOffice(state.buildings[p.buildingId], p.gangId)) p.buildingId = null;
+    }
     for (const team of Object.values(state.teams)) syncCrewTime(state, team);
     observeTargetRace(state, undefined, 'legacy');
     sim.resolveImmediateOutcome();

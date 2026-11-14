@@ -923,6 +923,8 @@ export interface RivalPlaybook {
 }
 
 export interface WorldState {
+  /** 1.2.44 (Robert): the player gang's extortion tries, building id → the latest (one entry per shop). */
+  extortLog?: Record<number, { week: number; agreed: boolean; teamId: number | null; crew: string }>;
   schemaVersion?: number;
   sequences: { message: number; crime: number; court: number };
   tutorialProgress?: { lessonId: number; completed: number[] };

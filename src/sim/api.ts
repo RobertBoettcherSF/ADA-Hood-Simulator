@@ -8,6 +8,7 @@ import { originalStartingWage } from './originalWages';
 import { cityBlockAt } from './cityLayout';
 import { orderStaffing } from './orderStaffing';
 import { crewHasTime, crewUsedShare, syncCrewTime } from './crewTime';
+import { collectQueued, paidThisWeek, planCollectAll, routeOrder, trimToWeek, unassignedOwed } from './collectRoutes';
 import { committedCash } from './orderCost';
 import { observeTargetRace } from './targetRace';
 import {
@@ -68,7 +69,7 @@ import { CELL, GO_STRAIGHT_ASSETS } from './constants';
 
 import { clearDestination, setDestination } from './movement';
 import { canonicalAreaBlocks, lieutenantAreaChoices } from './lieutenantAreas';
-import { CENTRE_LOT, allBuildings, buildingDoor, dist, gangAssets, ownedBuildings, teamsOf, territoryBlocks } from './world';
+import { CENTRE_LOT, allBuildings, buildingDoor, gangAssets, ownedBuildings, teamsOf, territoryBlocks } from './world';
 import { peopleList } from './entityLists';
 import { quitGangPayroll } from './payrollMark';
 
@@ -139,14 +140,21 @@ export function validBuildingTarget(w: WorldState, gangId: ID, type: OrderType, 
 }
 
 /** Pure draft shared by the job card and accepted orders. No IDs or time are consumed. */
-export function previewOrder(w: WorldState, gangId: ID, input: IssueOrderInput): Order | null {
+export function previewOrder(w: WorldState, gangId: ID, input: IssueOrderInput, editingOrderId?: ID): Order | null {
   const gang = w.gangs[gangId], team = w.teams[input.teamId];
   if (!gang || !team || team.gangId !== gangId || !ORDERS[input.type]) return null;
   const def = ORDERS[input.type];
   const opts = defaultOptions(input.opts);
   const blockIds = [...new Set((input.blockIds ?? []).map(id => w.blocks[id]?.layout?.mergedInto ?? id))];
   const buildingIds = [...new Set(input.buildingIds ?? [])];
-  const targetBuildingIds = expandTargets(w, gangId, input.type, blockIds, buildingIds, input.opts);
+  let targetBuildingIds = expandTargets(w, gangId, input.type, blockIds, buildingIds, input.opts);
+  // 1.2.44 (Robert): collect — no shop paid this week or in another crew's
+  // queued collect order, and the stops walked in the shortest order from the
+  // crew's nearest office.
+  if (input.type === 'collectProtection') {
+    const queued = collectQueued(w, gangId, editingOrderId);
+    targetBuildingIds = routeOrder(w, team, targetBuildingIds.filter((id) => { const b = w.buildings[id]; return !!b && !queued.has(id) && !paidThisWeek(w, b); }));
+  }
   const charity = w.buildings[targetBuildingIds[0]];
   if (input.type === 'donate' && opts.amount == null && charity && donationTarget(charity)) opts.amount = donationAmount(w, charity);
   const order: Order = {
@@ -256,16 +264,16 @@ export function issueOrder(w: WorldState, gangId: ID, input: IssueOrderInput): A
   // 1.2.27: man-hours — the crew's free man-minutes, and each man's own week.
   if (!crewHasTime(w, team, order)) {
     // Undermanned for the whole area, the lieutenant offers what he can manage.
-    if (def.target === 'area' && targetBuildingIds.length > 1) {
-      for (let k = targetBuildingIds.length - 1; k >= 1; k--) {
-        const part = { ...order, targetBuildingIds: targetBuildingIds.slice(0, k), targetBlockIds: [] };
-        if (crewHasTime(w, team, { ...part, estimatedMinutes: estimateMinutes(w, team, part) })) {
-          return {
-            ok: false,
-            error: `${lt.name} has not got the time for all ${targetBuildingIds.length} sites — he could manage ${k} of them.`,
-            suggestion: { buildingIds: part.targetBuildingIds, count: k, total: targetBuildingIds.length },
-          };
-        }
+    // 1.2.44 (Robert): the stops that save the most walking are dropped first.
+    if (def.target === 'area' && order.targetBuildingIds.length > 1) {
+      const kept = trimToWeek(w, team, order, (o) => estimateMinutes(w, team, o));
+      if (kept.length) {
+        const k = kept.length, total = order.targetBuildingIds.length;
+        return {
+          ok: false,
+          error: `${lt.name} has not got the time for all ${total} sites — he could manage ${k} of them.`,
+          suggestion: { buildingIds: kept, count: k, total },
+        };
       }
     }
     return fail(
@@ -303,18 +311,13 @@ export function fitAreaToWeek(w: WorldState, gangId: ID, input: IssueOrderInput,
   { buildingIds: ID[]; dropped: number; total: number } | null {
   const team = w.teams[input.teamId], def = ORDERS[input.type];
   if (!team || def?.target !== 'area') return null;
-  const order = previewOrder(w, gangId, input);
+  const order = previewOrder(w, gangId, input, editingOrderId);
   if (!order || order.targetBuildingIds.length < 2) return null;
   if (crewHasTime(w, team, order, editingOrderId)) return null;
-  const office = nearestOffice(w, gangId, w.blocks[0].center);
-  const from = office ? w.lots[office.lotId].center : null;
-  const sites = [...order.targetBuildingIds].sort((a, b) => from
-    ? dist(from, w.lots[w.buildings[a].lotId].center) - dist(from, w.lots[w.buildings[b].lotId].center) : 0);
-  for (let k = sites.length - 1; k >= 1; k--) {
-    const part = { ...order, targetBuildingIds: sites.slice(0, k), targetBlockIds: [] };
-    if (crewHasTime(w, team, { ...part, estimatedMinutes: estimateMinutes(w, team, part) }, editingOrderId)) return { buildingIds: part.targetBuildingIds, dropped: sites.length - k, total: sites.length };
-  }
-  return { buildingIds: [], dropped: sites.length, total: sites.length };
+  // 1.2.44 (Robert): drop the stops that save the most walking (the farthest off the route), not the farthest from the office.
+  const total = order.targetBuildingIds.length;
+  const kept = trimToWeek(w, team, order, (o) => estimateMinutes(w, team, o), editingOrderId);
+  return { buildingIds: kept, dropped: total - kept.length, total };
 }
 
 /** How far from your territory you may buy, in blocks. */
@@ -524,6 +527,40 @@ export function demote(w: WorldState, gangId: ID, teamId: ID): ApiResult {
   return ok('The crew has been broken up.');
 }
 
+/**
+ * 1.2.44 (Robert): "Collect all owed" — the nearest owed shops that are
+ * neither paid this week nor queued by any crew, as one route per free man,
+ * each as long as that man's week allows (one-man Collect Protection orders).
+ */
+export function collectAllOwed(w: WorldState, gangId: ID, teamId: ID): ApiResult {
+  const team = w.teams[teamId];
+  if (!team || team.gangId !== gangId) return fail('No such crew.');
+  if (w.phase !== 'planning') return fail('Orders are given while planning.');
+  const input = (ids: ID[]): IssueOrderInput => ({ teamId, type: 'collectProtection', buildingIds: ids, opts: { manpower: 1 } });
+  const fits = (ids: ID[]) => { const o = previewOrder(w, gangId, input(ids)); return !!o && o.targetBuildingIds.length === ids.length && crewHasTime(w, team, o); };
+  const errors: string[] = [];
+  const issue = (ids: ID[]) => { const r = issueOrder(w, gangId, input(ids)); if (!r.ok) errors.push(r.error); return r.ok; };
+  const before = unassignedOwed(w, gangId).length;
+  const routes = planCollectAll(w, team, fits, issue);
+  const stops = routes.reduce((n, r) => n + r.length, 0);
+  const left = unassignedOwed(w, gangId).length;
+  if (!routes.length) return fail(before ? `No man in this crew has the time for another route${errors.length ? ` (${errors[0]})` : ''}. ${before} owed shop${before === 1 ? '' : 's'} still unassigned.` : 'Every owed shop is paid or already in a crew\'s route this week.');
+  return ok(`${routes.length} route${routes.length === 1 ? '' : 's'}, ${stops} shop${stops === 1 ? '' : 's'}. ${left} owed shop${left === 1 ? '' : 's'} still unassigned this week.`);
+}
+
+/** 1.2.44 (Robert): a crew's queued orders re-timed at once after a hood or a car joins or leaves it. */
+export function retimeCrew(w: WorldState, team: Team | undefined | null): void {
+  if (!team) return;
+  if (w.phase === 'planning') for (const id of team.orderIds) { const o = w.orders[id]; if (o && o.state === 'queued') o.estimatedMinutes = estimateMinutes(w, team, o); }
+  syncCrewTime(w, team);
+}
+
+/** 1.2.44 (Robert): a man joining a crew steps out of our office at once, so he counts as free to plan. */
+export function stepOutOfOffice(w: WorldState, p: Person): void {
+  if (p.buildingId == null || p.gangId == null) return;
+  if (isGangOffice(w.buildings[p.buildingId], p.gangId)) p.buildingId = null;
+}
+
 export function moveToTeam(w: WorldState, gangId: ID, personId: ID, teamId: ID): ApiResult {
   const gang = w.gangs[gangId];
   const team = w.teams[teamId];
@@ -539,6 +576,9 @@ export function moveToTeam(w: WorldState, gangId: ID, personId: ID, teamId: ID):
   gang.poolIds = gang.poolIds.filter((id) => id !== personId);
   team.memberIds.push(personId);
   p.teamId = teamId;
+  stepOutOfOffice(w, p);
+  retimeCrew(w, old);
+  retimeCrew(w, team);
   return ok(`${p.name} joined ${team.name}.`);
 }
 
@@ -552,6 +592,7 @@ export function moveToPool(w: WorldState, gangId: ID, personId: ID): ApiResult {
   if (old) old.memberIds = old.memberIds.filter((id) => id !== personId);
   p.teamId = null;
   if (!gang.poolIds.includes(personId)) gang.poolIds.push(personId);
+  retimeCrew(w, old);
   return ok();
 }
 
@@ -739,6 +780,7 @@ export function buyVehicle(w: WorldState, gangId: ID, vehicle: VehicleId, teamId
   payCash(w, gang, 'purchases', cost, 'capital');
   if (teamId != null && w.teams[teamId]) {
     w.teams[teamId].vehicles[vehicle] = (w.teams[teamId].vehicles[vehicle] ?? 0) + 1;
+    retimeCrew(w, w.teams[teamId]);
   } else {
     gang.vehicles[vehicle] = (gang.vehicles[vehicle] ?? 0) + 1;
   }
@@ -780,6 +822,7 @@ export function transferVehicle(
     team.vehicles[vehicle]--;
     gang.vehicles[vehicle] = (gang.vehicles[vehicle] ?? 0) + 1;
   }
+  retimeCrew(w, team);
   return ok();
 }
 

@@ -5,6 +5,7 @@ import { BUILDING_BY_ID } from '../../sim/data/buildings';
 import { allBuildings, buildingName, money, ownedBuildings, protectedBuildings } from '../../sim/world';
 import { Empty, Hint, Panel, Pill } from '../common';
 import { LieutenantAreaControls } from './LieutenantAreaControls';
+import { ProtectionLists } from './ProtectionLists';
 
 const OVERLAYS: { id: OverlayKind; label: string; help: string }[] = [
   { id: 'territory', label: 'Territory', help: 'Territory discovered by your gang.' },
@@ -137,6 +138,8 @@ export function MapsTab() {
           </div>
         )}
       </Panel>
+
+      <ProtectionLists />
 
       <Panel title="Building Types Known">
         {knownTypes.size === 0 ? (

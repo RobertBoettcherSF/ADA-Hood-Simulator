@@ -51,7 +51,7 @@ export function takeAutoTestStopped(): boolean {
 }
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
-import { setDiplomacy, buySnitchInfo, canGoStraight, repairBuilding, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, issueStreetOrder, previewOrder, demote, moveToPool, moveToTeam, nearTerritory, promote, sackPerson, transferVehicle, transferWeapon, sellWeapon, stationPoolHood, stockOfficeStash, recallManager, toggleEvadeTax, assignStaffVehicle, interrogatePrisoner, killPrisoner, releasePrisoner, type ApiResult, type IssueOrderInput } from '../sim/api';
+import { setDiplomacy, buySnitchInfo, canGoStraight, repairBuilding, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, issueStreetOrder, previewOrder, demote, moveToPool, moveToTeam, nearTerritory, promote, sackPerson, transferVehicle, transferWeapon, sellWeapon, stationPoolHood, stockOfficeStash, recallManager, retimeCrew, toggleEvadeTax, assignStaffVehicle, interrogatePrisoner, killPrisoner, releasePrisoner, type ApiResult, type IssueOrderInput } from '../sim/api';
 import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, BASIC_CREWS, CREW_OPENING_ORDER, carMinutesSaved, crewNames, roleStars, roleCompare, UNUSED_SKILLS, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
 import { DRIVE_SPEED, GO_STRAIGHT_ASSETS, VEHICLES, WALK_SPEED, WEAPONS } from '../sim/constants';
 import type { Building, Gang, ID, Person, Team, WeaponId } from '../sim/types';
@@ -2685,7 +2685,6 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         // starts from the best-paying stop left (takings over stop and travel
         // minutes), takes the stops nearest it that fit its free week, and walks
         // them nearest-next with crossings removed.
-        const share = Math.max(3, Math.ceil(owed.length / ready.length));
         const stopMinutes = Math.max(10, timeLedger[ledgerKey('collectProtection', false)] ?? 30);
         const centre = (b: Building) => w.lots[b.lotId].center;
         const perMinute = (b: Building) => (b.protection?.weekly ?? 0) / (stopMinutes + dist(centre(b), origin) / WALK_SPEED);
@@ -2702,22 +2701,32 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           left = left.filter((b) => keptIds.has(b.id));
           actions.push(`NOTE suspicion ${Math.round(gang.suspicion)}: collecting ${kept.length} of ${owed.length} shops ($${Math.round(collectBudget - room)} of $${Math.round(owed.reduce((sum, b) => sum + (b.protection?.weekly ?? 0), 0))}) — no more than the legal books cover ($${Math.round(collectBudget)})`);
         }
-        const collected = new Set<number>();
-        while (left.length) {
-          const team = freest(collected, 'collect');
-          if (!team) break;
-          collected.add(team.id);
+        // 1.2.44 (Robert): one 1-man collect route per free man of each crew,
+        // in different areas (each route starts from the best-paying shop
+        // left and takes the nearest that fit that man's week), until every
+        // owed shop is covered. The old cap of twice the even share is gone.
+        const crewsForCollect = ready.filter((t) => (t !== bizCrew || bizCollects) && !outOfTime.has(t.id))
+          .sort((a, b) => Number(roles.get(b.id) === 'collect') - Number(roles.get(a.id) === 'collect') || crewFreeMinutes(w, b) - crewFreeMinutes(w, a) || a.id - b.id);
+        let routes = 0;
+        for (const team of crewsForCollect) {
+          if (!left.length) break;
           const hasCar = Object.values(team.vehicles).some((n) => n > 0);
-          const fit = Math.max(1, Math.min(share * 2, targetsThatFit(timeLedger, ledgerKey('collectProtection', hasCar), left.length, freeFor(team, 1)) || 1));
-          const seed = left.shift()!;
-          left.sort((a, b) => dist(centre(a), centre(seed)) - dist(centre(b), centre(seed)));
-          const group = [seed, ...left.splice(0, fit - 1)];
-          left.sort((a, b) => perMinute(b) - perMinute(a));
-          const route = planRoute(origin, group.map((b) => ({ item: b, ...centre(b) }))).map((s) => s.item);
-          const takings = route.reduce((sum, b) => sum + (b.protection?.weekly ?? 0), 0);
-          propose({ label: `collect (${route.length} stops, $${Math.round(takings)})`, kind: 'money', value: Math.max(100, takings), role: 'collect', why: 'protection owed',
-            teams: [team, ...ready.filter((t) => t !== team && !collected.has(t.id))], input: { type: 'collectProtection', buildingIds: route.map((b) => b.id), opts: { manpower: 1 } } });
+          const manFree = crewLoads(w, team).map((load) => MINUTES_PER_WEEK - load).filter((m) => m >= MIN_FREE_MINUTES).sort((a, b) => b - a);
+          for (const free of manFree) {
+            if (!left.length) break;
+            const fit = Math.max(1, targetsThatFit(timeLedger, ledgerKey('collectProtection', hasCar), left.length, free) || 1);
+            const seed = left.shift()!;
+            left.sort((a, b) => dist(centre(a), centre(seed)) - dist(centre(b), centre(seed)));
+            const group = [seed, ...left.splice(0, fit - 1)];
+            left.sort((a, b) => perMinute(b) - perMinute(a));
+            const route = planRoute(origin, group.map((b) => ({ item: b, ...centre(b) }))).map((s) => s.item);
+            const takings = route.reduce((sum, b) => sum + (b.protection?.weekly ?? 0), 0);
+            routes += 1;
+            propose({ label: `collect (${route.length} stops, $${Math.round(takings)})`, kind: 'money', value: Math.max(100, takings), role: 'collect', why: `protection owed — route ${routes}, ${team.name}'s man with ${Math.round(free)} min free`,
+              teams: [team, ...crewsForCollect.filter((t) => t !== team)], input: { type: 'collectProtection', buildingIds: route.map((b) => b.id), opts: { manpower: 1 } } });
+          }
         }
+        if (left.length) actions.push(`NOTE collect: ${routes} route(s) put forward; ${left.length} owed shop(s) left over — no free man left in any crew`);
       }
       // Expand. 1.2.23: past SUSPICION_EASE no new rackets at all (protection
       // money is what the Bureau cannot explain); lying low below it, one crew
@@ -3859,6 +3868,37 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       pendingSwaps.set(plan.site.id, { orderId, candId: plan.cand.id, oldId: plan.old.id, week: w.week });
       actions.push(`MANAGER SWAP given: ${label} (Run Business, ${plan.cand.name} named)`);
     } else actions.push(`MANAGER SWAP not given: ${label} — ${result.error}`);
+  }
+  // 1.2.44 (Robert): a crew whose week is full while orders were left over
+  // gets a spare car from the cache, or a bought one, when that frees the time
+  // for at least one more order and the cash stays above the reserve.
+  {
+    const leftover = proposals.filter((p) => decision.skipped.some((d) => d.label === p.label && /time|busy|full/i.test(d.line)));
+    const carKinds = (['coupe', 'speedster', 'truck'] as const);
+    for (const team of leftover.length ? ready : []) {
+      if (freeFor(team) >= MIN_FREE_MINUTES && !outOfTime.has(team.id)) continue;
+      const fitsOne = () => leftover.find((p) => (p.kind === 'business') === (team === bizCrew) && (!p.teams || p.teams.includes(team)) && (() => {
+        const preview = previewOrder(w, gang.id, { ...inputFor(p, team), teamId: team.id });
+        return !!preview && crewHasTime(w, team, preview);
+      })());
+      const spare = carKinds.find((k) => (gang.vehicles[k] ?? 0) > 0);
+      const kind = spare ?? 'coupe';
+      if (!spare && gang.cash - VEHICLES.coupe.cost <= cashReserve) continue;
+      team.vehicles[kind] = (team.vehicles[kind] ?? 0) + 1;
+      retimeCrew(w, team);
+      const would = fitsOne();
+      team.vehicles[kind] = (team.vehicles[kind] ?? 0) - 1;
+      retimeCrew(w, team);
+      if (!would) continue;
+      const got = spare ? transferVehicle(w, gang.id, kind, team.id, true) : buyVehicle(w, gang.id, 'coupe', team.id);
+      logResult(actions, `CAR ${spare ? `spare ${kind} moved` : 'coupe bought'} for ${crewName(team)} — its week was full with orders left over; it frees the time for ${would.label}`, got.ok, got.ok ? '' : got.error);
+      if (!got.ok) continue;
+      const p = fitsOne();
+      if (p) {
+        const r = give(p.label, team, inputFor(p, team), p.kind);
+        if (r.ok) { p.onGiven?.(team, r); decision.given.push({ label: p.label, crew: crewName(team), score: 0, line: `WON ${p.label} → ${crewName(team)} after the car (1.2.44)` }); decision.skipped = decision.skipped.filter((d) => d.label !== p.label); }
+      }
+    }
   }
   actions.push(`DECIDE ${proposals.length} candidate orders for ${slots.length} crews (goal ${goal}): ${decision.given.length} given, ${decision.skipped.length} not`);
   for (const d of decision.given) actions.push(d.line);

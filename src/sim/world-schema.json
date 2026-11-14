@@ -6,6 +6,19 @@
     "T0": {
       "object": [
         [
+          "extortLog",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "ref": "T1"
+                }
+              ]
+            }
+          }
+        ],
+        [
           "schemaVersion",
           {
             "optional": true,
@@ -23,7 +36,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T1"
+              "ref": "T3"
             }
           }
         ],
@@ -34,7 +47,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T2"
+                  "ref": "T4"
                 }
               ]
             }
@@ -45,7 +58,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T4"
+              "ref": "T6"
             }
           }
         ],
@@ -56,7 +69,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T5"
+                  "ref": "T7"
                 }
               ]
             }
@@ -69,7 +82,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T8"
+                  "ref": "T10"
                 }
               ]
             }
@@ -122,7 +135,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T3"
+                  "ref": "T5"
                 }
               ]
             }
@@ -167,7 +180,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T9"
+                  "ref": "T11"
                 }
               ]
             }
@@ -183,7 +196,7 @@
                   "literal": null
                 },
                 {
-                  "ref": "T10"
+                  "ref": "T12"
                 }
               ]
             }
@@ -194,7 +207,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T11"
+              "ref": "T13"
             }
           }
         ],
@@ -205,7 +218,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T17"
+                  "ref": "T19"
                 }
               ]
             }
@@ -216,7 +229,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T28"
+              "ref": "T30"
             }
           }
         ],
@@ -225,7 +238,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T32"
+              "ref": "T34"
             }
           }
         ],
@@ -234,7 +247,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T40"
+              "ref": "T43"
             }
           }
         ],
@@ -243,7 +256,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T53"
+              "ref": "T56"
             }
           }
         ],
@@ -252,7 +265,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T68"
+              "ref": "T71"
             }
           }
         ],
@@ -261,7 +274,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T70"
+              "ref": "T73"
             }
           }
         ],
@@ -270,7 +283,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T78"
+              "ref": "T81"
             }
           }
         ],
@@ -279,7 +292,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T79"
+              "ref": "T82"
             }
           }
         ],
@@ -288,7 +301,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T81"
+              "ref": "T84"
             }
           }
         ],
@@ -297,7 +310,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T83"
+              "ref": "T86"
             }
           }
         ],
@@ -322,7 +335,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T90"
+              "ref": "T93"
             }
           }
         ],
@@ -331,7 +344,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T92"
+              "ref": "T95"
             }
           }
         ],
@@ -342,7 +355,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T94"
+                  "ref": "T97"
                 }
               ]
             }
@@ -355,7 +368,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T96"
+                  "ref": "T99"
                 }
               ]
             }
@@ -422,7 +435,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -431,7 +444,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -440,7 +453,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -449,7 +462,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -458,7 +471,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -494,7 +507,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T39"
+              "ref": "T42"
             }
           }
         ],
@@ -505,7 +518,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T97"
+                  "ref": "T100"
                 }
               ]
             }
@@ -518,7 +531,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T99"
+                  "ref": "T102"
                 }
               ]
             }
@@ -531,7 +544,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T103"
+                  "ref": "T106"
                 }
               ]
             }
@@ -544,7 +557,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T105"
+                  "ref": "T108"
                 }
               ]
             }
@@ -555,7 +568,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T107"
+              "ref": "T110"
             }
           }
         ],
@@ -564,13 +577,66 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T27"
+              "ref": "T29"
             }
           }
         ]
       ]
     },
     "T1": {
+      "object": [],
+      "values": {
+        "ref": "T2"
+      }
+    },
+    "T2": {
+      "object": [
+        [
+          "week",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ],
+        [
+          "agreed",
+          {
+            "optional": false,
+            "shape": {
+              "type": "boolean"
+            }
+          }
+        ],
+        [
+          "teamId",
+          {
+            "optional": false,
+            "shape": {
+              "union": [
+                {
+                  "literal": null
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "crew",
+          {
+            "optional": false,
+            "shape": {
+              "type": "string"
+            }
+          }
+        ]
+      ]
+    },
+    "T3": {
       "object": [
         [
           "message",
@@ -601,7 +667,7 @@
         ]
       ]
     },
-    "T2": {
+    "T4": {
       "object": [
         [
           "lessonId",
@@ -617,18 +683,18 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ]
       ]
     },
-    "T3": {
+    "T5": {
       "array": {
         "type": "number"
       }
     },
-    "T4": {
+    "T6": {
       "object": [
         [
           "seed",
@@ -953,14 +1019,14 @@
         ]
       ]
     },
-    "T5": {
+    "T7": {
       "object": [
         [
           "weights",
           {
             "optional": false,
             "shape": {
-              "ref": "T6"
+              "ref": "T8"
             }
           }
         ],
@@ -969,13 +1035,13 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T7"
+              "ref": "T9"
             }
           }
         ]
       ]
     },
-    "T6": {
+    "T8": {
       "object": [
         [
           "hiring",
@@ -1024,7 +1090,7 @@
         ]
       ]
     },
-    "T7": {
+    "T9": {
       "array": {
         "union": [
           {
@@ -1045,7 +1111,7 @@
         ]
       }
     },
-    "T8": {
+    "T10": {
       "object": [
         [
           "weaponBought",
@@ -1113,7 +1179,7 @@
         ]
       ]
     },
-    "T9": {
+    "T11": {
       "object": [
         [
           "mode",
@@ -1203,13 +1269,13 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ]
       ]
     },
-    "T10": {
+    "T12": {
       "object": [
         [
           "won",
@@ -1240,12 +1306,12 @@
         ]
       ]
     },
-    "T11": {
+    "T13": {
       "array": {
-        "ref": "T12"
+        "ref": "T14"
       }
     },
-    "T12": {
+    "T14": {
       "object": [
         [
           "id",
@@ -1304,7 +1370,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -1313,7 +1379,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -1360,7 +1426,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T14"
+                  "ref": "T16"
                 }
               ]
             }
@@ -1373,7 +1439,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T15"
+                  "ref": "T17"
                 }
               ]
             }
@@ -1381,7 +1447,7 @@
         ]
       ]
     },
-    "T13": {
+    "T15": {
       "object": [
         [
           "x",
@@ -1403,7 +1469,7 @@
         ]
       ]
     },
-    "T14": {
+    "T16": {
       "object": [
         [
           "content",
@@ -1425,7 +1491,7 @@
         ]
       ]
     },
-    "T15": {
+    "T17": {
       "object": [
         [
           "spanX",
@@ -1548,7 +1614,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T16"
+                  "ref": "T18"
                 }
               ]
             }
@@ -1556,7 +1622,7 @@
         ]
       ]
     },
-    "T16": {
+    "T18": {
       "object": [
         [
           "id",
@@ -1578,7 +1644,7 @@
         ]
       ]
     },
-    "T17": {
+    "T19": {
       "object": [
         [
           "version",
@@ -1594,7 +1660,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T18"
+              "ref": "T20"
             }
           }
         ],
@@ -1605,7 +1671,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T23"
+                  "ref": "T25"
                 }
               ]
             }
@@ -1613,12 +1679,12 @@
         ]
       ]
     },
-    "T18": {
+    "T20": {
       "array": {
-        "ref": "T19"
+        "ref": "T21"
       }
     },
-    "T19": {
+    "T21": {
       "object": [
         [
           "name",
@@ -1643,7 +1709,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T20"
+              "ref": "T22"
             }
           }
         ],
@@ -1652,23 +1718,23 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T21"
+              "ref": "T23"
             }
           }
         ]
       ]
     },
-    "T20": {
-      "array": {
-        "ref": "T13"
-      }
-    },
-    "T21": {
-      "array": {
-        "ref": "T22"
-      }
-    },
     "T22": {
+      "array": {
+        "ref": "T15"
+      }
+    },
+    "T23": {
+      "array": {
+        "ref": "T24"
+      }
+    },
+    "T24": {
       "object": [
         [
           "name",
@@ -1684,13 +1750,13 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ]
       ]
     },
-    "T23": {
+    "T25": {
       "object": [
         [
           "layout",
@@ -1737,7 +1803,7 @@
                   "literal": null
                 },
                 {
-                  "ref": "T24"
+                  "ref": "T26"
                 }
               ]
             }
@@ -1748,7 +1814,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T25"
+              "ref": "T27"
             }
           }
         ],
@@ -1762,7 +1828,7 @@
                   "literal": null
                 },
                 {
-                  "ref": "T26"
+                  "ref": "T28"
                 }
               ]
             }
@@ -1773,51 +1839,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T27"
-            }
-          }
-        ]
-      ]
-    },
-    "T24": {
-      "object": [
-        [
-          "x",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ],
-        [
-          "y",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ]
-      ]
-    },
-    "T25": {
-      "object": [
-        [
-          "cols",
-          {
-            "optional": false,
-            "shape": {
-              "ref": "T3"
-            }
-          }
-        ],
-        [
-          "rows",
-          {
-            "optional": false,
-            "shape": {
-              "ref": "T3"
+              "ref": "T29"
             }
           }
         ]
@@ -1846,17 +1868,61 @@
       ]
     },
     "T27": {
+      "object": [
+        [
+          "cols",
+          {
+            "optional": false,
+            "shape": {
+              "ref": "T5"
+            }
+          }
+        ],
+        [
+          "rows",
+          {
+            "optional": false,
+            "shape": {
+              "ref": "T5"
+            }
+          }
+        ]
+      ]
+    },
+    "T28": {
+      "object": [
+        [
+          "x",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ],
+        [
+          "y",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ]
+      ]
+    },
+    "T29": {
       "array": {
         "type": "string"
       }
     },
-    "T28": {
+    "T30": {
       "object": [],
       "values": {
-        "ref": "T29"
+        "ref": "T31"
       }
     },
-    "T29": {
+    "T31": {
       "object": [
         [
           "id",
@@ -1890,7 +1956,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -1910,7 +1976,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T30"
+                  "ref": "T32"
                 }
               ]
             }
@@ -1923,7 +1989,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T31"
+                  "ref": "T33"
                 }
               ]
             }
@@ -1953,7 +2019,7 @@
         ]
       ]
     },
-    "T30": {
+    "T32": {
       "object": [
         [
           "x",
@@ -1993,7 +2059,7 @@
         ]
       ]
     },
-    "T31": {
+    "T33": {
       "object": [
         [
           "w",
@@ -2015,13 +2081,13 @@
         ]
       ]
     },
-    "T32": {
+    "T34": {
       "object": [],
       "values": {
-        "ref": "T33"
+        "ref": "T35"
       }
     },
-    "T33": {
+    "T35": {
       "object": [
         [
           "id",
@@ -2171,7 +2237,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T34"
+                  "ref": "T36"
                 }
               ]
             }
@@ -2267,7 +2333,7 @@
                   "literal": null
                 },
                 {
-                  "ref": "T35"
+                  "ref": "T37"
                 }
               ]
             }
@@ -2306,11 +2372,24 @@
           }
         ],
         [
+          "stash",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "ref": "T38"
+                }
+              ]
+            }
+          }
+        ],
+        [
           "stock",
           {
             "optional": false,
             "shape": {
-              "ref": "T36"
+              "ref": "T39"
             }
           }
         ],
@@ -2509,7 +2588,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T37"
+                  "ref": "T40"
                 }
               ]
             }
@@ -2546,7 +2625,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T39"
+              "ref": "T42"
             }
           }
         ],
@@ -2557,7 +2636,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T3"
+                  "ref": "T5"
                 }
               ]
             }
@@ -2570,7 +2649,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T39"
+                  "ref": "T42"
                 }
               ]
             }
@@ -2581,7 +2660,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -2596,7 +2675,7 @@
         ]
       ]
     },
-    "T34": {
+    "T36": {
       "object": [
         [
           "week",
@@ -2627,7 +2706,7 @@
         ]
       ]
     },
-    "T35": {
+    "T37": {
       "object": [
         [
           "gangId",
@@ -2702,7 +2781,89 @@
         ]
       ]
     },
-    "T36": {
+    "T38": {
+      "object": [
+        [
+          "pistol",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "shotgun",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "rifle",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "tommy",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "twinPistols",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "explosives",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ]
+      ]
+    },
+    "T39": {
       "object": [
         [
           "liquor",
@@ -2733,12 +2894,12 @@
         ]
       ]
     },
-    "T37": {
+    "T40": {
       "array": {
-        "ref": "T38"
+        "ref": "T41"
       }
     },
-    "T38": {
+    "T41": {
       "object": [
         [
           "budget",
@@ -2783,19 +2944,19 @@
         ]
       ]
     },
-    "T39": {
+    "T42": {
       "object": [],
       "values": {
         "type": "number"
       }
     },
-    "T40": {
+    "T43": {
       "object": [],
       "values": {
-        "ref": "T41"
+        "ref": "T44"
       }
     },
-    "T41": {
+    "T44": {
       "object": [
         [
           "id",
@@ -2915,7 +3076,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T42"
+              "ref": "T45"
             }
           }
         ],
@@ -2999,7 +3160,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T39"
+              "ref": "T42"
             }
           }
         ],
@@ -3010,7 +3171,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T39"
+                  "ref": "T42"
                 }
               ]
             }
@@ -3023,7 +3184,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T39"
+                  "ref": "T42"
                 }
               ]
             }
@@ -3087,7 +3248,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -3101,7 +3262,7 @@
                   "literal": null
                 },
                 {
-                  "ref": "T13"
+                  "ref": "T15"
                 }
               ]
             }
@@ -3112,7 +3273,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T43"
+              "ref": "T46"
             }
           }
         ],
@@ -3212,6 +3373,22 @@
           }
         ],
         [
+          "homeOfficeId",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "literal": null
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
           "weeklyRetainer",
           {
             "optional": false,
@@ -3243,7 +3420,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T3"
+                  "ref": "T5"
                 }
               ]
             }
@@ -3256,7 +3433,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T39"
+                  "ref": "T42"
                 }
               ]
             }
@@ -3269,7 +3446,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T3"
+                  "ref": "T5"
                 }
               ]
             }
@@ -3324,7 +3501,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T45"
+                  "ref": "T48"
                 }
               ]
             }
@@ -3335,7 +3512,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -3355,7 +3532,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T46"
+                  "ref": "T49"
                 }
               ]
             }
@@ -3377,7 +3554,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T48"
+                  "ref": "T51"
                 }
               ]
             }
@@ -3390,7 +3567,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T49"
+                  "ref": "T52"
                 }
               ]
             }
@@ -3403,7 +3580,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T50"
+                  "ref": "T53"
                 }
               ]
             }
@@ -3444,7 +3621,7 @@
                   "literal": null
                 },
                 {
-                  "ref": "T51"
+                  "ref": "T54"
                 }
               ]
             }
@@ -3452,6 +3629,19 @@
         ],
         [
           "underFireUntil",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "underFireBy",
           {
             "optional": true,
             "shape": {
@@ -3496,7 +3686,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T52"
+                  "ref": "T55"
                 }
               ]
             }
@@ -3504,8 +3694,17 @@
         ]
       ]
     },
-    "T42": {
+    "T45": {
       "object": [
+        [
+          "explosives",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ],
         [
           "intelligence",
           {
@@ -3570,15 +3769,6 @@
           }
         ],
         [
-          "explosives",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ],
-        [
           "intimidation",
           {
             "optional": false,
@@ -3607,12 +3797,12 @@
         ]
       ]
     },
-    "T43": {
+    "T46": {
       "array": {
-        "ref": "T44"
+        "ref": "T47"
       }
     },
-    "T44": {
+    "T47": {
       "object": [
         [
           "cross",
@@ -3647,7 +3837,7 @@
         ]
       ]
     },
-    "T45": {
+    "T48": {
       "object": [
         [
           "buildingId",
@@ -3722,7 +3912,7 @@
         ]
       ]
     },
-    "T46": {
+    "T49": {
       "object": [
         [
           "posture",
@@ -3772,7 +3962,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T47"
+                  "ref": "T50"
                 }
               ]
             }
@@ -3780,7 +3970,7 @@
         ]
       ]
     },
-    "T47": {
+    "T50": {
       "object": [
         [
           "attack",
@@ -3829,7 +4019,7 @@
         ]
       ]
     },
-    "T48": {
+    "T51": {
       "object": [
         [
           "week",
@@ -3872,7 +4062,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -3881,7 +4071,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -3890,7 +4080,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -3928,7 +4118,7 @@
         ]
       ]
     },
-    "T49": {
+    "T52": {
       "object": [
         [
           "week",
@@ -4009,7 +4199,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -4018,7 +4208,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -4027,7 +4217,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -4046,7 +4236,7 @@
         ]
       ]
     },
-    "T50": {
+    "T53": {
       "object": [
         [
           "week",
@@ -4089,7 +4279,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -4098,7 +4288,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -4112,7 +4302,7 @@
                   "literal": null
                 },
                 {
-                  "ref": "T13"
+                  "ref": "T15"
                 }
               ]
             }
@@ -4120,7 +4310,7 @@
         ]
       ]
     },
-    "T51": {
+    "T54": {
       "object": [
         [
           "type",
@@ -4170,7 +4360,7 @@
                   "literal": null
                 },
                 {
-                  "ref": "T13"
+                  "ref": "T15"
                 }
               ]
             }
@@ -4194,7 +4384,7 @@
         ]
       ]
     },
-    "T52": {
+    "T55": {
       "object": [
         [
           "tram",
@@ -4244,7 +4434,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -4259,13 +4449,13 @@
         ]
       ]
     },
-    "T53": {
+    "T56": {
       "object": [],
       "values": {
-        "ref": "T54"
+        "ref": "T57"
       }
     },
-    "T54": {
+    "T57": {
       "object": [
         [
           "id",
@@ -4283,7 +4473,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T27"
+                  "ref": "T29"
                 }
               ]
             }
@@ -4296,7 +4486,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T3"
+                  "ref": "T5"
                 }
               ]
             }
@@ -4309,7 +4499,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T39"
+                  "ref": "T42"
                 }
               ]
             }
@@ -4322,7 +4512,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T39"
+                  "ref": "T42"
                 }
               ]
             }
@@ -4410,7 +4600,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -4421,7 +4611,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T55"
+                  "ref": "T58"
                 }
               ]
             }
@@ -4432,7 +4622,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -4473,7 +4663,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T56"
+              "ref": "T59"
             }
           }
         ],
@@ -4482,7 +4672,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T57"
+              "ref": "T60"
             }
           }
         ],
@@ -4493,7 +4683,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T58"
+                  "ref": "T61"
                 }
               ]
             }
@@ -4504,7 +4694,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T59"
+              "ref": "T62"
             }
           }
         ],
@@ -4513,7 +4703,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T59"
+              "ref": "T62"
             }
           }
         ],
@@ -4531,7 +4721,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -4704,7 +4894,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -4713,7 +4903,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -4722,7 +4912,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -4731,7 +4921,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -4740,7 +4930,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T60"
+              "ref": "T63"
             }
           }
         ],
@@ -4751,7 +4941,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T62"
+                  "ref": "T65"
                 }
               ]
             }
@@ -4762,7 +4952,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T63"
+              "ref": "T66"
             }
           }
         ],
@@ -4771,7 +4961,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T64"
+              "ref": "T67"
             }
           }
         ],
@@ -4782,7 +4972,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T65"
+                  "ref": "T68"
                 }
               ]
             }
@@ -4795,7 +4985,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T65"
+                  "ref": "T68"
                 }
               ]
             }
@@ -4803,7 +4993,7 @@
         ]
       ]
     },
-    "T55": {
+    "T58": {
       "array": {
         "union": [
           {
@@ -4815,17 +5005,8 @@
         ]
       }
     },
-    "T56": {
+    "T59": {
       "object": [
-        [
-          "explosives",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ],
         [
           "pistol",
           {
@@ -4870,10 +5051,19 @@
               "type": "number"
             }
           }
+        ],
+        [
+          "explosives",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
         ]
       ]
     },
-    "T57": {
+    "T60": {
       "object": [
         [
           "coupe",
@@ -4904,7 +5094,7 @@
         ]
       ]
     },
-    "T58": {
+    "T61": {
       "object": [
         [
           "accountant",
@@ -4952,7 +5142,7 @@
         ]
       ]
     },
-    "T59": {
+    "T62": {
       "object": [],
       "values": {
         "union": [
@@ -4974,12 +5164,12 @@
         ]
       }
     },
-    "T60": {
+    "T63": {
       "array": {
-        "ref": "T61"
+        "ref": "T64"
       }
     },
-    "T61": {
+    "T64": {
       "object": [
         [
           "week",
@@ -5068,7 +5258,7 @@
         ]
       ]
     },
-    "T62": {
+    "T65": {
       "object": [
         [
           "cash",
@@ -5094,187 +5284,6 @@
             "optional": false,
             "shape": {
               "type": "number"
-            }
-          }
-        ]
-      ]
-    },
-    "T63": {
-      "object": [
-        [
-          "legal",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ],
-        [
-          "illegal",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ],
-        [
-          "protection",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ],
-        [
-          "other",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ]
-      ]
-    },
-    "T64": {
-      "object": [
-        [
-          "wages",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ],
-        [
-          "purchases",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ],
-        [
-          "upkeep",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ]
-      ]
-    },
-    "T65": {
-      "object": [
-        [
-          "week",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ],
-        [
-          "openingCash",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ],
-        [
-          "closingCash",
-          {
-            "optional": false,
-            "shape": {
-              "type": "number"
-            }
-          }
-        ],
-        [
-          "income",
-          {
-            "optional": false,
-            "shape": {
-              "ref": "T66"
-            }
-          }
-        ],
-        [
-          "costs",
-          {
-            "optional": false,
-            "shape": {
-              "ref": "T67"
-            }
-          }
-        ],
-        [
-          "partial",
-          {
-            "optional": false,
-            "shape": {
-              "type": "boolean"
-            }
-          }
-        ],
-        [
-          "taxableProfit",
-          {
-            "optional": true,
-            "shape": {
-              "union": [
-                {
-                  "type": "number"
-                }
-              ]
-            }
-          }
-        ],
-        [
-          "riskyIncome",
-          {
-            "optional": true,
-            "shape": {
-              "union": [
-                {
-                  "type": "number"
-                }
-              ]
-            }
-          }
-        ],
-        [
-          "closedSiteUpkeep",
-          {
-            "optional": true,
-            "shape": {
-              "union": [
-                {
-                  "type": "number"
-                }
-              ]
-            }
-          }
-        ],
-        [
-          "campaignCost",
-          {
-            "optional": true,
-            "shape": {
-              "union": [
-                {
-                  "type": "number"
-                }
-              ]
             }
           }
         ]
@@ -5348,6 +5357,187 @@
               "type": "number"
             }
           }
+        ]
+      ]
+    },
+    "T68": {
+      "object": [
+        [
+          "week",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ],
+        [
+          "openingCash",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ],
+        [
+          "closingCash",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ],
+        [
+          "income",
+          {
+            "optional": false,
+            "shape": {
+              "ref": "T69"
+            }
+          }
+        ],
+        [
+          "costs",
+          {
+            "optional": false,
+            "shape": {
+              "ref": "T70"
+            }
+          }
+        ],
+        [
+          "partial",
+          {
+            "optional": false,
+            "shape": {
+              "type": "boolean"
+            }
+          }
+        ],
+        [
+          "taxableProfit",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "riskyIncome",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "closedSiteUpkeep",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "campaignCost",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ]
+      ]
+    },
+    "T69": {
+      "object": [
+        [
+          "legal",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ],
+        [
+          "illegal",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ],
+        [
+          "protection",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ],
+        [
+          "other",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ]
+      ]
+    },
+    "T70": {
+      "object": [
+        [
+          "wages",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ],
+        [
+          "purchases",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ],
+        [
+          "upkeep",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
         ],
         [
           "tax",
@@ -5360,13 +5550,13 @@
         ]
       ]
     },
-    "T68": {
+    "T71": {
       "object": [],
       "values": {
-        "ref": "T69"
+        "ref": "T72"
       }
     },
-    "T69": {
+    "T72": {
       "object": [
         [
           "id",
@@ -5409,7 +5599,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -5418,7 +5608,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T56"
+              "ref": "T59"
             }
           }
         ],
@@ -5427,7 +5617,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T57"
+              "ref": "T60"
             }
           }
         ],
@@ -5436,7 +5626,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -5445,7 +5635,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -5460,13 +5650,13 @@
         ]
       ]
     },
-    "T70": {
+    "T73": {
       "object": [],
       "values": {
-        "ref": "T71"
+        "ref": "T74"
       }
     },
-    "T71": {
+    "T74": {
       "object": [
         [
           "id",
@@ -5579,7 +5769,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -5588,7 +5778,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -5618,7 +5808,7 @@
                   "literal": null
                 },
                 {
-                  "ref": "T13"
+                  "ref": "T15"
                 }
               ]
             }
@@ -5629,7 +5819,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T72"
+              "ref": "T75"
             }
           }
         ],
@@ -5638,7 +5828,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -5705,7 +5895,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T27"
+              "ref": "T29"
             }
           }
         ],
@@ -5716,7 +5906,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T73"
+                  "ref": "T76"
                 }
               ]
             }
@@ -5758,7 +5948,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T3"
+                  "ref": "T5"
                 }
               ]
             }
@@ -5873,7 +6063,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T75"
+                  "ref": "T78"
                 }
               ]
             }
@@ -5886,7 +6076,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T76"
+                  "ref": "T79"
                 }
               ]
             }
@@ -5899,7 +6089,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T77"
+                  "ref": "T80"
                 }
               ]
             }
@@ -5928,7 +6118,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T3"
+                  "ref": "T5"
                 }
               ]
             }
@@ -5954,7 +6144,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T13"
+                  "ref": "T15"
                 }
               ]
             }
@@ -5999,7 +6189,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T3"
+                  "ref": "T5"
                 }
               ]
             }
@@ -6052,7 +6242,7 @@
         ]
       ]
     },
-    "T72": {
+    "T75": {
       "object": [
         [
           "repeat",
@@ -6201,12 +6391,12 @@
         ]
       ]
     },
-    "T73": {
+    "T76": {
       "array": {
-        "ref": "T74"
+        "ref": "T77"
       }
     },
-    "T74": {
+    "T77": {
       "object": [
         [
           "line",
@@ -6228,7 +6418,7 @@
         ]
       ]
     },
-    "T75": {
+    "T78": {
       "object": [
         [
           "warehouseId",
@@ -6253,7 +6443,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T36"
+              "ref": "T39"
             }
           }
         ],
@@ -6273,7 +6463,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T27"
+                  "ref": "T29"
                 }
               ]
             }
@@ -6281,7 +6471,7 @@
         ]
       ]
     },
-    "T76": {
+    "T79": {
       "object": [
         [
           "warehouseId",
@@ -6294,7 +6484,7 @@
         ]
       ]
     },
-    "T77": {
+    "T80": {
       "object": [
         [
           "warehouseId",
@@ -6310,23 +6500,23 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T36"
+              "ref": "T39"
             }
           }
         ]
       ]
     },
-    "T78": {
+    "T81": {
       "array": {
-        "ref": "T71"
+        "ref": "T74"
       }
     },
-    "T79": {
+    "T82": {
       "array": {
-        "ref": "T80"
+        "ref": "T83"
       }
     },
-    "T80": {
+    "T83": {
       "object": [
         [
           "id",
@@ -6410,7 +6600,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -6447,13 +6637,13 @@
         ]
       ]
     },
-    "T81": {
+    "T84": {
       "object": [],
       "values": {
-        "ref": "T82"
+        "ref": "T85"
       }
     },
-    "T82": {
+    "T85": {
       "object": [
         [
           "id",
@@ -6514,7 +6704,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -6523,7 +6713,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -6599,7 +6789,7 @@
         ]
       ]
     },
-    "T83": {
+    "T86": {
       "object": [
         [
           "active",
@@ -6624,7 +6814,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T84"
+              "ref": "T87"
             }
           }
         ],
@@ -6644,7 +6834,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T86"
+                  "ref": "T89"
                 }
               ]
             }
@@ -6673,7 +6863,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T87"
+                  "ref": "T90"
                 }
               ]
             }
@@ -6681,12 +6871,12 @@
         ]
       ]
     },
-    "T84": {
+    "T87": {
       "array": {
-        "ref": "T85"
+        "ref": "T88"
       }
     },
-    "T85": {
+    "T88": {
       "object": [
         [
           "id",
@@ -6743,7 +6933,7 @@
         ]
       ]
     },
-    "T86": {
+    "T89": {
       "object": [
         [
           "personId",
@@ -6765,7 +6955,7 @@
         ]
       ]
     },
-    "T87": {
+    "T90": {
       "object": [
         [
           "week",
@@ -6790,18 +6980,18 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T88"
+              "ref": "T91"
             }
           }
         ]
       ]
     },
-    "T88": {
+    "T91": {
       "array": {
-        "ref": "T89"
+        "ref": "T92"
       }
     },
-    "T89": {
+    "T92": {
       "object": [
         [
           "id",
@@ -6858,12 +7048,12 @@
         ]
       ]
     },
-    "T90": {
+    "T93": {
       "array": {
-        "ref": "T91"
+        "ref": "T94"
       }
     },
-    "T91": {
+    "T94": {
       "object": [
         [
           "week",
@@ -7067,12 +7257,12 @@
         ]
       ]
     },
-    "T92": {
+    "T95": {
       "array": {
-        "ref": "T93"
+        "ref": "T96"
       }
     },
-    "T93": {
+    "T96": {
       "object": [
         [
           "sound",
@@ -7146,7 +7336,7 @@
                   "literal": null
                 },
                 {
-                  "ref": "T13"
+                  "ref": "T15"
                 }
               ]
             }
@@ -7170,14 +7360,14 @@
         ]
       ]
     },
-    "T94": {
+    "T97": {
       "object": [
         [
           "delay",
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -7186,7 +7376,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T95"
+              "ref": "T98"
             }
           }
         ],
@@ -7195,25 +7385,25 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ]
       ]
     },
-    "T95": {
+    "T98": {
       "array": {
         "type": "boolean"
       }
     },
-    "T96": {
+    "T99": {
       "object": [
         [
           "delay",
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -7222,19 +7412,19 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T95"
+              "ref": "T98"
             }
           }
         ]
       ]
     },
-    "T97": {
+    "T100": {
       "object": [],
       "values": {
-        "ref": "T98"
+        "ref": "T101"
       }
     },
-    "T98": {
+    "T101": {
       "object": [
         [
           "id",
@@ -7312,7 +7502,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -7367,7 +7557,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -7399,7 +7589,7 @@
                   "literal": null
                 },
                 {
-                  "ref": "T13"
+                  "ref": "T15"
                 }
               ]
             }
@@ -7432,13 +7622,13 @@
         ]
       ]
     },
-    "T99": {
+    "T102": {
       "object": [],
       "values": {
-        "ref": "T100"
+        "ref": "T103"
       }
     },
-    "T100": {
+    "T103": {
       "object": [
         [
           "kind",
@@ -7514,7 +7704,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -7539,7 +7729,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T3"
+              "ref": "T5"
             }
           }
         ],
@@ -7569,7 +7759,7 @@
                   "literal": null
                 },
                 {
-                  "ref": "T13"
+                  "ref": "T15"
                 }
               ]
             }
@@ -7613,7 +7803,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T101"
+                  "ref": "T104"
                 }
               ]
             }
@@ -7626,7 +7816,7 @@
             "shape": {
               "union": [
                 {
-                  "ref": "T102"
+                  "ref": "T105"
                 }
               ]
             }
@@ -7647,14 +7837,14 @@
         ]
       ]
     },
-    "T101": {
+    "T104": {
       "object": [
         [
           "goods",
           {
             "optional": false,
             "shape": {
-              "ref": "T36"
+              "ref": "T39"
             }
           }
         ],
@@ -7720,7 +7910,7 @@
         ]
       ]
     },
-    "T102": {
+    "T105": {
       "object": [
         [
           "buildingId",
@@ -7742,13 +7932,13 @@
         ]
       ]
     },
-    "T103": {
+    "T106": {
       "object": [],
       "values": {
-        "ref": "T104"
+        "ref": "T107"
       }
     },
-    "T104": {
+    "T107": {
       "object": [
         [
           "sourceId",
@@ -7826,7 +8016,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T13"
+              "ref": "T15"
             }
           }
         ],
@@ -7835,7 +8025,7 @@
           {
             "optional": false,
             "shape": {
-              "ref": "T20"
+              "ref": "T22"
             }
           }
         ],
@@ -7872,13 +8062,13 @@
         ]
       ]
     },
-    "T105": {
+    "T108": {
       "object": [],
       "values": {
-        "ref": "T106"
+        "ref": "T109"
       }
     },
-    "T106": {
+    "T109": {
       "object": [
         [
           "week",
@@ -7909,7 +8099,7 @@
         ]
       ]
     },
-    "T107": {
+    "T110": {
       "object": [],
       "values": {
         "union": [
@@ -7917,12 +8107,12 @@
             "literal": null
           },
           {
-            "ref": "T108"
+            "ref": "T111"
           }
         ]
       }
     },
-    "T108": {
+    "T111": {
       "object": [
         [
           "personId",

@@ -2,7 +2,8 @@ import { MapAccess } from './MapAccess';
 import { useEffect, useRef, useState } from 'react';
 import { act, useGame } from '../app/store';
 import { recordAction } from '../app/actionLog';
-import { defaultOptions, issueOrder, previewOrder, replaceOrder, validBuildingTarget } from '../sim/api';
+import { collectAllOwed, defaultOptions, issueOrder, previewOrder, replaceOrder, validBuildingTarget } from '../sim/api';
+import { unassignedOwed } from '../sim/collectRoutes';
 import { selectableOrderPerson, selectableOrderSite } from '../app/orderSelection';
 import { ORDERS, ORDER_GROUPS } from '../sim/constants';
 import { BUILDING_BY_ID, ILLEGAL_TYPES, ESTABLISHABLE_TYPES, coverQuality } from '../sim/data/buildings';
@@ -98,7 +99,7 @@ export function JobCardPanel() {
   const previous = jc.editingOrderId == null ? null : w.orders[jc.editingOrderId];
   const opts = jc.type === 'donate' && land && previous?.targetBuildingIds[0] !== land.id
     ? { ...jc.opts, amount: donationAmount(w, land) } : jc.opts;
-  const draft = previewOrder(w, gang.id, { ...jc, opts });
+  const draft = previewOrder(w, gang.id, { ...jc, opts }, jc.editingOrderId ?? undefined);
   const dispatchIssue = staffing?.reason ?? (jc.type==='export'&&!team?.vehicles.truck ? 'Allocate a truck to this crew to export goods.' : null);
   // 1.2.27: man-hours — the job's hours for each man it takes, against the crew's man-hours.
   const estimate = draft && team ? `${(draft.estimatedMinutes / 60).toFixed(1)}h × ${orderMen(w, team, draft)} = ${(orderManMinutes(w, team, draft) / 60).toFixed(1)} man-hours` : draft ? (draft.estimatedMinutes / 60).toFixed(1) + 'h estimated crew time' : 'Choose a crew';
@@ -344,6 +345,21 @@ export function JobCardPanel() {
               )}
             </div>
           </div>
+
+          {jc.type === 'collectProtection' && team && (() => {
+            const left = unassignedOwed(w, gang.id, jc.editingOrderId ?? undefined).length;
+            return (
+              <div className="row between">
+                <span className="tiny muted" title="Owed shops not paid this week and in no crew's queued collect route">{left} owed shop{left === 1 ? '' : 's'} unassigned this week</span>
+                {jc.editingOrderId == null && (
+                  <button className="btn sm" disabled={!left} title="Fill this crew with the nearest unassigned owed shops: one route per free man, each up to his week" onClick={() => {
+                    const res = act((s) => collectAllOwed(s.world, s.playerGang.id, jc.teamId));
+                    if (res) { notify(res); if (res.ok) cancel(); }
+                  }}>Collect all owed</button>
+                )}
+              </div>
+            );
+          })()}
 
           <div className="row between">
             <Kicker>Manpower</Kicker>

@@ -100,6 +100,8 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
     // 1.2.39 (Robert): the pool waits inside the office (off the street, out
     // of street combat); a crew man idle at the office stands at the door as
     // before. A pool hood idle away from any office walks home first.
+    // 1.2.44 (Robert): an idle lieutenant waits at the office door like his men.
+    if (p.role === 'lieutenant' && p.gangId != null && !p.dest && p.buildingId != null && isGangOffice(w.buildings[p.buildingId], p.gangId)) p.buildingId = null;
     if (p.role === 'hood' && p.gangId != null && !p.dest) {
       const inOffice = isGangOffice(p.buildingId != null ? w.buildings[p.buildingId] : undefined, p.gangId);
       if (p.teamId != null && inOffice) p.buildingId = null;

@@ -72,6 +72,8 @@ export function crewFreestManMinutes(w: WorldState, team: Team, skipOrderId?: ID
 
 /** The share of the crew's man-hours already given out, 0..1. */
 export function crewUsedShare(w: WorldState, team: Team): number {
+  // 1.2.44 (Robert): a crew with no orders has used none of its week.
+  if (!team.orderIds.some((id) => w.orders[id])) return 0;
   const capacity = crewCapacity(w, team);
   return capacity > 0 ? Math.min(1, team.timeUsed / capacity) : 1;
 }

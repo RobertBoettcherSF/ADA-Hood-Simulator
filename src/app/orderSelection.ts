@@ -1,3 +1,4 @@
+import { collectQueued } from '../sim/collectRoutes';
 import { defaultOptions, validBuildingTarget } from '../sim/api';
 import { ORDERS } from '../sim/constants';
 import { expandTargets, isValidAreaTarget } from '../sim/execution';
@@ -9,6 +10,8 @@ import { peopleList, buildingList } from '../sim/entityLists';
 /** Map/clipboard candidates share the order rules without spending time or IDs. */
 export function selectableOrderSite(w: WorldState, gangId: ID, card: Pick<JobCard, 'type' | 'opts'>, b: Building): boolean {
   if (!buildingMapIntel(b, gangId).siteKnown || b.state === 'destroyed') return false;
+  // 1.2.44 (Robert): a shop paid this week (isValidAreaTarget) or in another crew's queued collect route cannot be picked.
+  if (card.type === 'collectProtection' && collectQueued(w, gangId, (card as { editingOrderId?: ID | null }).editingOrderId ?? undefined).has(b.id)) return false;
   if (ORDERS[card.type].target === 'area') return isValidAreaTarget(w, gangId, card.type, b, card.opts);
   if (ORDERS[card.type].target !== 'building') return false;
   // Choose the premises first, then configure its business and front on the card.
