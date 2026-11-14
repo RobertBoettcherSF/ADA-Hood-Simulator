@@ -238,6 +238,41 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.52 decisions
+
+Cash becomes a fitness function on the 1.2.51 dollar scale (V, A, L). New modules: `src/app/autoCash.ts` (the cash need, λ and the one spending pass) and `src/app/autoMen.ts` (man fitness). Numbers marked *proposed* are ours, not Robert's.
+
+1. **Cash need R** = max(0, bill − the lowest takings of the last 4 weeks) + one week's bill + money committed (spending given and not yet paid, campaign upkeep until the vote). Bribes booked this week are counted where they are booked. R replaces the 3 weeks of asks capped at $50k and the extra week's bill; it is the reserve every `spendOk` reads.
+2. **λ, the value of holding a dollar.** Below R: 1 + (P(desert) 0.25 *proposed* × L + 0.5 *proposed* × A for a sacked man's crew job) ÷ the average pay. Above R: 1 − 0.5% a week (*proposed*) × 12 weeks = 0.94.
+3. **Return per dollar** (dollars back over 12 weeks):
+   - Buy or set-up: profit × 12 ÷ cost, plus 1 for the site, which stays ours (*proposed*; without it no shop, at about 0.6, would beat 0.94). A site with no profit of its own scores 1.
+   - Bribes, outbids and the police payroll: the 1.2.51 ratios.
+   - Cars: man-minutes saved (time log, foot − car per target) × the job's efficiency × 12 ÷ price. Before a car figure exists, a car is taken to speed up half the target's time (*proposed*).
+   - Charity: V × 8 weeks (*proposed*) ÷ the full-effect donation.
+   - Raises: a desertion avoided (he crosses the desertion line within 12 weeks at his pay but not at his ask) × L ÷ (raise × 12).
+   - Recruiting: (marginal V − wage) × 12 ÷ the hiring cost. Marginal V is V while a crew has a seat or the spares are short, and 0 otherwise.
+4. **One cash pass** before the decision. Spends are taken best return first, while the return ≥ λ at the cash left after them. The $20k/$50k surplus line goes: any free cash (cash − R − bribes booked) opens the surplus spends, which still go through the pass.
+5. **Wages as a spend.** The pool keeps its spares and defenders (the best by man value). Any other pool hood whose value in his best open job (none when every crew is full) is below his pay is let go, weakest first. This replaces "a 3★ hood is never fired" and the wait for a full Expendables crew.
+6. **Recruiting** runs only while a crew has a seat or the spares are short, and only while its return ≥ λ. Stops are capped at the hires wanted.
+7. **Hard rules unchanged:**
+   - The forecast sacking and the wage-bill floor (no spend may push the week-end forecast under wages + upkeep; nothing is spent in a stopped week).
+   - The boss's case may take all the cash.
+   - No official above hostility 224.
+   - The 10-officer limit, one dismissal a week, and the 4-week rehire block.
+   - The heavy-crime and warrant limits.
+8. **Collect routes** learn from the real minutes per stop (start to finish ÷ stops; ROUTE TIMES line), not the 10h estimate. The route cap trims each route, and the stops it drops go to the next free man or crew.
+9. **Extort brake:** one new block a week (*proposed*) is still allowed when the Protection crews' free man-minutes cover its shops × a collect stop's minutes.
+10. **Crew switch:** shops unvisited and every crew full → the weakest-earning crew switches to Protection. Business, Recruit, Protection and the last Intimidation crew never switch. At most once every 4 weeks (*proposed*).
+11. A **CASH FIT** line each week: R and its parts, λ, the free cash, each spend with its return and whether it was taken, and the idle penalty.
+12. The chief's opinion is rounded in BRIBES. "No man-minutes worked" came from orders that ran out of week: they had no finish minute, and now finish at the week's end.
+13. **Man fitness** (*proposed*):
+   - value = his job's efficiency × 50% of the week × stars ÷ 3 (V spread over the week before the job has data) + 10% of his crew's earnings for a lieutenant + a hard-to-replace bonus − wage − wanted risk.
+   - The bonus: (hire + 4V) ÷ 12 for a lieutenant; 4V ÷ 12 for a 4★ skill.
+   - Wanted risk: the arrest chance (0.3 with a warrant, + 0.1 × crime suspicion ÷ the warrant bar) × (4V + a $2,000 court bribe + half his crew × A for a lieutenant).
+   - A wanted ordinary hood is sacked when a pool man within 0.5★ in his job can take his place (replaces the second-arrest rule). A wanted lieutenant lies low in the pool as before.
+   - MEN FIT line: the top and bottom men and the moves made. The boss is never valued or sacked.
+   - Promotion and crew placement still follow the star rules.
+
 ## v1.2.51 decisions
 
 Fitness on one dollar scale, bribes and the police payroll by value, wanted men, man-minute routes, the Standard election on every size (Robert). Numbers marked (proposed) were not given by Robert.

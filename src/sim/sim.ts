@@ -484,6 +484,9 @@ export class Sim {
           : 'There was not enough time in the week to perform the order.');
       }
       delete order.dispatchWaitReason;
+      // 1.2.52: an order still running at the week's end ran to the end of
+      // the week (order fitness read no man-minutes for it before).
+      if (!neverStarted) order.finishedMinute = MINUTES_PER_WEEK;
       for (const id of order.assignedIds) {
         const p = w.people[id];
         if (p?.orderId === order.id) p.orderId = null;
