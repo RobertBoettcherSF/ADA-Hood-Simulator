@@ -238,6 +238,18 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.43 decisions
+
+Auto Test compares its strength with every hostile gang together, defends and makes peace when weak, and moves its recruiting when the venues run dry (Robert).
+
+1. Strength test. We count as strong only when our men (crews and pool) are at least 1.2× the combined men of every gang at war or aggressive with us, by their stance or ours. Each gang's men are the larger of the men we have identified and its manpower on the graph. The old test compared us with the biggest rival alone and called us weak only below 0.75× of it, so 17 against 21 (0.81×) and 20 against 22 counted as strong. With no hostile gang we count as strong.
+2. Defence when weak. Ambushes, HQ strikes and hits on rivals stop, as before for "weak". Every crew keeps out of blocks a rival visibly claims on our map and the blocks beside them (the 8 cells around), except at premises we own. A route loses those stops; an order with none left is not given. The armed crews (Attack, Expendables) work only at our office, our businesses and in our own blocks, and take no orders against a person.
+3. Peace when weak. Auto offers peace to the weakest gang at war with us (fewest men by the same count), and does not mirror any other gang's war stance while we are weak. Other stances are still mirrored. Strong again, mirroring resumes in full.
+4. Losses. 5 or more of our men killed by rival gangs in the last 4 weeks puts us on defence for 4 weeks, even when the strength test passes.
+5. Recruiting. After 4 empty recruit weeks (the 1.2.42 count), the hood recruit runs go to venues not tried in the last 8 weeks, in blocks not tried then either. Venues further from our office than any tried come first, nearest of them first; the remaining fresh venues follow, furthest first. If every venue's block was tried, the usual venues stay.
+6. Reporting. The weekly STRENGTH line gives our men, the combined men of the hostile gangs (each named with its count), the 1.2× mark, and ATTACK or DEFENCE with the reason (below 1.2×, heavy losses, or both).
+7. Recruiting with only a few men left. 1.2.42's run fell to 2–3 men with only the Business and Attack crews left: the Business crew took no recruiting and the Attack crew was held for patrol. Now, with no other crew to recruit, the Attack crew is not held for patrol, and with no crew besides the business crew, the business crew recruits too. The recruit crew, or our only working crew, is not broken up as a lone lieutenant's crew (1.2.42 point 4), so its lieutenant recruits himself. The game already sends a lieutenant on a recruit order when he is the only man.
+
 ## v1.2.42 decisions
 
 Auto Test keeps its crews manned, says why a week gives no orders, and keeps its memory bounded. One game change: a dead rival gang is finished even while it still holds blocks (Robert).

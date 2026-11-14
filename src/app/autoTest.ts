@@ -411,8 +411,18 @@ const LOW_INT = 2.5;
 const wageDrag = (p: Person) => UNUSED_SKILLS.length ? WAGE_DRAG * UNUSED_SKILLS.reduce((sum, k) => sum + (p.skills[k] ?? 0), 0) / UNUSED_SKILLS.length : 0;
 /** 1.2.37 (Robert): a manager is swapped only when the estimated takings rise by this share or more. */
 const MANAGER_SWAP_GAIN = 0.1;
-/** 1.2.37 (Robert, open): weak below this share of the biggest rival's known men. */
-const WEAK_MEN_SHARE = 0.75;
+/** 1.2.43 (Robert): strong only at this many times the combined men of the gangs at war or aggressive with us. */
+const STRONG_MEN_FACTOR = 1.2;
+/** 1.2.43 (Robert): this many of our men killed by rivals… */
+const LOSS_DEFENCE_KILLS = 5;
+/** …within this many weeks… */
+const LOSS_WINDOW_WEEKS = 4;
+/** …puts us on defence for this many weeks. */
+const LOSS_DEFENCE_WEEKS = 4;
+/** 1.2.43 (Robert): after this many empty recruit weeks the runs move to new blocks… */
+const RECRUIT_MOVE_WEEKS = 4;
+/** …and to venues not tried in this many weeks. */
+const RECRUIT_FRESH_WEEKS = 8;
 /** 1.2.37: the HQ strike's value when the gang is strong enough — above every other order. */
 const HQ_FIRST_VALUE = 6000;
 /** A racket the gang is saving for: other premises wait until its cost is in hand. */
@@ -539,6 +549,10 @@ const v140 = new WeakMap<Sim['world'], {
   seenGone?: number;
   /** 1.2.42: our last lawyer and accountant (role → person id), to say how one was lost. */
   staffSeen?: Map<string, number>;
+  /** 1.2.43: on defence through this week (heavy losses). */
+  defenceUntil?: number;
+  /** 1.2.43: hood venue → the last week our recruiters tried it. */
+  venueTried?: Map<number, number>;
 }>();
 /** 1.2.42 (Robert): weeks running a crew may have only its lieutenant before it is broken up. */
 const LONE_LIEUTENANT_WEEKS = 2;
@@ -819,6 +833,13 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const n = team.memberIds.length === 0 ? (mem.loneWeeks!.get(team.id) ?? 0) + 1 : 0;
     mem.loneWeeks!.set(team.id, n);
     if (n < LONE_LIEUTENANT_WEEKS) continue;
+    // 1.2.43: the recruit crew, or our only crew besides the business crew, is
+    // kept — its lieutenant recruits himself; breaking it up would leave nobody to recruit.
+    const others = crewsOf().filter((t) => t !== team && rolesNow().get(t.id) !== 'business');
+    if (rolesNow().get(team.id) === 'recruit' || (rolesNow().get(team.id) !== 'business' && others.length === 0)) {
+      actions.push(`NOTE LONE LIEUTENANT ${w.people[team.lieutenantId]?.name ?? team.id}'s crew (${team.name}) kept — only its lieutenant for ${n} weeks, but it is ${rolesNow().get(team.id) === 'recruit' ? 'the recruit crew' : 'our only working crew'}: he recruits himself`);
+      continue;
+    }
     const lt = w.people[team.lieutenantId];
     const result = demote(w, gang.id, team.id);
     logResult(actions, `LONE LIEUTENANT ${lt?.name ?? team.id}'s crew (${team.name}) broken up — only its lieutenant for ${n} weeks running; he joins the pool`, result.ok, result.ok ? '' : result.error);
@@ -1671,6 +1692,26 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const preferred = role ? open.find((team) => roles.get(team.id) === role && crewUsedShare(w, team) < 0.85) : undefined;
     return preferred ?? open.sort((a, b) => crewFreeMinutes(w, b) - crewFreeMinutes(w, a) || a.id - b.id)[0];
   };
+  let ourBlocksCache: Set<number> | undefined;
+  const territoryBlocksNowSafe = () => (ourBlocksCache ??= claimedTerritoryBlocks(w, gang.id));
+  /** 1.2.43: on defence this week (set once the strength test has run). */
+  let defenceNow = false;
+  /** 1.2.43: blocks a rival visibly claims on our map, and the blocks beside them (claim ids). */
+  let nearRivalCache: Set<number> | undefined;
+  const nearRival = (blockId: number) => {
+    if (!nearRivalCache) {
+      const claim = (id: number) => w.blocks[id]?.layout?.mergedInto ?? id;
+      const rivalCells = new Set<string>();
+      for (const blk of w.blocks) { const c = w.blocks[claim(blk.id)]; if (c && knownBlockOwners(w, c, gang.id).some((id) => id !== gang.id)) rivalCells.add(`${blk.gx},${blk.gy}`); }
+      nearRivalCache = new Set<number>();
+      for (const blk of w.blocks) {
+        let near = false;
+        for (let dx = -1; dx <= 1 && !near; dx++) for (let dy = -1; dy <= 1 && !near; dy++) if (rivalCells.has(`${blk.gx + dx},${blk.gy + dy}`)) near = true;
+        if (near) nearRivalCache.add(claim(blk.id));
+      }
+    }
+    return nearRivalCache.has(w.blocks[blockId]?.layout?.mergedInto ?? blockId);
+  };
   /** 1.2.42 (Robert): lawyer/accountant searches with top priority — the game alone decides whether they fit the week. */
   const staffUrgent = new Set<string>();
   /** 1.2.42: the orders that put a hood behind a counter as manager (the game's own cases). */
@@ -1691,6 +1732,34 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (team.id === patrolTeamId && input.type !== 'patrol') {
       actions.push(`NOTE ${label} not given to ${name}'s crew — it patrols this week (its only order)`);
       return { ok: false, error: 'This crew patrols this week — try elsewhere.' };
+    }
+    // 1.2.43 (Robert): on defence, crews keep out of rival blocks and the
+    // blocks beside them (our own premises excepted), and the armed crews
+    // work only at our office, our businesses and in our own blocks.
+    if (defenceNow) {
+      const role = roles.get(team.id);
+      const armedCrew = role === 'muscle' || role === 'expendables';
+      const ownSite = (id: number) => w.buildings[id]?.ownerGangId === gang.id;
+      if (armedCrew && input.personId != null) {
+        actions.push(`NOTE ${label} not given to ${name}'s crew — on defence: the armed men stay near our office and businesses`);
+        return { ok: false, error: 'On defence — armed men stay home.' };
+      }
+      if (input.buildingIds?.length) {
+        const keep = input.buildingIds.filter((id) => { const b = w.buildings[id]; if (!b || ownSite(id)) return true; if (armedCrew && !territoryBlocksNowSafe().has(w.blocks[b.blockId]?.layout?.mergedInto ?? b.blockId)) return false; return !nearRival(b.blockId); });
+        if (!keep.length) {
+          actions.push(`NOTE ${label} not given to ${name}'s crew — on defence: ${armedCrew ? 'the armed men stay near our office and businesses' : 'the target is in or beside a rival block'}`);
+          return { ok: false, error: 'On defence — the target is in or beside a rival block.' };
+        }
+        if (keep.length < input.buildingIds.length) {
+          actions.push(`NOTE ${label}: ${input.buildingIds.length - keep.length} stop(s) dropped — on defence, in or beside a rival block`);
+          input = { ...input, buildingIds: keep };
+        }
+      }
+      if (input.blockIds?.length && input.type !== 'patrol') {
+        const keep = input.blockIds.filter((id) => !nearRival(id) && (!armedCrew || territoryBlocksNowSafe().has(w.blocks[id]?.layout?.mergedInto ?? id)));
+        if (!keep.length) { actions.push(`NOTE ${label} not given — on defence: rival blocks and the blocks beside them are off limits`); return { ok: false, error: 'On defence — rival blocks are off limits.' }; }
+        input = { ...input, blockIds: keep };
+      }
     }
     // 1.2.42 (Robert): a buy or set-up that puts a manager in never leaves
     // the crew below MIN_CREW_AFTER_MANAGER men — a pool hood joins the crew
@@ -1977,7 +2046,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   /** 1.2.25 (Robert): the reserve — three weeks of wages, at most RESERVE_CAP — used everywhere cash is kept back. */
   const cashReserve = Math.min(RESERVE_CAP, Math.round(wageBill * 3));
   // 1.2.37 (Robert): losses. The gang is weak when its men fall below
-  // WEAK_MEN_SHARE of the biggest rival as far as we know it (the rival men
+  // a share of the biggest rival as far as we know it (1.2.43: see below; the rival men
   // our men have seen and who are still alive), or its cash falls below the
   // reserve (three weeks of wages). Weak, the armed crews keep out of rival
   // blocks (no hits, strikes, smash-ups or bombs on rivals); otherwise they
@@ -1996,10 +2065,28 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const far = (p: Person) => { const x = mem.seen.get(p.id); return x?.pos ? dist(x.pos, hqCenter(w, gang.id)) : Infinity; };
     return (b.role === 'lieutenant' ? 1 : 0) - (a.role === 'lieutenant' ? 1 : 0) || far(a) - far(b) || a.id - b.id;
   };
-  const rivalEstimate = Math.max(0, ...Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated)
-    .map((g) => Math.max(identified(g), g.history[g.history.length - 1]?.manpower ?? 0)));
-  // 1.2.41 (Robert): weak by men only; the cash reserve still gates purchases.
-  const weak = rivalEstimate > 0 && crewMen() < rivalEstimate * WEAK_MEN_SHARE;
+  const menOf = (g: Gang) => Math.max(identified(g), g.history[g.history.length - 1]?.manpower ?? 0);
+  // 1.2.43 (Robert): strong only when our men are at least STRONG_MEN_FACTOR×
+  // the combined men of every gang at war or aggressive with us (their stance
+  // or ours). (1.2.37–1.2.42 compared with the biggest rival alone, and called
+  // us weak only below 0.75× of it — so 17 against 21 counted as strong.)
+  const hostileToUs = Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated
+    && (['war', 'aggression'].includes(gang.known[g.id] ?? 'peace') || ['war', 'aggression'].includes(gang.offered[g.id] ?? 'peace')));
+  const hostileMen = hostileToUs.reduce((n, g) => n + menOf(g), 0);
+  const ourMen = crewMen();
+  const strong = ourMen >= hostileMen * STRONG_MEN_FACTOR;
+  // 1.2.43 (Robert): LOSS_DEFENCE_KILLS or more of our men killed by rivals in
+  // the last LOSS_WINDOW_WEEKS weeks puts us on defence for LOSS_DEFENCE_WEEKS weeks.
+  const rivalNames = new Set(Object.values(w.gangs).filter((g) => g.id !== gang.id).map((g) => g.name));
+  const killedRecently = memberLosses(w, gang.id, w.week - LOSS_WINDOW_WEEKS).filter((l) => l.by != null && rivalNames.has(l.by)).length;
+  if (killedRecently >= LOSS_DEFENCE_KILLS && (mem.defenceUntil ?? -Infinity) < w.week) {
+    mem.defenceUntil = w.week + LOSS_DEFENCE_WEEKS - 1;
+    actions.push(`DEFENCE ${killedRecently} of our men killed by rivals in the last ${LOSS_WINDOW_WEEKS} weeks — on defence through week ${mem.defenceUntil}`);
+  }
+  const lossDefence = (mem.defenceUntil ?? -Infinity) >= w.week;
+  /** 1.2.43: on defence (weak, or after heavy losses) — the old `weak` flag everywhere. */
+  const weak = !strong || lossDefence;
+  defenceNow = weak;
   // 1.2.38 (Robert): going straight (the goal, or already under way) — no
   // retaliation, and no hits on rivals at war with us (what their stance shows us).
   const straightNow = goal === 'straight' || gang.goingStraight;
@@ -2008,18 +2095,24 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const noHitOn = (gangId: number | null | undefined) => (weak || straightNow) && atWarWithUs(gangId);
   // 1.2.40 (Robert): we mirror each rival — the stance it last offered us is
   // the stance we offer it (replaces 1.2.38's ceasefire toward all).
+  // 1.2.43 (Robert): while weak no war stance is mirrored, and we offer peace
+  // to the weakest gang at war with us.
   {
     const set: string[] = [];
+    const atWar = Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated && gang.known[g.id] === 'war');
+    const peaceTo = !strong && atWar.length ? [...atWar].sort((x, y) => menOf(x) - menOf(y) || x.id - y.id)[0] : undefined;
     for (const g of Object.values(w.gangs)) {
       if (g.id === gang.id || g.eliminated) continue;
       const theirs = gang.known[g.id] ?? 'peace';
-      if ((gang.offered[g.id] ?? 'peace') === theirs) continue;
-      if (setDiplomacy(w, gang.id, g.id, theirs).ok) set.push(`${g.name} ${theirs}`);
+      const want = g === peaceTo ? 'peace' : theirs;
+      if (!strong && want === 'war' && g !== peaceTo) { if ((gang.offered[g.id] ?? 'peace') !== 'war') actions.push(`NOTE stance: ${g.name} is at war with us — not mirrored while we are weak`); continue; }
+      if ((gang.offered[g.id] ?? 'peace') === want) continue;
+      if (setDiplomacy(w, gang.id, g.id, want).ok) set.push(`${g.name} ${want}${g === peaceTo ? ` (peace offered: the weakest at war with us, ${menOf(g)} men)` : ''}`);
     }
-    if (set.length) actions.push(`OK stance mirrored: ${set.join(', ')}`);
+    if (set.length) actions.push(`OK stance ${strong ? 'mirrored' : 'set while weak'}: ${set.join(', ')}`);
     actions.push(`STANCE ours/theirs: ${Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated).map((g) => `${g.name} ${gang.offered[g.id] ?? 'peace'}/${gang.known[g.id] ?? 'peace'}`).join(', ')}`);
   }
-  actions.push(`STRENGTH ${crewMen()} men against ${rivalEstimate} known men of the biggest rival (men only; cash $${Math.round(gang.cash).toLocaleString('en-US')}, reserve $${cashReserve.toLocaleString('en-US')} gates purchases) — ${weak ? 'weak: the armed crews keep out of rival blocks' : 'strong enough: ambush rival men with rifles, rival HQ first'}`);
+  actions.push(`STRENGTH ${ourMen} men against ${hostileMen} combined men of the gangs at war or aggressive with us (${hostileToUs.map((g) => `${g.name} ${menOf(g)}`).join(', ') || 'none'}; strong at ${STRONG_MEN_FACTOR}× = ${Math.ceil(hostileMen * STRONG_MEN_FACTOR)}) — ${!weak ? 'ATTACK: strong enough — ambush rival men with rifles, rival HQ first' : `DEFENCE: ${!strong ? `${ourMen} is below ${STRONG_MEN_FACTOR}× ${hostileMen}` : ''}${!strong && lossDefence ? '; ' : ''}${lossDefence ? `heavy losses (${killedRecently} killed by rivals in ${LOSS_WINDOW_WEEKS} weeks; defence through week ${mem.defenceUntil})` : ''} — no ambushes or HQ strikes, crews keep out of rival blocks and the blocks beside them, armed men stay near our office and businesses`}`);
   // 1.2.35 (Robert): managers by what they earn — the game's profit rule
   // (0.45 + business × 0.16 + organization × 0.05) less what he skims. Every
   // week each manager is compared with the best free hood (pool or any crew).
@@ -2140,10 +2233,26 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
 
   const origin = hqCenter(w, gang.id);
   const nearer = (a: { lotId: number }, b: { lotId: number }) => dist(w.lots[a.lotId].center, origin) - dist(w.lots[b.lotId].center, origin);
-  const hoodSites = chooseHoodRecruitSites(
-    buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood' && b.state !== 'destroyed').sort(nearer),
-    recruitMemory,
-  );
+  const allHoodVenues = buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood' && b.state !== 'destroyed').sort(nearer);
+  // 1.2.43 (Robert): remember where our recruiters went; after
+  // RECRUIT_MOVE_WEEKS empty weeks the runs move to venues not tried in the
+  // last RECRUIT_FRESH_WEEKS weeks, in blocks not tried then either, further
+  // from our office than the venues tried (the nearest of those first).
+  const tried = mem.venueTried ??= new Map<number, number>();
+  for (const o of w.lastWeekOrders) if (o.gangId === gang.id && o.type === 'recruit' && (o.opts.recruitAs ?? 'hood') === 'hood') for (const id of o.targetBuildingIds) tried.set(id, w.week - 1);
+  for (const [id, wk] of [...tried]) if (w.week - wk > RECRUIT_FRESH_WEEKS) tried.delete(id);
+  let hoodSites = chooseHoodRecruitSites(allHoodVenues, recruitMemory);
+  if ((mem.dryRecruitWeeks ?? 0) >= RECRUIT_MOVE_WEEKS) {
+    const triedBlocks = new Set([...tried.keys()].map((id) => w.buildings[id]?.blockId).filter((x): x is number => x != null));
+    const far = Math.max(0, ...[...tried.keys()].map((id) => w.buildings[id]).filter((b): b is Building => !!b).map((b) => dist(w.lots[b.lotId].center, origin)));
+    const fresh = allHoodVenues.filter((b) => !tried.has(b.id) && !triedBlocks.has(b.blockId));
+    const beyond = fresh.filter((b) => dist(w.lots[b.lotId].center, origin) > far);
+    const moved = [...beyond, ...fresh.filter((b) => !beyond.includes(b)).reverse()];
+    if (moved.length) {
+      hoodSites = moved;
+      actions.push(`RECRUIT MOVE recruit runs empty ${mem.dryRecruitWeeks} weeks — new blocks: ${moved.length} venue(s) not tried in ${RECRUIT_FRESH_WEEKS} weeks (${beyond.length} further out than the ${Math.round(far)} m reached so far)`);
+    } else actions.push(`RECRUIT MOVE recruit runs empty ${mem.dryRecruitWeeks} weeks — every venue's block was tried in the last ${RECRUIT_FRESH_WEEKS} weeks; the usual venues`);
+  }
 
   // FBI agents at our rackets (1.2.20). The FBI cannot be bought, so an agent
   // searching or watching one of our illegal businesses (or standing at its
@@ -3410,7 +3519,12 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       }
       // 1.2.41 (Robert): patrol is the crew's only order that week — an armed
       // crew with no order yet is kept for it (nothing else goes to it).
-      const patroller = [armed, expCrew].filter((t): t is Team => !!t).find((t) => t.orderIds.length === 0);
+      const patrollerAny = [armed, expCrew].filter((t): t is Team => !!t).find((t) => t.orderIds.length === 0);
+      // 1.2.43: recruiting must stay possible — with no other crew (beside the
+      // business crew) to recruit, the armed crew is not kept back for patrol.
+      const othersToRecruit = ready.filter((t) => t !== bizCrew && t !== patrollerAny).length;
+      const patroller = othersToRecruit > 0 ? patrollerAny : undefined;
+      if (blocks.size && patrollerAny && !patroller) actions.push(`NOTE rival men seen in ${blocks.size} of our blocks last week — no patrol: ${patrollerAny.name} is the only crew left to recruit`);
       if (blocks.size && patroller) {
         patrolTeamId = patroller.id;
         propose({ label: `patrol our block(s) ${[...blocks].join(', ')} — rival men seen there last week`, kind: 'safety', value: 1200, why: 'intruders on our streets; the crew\'s only order this week', teams: [patroller], minFree: MINUTES_PER_WEEK,
@@ -3705,7 +3819,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const bizCollects = !!bizCrew && gang.cash <= cashReserve;
   if (bizCollects) actions.push(`NOTE business crew: no cash to buy ($${Math.round(gang.cash)} against a $${cashReserve} reserve) — it collects protection this week`);
   const slots = ready.map((team) => ({ team, name: crewName(team), role: roles.get(team.id), businessOnly: team === bizCrew,
-    alsoTakes: team === bizCrew && bizCollects ? (p: Proposal<Team>) => p.label.startsWith('collect') : undefined,
+    // 1.2.43: with no other crew ready, the business crew recruits too (the lieutenant goes himself if he must).
+    alsoTakes: team === bizCrew && (bizCollects || !ready.some((t) => t !== bizCrew)) ? (p: Proposal<Team>) => (bizCollects && p.label.startsWith('collect')) || (!ready.some((t) => t !== bizCrew) && p.label.startsWith('recruit')) : undefined,
     free: () => outOfTime.has(team.id) ? 0 : freeFor(team) }));
   const decision = decideWeek(goal, proposals, slots, (label, team, p) => {
     let input = inputFor(p, team);
