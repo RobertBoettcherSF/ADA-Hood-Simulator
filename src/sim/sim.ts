@@ -699,7 +699,9 @@ export class Sim {
       const men = gangManpower(w, gang);
       const terr = territoryCount(w, gang.id);
       const wealth = gangWealth(w, gang);
-      if (men === 0 && terr === 0 && wealth < 1500) {
+      // 1.2.42 (Robert): a rival with no men and no cash is finished even
+      // while it still holds blocks; its blocks become free for anyone.
+      if ((men === 0 && terr === 0 && wealth < 1500) || (men === 0 && gang.cash < 1500)) {
         gang.eliminated = true;
         releaseGangHoldings(w, gang.id);
         w.weekLog.push(`${gang.name} has collapsed.`);

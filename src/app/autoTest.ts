@@ -51,7 +51,7 @@ export function takeAutoTestStopped(): boolean {
 }
 import { folderDiary, loadDiary, serializeDiary, type DiarySink } from './diary';
 import { Rng } from '../sim/rng';
-import { setDiplomacy, buySnitchInfo, canGoStraight, repairBuilding, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, issueStreetOrder, previewOrder, demote, moveToPool, moveToTeam, nearTerritory, promote, sackPerson, transferVehicle, transferWeapon, sellWeapon, stationPoolHood, stockOfficeStash, toggleEvadeTax, assignStaffVehicle, interrogatePrisoner, killPrisoner, releasePrisoner, type ApiResult, type IssueOrderInput } from '../sim/api';
+import { setDiplomacy, buySnitchInfo, canGoStraight, repairBuilding, setPay, shutdownBuilding, setGoStraight, setRunForOffice, buyVehicle, buyWeapon, hireRecruit, issueOrder, issueStreetOrder, previewOrder, demote, moveToPool, moveToTeam, nearTerritory, promote, sackPerson, transferVehicle, transferWeapon, sellWeapon, stationPoolHood, stockOfficeStash, recallManager, toggleEvadeTax, assignStaffVehicle, interrogatePrisoner, killPrisoner, releasePrisoner, type ApiResult, type IssueOrderInput } from '../sim/api';
 import { ACTION_KEYS, ACTION_LABELS, assignCrewRoles, BASIC_CREWS, CREW_OPENING_ORDER, carMinutesSaved, crewNames, roleStars, roleCompare, UNUSED_SKILLS, defaultActionRanks, judgeAction, loadActionRanks, raidValue, rankDown, rankUp, rollAction, type ActionKey, type ActionRanks, type CrewRole, type PendingAction } from './autoActions';
 import { DRIVE_SPEED, GO_STRAIGHT_ASSETS, VEHICLES, WALK_SPEED, WEAPONS } from '../sim/constants';
 import type { Building, Gang, ID, Person, Team, WeaponId } from '../sim/types';
@@ -65,7 +65,7 @@ import type { Sim } from '../sim/sim';
 import { buildingDoor, dist, gangAssets, gangManpower, gangMembers, powerRating, protectedBuildings, territoryBlocks, territoryCount } from '../sim/world';
 import { buildingList, peopleList } from '../sim/entityLists';
 import { MAX_TEAM_SIZE, MAX_TEAMS, MINUTES_PER_WEEK } from '../sim/constants';
-import { crewFreeMinutes, crewHasTime, crewLoads, crewUsedShare } from '../sim/crewTime';
+import { crewFreeMinutes, crewHasTime, crewLoads, crewMen as crewMenReady, crewUsedShare } from '../sim/crewTime';
 import { readyForPlanning } from '../sim/orderStaffing';
 import { chooseGoal, formatGoalScores, goalsFor, GOAL_LABELS, GOAL_POLICY, GOAL_DROP_WEEKS, GOAL_REVIEW_WEEKS, GOAL_STALL_DROP, GOAL_STALL_PENALTY, goalScores, type VictoryGoal } from './autoGoals';
 import { campaignWeeklyCost, canRunForOffice, electionBlocksRequired } from '../sim/systems/politics';
@@ -137,6 +137,7 @@ let pendingActions: PendingAction[] = [];
 const talentPlaced = new Set<number>();
 import { memberLosses } from '../sim/memberLosses';
 import { armedPoolDefenders, isGangOffice } from '../sim/officeDefence';
+import { hireQuote } from '../sim/originalWages';
 import { newspaperEdition } from '../sim/newspaper';
 import { accountantSkillByte, taxNotCoveredUp } from '../sim/systems/taxes';
 import { CRIME_ROW_SUSPICION, EVADE_TAX_SUSPICION, FBI_CASE_THRESHOLD, HEAVY_CRIME_SUSPICION, MEMBER_WARRANT_BAR } from '../sim/systems/fbi';
@@ -528,9 +529,35 @@ const v140 = new WeakMap<Sim['world'], {
   specEmpty: Map<string, number>;
   /** 1.2.41: refusers kept until they pay or we buy the shop (building id → first refusal week). */
   refusers: Map<number, number>;
+  /** 1.2.42: the week each lawyer/accountant search paused. */
+  specPausedAt?: Map<string, number>;
+  /** 1.2.42: weeks running each crew has had only its lieutenant. */
+  loneWeeks?: Map<number, number>;
+  /** 1.2.42: weeks running our hood recruit runs came back empty. */
+  dryRecruitWeeks?: number;
+  /** 1.2.42: rival men dropped from the sightings once off our list for good (still counted as gone). */
+  seenGone?: number;
+  /** 1.2.42: our last lawyer and accountant (role → person id), to say how one was lost. */
+  staffSeen?: Map<string, number>;
 }>();
+/** 1.2.42 (Robert): weeks running a crew may have only its lieutenant before it is broken up. */
+const LONE_LIEUTENANT_WEEKS = 2;
+/** 1.2.42 (Robert): weeks of empty recruit runs before a manager is pulled back into a crew. */
+const RECRUIT_DRY_WEEKS = 4;
+/** 1.2.42 (Robert): a buy or set-up never leaves the crew below this many men. */
+const MIN_CREW_AFTER_MANAGER = 3;
+/** 1.2.42 (Robert): the in-memory Auto Test report keeps this many weeks. */
+const REPORT_WEEKS_KEPT = 60;
+/** 1.2.42 (Robert): a heap check is logged every this many weeks. */
+const HEAP_CHECK_WEEKS = 100;
 /** 1.2.41 (Robert): a lawyer or accountant search pauses after this many empty weeks. */
 const SPECIALIST_EMPTY_WEEKS = 3;
+/** 1.2.42 (Robert): a paused search restarts after this many weeks when ours is 3★… */
+const SPEC_RESTART_3 = 4;
+/** …and after this many at 4★. */
+const SPEC_RESTART_4 = 5;
+/** 1.2.42 (Robert): at this many stars or more the search stops for good. */
+const SPEC_STOP_STARS = 4.5;
 /** 1.2.41 (Robert): pool hoods kept armed inside each office of ours besides the HQ. */
 const EXTRA_OFFICE_DEFENDERS = 5;
 /** 1.2.41 (Robert): a new office goes this many map blocks (grid distance) from an office of ours. */
@@ -622,7 +649,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // news and reports only — never their true state. A man who leaves our
   // identified list is "missing" (his last sighting kept); he is dead only
   // once a message, a news item or one of our reports says so.
-  const mem: NonNullable<ReturnType<typeof v140.get>> = v140.get(w) ?? { seen: new Map(), lastMsgId: -1, heat: new Map(), evadedWeeks: [], audited: new Set<number>(), skimmers: new Set<number>(), noProfit: new Map(), refuser: new Map(), lastOfficeTrouble: -Infinity, drained: new Set<number>(), specEmpty: new Map(), refusers: new Map() };
+  const mem: NonNullable<ReturnType<typeof v140.get>> = v140.get(w) ?? { seen: new Map(), lastMsgId: -1, heat: new Map(), evadedWeeks: [], audited: new Set<number>(), skimmers: new Set<number>(), noProfit: new Map(), refuser: new Map(), lastOfficeTrouble: -Infinity, drained: new Set<number>(), specEmpty: new Map(), refusers: new Map(), specPausedAt: new Map(), loneWeeks: new Map(), dryRecruitWeeks: 0 };
   v140.set(w, mem);
   const freshMsgs = w.messages.filter((m) => m.id > mem.lastMsgId);
   {
@@ -654,6 +681,17 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     if (gone.length) actions.push(`MISSING ${gone.join(', ')} — off our identified list; last sighting kept`);
     if (dead.length) actions.push(`DEAD (reported) ${dead.join(', ')}`);
+    // 1.2.42 (Robert, memory): Auto's week-to-week memories stay bounded.
+    // A rival man off our list (missing or reported dead) who can never come
+    // back is dropped from the sightings and only counted; our own dead men
+    // and dead prisoners leave the audit, skimmer, prisoner and heat lists.
+    let trimmed = 0;
+    const goneForGood = (id: number) => !w.people[id] || w.people[id].status === 'dead';
+    for (const [id, x] of [...mem.seen]) if ((x.missing || x.dead) && goneForGood(id)) { mem.seen.delete(id); mem.seenGone = (mem.seenGone ?? 0) + 1; trimmed += 1; }
+    for (const set of [mem.skimmers, mem.drained, mem.audited]) for (const id of [...set]) if (goneForGood(id)) { set.delete(id); trimmed += 1; }
+    for (const id of [...mem.heat.keys()]) if (goneForGood(id)) { mem.heat.delete(id); trimmed += 1; }
+    for (const id of [...mem.noProfit.keys()]) if (!w.buildings[id] || w.buildings[id].ownerGangId !== gang.id) { mem.noProfit.delete(id); trimmed += 1; }
+    if (trimmed) actions.push(`MEMORY trimmed ${trimmed} entr${trimmed === 1 ? 'y' : 'ies'} for people or buildings no longer in the city (sightings ${mem.seen.size}, refusers ${mem.refusers.size}, audited ${mem.audited.size})`);
   }
   /** A crew move, never repeated once refused (crew full or out of time) for a few weeks. */
   const tryMove = (personId: number, teamId: number, label: string): ApiResult => {
@@ -748,6 +786,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // candidates are taken off our list (it no longer grows week by week).
   const searchedLast = new Set(w.lastWeekOrders.filter((o) => o.gangId === gang.id && o.type === 'recruit' && (o.opts.recruitAs === 'lawyer' || o.opts.recruitAs === 'accountant')).map((o) => o.opts.recruitAs as 'lawyer' | 'accountant'));
   const betterFound = new Set<'lawyer' | 'accountant'>();
+  // 1.2.42 (Robert): a hood recruit run counts empty when last week's hood
+  // recruiting brought nobody onto our list.
+  const hoodRunsLast = w.lastWeekOrders.filter((o) => o.gangId === gang.id && o.type === 'recruit' && (o.opts.recruitAs ?? 'hood') === 'hood');
+  const hoodsOffered = gang.recruitIds.filter((id) => w.people[id]?.role === 'hood').length;
+  if (hoodRunsLast.length) mem.dryRecruitWeeks = hoodsOffered === 0 ? (mem.dryRecruitWeeks ?? 0) + 1 : 0;
   for (const id of [...gang.recruitIds]) {
     const person = w.people[id];
     if (person && (person.role === 'lawyer' || person.role === 'accountant')) {
@@ -767,6 +810,40 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   for (const role of ['lawyer', 'accountant'] as const) {
     if (betterFound.has(role)) mem.specEmpty.set(role, 0);
     else if (searchedLast.has(role)) mem.specEmpty.set(role, (mem.specEmpty.get(role) ?? 0) + 1);
+  }
+
+  // 1.2.42 (Robert): a crew that has had only its lieutenant for
+  // LONE_LIEUTENANT_WEEKS weeks running is broken up; the lieutenant joins
+  // the pool and can be sent out again.
+  for (const team of crewsOf()) {
+    const n = team.memberIds.length === 0 ? (mem.loneWeeks!.get(team.id) ?? 0) + 1 : 0;
+    mem.loneWeeks!.set(team.id, n);
+    if (n < LONE_LIEUTENANT_WEEKS) continue;
+    const lt = w.people[team.lieutenantId];
+    const result = demote(w, gang.id, team.id);
+    logResult(actions, `LONE LIEUTENANT ${lt?.name ?? team.id}'s crew (${team.name}) broken up — only its lieutenant for ${n} weeks running; he joins the pool`, result.ok, result.ok ? '' : result.error);
+    if (result.ok) { keptRoles.delete(team.id); mem.loneWeeks!.delete(team.id); }
+  }
+  for (const id of [...mem.loneWeeks!.keys()]) if (!w.teams[id]) mem.loneWeeks!.delete(id);
+  // 1.2.42 (Robert): after RECRUIT_DRY_WEEKS weeks of empty recruit runs while
+  // crews are short-handed, the manager of our lowest-earning business comes
+  // back into a crew, one a week.
+  {
+    const rolesHere = rolesNow();
+    const short = crewsOf().filter((t) => rolesHere.get(t.id) !== 'expendables' && t.memberIds.length < MAX_TEAM_SIZE - 1);
+    const dry = mem.dryRecruitWeeks ?? 0;
+    if (dry >= RECRUIT_DRY_WEEKS && short.length) {
+      const site = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.managerId != null && !b.isHQ && w.people[b.managerId]?.role === 'hood' && !(isGangOffice as (x: Building, g: number) => boolean)(b, gang.id))
+        .sort((a, b) => (a.lastProfit ?? 0) - (b.lastProfit ?? 0) || a.id - b.id)[0];
+      if (!site) actions.push(`RECALL none: recruit runs empty ${dry} weeks, ${short.length} crew(s) short — no business of ours has a hood manager to pull back`);
+      else {
+        const mgr = w.people[site.managerId!];
+        const result = recallManager(w, gang.id, site.id);
+        const to = short.filter((t) => rolesHere.get(t.id) !== 'business' || mgr.skills.business >= 3).sort((a, b) => a.memberIds.length - b.memberIds.length || a.id - b.id)[0];
+        const moved = result.ok && to ? moveToTeam(w, gang.id, mgr.id, to.id) : undefined;
+        logResult(actions, `RECALL ${mgr.name}, manager of ${site.typeId} (building ${site.id}, our lowest earner at $${Math.round(site.lastProfit ?? 0)} last week) — recruit runs empty ${dry} weeks, ${short.length} crew(s) short; ${moved?.ok ? `joins ${to!.name} (${to!.memberIds.length} men)` : 'to the pool'}`, result.ok, result.ok ? '' : result.error);
+      }
+    }
   }
 
   // Wages: everyone gets what he asks while the takings (or a year's cash) can
@@ -1594,6 +1671,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const preferred = role ? open.find((team) => roles.get(team.id) === role && crewUsedShare(w, team) < 0.85) : undefined;
     return preferred ?? open.sort((a, b) => crewFreeMinutes(w, b) - crewFreeMinutes(w, a) || a.id - b.id)[0];
   };
+  /** 1.2.42 (Robert): lawyer/accountant searches with top priority — the game alone decides whether they fit the week. */
+  const staffUrgent = new Set<string>();
+  /** 1.2.42: the orders that put a hood behind a counter as manager (the game's own cases). */
+  const takesManager = (type: string, siteId: number) => {
+    const b = w.buildings[siteId];
+    if (type === 'setUpBusiness') return true;
+    if (type === 'buyPremises') return !!b && b.cls !== 'empty';
+    if (type === 'runBusiness') return !!b && b.managerId == null;
+    return false;
+  };
   const give = (label: string, team: (typeof ready)[number] | undefined, input: Omit<IssueOrderInput, 'teamId'>, kind?: OrderKind): ApiResult => {
     if (!team) {
       actions.push(`NOTE ${label} skipped — every crew's week is full`);
@@ -1604,6 +1691,23 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (team.id === patrolTeamId && input.type !== 'patrol') {
       actions.push(`NOTE ${label} not given to ${name}'s crew — it patrols this week (its only order)`);
       return { ok: false, error: 'This crew patrols this week — try elsewhere.' };
+    }
+    // 1.2.42 (Robert): a buy or set-up that puts a manager in never leaves
+    // the crew below MIN_CREW_AFTER_MANAGER men — a pool hood joins the crew
+    // first if one is free; otherwise the buy waits.
+    if (input.buildingIds?.length && takesManager(input.type, input.buildingIds[0])) {
+      // Managers already owed by this crew's orders this week count as gone.
+      const owed = () => team.orderIds.map((id) => w.orders[id]).filter((o) => o && o.targetBuildingIds.length && takesManager(o.type, o.targetBuildingIds[0])).length;
+      const after = () => team.memberIds.length - owed() - 1;
+      if (after() < MIN_CREW_AFTER_MANAGER && team.memberIds.length < MAX_TEAM_SIZE - 1 && team.memberIds.length < MAX_TEAM_SIZE - 1) {
+        const spare = gang.poolIds.map((id) => w.people[id]).filter((x): x is Person => !!x && x.status === 'active' && x.role === 'hood' && !restingMen.has(x.id) && (roles.get(team.id) !== 'business' || x.skills.business >= 3))
+          .sort((a, b) => b.skills.business - a.skills.business || a.id - b.id)[0];
+        if (spare && moveToTeam(w, gang.id, spare.id, team.id).ok) actions.push(`MANAGER pool hood ${spare.name} joins ${name}'s crew before ${label} — the crew stays at ${MIN_CREW_AFTER_MANAGER}+ men after the manager goes in`);
+      }
+      if (after() < MIN_CREW_AFTER_MANAGER) {
+        actions.push(`MANAGER buy waits: ${label} — ${name}'s crew has ${team.memberIds.length} men besides the lieutenant${owed() ? ` (${owed()} already owed to this week's buys)` : ''}; a manager would leave it below ${MIN_CREW_AFTER_MANAGER}, and no pool hood could join`);
+        return { ok: false, error: `buy waits — the crew would drop below ${MIN_CREW_AFTER_MANAGER} men` };
+      }
     }
     // 1.2.36 (Robert): guard office only for a crew with the time left, by the game's own check.
     if (input.type === 'guardBusiness') {
@@ -1662,7 +1766,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const targets = input.buildingIds?.length ?? 1;
     // Business work is sized by the game alone (1.2.23): no ledger gate of ours.
     const men = Math.max(1, input.opts?.manpower ?? 1);
-    const fits = kind === 'business' ? targets : targetsThatFit(timeLedger, key, targets, freeFor(team, men));
+    const fits = kind === 'business' || staffUrgent.has(label) ? targets : targetsThatFit(timeLedger, key, targets, freeFor(team, men));
     if (fits === 0) {
       actions.push(`NOTE ${label} not given to ${name} — about ${timeLedger[key]} min a target, ${Math.round(freeFor(team, men))} min left for ${men} man/men`);
       outOfTime.add(team.id); timeShort = true;
@@ -2091,13 +2195,70 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const specialistStars = (p: Person | undefined) => (p ? p.skills.intelligence : 0);
   const trialNow = Object.values(w.cases ?? {}).some((c) => c.gangId === gang.id && ['awaiting', 'onTrial'].includes(c.status));
   // 1.2.41 (Robert): a better-one search pauses after SPECIALIST_EMPTY_WEEKS empty weeks (until ours is lost).
+  // 1.2.42 (Robert): a paused search restarts after SPEC_RESTART_3 weeks when
+  // ours is 3★, after SPEC_RESTART_4 weeks at 4★; at SPEC_STOP_STARS★ or more
+  // it stops for good. Below 3★ a d4 is rolled every week: 1–3 search, 4 pause.
+  // With none hired the search goes on as before.
   const searchPaused = (role: 'lawyer' | 'accountant', lost: boolean) => {
-    if (lost) { mem.specEmpty.set(role, 0); return false; }
+    const paused = mem.specPausedAt!;
+    if (lost) { mem.specEmpty.set(role, 0); paused.delete(role); return false; }
+    const ours = role === 'lawyer' ? lawyerNow : (gang.accountantId == null ? undefined : w.people[gang.accountantId]);
+    const stars = specialistStars(ours);
+    if (stars >= SPEC_STOP_STARS) { actions.push(`NOTE ${role} search stopped for good — ours is ${stars.toFixed(1)}★`); return true; }
+    if (stars < 3) {
+      const roll = rng.int(1, 4);
+      if (roll === 4) actions.push(`NOTE ${role} search paused this week — ours is ${stars.toFixed(1)}★, d4 rolled 4`);
+      else actions.push(`NOTE ${role} search this week — ours is ${stars.toFixed(1)}★, d4 rolled ${roll}`);
+      return roll === 4;
+    }
     const n = mem.specEmpty.get(role) ?? 0;
-    if (n >= SPECIALIST_EMPTY_WEEKS) actions.push(`NOTE ${role} search paused — ${n} empty weeks in a row (nobody better than ours)`);
-    return n >= SPECIALIST_EMPTY_WEEKS;
+    if (n < SPECIALIST_EMPTY_WEEKS) return false;
+    if (!paused.has(role)) paused.set(role, w.week);
+    const wait = stars >= 4 ? SPEC_RESTART_4 : SPEC_RESTART_3;
+    const since = w.week - paused.get(role)!;
+    if (since >= wait) {
+      mem.specEmpty.set(role, 0); paused.delete(role);
+      actions.push(`NOTE ${role} search restarts — paused ${since} weeks, ours is ${stars.toFixed(1)}★ (restart after ${wait})`);
+      return false;
+    }
+    actions.push(`NOTE ${role} search paused — ${n} empty weeks in a row (nobody better than ours, ${stars.toFixed(1)}★); restarts after ${wait} weeks paused (${since} so far)`);
+    return true;
   };
-  if (lawyerLost ? (w.week >= 4 || gang.suspicion >= 20 || gang.lawyerId != null) : specialistStars(lawyerNow) < 5 && !searchPaused('lawyer', false)) {
+  // 1.2.42 (Robert): the recruit crew does the lawyer and accountant
+  // searches, spread over several places — one desk per block, a different
+  // starting desk each week; the crew's time decides how many it walks.
+  // 1.2.42 (Robert, point 9): with no lawyer (or accountant) and a free one
+  // in the city we can afford, his search goes before every other order, to
+  // any crew (the game sends the lieutenant when no hood is free). How the
+  // last one was lost is logged.
+  const STAFF_TOP_VALUE = 1e12;
+  const staffMissing = (role: 'lawyer' | 'accountant') => {
+    const id = role === 'lawyer' ? gang.lawyerId : gang.accountantId;
+    const now = id == null ? undefined : w.people[id];
+    const seen = mem.staffSeen ??= new Map();
+    if (now && now.gangId === gang.id && now.status === 'active') { seen.set(role, now.id); return false; }
+    const last = now ?? (seen.has(role) ? w.people[seen.get(role)!] : undefined);
+    const how = !last ? 'none hired yet this session'
+      : last.status === 'dead' ? `${last.name} was killed${last.diedWeek != null ? ` (week ${last.diedWeek})` : ''}`
+      : ['arrested', 'onTrial', 'jailed'].includes(last.status) ? `${last.name} was taken by the law (${last.status})`
+      : last.gangId !== gang.id ? `${last.name} left us${last.pay < last.payDemand ? ` — paid $${last.pay}, wanted $${last.payDemand}` : ` (paid $${last.pay}, wanted $${last.payDemand}, loyalty ${Math.round(last.loyalty)})`}`
+      : `${last.name} is ${last.status}`;
+    const free = peopleList(w).filter((p) => p.role === role && p.gangId == null && p.status === 'active');
+    const affordable = free.filter((p) => hireQuote(w, p, gang.id) <= gang.cash);
+    actions.push(`STAFF no ${role}: ${how}; ${free.length} free in the city, ${affordable.length} affordable, ${gang.recruitIds.filter((x) => w.people[x]?.role === role).length} on our list${affordable.length ? ' — his search goes first this week' : ''}`);
+    return affordable.length > 0;
+  };
+  const specSearch = (role: 'lawyer' | 'accountant', urgent = false) => {
+    const all = buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === role && b.state !== 'destroyed').sort(nearer);
+    const blocks = new Set<number>();
+    const one = all.filter((b) => (blocks.has(b.blockId) ? false : (blocks.add(b.blockId), true)));
+    const start = one.length ? w.week % one.length : 0;
+    const stops = [...one.slice(start), ...one.slice(0, start)].map((b) => b.id);
+    const crew = urgent ? undefined : ready.find((t) => roles.get(t.id) === 'recruit');
+    if (!crew && !urgent) actions.push(`NOTE ${role} search: no recruit crew this week — any crew with time takes it`);
+    return { stops, teams: crew ? [crew] : undefined, urgent };
+  };
+  if (lawyerLost ? (w.week >= 4 || gang.suspicion >= 20 || gang.lawyerId != null) : !searchPaused('lawyer', false)) {
     const desks = buildingList(w).filter((b) => BUILDING_BY_ID[b.typeId]?.recruit === 'lawyer' && b.state !== 'destroyed').sort(nearer);
     const desk = desks.length ? desks[w.week % desks.length] : undefined;
     if (lawyerLost && gang.lawyerId != null) actions.push(`NOTE lawyer ${lawyerNow?.name ?? ''} lost (${lawyerNow?.status ?? 'gone'}) — recruiting a new one first`);
@@ -2105,8 +2266,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const urgent = trialNow || gang.suspicion >= 40 || (lawyerLost && gang.lawyerId != null);
     const why = !lawyerLost ? `ours is ${specialistStars(lawyerNow).toFixed(1)}★ — a better one swaps him` : urgent ? 'the law is close' : 'hoods first while the heat is low';
     const value = lawyerLost ? (urgent ? 2500 : 250) : specialistStars(lawyerNow) < 3 ? 400 : 150;
-    if (desk) propose({ label: 'recruit lawyer', kind: 'safety', value, why,
-      input: { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'lawyer' } } });
+    const search = specSearch('lawyer', lawyerLost && staffMissing('lawyer'));
+    const lLabel = `recruit lawyer (${search.stops.length} place${search.stops.length === 1 ? '' : 's'})`;
+    if (search.urgent) staffUrgent.add(lLabel);
+    if (desk && search.stops.length) propose({ label: lLabel, kind: 'safety', value: search.urgent ? STAFF_TOP_VALUE : value, why: search.urgent ? 'no lawyer — top priority (point 9)' : why, role: 'recruit', teams: search.teams, minFree: search.urgent ? 0 : undefined,
+      input: { type: 'recruit', buildingIds: search.stops, opts: { manpower: 1, recruitAs: 'lawyer' } } });
     else actions.push('NOTE no lawyer\'s office to recruit at');
   }
 
@@ -2144,12 +2308,15 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const accountantLost = !accountantNow || accountantNow.gangId !== gang.id || accountantNow.status !== 'active';
   if (lawyerLost) searchPaused('lawyer', true);
   if (accountantLost) searchPaused('accountant', true);
-  if (w.week >= 3 && (accountantLost || (specialistStars(accountantNow) < 5 && !searchPaused('accountant', false)))) {
+  if (w.week >= 3 && (accountantLost || !searchPaused('accountant', false))) {
     const desk = deskFor('accountant');
     // 1.2.23: after the hoods, unless suspicion is high (his books lower it).
     const value = !accountantLost ? (specialistStars(accountantNow) < 3 ? 400 : 150) : gang.suspicion >= SUSPICION_LIE_LOW || legalPush ? 6000 : gang.suspicion >= SUSPICION_BRIBE ? 1500 : 200;
-    if (desk) propose({ label: 'recruit accountant', kind: 'safety', value, why: !accountantLost ? `ours is ${specialistStars(accountantNow).toFixed(1)}★ — a better one swaps him` : gang.suspicion >= SUSPICION_BRIBE ? `suspicion ${Math.round(gang.suspicion)}` : 'hoods first',
-      input: { type: 'recruit', buildingIds: [desk.id], opts: { manpower: 1, recruitAs: 'accountant' } } });
+    const search = specSearch('accountant', accountantLost && staffMissing('accountant'));
+    const aLabel = `recruit accountant (${search.stops.length} place${search.stops.length === 1 ? '' : 's'})`;
+    if (search.urgent) staffUrgent.add(aLabel);
+    if (desk && search.stops.length) propose({ label: aLabel, kind: 'safety', value: search.urgent ? STAFF_TOP_VALUE : value, role: 'recruit', teams: search.teams, minFree: search.urgent ? 0 : undefined, why: search.urgent ? 'no accountant — top priority (point 9)' : !accountantLost ? `ours is ${specialistStars(accountantNow).toFixed(1)}★ — a better one swaps him` : gang.suspicion >= SUSPICION_BRIBE ? `suspicion ${Math.round(gang.suspicion)}` : 'hoods first',
+      input: { type: 'recruit', buildingIds: search.stops, opts: { manpower: 1, recruitAs: 'accountant' } } });
   }
 
   // Police and courts, as the manual has it. A man on trial: the judge throws
@@ -3374,7 +3541,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // know of have died since (they replace them). Not on every death or sighting.
     const snitchKey = snitch ? `${snitch.id}|${rivalGangs.join(',')}` : '';
     // 1.2.40: rival men gone from our list (missing or reported dead), never their true state.
-    const knownDead = () => [...mem.seen.values()].filter((x) => x.missing || x.dead).length;
+    const knownDead = () => (mem.seenGone ?? 0) + [...mem.seen.values()].filter((x) => x.missing || x.dead).length;
     const dry = snitchDry.get(w);
     const snitchNothingNew = !!snitch && !!dry && dry.key === snitchKey && w.week - dry.week < SNITCH_RETRY_WEEKS
       && !(knownDead() > dry.dead && w.week - dry.week >= SNITCH_RETRY_WEEKS / 2);
@@ -3591,6 +3758,22 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     actions.push(`WANTED held back ${heldForWanted.size} hood${heldForWanted.size === 1 ? '' : 's'}${heldForWanted.size ? `: ${[...heldForWanted.values()].join('; ')}` : ''}`);
   }
   noteDevDesk(`DECIDE ${decision.given.length} of ${proposals.length} given`);
+  // 1.2.42 (Robert): a week with 0 orders given says why, crew by crew.
+  if (!decision.given.length) {
+    const why = crewsOf().map((team) => {
+      const slot = slots.find((x) => x.team === team);
+      const hoods = team.memberIds.length;
+      const free = crewMenReady(w, team).length;
+      const reason = !slot ? (hotCrews.includes(team) ? 'lying low (the lieutenant is hot)' : 'not ready to plan')
+        : hoods === 0 ? `only its lieutenant${free ? '' : ', and he is not free to plan (inside a building or busy)'}`
+        : !free ? 'no man free to plan (all inside buildings or busy)'
+        : outOfTime.has(team.id) || slot.free() < MIN_FREE_MINUTES ? `no time (${Math.round(freeFor(team))} min left for the freest man)`
+        : team.id === patrolTeamId ? 'patrols this week'
+        : 'every order offered to it was refused (see NOT GIVEN)';
+      return `${crewName(team)}: ${hoods} men + lieutenant, ${free} free to plan — ${reason}`;
+    });
+    actions.push(`NOTE 0 orders given this week (${proposals.length} candidates, pool ${gang.poolIds.length}) — ${why.length ? why.join('; ') : 'no crews at all'}`);
+  }
   // 1.2.23: no crew sits at 0 orders without a reason in the log.
   for (const slot of slots) {
     const team = slot.team;
@@ -3800,6 +3983,12 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   const lostTally = new Map<string, number>();
   let flatRecruit = 0;
   let dryRecruit = 0;
+  // 1.2.42 (Robert, memory): the report in memory keeps the last
+  // REPORT_WEEKS_KEPT weeks; each older block of REPORT_WEEKS_KEPT weeks is
+  // written to its own file during the run and dropped from memory.
+  const runStamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const weekStarts: { at: number; week: number }[] = [];
+  const writtenFiles: string[] = [];
   const cap = settings.weeks == null ? Infinity : Math.min(settings.weeks, AUTO_TEST_MAX_WEEKS);
   autoTestRunning = true;
   stopAfterThisWeek = false;
@@ -3816,6 +4005,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     const weekBefore = sim.world.week;
     const poolBefore = sim.playerGang.poolIds.length;
     try {
+      weekStarts.push({ at: actions.length, week: sim.world.week });
       actions.push(`-- week ${sim.world.week}`);
       const taken = playAutoWeek(sim, settings.seed, planned.strategy);
       actions.push(...taken);
@@ -3882,6 +4072,29 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     }
     resultsSaid = resultsNow;
     resultsNow = new Map();
+    // 1.2.42 (Robert): a heap check in the log every HEAP_CHECK_WEEKS weeks.
+    {
+      if (weeks.length % HEAP_CHECK_WEEKS === 0) {
+        const line = `HEAP CHECK after ${weeks.length} weeks (week ${weekSnap.week}): ${memory.heap ? `used ${formatHeapMb(memory.heap)} of ${Math.round(memory.heap.limit / 1048576)} MB` : 'the browser does not report the heap'}; report lines in memory ${actions.length}`;
+        actions.push(line); notes.push(line);
+      }
+    }
+    if (weekStarts.length >= REPORT_WEEKS_KEPT * 2) {
+      const cut = weekStarts[REPORT_WEEKS_KEPT].at;
+      const from = weekStarts[0].week, to = weekStarts[REPORT_WEEKS_KEPT - 1].week;
+      const block = actions.splice(0, cut);
+      weekStarts.splice(0, REPORT_WEEKS_KEPT);
+      for (const x of weekStarts) x.at -= cut;
+      const file = instanceFile(`auto-test-${runStamp}-weeks-${from}-${to}.txt`);
+      try {
+        const text = [`Auto Test actions, weeks ${from}–${to} (seed ${settings.seed}); the final report holds the later weeks.`, '', ...block].join('\n');
+        const parts = splitReport(text);
+        for (let k = 0; k < parts.length; k++) await writeReportFile(parts.length === 1 ? file : file.replace(/\.txt$/, `-part${k + 1}of${parts.length}.txt`), parts[k]);
+        writtenFiles.push(`weeks ${from}–${to}: ${file}`);
+      } catch (error) {
+        notes.push(`Weeks ${from}–${to} of the report could not be written (${error instanceof Error ? error.message : String(error)}); they are not kept in memory.`);
+      }
+    }
     const men = gangManpower(sim.world, sim.playerGang);
     if (men === menBefore && sim.playerGang.poolIds.length === poolBefore && sim.playerGang.recruitIds.length === 0) flatRecruit += 1;
     else flatRecruit = 0;
@@ -3994,6 +4207,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     }
   }
 
+  if (writtenFiles.length) actions.unshift(`(Earlier weeks were written during the run, ${REPORT_WEEKS_KEPT} weeks a file: ${writtenFiles.join('; ')})`);
   const plateau = plateauNote(recorded, campaign);
   const text = reportText({
     starting: startingConditions(sim.world, settings.seed),

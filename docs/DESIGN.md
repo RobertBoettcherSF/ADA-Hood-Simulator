@@ -238,6 +238,20 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.42 decisions
+
+Auto Test keeps its crews manned, says why a week gives no orders, and keeps its memory bounded. One game change: a dead rival gang is finished even while it still holds blocks (Robert).
+
+1. Staff searches. When our lawyer or accountant is 3★, a paused search starts again after 4 weeks. At 4★ it starts again after 5 weeks, and at 4.5★ or more it stops for good. Below 3★ Auto rolls a d4 every week: 1–3 it searches, 4 it pauses. The same rule applies to the lawyer and the accountant. With none hired, the search goes on as before. A search still pauses after 3 empty weeks, as in 1.2.41.
+2. The recruit crew does the lawyer and accountant searches. One order walks several places: one desk per block, starting at a different desk each week, and the crew's time decides how many it reaches. Without a recruit crew, any crew with time takes the search.
+3. Managers. A buy, a set-up, or a Run Business on a site with no manager never leaves the crew with fewer than 3 hoods besides the lieutenant. Managers already owed to the crew's buys this week count as gone. A free pool hood joins the crew first (business crew: 3★ business); if none can, the buy waits and the log says why.
+4. Lone lieutenants. A crew that has only its lieutenant for 2 weeks running is broken up (the game's demote). The lieutenant joins the pool and can be sent out again.
+5. Recruits dry up. A week counts as empty when last week's hood recruiting brought nobody onto our list. After 4 empty weeks in a row, while a crew (not the Expendables) has room, Auto pulls back the hood manager of our lowest-earning business (last week's profit; offices and the HQ excluded). He goes to the shortest crew that can take him, one a week. The game's Recall Manager does this.
+6. Reporting. A week with 0 orders given logs one NOTE naming each crew's reason: only the lieutenant, nobody free to plan, no time, patrolling, lying low, or every offer refused.
+7. Dead gangs (game). A rival with 0 men and less than $1,500 in cash is finished, even while it holds blocks. $1,500 is the game's existing "nothing left" line. Its holdings are released, so its blocks are free for anyone to take.
+8. Memory. The Auto Test report in memory keeps the last 60 weeks. Each time 120 weeks have built up, the oldest 60 are written to their own file (auto-test-…-weeks-A-B.txt) and dropped from memory. The final report names those files. Auto's week-to-week memories are trimmed: rival men off our list who are dead leave the sightings and are only counted; dead men leave the audit, skimmer, prisoner and heat lists; sites no longer ours leave the no-profit list. A HEAP CHECK line is logged every 100 weeks.
+9. Missing lawyer or accountant. With none hired and a free one in the city we can afford, his recruit order goes before every other order. It goes to any crew, and the game's time check alone decides whether it fits; the game sends the lieutenant when no hood is free. Each such week logs how the last one was lost (killed, taken by the law, left over pay or loyalty) or that none was hired. A candidate on our list is hired at once, as before. Background: in the 1.2.41 run every free lawyer and accountant shown in the city was only "known". The game hires a staff man only after a recruit visit to his desk puts him on our list, and every such visit was NOT GIVEN ("no crew with time").
+
 ## v1.2.41 decisions
 
 Auto Test goes all in below the police and FBI action levels, plans each crew's week as its orders one after another, and adds offices. Game changes: the Office appears in the Set Up Business menu, and a pool hood can be stationed at an office with a gun stash of its own (Robert).
