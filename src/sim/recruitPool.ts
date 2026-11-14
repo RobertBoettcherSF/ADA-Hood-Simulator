@@ -46,6 +46,21 @@ const BY_KIND: Record<number, Quota> = {
 };
 const BY_CIVIC: Record<string, Quota> = { courthouse: { role: 'lawyer', count: 5 }, labourExchange: { role: 'hood', count: 5 } };
 
+/** Every city but the original layout keeps this many hoods (and specialists) standing at each hiring place. */
+const STREET_HOODS = 2;
+const STREET_SPECIALISTS = 1;
+
+/**
+ * 1.2.45 (Robert): how many hoods the weekly top-up stands at a hiring place —
+ * the quota in the original layout (docks and the labour exchange 5, gyms and
+ * pool halls 2; a place with no hood quota gets none), two everywhere else.
+ */
+export function weeklyHoodSupply(w: WorldState, b: Building): number {
+  if (!w.cityLayout?.original) return BUILDING_BY_ID[b.typeId]?.recruit === 'hood' ? STREET_HOODS : 0;
+  const q = recruitQuota(b);
+  return q && q.role === 'hood' ? q.count : 0;
+}
+
 export function recruitQuota(b: Building): Quota | undefined {
   if (b.cls === 'municipal') return BY_CIVIC[b.typeId];
   return b.originalKind != null ? BY_KIND[b.originalKind] : undefined;
@@ -102,7 +117,7 @@ function replenishStreetRecruits(w: WorldState, rng: Rng): number {
     if (b.state === 'destroyed') continue;
     const role = BUILDING_BY_ID[b.typeId]?.recruit;
     if (!role) continue;
-    const want = role === 'hood' ? 2 : 1;
+    const want = role === 'hood' ? STREET_HOODS : STREET_SPECIALISTS;
     for (let n = present.get(`${b.id}:${role}`) ?? 0; n < want; n++, added++) {
       const p = createPerson(w, rng, role, w.lots[b.lotId].center, {
         quality: 1.1, businessType: role === 'hood' && wantBusiness, buildingId: b.id, prefer });

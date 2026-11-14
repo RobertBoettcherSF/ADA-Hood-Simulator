@@ -238,6 +238,21 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.45 decisions
+
+Auto Test plans by how the game works: recruiting by venue supply, land and cover by the game's rules, and managers only where they beat running a business unmanned (Robert).
+
+1. Crash fix. The "business crew collects" flag is declared before the collect routes read it (it crashed whenever a Business crew was ready to plan).
+2. Report. With no Business crew ready to plan, no buys or set-ups are put forward and one NOTE says so. NOT GIVEN lines that share a reason are merged into one line with the count and the first 3 names.
+3. Lone lieutenants. The Business crew, the recruit crew and either of our last two crews are never broken up. With no Business crew, the best pool hood with 3★+ business founds it before the existing crews are filled; otherwise a NOTE says recruiting looks for one.
+4. Short-handed. Below 6 men every free man gets a recruit order each week. A week with no hood recruit order given counts as empty too. Recruiting moves to new blocks after 2 empty weeks (was 4).
+5. Recruiting. Venues are tried biggest weekly top-up first (docks and the labour exchange 5, gyms and pool halls 2). The 1/2/4 venue cap is gone: each order takes as many venues as fit its man's week (shared evenly until the time ledger has a figure). The recruit crew gets a coupe when the cash above the reserve covers it.
+6. Land. While strong, Auto buys the empty lots in blocks where we own a business, centre lots first, then cheapest, within the cash above the reserve. Lots add no territory; centre lots take an illegal business, the others legal ones.
+7. Cover. The first illegal business goes behind a front with cover 0.95, the second 0.7 or better, the rest behind the best front there is (the game's coverQuality for that racket; any legal building of ours in the block can front).
+8. Managers. An unmanned business trades at the full rate, so a manager goes in only when business ≥ (0.55 − 0.05 × organization) / 0.16. Unmanned businesses get one; a manager below that is recalled when nobody better is free. A swap needs 0.5★ more business (replaces the 10% takings rule). Pool hoods first, then crews that keep 3 men.
+9. Strength. Strong (the 1.2× test): land is bought before new blocks (no new blocks while land is put forward). Weak: no land and no new blocks; the attack crew's missing shotguns and rifles are kept back from the reinvesting, and every free man recruits below 6 men.
+10. Holdings. A weekly HOLDINGS line: blocks held; empty lots in our blocks (ours / for sale, centre lots apart); businesses without a manager; each illegal business with its cover.
+
 ## v1.2.44 decisions
 
 Crew time updates as soon as men and cars change, and protection collecting is planned as routes for the player and for Auto (Robert).

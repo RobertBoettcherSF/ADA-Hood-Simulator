@@ -55,7 +55,7 @@ export interface CrewSlot<T> {
   alsoTakes?: (p: Proposal<T>) => boolean;
 }
 
-export interface Decision { label: string; crew?: string; score: number; line: string }
+export interface Decision { label: string; crew?: string; score: number; line: string; /** 1.2.45: why a skipped proposal was not given (lines sharing one are merged in the report). */ reason?: string }
 
 export function inputFor<T>(p: Proposal<T>, team: T): Omit<IssueOrderInput, 'teamId'> {
   return typeof p.input === 'function' ? p.input(team) : p.input;
@@ -89,7 +89,7 @@ export function decideWeek<T>(
     const why = `score ${score} = value ${Math.round(p.value)} × ${goal} weight ${weight} for ${p.kind}${p.why ? ` — ${p.why}` : ''}`;
     if (!open.length) {
       const none = !slots.length && p.kind === 'business' ? 'no business crew yet — nobody else buys' : `no crew with time${p.teams ? ' among those fit for it' : ''}`;
-      skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; ${none}` });
+      skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; ${none}`, reason: none });
       p.onSkipped?.();
       continue;
     }
@@ -108,7 +108,7 @@ export function decideWeek<T>(
       // Only a lack of time is worth trying on another crew.
       if (!/time|busy|Every crew|elsewhere/i.test(result.error)) break;
     }
-    if (!done) { skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; ${lastError}` }); p.onSkipped?.(); }
+    if (!done) { skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; ${lastError}`, reason: lastError }); p.onSkipped?.(); }
   }
   return { given, skipped };
 }
