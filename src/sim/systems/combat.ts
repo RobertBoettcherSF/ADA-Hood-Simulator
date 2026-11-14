@@ -19,6 +19,7 @@ import { blockClaimants } from '../territory';
 import { peopleList } from '../entityLists';
 import { streetArrest, teamMates } from './fbi';
 import { onGangPayroll } from '../payrollMark';
+import { standardRules } from '../rules';
 
 /** Optional snapshot for isolated combat fixtures. The game reads live claims
  * on demand so extortion, sales and destruction take effect during the week. */
@@ -243,7 +244,7 @@ export function tickCombat(
         const heat = b.wanted + (a.role === 'fbi' ? 25 : 0) - opinion * 0.5;
         if (heat > 45 && rng.chance(0.004 * minutes * (heat / 100))) {
           // Original city: the officer takes him through the arrest contest (0x49A530).
-          if (w.cityLayout?.original) { streetArrest(w, rng, a, b); continue; }
+          if (standardRules(w)) { streetArrest(w, rng, a, b); continue; }
           if (b.vehicleKey) { dismount(w, b); if (onRoad(w, b.pos)) b.pos = pavementBeside(w, b.pos); }
           // A lieutenant takes the men of his crew standing with him (1.2.21, all map sizes).
           const mates = teamMates(w, b);

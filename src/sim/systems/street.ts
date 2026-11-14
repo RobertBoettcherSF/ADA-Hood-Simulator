@@ -13,6 +13,7 @@ import type { Person, WorldState } from '../types';
 import { closeCombatBlow, endCloseCombat, meleeWeapon, spendLostTurn, type Blow } from '../closeCombat';
 import { allocateWeapons, attackProfile, type Loadout } from '../weapons';
 import { peopleList } from '../entityLists';
+import { standardRules } from '../rules';
 
 /**
  * Orders given directly to hoods during the working week: kill, assault, tail
@@ -68,7 +69,7 @@ export function tickStreetOrders(w: WorldState, rng: Rng, minutes: number, loado
 
     // Original city: a Kill without a gun becomes an Assault (0x4D6E40 sets
     // order type 0x18), so it ends when the victim is down or spent.
-    if (so.type === 'kill' && !weapon && w.cityLayout?.original) so.type = 'assault';
+    if (so.type === 'kill' && !weapon && standardRules(w)) so.type = 'assault';
 
     if (so.type === 'kill' && !weapon) {
       // Close combat: the original's Cart.txt exchange (closeCombat.ts).
@@ -192,7 +193,7 @@ const FIGHTS_BACK = new Set<Person['role']>(['boss', 'lieutenant', 'hood', 'poli
 function exchange(w: WorldState, rng: Rng, p: Person, target: Person, kill: boolean, loadout: Loadout): Blow | null {
   if (spendLostTurn(p)) return null;
   // Original city: close combat never kills (a gunless Kill is an Assault, 0x4D6E40).
-  const meleeKills = !w.cityLayout?.original;
+  const meleeKills = !standardRules(w);
   const blow = closeCombatBlow(rng, p, target, meleeWeapon(p, kill), loadout.get(p.id), w.minute, w.week, meleeKills);
   presentAttack(w, p, target, undefined, blow.hit, { attack: blow.attack, reaction: blow.entry[0] });
   if (blow.lethal || !FIGHTS_BACK.has(target.role) || target.closeCombat?.posture !== 'standing') return blow;

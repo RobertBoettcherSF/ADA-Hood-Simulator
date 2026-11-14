@@ -4,6 +4,7 @@ import { availableSpecialist } from '../specialists';
 import type { Rng } from '../rng';
 import type { CrimeRecord, FinanceReport, Gang, Person, WorldState } from '../types';
 import { peopleList, buildingList } from '../entityLists';
+import { standardRules } from '../rules';
 
 /** Preserve the accountant's knowledge when dismissed/replaced, including older saves. */
 export function rememberAccountantTax(w: WorldState, gang: Gang): void {
@@ -17,7 +18,7 @@ export function weeklyTaxes(w: WorldState, rng: Rng): void {
     if (gang.eliminated) continue;
     rememberAccountantTax(w, gang);
     const report = currentFinances(w, gang);
-    const original = !!w.cityLayout?.original;
+    const original = standardRules(w);
     const accountant = availableSpecialist(w, gang, 'accountant');
     // Original city: 0x6CFB30's boss levy is 20% of the whole weekly ledger
     // net (every income less wages, purchases, upkeep and campaign), not the
@@ -56,7 +57,7 @@ export function weeklyTaxes(w: WorldState, rng: Rng): void {
 
 /** Held-back tax not yet hidden: the laundering pool in the original city. */
 export function taxNotCoveredUp(w: WorldState, gang: Gang): number {
-  return w.cityLayout?.original ? Math.max(0, gang.launderPool ?? 0) : gang.uncoveredTax;
+  return standardRules(w) ? Math.max(0, gang.launderPool ?? 0) : gang.uncoveredTax;
 }
 
 /**

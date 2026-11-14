@@ -23,6 +23,7 @@
  * from elsewhere before creating one; our free people always stand at a site,
  * so the top-up only creates. Compact cities keep their per-block pool.
  */
+import { clothingBankRecruits } from './systems/charityEffects';
 import { createPerson, hoodPayDemand } from './citygen';
 import { BUILDING_BY_ID } from './data/buildings';
 import { heritageOfSurname, type Heritage } from './heritage';
@@ -30,6 +31,7 @@ import type { Rng } from './rng';
 import type { Building, PersonRole, WorldState } from './types';
 import { peopleList, buildingList } from './entityLists';
 import { isBusinessHood } from './hoodGeneration';
+import { standardRules } from './rules';
 
 /** Each top-up round brings at least one business hood unless one is already free. */
 function needsBusinessHood(w: WorldState): boolean {
@@ -39,10 +41,11 @@ function needsBusinessHood(w: WorldState): boolean {
 
 type Quota = { role: Extract<PersonRole, 'hood' | 'accountant' | 'lawyer'>; count: number };
 
-const BY_KIND: Record<number, Quota> = {
-  0: { role: 'accountant', count: 1 }, 67: { role: 'accountant', count: 5 },
-  70: { role: 'lawyer', count: 1 },
-  57: { role: 'hood', count: 2 }, 91: { role: 'hood', count: 2 }, 124: { role: 'hood', count: 5 },
+/** 1.2.50: the quotas by building type, so every city (any size or layout) stocks the same places. */
+const BY_TYPE: Record<string, Quota> = {
+  accountancy: { role: 'accountant', count: 1 }, bankLarge: { role: 'accountant', count: 5 },
+  lawFirm: { role: 'lawyer', count: 1 },
+  gym: { role: 'hood', count: 2 }, poolHall: { role: 'hood', count: 2 }, docks: { role: 'hood', count: 5 },
 };
 const BY_CIVIC: Record<string, Quota> = { courthouse: { role: 'lawyer', count: 5 }, labourExchange: { role: 'hood', count: 5 } };
 
@@ -56,14 +59,14 @@ const STREET_SPECIALISTS = 1;
  * pool halls 2; a place with no hood quota gets none), two everywhere else.
  */
 export function weeklyHoodSupply(w: WorldState, b: Building): number {
-  if (!w.cityLayout?.original) return BUILDING_BY_ID[b.typeId]?.recruit === 'hood' ? STREET_HOODS : 0;
+  if (!standardRules(w)) return BUILDING_BY_ID[b.typeId]?.recruit === 'hood' ? STREET_HOODS + clothingBankRecruits(w, b) : 0;
   const q = recruitQuota(b);
-  return q && q.role === 'hood' ? q.count : 0;
+  return q && q.role === 'hood' ? q.count + clothingBankRecruits(w, b) : 0;
 }
 
 export function recruitQuota(b: Building): Quota | undefined {
   if (b.cls === 'municipal') return BY_CIVIC[b.typeId];
-  return b.originalKind != null ? BY_KIND[b.originalKind] : undefined;
+  return BY_TYPE[b.typeId];
 }
 
 const serving = (b: Building) => b.state === 'trading' || b.cls === 'municipal' && b.state !== 'destroyed';
@@ -80,7 +83,7 @@ function preferHeritage(w: WorldState): Heritage {
  * takes people on. Returns people added.
  */
 export function replenishOriginalRecruits(w: WorldState, rng: Rng): number {
-  if (!w.cityLayout?.original) return replenishStreetRecruits(w, rng);
+  if (!standardRules(w)) return replenishStreetRecruits(w, rng);
   const present = new Map<string, number>();
   for (const p of peopleList(w)) {
     if (p.gangId != null || p.status !== 'active' || p.employedBy != null || p.buildingId == null) continue;
@@ -92,7 +95,9 @@ export function replenishOriginalRecruits(w: WorldState, rng: Rng): number {
   for (const b of buildingList(w)) {
     const quota = recruitQuota(b);
     if (!quota || !serving(b)) continue;
-    for (let n = present.get(`${b.id}:${quota.role}`) ?? 0; n < quota.count; n++, added++) {
+    // 1.2.50: a running clothing bank nearby draws more hoods.
+    const count = quota.count + (quota.role === 'hood' ? clothingBankRecruits(w, b) : 0);
+    for (let n = present.get(`${b.id}:${quota.role}`) ?? 0; n < count; n++, added++) {
       const p = createPerson(w, rng, quota.role, w.lots[b.lotId].center, {
         quality: 1.1, businessType: quota.role === 'hood' && wantBusiness, buildingId: b.id, prefer: preferHeritage(w) });
       if (quota.role === 'hood') wantBusiness = false;
@@ -117,7 +122,7 @@ function replenishStreetRecruits(w: WorldState, rng: Rng): number {
     if (b.state === 'destroyed') continue;
     const role = BUILDING_BY_ID[b.typeId]?.recruit;
     if (!role) continue;
-    const want = role === 'hood' ? STREET_HOODS : STREET_SPECIALISTS;
+    const want = role === 'hood' ? STREET_HOODS + clothingBankRecruits(w, b) : STREET_SPECIALISTS;
     for (let n = present.get(`${b.id}:${role}`) ?? 0; n < want; n++, added++) {
       const p = createPerson(w, rng, role, w.lots[b.lotId].center, {
         quality: 1.1, businessType: role === 'hood' && wantBusiness, buildingId: b.id, prefer });

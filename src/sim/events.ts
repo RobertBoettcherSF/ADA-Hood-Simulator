@@ -21,6 +21,7 @@ import type {
 import { dist2, placeName } from './world';
 import { peopleList } from './entityLists';
 import { onGangPayroll } from './payrollMark';
+import { standardRules } from './rules';
 
 
 
@@ -129,7 +130,7 @@ export function recordCrime(w: WorldState, rng: Rng, params: CrimeParams): Crime
 
   const perp = w.people[params.perpetratorId];
   const stealth = perp ? perp.skills.stealth : 2.5;
-  const original = !!w.cityLayout?.original;
+  const original = standardRules(w);
   const victim = params.victimId != null ? w.people[params.victimId] : null;
   // fileCrime 0x4DB700 step 1: an owner never files extortion, intimidation,
   // assault or a smash-up against himself.
@@ -270,7 +271,7 @@ export function shiftLocalOpinion(
     // Original city (playtest, 1 October: follow the original): donations, sermons,
     // the press, patrols and public crimes have no attitude writer there.
     opinionSet(p, gangId, Math.max(-100, Math.min(100, (p.opinion[gangId] ?? 0) + delta)),
-      w.cityLayout?.original ? NO_ORIGINAL_CHANNEL : undefined);
+      standardRules(w) ? NO_ORIGINAL_CHANNEL : undefined);
   }
 }
 

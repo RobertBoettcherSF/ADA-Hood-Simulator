@@ -18,6 +18,8 @@ import type { ID, Person, PersonRole, WorldState } from './types';
 import { buildingList, peopleList } from './entityLists';
 import { CENTRE_LOT } from './world';
 import { buildingClaimants } from './territory';
+import { standardRules } from './rules';
+import { FEAR_LOST_UNCOLLECTED } from './fitnessWeights';
 
 interface Channel { base: number; range: number }
 interface AttitudeClass { hostility: Channel; fear: Channel }
@@ -174,7 +176,7 @@ export function weeklyProtectionFear(w: WorldState): void {
     if (!racket || !owner || owner.status === 'dead' || owner.status === 'jailed' || owner.gangId != null) continue;
     if (!w.gangs[racket.gangId]) continue;
     if (racket.collectedWeek === lastWeek || racket.refusedWeek === lastWeek) continue;
-    shiftAttitude(owner, racket.gangId, 0, -5);
+    shiftAttitude(owner, racket.gangId, 0, -FEAR_LOST_UNCOLLECTED);
   }
 }
 
@@ -185,7 +187,7 @@ export function weeklyProtectionFear(w: WorldState): void {
  * compact cities keep the remake opinion.
  */
 export function attitudeScore(w: WorldState, p: Person, gangId: ID): number {
-  if (!w.cityLayout?.original) return p.opinion[gangId] ?? 0;
+  if (!standardRules(w)) return p.opinion[gangId] ?? 0;
   return Math.max(-100, Math.min(100, (128 - effectiveHostility(p, gangId)) / 1.28));
 }
 

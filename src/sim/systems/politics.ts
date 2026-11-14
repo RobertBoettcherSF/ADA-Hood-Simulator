@@ -9,6 +9,7 @@ import { currentFinances, payCash } from '../finances';
 import type { Rng } from '../rng';
 import type { Gang, ID, WorldState } from '../types';
 import { allBuildings, buildingDoor, dist, money, territoryBlocks, territoryCount } from '../world';
+import { standardRules } from '../rules';
 
 /** The original weekly pass advances the election before the mayor record.
  * A new mayor starts at four; an incumbent retains their counter after a poll.
@@ -68,7 +69,7 @@ export function withdrawUnavailableCandidates(w: WorldState): void {
   if (!w.election.active) return;
   w.election.candidates = w.election.candidates.filter(c => {
     const p = w.people[c.id], gang = c.gangId == null ? null : w.gangs[c.gangId];
-    const hasLawyer = !!gang && (!!w.cityLayout?.original || !!availableSpecialist(w, gang, 'lawyer'));
+    const hasLawyer = !!gang && (standardRules(w) || !!availableSpecialist(w, gang, 'lawyer'));
     const eligible = !!p && (p.status === 'active' || p.status === 'onTrial') &&
       (c.kind !== 'gang' || (!!gang && !gang.eliminated && gang.bossId === c.id && hasLawyer));
     if (!eligible && gang) {
@@ -214,7 +215,7 @@ export function enterElection(w: WorldState, gangId: ID): boolean {
   gang.runningForOffice = true;
   // The original's entry (0x4BC040) posts nothing; a computer gang there may
   // enter and withdraw again every week (0x6AFA90).
-  if (!w.cityLayout?.original) addNews(w, {
+  if (!standardRules(w)) addNews(w, {
     section: 'politics',
     headline: 'BUSINESSMAN ENTERS MAYORAL RACE',
     body: `${w.people[gang.bossId]?.name ?? 'A local figure'} has announced a candidacy for mayor, promising order and prosperity.`,

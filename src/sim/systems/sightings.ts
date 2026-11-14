@@ -55,6 +55,7 @@ import { absoluteMinute, UNDER_FIRE_MINUTES } from './combat';
 import type { Rng } from '../rng';
 import type { Building, Gang, ID, MessageCategory, Person, Vec2, WorldState } from '../types';
 import { registerProbe } from '../memProbe';
+import { standardRules } from '../rules';
 
 /** The original's ticks to one of our minutes: 24,000 a week over our 2,400 minutes. */
 export const ORIGINAL_TICKS_PER_MINUTE = 24_000 / MINUTES_PER_WEEK;
@@ -211,7 +212,7 @@ export function chasing(w: WorldState, p: Person): boolean {
  * (step 6, 0x4C3DD0 case 6); otherwise his 32-tick beat (`looksThisMinute`).
  */
 export function spotterLooksThisMinute(w: WorldState, p: Person): boolean {
-  if (!w.cityLayout?.original) return looksThisMinute(w, p);
+  if (!standardRules(w)) return looksThisMinute(w, p);
   if (p.inVehicle) return false;
   if (walking(p) || !chasing(w, p)) return looksThisMinute(w, p);
   const t0 = ((w.week - 1) * MINUTES_PER_WEEK + w.minute) * ORIGINAL_TICKS_PER_MINUTE + ((p.id * 11) & 31);
@@ -257,7 +258,7 @@ export function sightingCells(w: WorldState, from?: ReadonlyMap<Person, Vec2>): 
 export function tickSightings(w: WorldState, rng: Rng, before?: ReadonlyMap<ID, string>): void {
   const player = Object.values(w.gangs).find(g => g.isPlayer && !g.eliminated);
   if (!player) return;
-  const original = !!w.cityLayout?.original;
+  const original = standardRules(w);
   const known = new Set(player.knownPeople);
   const spotters: Person[] = [], strangers: Person[] = [], passers: Person[] = [], fighters: Person[] = [];
   for (const p of peopleList(w)) {
@@ -376,6 +377,6 @@ function spotted(w: WorldState, gang: Gang, man: Person, who: string): void {
   const corner = streetLocation(w, man.pos);
   const text = `${who}: "I've just seen ${man.name} ${TIP_TEXT} ${corner}.`;
   // The original's tip is type 7: the Hoods and the Law box (0x47FE00).
-  if (w.cityLayout?.original) postOriginal(w, 'police', TIP_TEXT, corner, text, man.pos, man.id);
+  if (standardRules(w)) postOriginal(w, 'police', TIP_TEXT, corner, text, man.pos, man.id);
   else addMessage(w, 'waiting', text, man.pos, man.id);
 }

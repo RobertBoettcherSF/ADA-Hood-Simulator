@@ -76,6 +76,7 @@ export function BuildingPanel() {
               {b.state === 'damaged' && b.repairCompleteWeek==null && ` · repairs ${money(b.repairCost)}`} · land value {blk.landValue}
               {intel.isHQ && ' · headquarters'}
             </div>
+            {t?.desc && <div className="sub">{t.desc}</div>}
           </div>
           <button className="close" onClick={() => selectBuilding(null)} aria-label="Close">
             ×

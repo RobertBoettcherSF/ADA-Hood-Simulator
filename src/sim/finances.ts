@@ -2,6 +2,7 @@ import type { FinanceReport, Gang, ID, Order, WorldState } from './types';
 import { recordCashPeak } from './scoring';
 import { originalSkimFraction } from './originalWages';
 import { observeTargetRace } from './targetRace';
+import { standardRules } from './rules';
 
 export function skimRate(loyalty: number, organization: number): number {
   return Math.min(.4, Math.max(0, (60 - loyalty) / 260) + Math.max(0, (3 - organization) * .02));
@@ -19,7 +20,7 @@ export function receiveOrderCash(w: WorldState, gang: Gang, order: Order, kind: 
   const lt = w.people[w.teams[order.teamId]?.lieutenantId];
   const collector = lt?.gangId === gang.id && lt.status !== 'dead' ? lt : order.assignedIds.map(id => w.people[id]).find(p => p?.status === 'active');
   // The original city uses the original greed skim (0x48E140).
-  const rate = !collector ? 0 : w.cityLayout?.original ? originalSkimFraction(collector, gang.id) : skimRate(collector.loyalty, collector.skills.organization);
+  const rate = !collector ? 0 : standardRules(w) ? originalSkimFraction(collector, gang.id) : skimRate(collector.loyalty, collector.skills.organization);
   const declared = collector && gross > 0 ? Math.round(gross * (1 - rate)) : gross;
   if (collector) recordTakings(w, collector.id, gross, declared);
   receiveCash(w, gang, kind, declared);

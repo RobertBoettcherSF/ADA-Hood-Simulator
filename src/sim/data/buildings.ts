@@ -84,7 +84,11 @@ export const BUILDING_TYPES: BuildingType[] = [
   // ------------------------------------------------------------------ charity
   { id: 'church', name: 'Church', cls: 'charity', cost: 0, profit: 0, storeys: 3, weight: { residential: 3, civic: 3 }, special: 'church' },
   { id: 'orphanage', name: 'Orphanage', cls: 'charity', cost: 0, profit: 0, storeys: 3, weight: { residential: 2 }, special: 'orphanage' },
-  { id: 'soupKitchen', name: 'Soup Kitchen', cls: 'charity', cost: 3000, profit: -180, storeys: 1, weight: {} },
+  { id: 'soupKitchen', name: 'Soup Kitchen', cls: 'charity', cost: 3000, profit: -180, storeys: 1, weight: {},
+    desc: 'Bread and hot soup for the out-of-work. While its owner pays to run it, the shopkeepers of this block and the next soften toward him, and the streets grow a little less wretched.' },
+  // 1.2.50 (Robert): cheaper to run than a kitchen; it keeps the owner's men loyal nearby and draws hoods to nearby venues.
+  { id: 'clothingBank', name: 'Clothing Bank', cls: 'charity', cost: 2000, profit: -100, storeys: 1, weight: {},
+    desc: 'Second-hand coats, boots and Sunday suits for families on relief. While its owner pays to run it, his men in this block and the next stay a little more loyal, and word of it brings more hoods to the gyms, pool halls and docks close by.' },
 
   // ------------------------------------------------------------------ illegal
   {
@@ -172,8 +176,9 @@ export const BUYABLE_LEGAL_TYPES = BUILDING_TYPES.filter(
 /** Everything a gang may put up on land it owns, outside the centre lot. */
 export const ESTABLISHABLE_TYPES = [
   ...BUYABLE_LEGAL_TYPES,
-  // A soup kitchen costs money to run and buys a great deal of goodwill.
+  // 1.2.50: charity premises cost money to run; their effects (systems/charityEffects.ts) last only while the gang owns and runs them.
   BUILDING_BY_ID.soupKitchen,
+  BUILDING_BY_ID.clothingBank,
 ];
 
 /** Front suitability tuned to original-game values: per front type, one digit

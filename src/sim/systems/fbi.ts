@@ -18,6 +18,7 @@ import type { Rng } from '../rng';
 import type { Building, Gang, ID, Person, Vec2, WorldState } from '../types';
 import { allBuildings, buildingDoor, buildingName, dist } from '../world';
 import { RAID_REACH } from '../officeDefence';
+import { standardRules } from '../rules';
 
 const SEARCH_MINUTES = 20, RAID_MINUTES = 10, SEARCH_POINTS = [0, -5, 5];
 /** 0x4F6ED0: one agent leads the squad and up to seven more join it. */
@@ -74,7 +75,7 @@ function suspicious(w: WorldState, b: Building): boolean {
  * racket's crime event (0x4F7750, `racketEventSuspicion`); here it also adds
  * to search priority and chance (remake mapping). Compact cities: none. */
 function premisesSuspicion(w: WorldState, b: Building): number {
-  return w.cityLayout?.original && !b.discovered ? Math.max(0, Math.min(255, b.fbiSuspicion ?? 0)) : 0;
+  return standardRules(w) && !b.discovered ? Math.max(0, Math.min(255, b.fbiSuspicion ?? 0)) : 0;
 }
 
 function available(w: WorldState, p: Person): boolean {
@@ -156,7 +157,7 @@ export function dispatchFbi(w: WorldState, rng: Rng): void {
   // Original city: only a racket is looked into, and only when the zeal rule
   // passes (0x4F5AE0, state 1). Contraband is raided by 0x4F6220 instead.
   const searches = targets.filter(b => !b.discovered && b.fbiSearchedWeek !== w.week && suspicious(w,b) &&
-      (!w.cityLayout?.original || b.cls === 'illegal' && fbiInvestigatesRacket(w,b)))
+      (!standardRules(w) || b.cls === 'illegal' && fbiInvestigatesRacket(w,b)))
     .map(b => ({b,score:w.gangs[b.ownerGangId!].suspicion*(1.3-b.cover)+premisesSuspicion(w,b)/4+rng.range(0,18)}))
     .sort((a,b) => b.score-a.score || a.b.id-b.b.id);
   for (const agent of agents) {
@@ -179,7 +180,7 @@ function guarded(w: WorldState, b: Building): boolean {
 
 function searchSite(w: WorldState, rng: Rng, b: Building, agent: Person): boolean {
   const gang = w.gangs[b.ownerGangId!];
-  if (w.cityLayout?.original) {
+  if (standardRules(w)) {
     // 0x580360: the investigation is solved, or not, by the agent's own zeal.
     if (!fbiSolvesRacket(w, b, fbiAgentZeal(rng, agent))) return false;
   } else {
@@ -219,7 +220,7 @@ export function tickFbi(w: WorldState, rng: Rng, minutes: number): void {
     if (job.kind === 'arrest') { raidHeadquarters(w,rng,b,agent); releaseAssignment(agent); continue; }
     const found = searchSite(w,rng,b,agent);
     // Original city: one visit (order 0x21 waits at the event's cell), one verdict.
-    if (found || w.cityLayout?.original || job.searchPoint === SEARCH_POINTS.length-1) {
+    if (found || standardRules(w) || job.searchPoint === SEARCH_POINTS.length-1) {
       b.fbiSearchedWeek = w.week; releaseAssignment(agent);
     } else {
       job.searchPoint++; job.phase = 'travelling'; job.workLeft = SEARCH_MINUTES;
@@ -233,7 +234,7 @@ export function tickFbi(w: WorldState, rng: Rng, minutes: number): void {
  * to search, then raids what they find. Violence against agents only hardens it.
  */
 export function weeklyFbi(w: WorldState, rng: Rng): void {
-  const original = !!w.cityLayout?.original;
+  const original = standardRules(w);
   if (original) { fbiZeal(w, rng); serveAccountantWarrants(w, rng); heavyCrimeSuspicion(w); }
   // ---- suspicion follows unexplained money
   for (const gang of Object.values(w.gangs)) {
@@ -357,7 +358,7 @@ export function fbiAgentZeal(rng: Rng, agent: Person): number {
  * the racket is not looked into again this week. */
 function investigatorLost(w: WorldState, agent: Person): void {
   const job = agent.fbiAssignment, b = job && w.buildings[job.buildingId];
-  if (w.cityLayout?.original && job?.kind === 'search' && b) b.fbiSearchedWeek = w.week;
+  if (standardRules(w) && job?.kind === 'search' && b) b.fbiSearchedWeek = w.week;
 }
 
 /** FBI+4, rolled once a game in 0x4F3CE0: 128 + rand % 80 (128..207). */

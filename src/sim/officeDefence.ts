@@ -1,4 +1,4 @@
-import type { Building, ID, Person, WorldState } from './types';
+import type { Building, ID, Person, Vec2, WorldState } from './types';
 import { buildingDoor, dist } from './world';
 
 /**
@@ -41,6 +41,23 @@ export const hqAvoidance = new WeakMap<WorldState, Map<ID, { hqId: ID; refugeId:
  * office (like the pool) instead of at the door — Auto sets this; not saved.
  */
 export const idleInside = new WeakMap<WorldState, Set<ID>>();
+
+/** 1.2.50 (Robert, proposed): how far past the raid's reach a man with nowhere else to go waits. */
+export const RAID_WAIT_MARGIN = 4;
+
+/**
+ * 1.2.50 (Robert): where a man waits while a raid is due on the HQ and the
+ * gang has no other premises: on the pavement along the HQ's street front,
+ * just past the raid's reach (RAID_REACH + RAID_WAIT_MARGIN from the door),
+ * on the side of the door he stands on.
+ */
+export function raidWaitSpot(w: WorldState, hq: Building, p: Person): Vec2 {
+  const door = buildingDoor(w, hq), lot = w.lots[hq.lotId].center, out = RAID_REACH + RAID_WAIT_MARGIN;
+  // The door's street front runs across the line from the lot's centre to the door.
+  const alongX = Math.abs(door.y - lot.y) >= Math.abs(door.x - lot.x);
+  const side = alongX ? Math.sign(p.pos.x - door.x) || 1 : Math.sign(p.pos.y - door.y) || 1;
+  return alongX ? { x: door.x + side * out, y: door.y } : { x: door.x, y: door.y + side * out };
+}
 
 /** The gang's headquarters, if it has one standing. */
 export function gangOffice(w: WorldState, gangId: ID): Building | undefined {

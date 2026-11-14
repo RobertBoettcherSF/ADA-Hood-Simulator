@@ -88,11 +88,10 @@ export function weeklyOpinion(w: WorldState, rng: Rng): void {
     if (pos) shift(pos, 45, c.gangId, -c.arrestRisk * 4);
   }
 
-  // Soup kitchens have no weekly favour writer in the original: the charity
-  // weekly op (0x55F270) only books their running costs, and they reach the
-  // election through their occupier's ordinary attitude channel (Deep25
-  // W21-Q2, live IDA). The remake's former +3.5 popularity / −2 squalor pass
-  // was removed on that evidence.
+  // Charity premises (soup kitchen, clothing bank) have their weekly effects
+  // in systems/charityEffects.ts (1.2.50), applied while a gang owns and runs
+  // them: a kitchen softens the voters of its block and the blocks around it
+  // toward its owner and lowers squalor there.
 
   // ---- overall popularity, used by elections. Standing earned by charity and
   //      quiet streets is kept separately so it accumulates rather than being

@@ -1,7 +1,7 @@
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
 import { isGangOffice } from './officeDefence';
 import { noteMemberLoss } from './memberLosses';
-import { huntStops, whereaboutsUnknown } from './execution';
+import { CLEANUP_COST_PER_SITE, huntStops, streetsClearable, whereaboutsUnknown } from './execution';
 export { huntStops, whereaboutsUnknown };
 import { LEFT_GANG, NO_ORIGINAL_CHANNEL, opinionSet } from './attitudes';
 import { originalStartingWage } from './originalWages';
@@ -72,6 +72,7 @@ import { canonicalAreaBlocks, lieutenantAreaChoices } from './lieutenantAreas';
 import { CENTRE_LOT, allBuildings, buildingDoor, gangAssets, ownedBuildings, teamsOf, territoryBlocks } from './world';
 import { peopleList } from './entityLists';
 import { quitGangPayroll } from './payrollMark';
+import { standardRules } from './rules';
 
 export type ApiResult =
   | { ok: true; message?: string }
@@ -216,6 +217,7 @@ export function issueOrder(w: WorldState, gangId: ID, input: IssueOrderInput): A
   if (staffing.reason) return fail(staffing.reason);
   if (opts.amount != null && (!Number.isFinite(opts.amount) || opts.amount < 0)) return fail('Choose a valid amount.');
   if (input.type === 'donate' && opts.amount === 0) return fail('A donation must be greater than zero.');
+  if (input.type === 'clearStreets' && !streetsClearable(w, gangId)) return fail('Clearing the streets needs the mayor or the police chief on your side (bribed).');
   if (opts.protectionLevel != null && (!Number.isFinite(opts.protectionLevel) || opts.protectionLevel < 0 || opts.protectionLevel > 2)) return fail('Choose a protection rate between zero and double.');
   const buildingIds = [...new Set(input.buildingIds ?? [])];
   const blockIds = [...new Set((input.blockIds ?? []).map(id => w.blocks[id]?.layout?.mergedInto ?? id))];
@@ -255,6 +257,7 @@ export function issueOrder(w: WorldState, gangId: ID, input: IssueOrderInput): A
   const price = input.type === 'buyPremises' ? buildingValue(w, w.buildings[targetBuildingIds[0]])
     : input.type === 'setUpBusiness' ? BUILDING_BY_ID[opts.businessTypeId!]?.cost ?? 0
     : input.type === 'donate' || input.type === 'bribe' ? order.opts.amount ?? 0
+    : input.type === 'cleanUp' ? order.targetBuildingIds.length * CLEANUP_COST_PER_SITE
     : 0;
   const freeCash = gang.cash - committedCash(w, gangId);
   if (price > freeCash) {
@@ -634,7 +637,7 @@ export function hireRecruit(
     p.gangId = gangId;
     p.buildingId = null;
     p.pay = p.payDemand;
-    if (w.cityLayout?.original) originalStartingWage(p, gangId);
+    if (standardRules(w)) originalStartingWage(p, gangId);
     p.loyalty = 70;
     p.inVehicle = false;
     const office = nearestOffice(w, gangId, p.pos);
@@ -653,7 +656,7 @@ export function hireRecruit(
   p.loyalty = 70;
   p.payDemand = hoodPayDemand(p, wantsLieutenant && !noSlot ? 'lieutenant' : 'hood');
   p.pay = p.payDemand;
-  if (w.cityLayout?.original) originalStartingWage(p, gangId);
+  if (standardRules(w)) originalStartingWage(p, gangId);
   unlistRecruit(w, personId);
 
   p.inVehicle = false;

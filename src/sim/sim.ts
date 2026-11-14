@@ -16,6 +16,7 @@ import { closeFinances, currentFinances, openFinances } from './finances';
 import { finalScore, recordScorePeaks, scoreMeasures, WIN_BONUS } from './scoring';
 import { observeTargetRace, tieRank } from './targetRace';
 import { weeklyTaxes } from './systems/taxes';
+import { recordBlockStarts, weeklyCharity } from './systems/charityEffects';
 import { buildingValue, releaseGangHoldings, standingBlocks } from './execution';
 import { MINUTES_PER_SECOND, MINUTES_PER_WEEK, ORDERS } from './constants';
 import { addMessage, addNews } from './events';
@@ -114,6 +115,9 @@ export class Sim {
     };
     state.schemaVersion = 2;
     state.options.era ??= '1932';
+    // 1.2.50: a save made before the one ruleset keeps the rules its city was started with.
+    state.options.standardRules ??= !!state.cityLayout?.original;
+    recordBlockStarts(state);
     for (const building of buildingList(state)) {
       if (building.typeId !== 'whorehouse') continue;
       building.typeId = 'rentedRooms';
@@ -391,7 +395,7 @@ export class Sim {
       case 3: this.settleAudits(); break;
       case 4: weeklyLaw(w, this.rng); break;
       case 5: weeklyFbi(w, this.rng); break;
-      case 6: weeklyOpinion(w, this.rng); break;
+      case 6: weeklyOpinion(w, this.rng); weeklyCharity(w); break;
       case 7: territoryGoodwill(w); break;
       case 8: weeklyPolitics(w, this.rng); break;
       case 9: weeklyNews(w, this.rng); break;

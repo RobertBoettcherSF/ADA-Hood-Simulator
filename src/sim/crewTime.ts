@@ -1,5 +1,5 @@
 import { MINUTES_PER_WEEK, ORDERS } from './constants';
-import { crewPeople, readyForPlanning } from './orderStaffing';
+import { crewPeople, freeForOrders } from './orderStaffing';
 import type { ID, Order, Person, Team, WorldState } from './types';
 
 /**
@@ -12,7 +12,7 @@ type Planned = Pick<Order, 'type' | 'opts' | 'estimatedMinutes'>;
 
 /** The men who share the crew's week. */
 export function crewMen(w: WorldState, team: Team): Person[] {
-  return crewPeople(w, team).filter(p => readyForPlanning(w, p));
+  return crewPeople(w, team).filter(p => freeForOrders(w, p));
 }
 
 /** The crew's week in man-minutes. */

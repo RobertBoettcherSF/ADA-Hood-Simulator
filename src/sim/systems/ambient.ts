@@ -4,7 +4,7 @@ import { specialistParticipants, specialistVisitTargets } from '../specialistJob
 import { clearDestination, noteEarlyStep, setDestination, stepPerson } from '../movement';
 import { trafficContext } from '../traffic';
 import { boardingCount, sendHome } from '../transport';
-import { hqAvoidance, idleInside, isGangOffice, RAID_REACH } from '../officeDefence';
+import { hqAvoidance, idleInside, isGangOffice, RAID_REACH, raidWaitSpot } from '../officeDefence';
 import { peopleSlice } from '../peopleSlices';
 import type { Rng } from '../rng';
 import type { Block, Building, ID, Person, WorldState } from '../types';
@@ -109,6 +109,11 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
     if (avoid && avoidedHq && (p.buildingId === avoidedHq.id || (!p.inVehicle && dist(p.pos, buildingDoor(w, avoidedHq)) <= RAID_REACH))) {
       const refuge = avoid.refugeId != null ? w.buildings[avoid.refugeId] : undefined;
       if (refuge && refuge.state !== 'destroyed' && refuge.ownerGangId === p.gangId) { sendHome(w, p); return; }
+      // 1.2.50 (Robert): no other premises — out of the HQ to the street, just past the raid's reach.
+      if (p.buildingId === avoidedHq.id) p.pos = buildingDoor(w, avoidedHq);
+      p.buildingId = null;
+      setDestination(w, p, raidWaitSpot(w, avoidedHq, p));
+      return;
     }
     // 1.2.49 (Robert): a gang that keeps its idle men inside (idleInside) sends
     // its idle crew men and lieutenants into the office like the pool.
@@ -240,7 +245,9 @@ function gangOfficesThisPass(w: WorldState, gangId: ID): { offices: Building[]; 
 /** 1.2.39: any office of his gang within reach (where sendHome walks him). */
 function officeNear(w: WorldState, p: Person): Building | undefined {
   if (p.gangId == null) return undefined;
-  for (const b of gangOfficesThisPass(w, p.gangId).offices) if (dist(buildingDoor(w, b), p.pos) < 24) return b;
+  // 1.2.50 (Robert): never into an HQ that a raid is due on.
+  const avoided = hqAvoidance.get(w)?.get(p.gangId)?.hqId;
+  for (const b of gangOfficesThisPass(w, p.gangId).offices) if (b.id !== avoided && dist(buildingDoor(w, b), p.pos) < 24) return b;
   return undefined;
 }
 
@@ -249,7 +256,8 @@ function officeNear(w: WorldState, p: Person): Building | undefined {
  * about 1.3 GB a week of garbage on a 36 × 28 city.) */
 function officeAtHand(w: WorldState, p: Person): Building | undefined {
   if (p.gangId == null) return undefined;
-  for (const b of gangOfficesThisPass(w, p.gangId).hqs) if (dist(buildingDoor(w, b), p.pos) < 24) return b;
+  const avoided = hqAvoidance.get(w)?.get(p.gangId)?.hqId;
+  for (const b of gangOfficesThisPass(w, p.gangId).hqs) if (b.id !== avoided && dist(buildingDoor(w, b), p.pos) < 24) return b;
   return undefined;
 }
 

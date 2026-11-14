@@ -23,7 +23,9 @@ import { generateHoodSkills } from './hoodGeneration';
 import { C as OC, generateOriginalCitySafe, isParkContent, isRiverContent } from './originalCityGen';
 import { originalTramLines } from './trams';
 import { HERITAGE_BY_ID, bossFace, heritageName, heritageOfSurname, mixedHeritageName, sitterFromSeed, type Heritage } from './heritage';
-import { bossName, generatedCityDimensions, isOriginalCity, potentialTerritoryCapacity, validateTerritoryTarget } from './newGameValidation';
+import { bossName, generatedCityDimensions, isOriginalCity, ORIGINAL_CITY, potentialTerritoryCapacity, validateTerritoryTarget } from './newGameValidation';
+import { recordBlockStarts } from './systems/charityEffects';
+import { standardRules } from './rules';
 
 /** Constants.xtx line 13 (400 police) for the original 40 × 32 city. Line 1
  * gives 2,000 civilians, but our blocks are larger relative to a person than
@@ -362,7 +364,8 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
   const w: WorldState = {
     schemaVersion: 2,
     sequences: { message: 1, crime: 1, court: 1 },
-    options,
+    // 1.2.50 (Robert): every new game plays the Standard rules, whatever its size.
+    options: { ...options, standardRules: true },
     rngState: rng.state,
     week: 1,
     minute: 0,
@@ -578,9 +581,10 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
   for (let i = 0; i < 4; i++) w.judgeIds.push(createPerson(w, rng, 'judge', civicPos(), { quality: 1.1 }).id);
   for (let i = 0; i < 4; i++) w.daIds.push(createPerson(w, rng, 'da', civicPos(), { quality: 1.1 }).id);
 
-  // The original city fixes its totals (Constants.xtx: 2,000 civilians,
-  // 400 police); compact cities keep their per-block densities.
-  const officerCount = original ? ORIGINAL_POLICE : Math.round(blockCount * 0.22);
+  // 1.2.50 (Robert): the Standard city's police and civilians (400 and 6,000
+  // over its 40 × 32 blocks) at the same density per block in every city.
+  const rules = standardRules(w), standardBlocks = ORIGINAL_CITY.w * ORIGINAL_CITY.h;
+  const officerCount = rules ? Math.round(blockCount * ORIGINAL_POLICE / standardBlocks) : Math.round(blockCount * 0.22);
   for (let i = 0; i < officerCount; i++) {
     const blk = rng.pick(streetBlocks);
     const p = createPerson(w, rng, 'police', streetSpawn(blk), { quality: 1.05 });
@@ -598,14 +602,14 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
   // The citizens who walk the streets. Every figure on a pavement is one of
   // these: a person with a name who can be clicked on, followed, bribed or
   // shot, so there are enough of them to make a city look lived in.
-  const walkerCount = original ? ORIGINAL_CIVILIANS : Math.round(blockCount * (w.cityLayout ? 14 : CITIZENS_PER_BLOCK));
+  const walkerCount = rules ? Math.round(blockCount * ORIGINAL_CIVILIANS / standardBlocks) : Math.round(blockCount * (w.cityLayout ? 14 : CITIZENS_PER_BLOCK));
   const ring = BLOCK_SIZE / 2 + 1.6;
   // The original seeds its walkers by the same busy-block weighting as their
   // errands (0x606AF0); here the busier of two random blocks (trading lots).
   const trading = (b: Block) => b.lotIds.filter(id => w.buildings[w.lots[id].buildingId]?.state === 'trading').length;
   for (let i = 0; i < walkerCount; i++) {
     let blk = rng.pick(streetBlocks);
-    if (original) { const other = rng.pick(streetBlocks); if (trading(other) > trading(blk)) blk = other; }
+    if (rules) { const other = rng.pick(streetBlocks); if (trading(other) > trading(blk)) blk = other; }
     if (w.cityLayout) { createPerson(w, rng, 'citizen', blockPavement(blk, i), {}); continue; }
     // Spread them round the pavement, not stacked on the block's centre point,
     // which is under a building.
@@ -624,7 +628,7 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
 
   // Unaffiliated hoods available for recruitment, loitering at recruit sites.
   // The original city stocks each site to the original's weekly quota instead.
-  if (original) replenishOriginalRecruits(w, rng);
+  if (rules) replenishOriginalRecruits(w, rng);
   else {
     const recruitSites = Object.values(w.buildings).filter(
       (b) => BUILDING_BY_ID[b.typeId]?.recruit === 'hood',
@@ -741,7 +745,7 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
       bossId: boss.id,
       isPlayer,
       personality,
-      ...(original && !isPlayer ? { aiProfile: rollOriginalProfile(options.opponents, rng) } : {}),
+      ...(rules && !isPlayer ? { aiProfile: rollOriginalProfile(options.opponents, rng) } : {}),
       cash: options.startMoney,
       teamIds: [],
       poolIds: [],
@@ -907,7 +911,7 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
   }
   // Except that in the original city a computer gang opens toward the player
   // at the stance of its starting hostility (0x6CBE10), and the player sees it.
-  if (original) for (const g of Object.values(w.gangs)) for (const other of Object.values(w.gangs)) {
+  if (rules) for (const g of Object.values(w.gangs)) for (const other of Object.values(w.gangs)) {
     if (!g.aiProfile || !other.isPlayer) continue;
     g.offered[other.id] = other.known[g.id] = stanceOfHostility(startingHostility(g, other));
   }
@@ -918,11 +922,12 @@ export function createWorld(options: GameOptions): { world: WorldState; rng: Rng
   }
 
   // The original city offers every starting member his own wage quote.
-  if (original) for (const g of Object.values(w.gangs))
+  if (rules) for (const g of Object.values(w.gangs))
     for (const p of gangMembers(w, g)) if (p.role !== 'boss') originalStartingWage(p, g.id);
 
   w.rngState = rng.state;
   if (options.mode === 'territory') validateTerritoryTarget(options, potentialTerritoryCapacity(w));
   forgetEntityLists(w);
+  recordBlockStarts(w);
   return { world: w, rng };
 }

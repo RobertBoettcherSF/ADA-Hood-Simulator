@@ -9,7 +9,7 @@ import { onMayorDeath, refreshNominees } from './systems/politics';
 import { originalHuntArrived, originalHuntFinds, startOriginalHunt } from './systems/originalHunt';
 import {startBuildingEmergency} from './systems/buildingEmergency';
 import { validAmbushTarget } from './ambush';
-import { crewPeople, orderStaffing, readyForPlanning } from './orderStaffing';
+import { crewPeople, freeForOrders, orderStaffing, waitingInside } from './orderStaffing';
 import { claimedTerritoryBlocks, distanceToTerritory } from './territory';
 import { observeTargetRace } from './targetRace';
 import { reclaimStaffVehicle } from './specialists';
@@ -59,12 +59,14 @@ import {
   placeName,
   buildingsOfBlock,
   dist,
+  dist2,
   skillAvg,
   starFactor,
   typeOf,
 } from './world';
 import { peopleList, buildingList } from './entityLists';
 import { emptyLandPrice } from './originalTables';
+import { standardRules } from './rules';
 
 // ---------------------------------------------------------------- utilities
 
@@ -137,7 +139,7 @@ function takeOnHood(w: WorldState, gang: Gang, team: Team, person: Person, force
   person.loyalty = 70;
   person.payDemand = hoodPayDemand(person, 'hood');
   person.pay = person.payDemand;
-  if (w.cityLayout?.original) originalStartingWage(person, gang.id);
+  if (standardRules(w)) originalStartingWage(person, gang.id);
   for (const other of Object.values(w.gangs)) {
     if (other.recruitIds.includes(person.id)) other.recruitIds = other.recruitIds.filter((id) => id !== person.id);
   }
@@ -189,10 +191,57 @@ function actorSkill(actors: Person[], skills: (keyof Skills)[]): number {
 }
 
 /** Success roll shared by every order. `difficulty` is 0 (trivial) .. 1 (brutal). */
-function roll(rng: Rng, actors: Person[], skills: (keyof Skills)[], difficulty: number): boolean {
+/** 1.2.50 (Robert): from this effective hostility a shopkeeper no longer counts as friendly in the Standard election (a block averaging under it is kept). */
+/** 1.2.50 (Robert), proposed: a donation softens the people round the charity this much. */
+export const DONATION_HOSTILITY = 2;
+export const DONATION_REACH = 90;
+/** 1.2.50 (Robert), proposed: a clean-up drive, per site visited. */
+export const CLEANUP_COST_PER_SITE = 50;
+export const CLEANUP_SQUALOR = 1;
+export const CLEANUP_HOSTILITY = 1;
+export const CLEANUP_GOODWILL = 0.1;
+export const CLEANUP_REACH = 40;
+/** 1.2.50 (Robert), proposed: clearing the streets, per site visited. */
+export const CLEAR_SQUALOR = 3;
+export const CLEAR_HOSTILITY = 4;
+
+/** Shopkeepers, residents and clergy standing within `reach` of a spot. */
+function peopleNear(w: WorldState, pos: Vec2, reach: number): Person[] {
+  const r2 = reach * reach;
+  return peopleList(w).filter((p) => p.status !== 'dead' && (p.role === 'citizen' || p.role === 'owner' || p.role === 'clergy') && dist2(p.pos, pos) <= r2);
+}
+
+/** Clearing the streets needs the mayor or the police chief bribed by the gang. */
+export function streetsClearable(w: WorldState, gangId: ID): boolean {
+  return peopleList(w).some((p) => p.status !== 'dead' && (p.role === 'mayor' || p.role === 'policeChief') && p.bribedBy === gangId);
+}
+
+export const RESENTFUL_HOSTILITY = 64;
+
+/** A shop we protect whose owner resents us: effective hostility at RESENTFUL_HOSTILITY or more. */
+export function resentsGang(w: WorldState, gangId: ID, b: Building): boolean {
+  const owner = b.ownerPersonId != null ? w.people[b.ownerPersonId] : null;
+  return !!owner && owner.status === 'active' && effectiveHostility(owner, gangId) >= RESENTFUL_HOSTILITY;
+}
+
+/** A shopkeeper this hostile to the gang (effective hostility) refuses a collection outright. */
+export const COLLECT_REFUSAL_HOSTILITY = 180;
+
+/** The chance a skill roll succeeds (1.2.50: exported so Auto's fitness scores read the same odds). */
+export function rollChance(actors: Person[], skills: (keyof Skills)[], difficulty: number): number {
   const s = starFactor(actorSkill(actors, skills));
-  const chance = Math.max(0.03, Math.min(0.97, 0.18 + s * 0.85 - difficulty * 0.75));
-  return rng.chance(chance);
+  return Math.max(0.03, Math.min(0.97, 0.18 + s * 0.85 - difficulty * 0.75));
+}
+
+function roll(rng: Rng, actors: Person[], skills: (keyof Skills)[], difficulty: number): boolean {
+  return rng.chance(rollChance(actors, skills, difficulty));
+}
+
+/** How hard an extortion is, from where the crew stands (1.2.50: shared with Auto's fitness scores). */
+export function extortDifficulty(w: WorldState, gangId: ID, building: Building, here: Vec2): number {
+  const owner = building.ownerPersonId != null ? w.people[building.ownerPersonId] : null;
+  const distance = distanceToTerritory(w, gangId, here);
+  return 0.12 + Math.min(0.5, distance / 900) + Math.max(0, -(owner?.opinion[gangId] ?? 0)) / 240;
 }
 
 function spend(w: WorldState, gang: Gang, amount: number, treatment: 'operating' | 'capital' = 'operating'): boolean {
@@ -295,7 +344,8 @@ export function isValidAreaTarget(
     case 'adjustProtection':
       return b.protection?.gangId === gangId;
     case 'intimidate':
-      if (b.protection?.gangId === gangId) return b.protection.refusing;
+      // 1.2.50 (Robert): also a paying shopkeeper who resents us (hostile enough to turn his block's vote).
+      if (b.protection?.gangId === gangId) return b.protection.refusing || resentsGang(_w, gangId, b);
       return !!b.extortRefusedBy?.includes(gangId) && isValidAreaTarget(_w, gangId, 'extort', b);
     case 'explore':
       return b.cls !== 'empty';
@@ -388,7 +438,7 @@ export function estimateMinutes(w: WorldState, team: Team, order: Order): number
   // A standing order ties up its hoods for the week, not the whole crew: it
   // costs the crew's week in proportion to the men it takes.
   if (def.wholeWeek) {
-    const bodies = crewPeople(w, team).filter(p => readyForPlanning(w, p)).length;
+    const bodies = crewPeople(w, team).filter(p => freeForOrders(w, p)).length;
     return Math.round((MINUTES_PER_WEEK * Math.max(1, order.opts.manpower)) / Math.max(1, bodies));
   }
 
@@ -467,6 +517,8 @@ function assignOrder(w: WorldState, team: Team, order: Order, atWeekStart = fals
     return waitForDispatch(w, order, reason);
   }
 
+  // 1.2.50 (Robert): a man waiting inside his own office walks out to take the order.
+  for (const p of chosen) if (waitingInside(w, p)) { const office = w.buildings[p.buildingId!]; p.buildingId = null; p.pos = buildingDoor(w, office); }
   order.assignedIds = chosen.map((p) => p.id);
   delete order.dispatchWaitReason;
   // The hunt is planned again as the crew sets out: the gang may have learnt
@@ -481,7 +533,7 @@ function assignOrder(w: WorldState, team: Team, order: Order, atWeekStart = fals
     }
     delete order.huntAsking;
     // Original city: the search sets out afresh (0x565B00 → 0x5DE990 state 0 → 1).
-    if (order.hunting && w.cityLayout?.original && target && chosen.length) startOriginalHunt(w, order, chosen[0], target);
+    if (order.hunting && standardRules(w) && target && chosen.length) startOriginalHunt(w, order, chosen[0], target);
     else { delete order.huntHallId; delete order.huntLeg; delete order.huntVisitedIds; }
   }
   order.reportedCrewSize = chosen.length;
@@ -669,7 +721,7 @@ export function tickOrders(w: WorldState, rng: Rng, minutes: number, loadout: Lo
           }
           // Seen: on the way round, or where the tip sent them. Original city:
           // the sighting roll on the look beat, or the gang has learnt of him.
-          if (w.cityLayout?.original ? !!originalHuntFinds(w, rng, order, actors, target)
+          if (standardRules(w) ? !!originalHuntFinds(w, rng, order, actors, target)
             : onTheStreet(target) && actors.some(a => dist(a.pos, target.pos) <= HUNT_SIGHT)) {
             const gang = w.gangs[order.gangId];
             if (gang && !gang.knownPeople.includes(target.id)) gang.knownPeople.push(target.id);
@@ -686,7 +738,7 @@ export function tickOrders(w: WorldState, rng: Rng, minutes: number, loadout: Lo
           const next = () => { order.cursor++; const at = huntPos(w, order); for (const a of actors) if (at) setDestination(w, a, at); };
           // Original city: ask at once at a pool hall or gym, or take the next
           // leg (systems/originalHunt.ts); no asking time and no blurred tip.
-          if (w.cityLayout?.original) {
+          if (standardRules(w)) {
             const news = originalHuntArrived(w, order, actors, target);
             if (news) report(w, order.gangId, 'waiting', news, actors[0].pos, actors[0].id);
             const at = huntPos(w, order);
@@ -1174,7 +1226,7 @@ function resolveTarget(
       // ((hostility − fear + 256) >> 1) is 180 or more refuses outright and
       // grows 16 more hostile.
       const payer = building.ownerPersonId != null ? w.people[building.ownerPersonId] : null;
-      const hostile = !!w.cityLayout?.original && !!payer && payer.status !== 'dead' && effectiveHostility(payer, gang.id) >= 180;
+      const hostile = standardRules(w) && !!payer && payer.status !== 'dead' && effectiveHostility(payer, gang.id) >= COLLECT_REFUSAL_HOSTILITY;
       if (hostile) shiftAttitude(payer!, gang.id, 16, 0);
       if (building.protection.refusing || hostile) {
         // 0x4CD730 marks the cell refused (flag 8), which stops this week's
@@ -1183,7 +1235,7 @@ function resolveTarget(
         refused(`${w.people[building.ownerPersonId ?? -1]?.name ?? 'The owner'} refused to pay.`, building);
         // The till-short branch (not the outright refusal) is where the original
         // owner squeals: squeal level above 200 files a record, +5 evidence.
-        if (!hostile && payer && w.cityLayout?.original) squealIfAbove200(w, gang, payer, building, here, lead.id);
+        if (!hostile && payer && standardRules(w)) squealIfAbove200(w, gang, payer, building, here, lead.id);
         report(
           w,
           gang.id,
@@ -1214,7 +1266,7 @@ function resolveTarget(
       const increase = newWeekly - building.protection.weekly;
       building.protection.weekly = newWeekly;
       if (owner) {
-        opinionShift(owner, gang.id, -increase / 40, w.cityLayout?.original ? NO_ORIGINAL_CHANNEL : undefined);
+        opinionShift(owner, gang.id, -increase / 40, standardRules(w) ? NO_ORIGINAL_CHANNEL : undefined);
         if (increase > 0) building.protection.grievance += increase / building.protection.base;
         else building.protection.grievance = Math.max(0, building.protection.grievance - 1);
       }
@@ -1280,11 +1332,35 @@ function resolveTarget(
       const impact = (amount / 1000) * (1 + blk.squalor / 60);
       shiftLocalOpinion(w, here, 90, gang.id, Math.min(18, impact * 4));
       gang.goodwill = Math.min(40, gang.goodwill + Math.min(4, impact));
+      // 1.2.50 (Robert): the people round the church or orphanage resent the gang a little less.
+      for (const p of peopleNear(w, here, DONATION_REACH)) shiftAttitude(p, gang.id, -DONATION_HOSTILITY, 0);
       say(`Donated $${amount.toLocaleString('en-US')} to ${placeName(w, building)}.`);
       addNews(w, { section: 'charity', kind: 'donation', buildingId: building.id, amount,
         headline: 'CHARITY THANKS ITS BENEFACTORS',
         body: `${placeName(w, building)} thanked ${gang.name} for a donation of $${amount.toLocaleString('en-US')} to help local families.`,
         gangId: gang.id });
+      break;
+    }
+
+    case 'cleanUp': {
+      // 1.2.50 (Robert): a paid clean-up, one site at a time.
+      if (!building) return;
+      if (!spend(w, gang, CLEANUP_COST_PER_SITE)) return finishOrder(w, order, 'You could not pay for the clean-up.');
+      const blk = cityBlockAt(w, w.blocks[building.blockId].gx, w.blocks[building.blockId].gy)!;
+      blk.squalor = Math.max(0, blk.squalor - CLEANUP_SQUALOR);
+      for (const p of peopleNear(w, here, CLEANUP_REACH)) shiftAttitude(p, gang.id, -CLEANUP_HOSTILITY, 0);
+      gang.goodwill = Math.min(40, gang.goodwill + CLEANUP_GOODWILL);
+      say(`Cleaned up round ${placeName(w, building)}.`);
+      break;
+    }
+    case 'clearStreets': {
+      // 1.2.50 (Robert): the bought mayor or chief has the beat sweep the block; the people there resent it.
+      if (!building) return;
+      if (!streetsClearable(w, gang.id)) return finishOrder(w, order, 'Neither the mayor nor the police chief will do it for you any more.');
+      const blk = cityBlockAt(w, w.blocks[building.blockId].gx, w.blocks[building.blockId].gy)!;
+      blk.squalor = Math.max(0, blk.squalor - CLEAR_SQUALOR);
+      for (const p of peopleNear(w, here, CLEANUP_REACH)) shiftAttitude(p, gang.id, CLEAR_HOSTILITY, 0);
+      say(`The streets round ${placeName(w, building)} were cleared.`);
       break;
     }
 
@@ -1453,10 +1529,7 @@ function resolveTarget(
         return;
       }
       const owner = building.ownerPersonId != null ? w.people[building.ownerPersonId] : null;
-      const distance = distanceToTerritory(w, gang.id, here);
-      const difficulty =
-        0.12 + Math.min(0.5, distance / 900) + Math.max(0, -(owner?.opinion[gang.id] ?? 0)) / 240;
-      const success = roll(rng, actors, ['intimidation'], difficulty);
+      const success = roll(rng, actors, ['intimidation'], extortDifficulty(w, gang.id, building, here));
       recordCrime(w, rng, {
         gangId: gang.id,
         perpetratorId: lead.id,
@@ -1477,7 +1550,7 @@ function resolveTarget(
           // reports when the owner's squeal byte (+0x20) exceeds 200, which the
           // original city follows. The compact cities keep the remake's souring
           // opinion (which makes the next attempt harder) and random squeal.
-          if (w.cityLayout?.original) squealIfAbove200(w, gang, owner, building, here, lead.id);
+          if (standardRules(w)) squealIfAbove200(w, gang, owner, building, here, lead.id);
           else {
             opinionShift(owner, gang.id, -18, { hostility: 0, fear: 0 });
             if (rng.chance(0.22)) {
@@ -1601,7 +1674,7 @@ function resolveTarget(
       });
       if (success) {
         damageBuilding(w, building, 0.4);
-        if (w.cityLayout?.original) blastFear(w, gang.id, building, BLAST_DAMAGE.smashUp);
+        if (standardRules(w)) blastFear(w, gang.id, building, BLAST_DAMAGE.smashUp);
         say(`Wrecked ${placeName(w, building)}.`);
         shiftLocalOpinion(w, here, order.opts.isPublic ? 60 : 30, gang.id, -3);
       } else {
@@ -1648,7 +1721,7 @@ function resolveTarget(
           say(`${victim.name} took a beating.`);
         }
         // 0x4D6060 state 5: the assault's fear at the victim (0x4DE430, 100).
-        if (w.cityLayout?.original) blastAtVictim(w, gang.id, victim, BLAST_DAMAGE.assault);
+        if (standardRules(w)) blastAtVictim(w, gang.id, victim, BLAST_DAMAGE.assault);
         respondToBureauViolence(w, gang.id, victim);
       } else {
         miss(`${victim.name} was not where he should have been.`);
@@ -1672,7 +1745,7 @@ function resolveTarget(
       if (success) {
         const before=structuredClone(building);
         startBuildingEmergency(w,rng,building,'fire',THROW_TIMING.release+THROW_TIMING.flight,lead);
-        if (w.cityLayout?.original) blastFear(w, gang.id, building, BLAST_DAMAGE.torch);
+        if (standardRules(w)) blastFear(w, gang.id, building, BLAST_DAMAGE.torch);
         burnBuilding(w, building);
         presentBuildingEffect(w, 'fire', here, building.id,THROW_TIMING.release+THROW_TIMING.flight,before);
         say(`Put ${placeName(w, building)} to the torch.`);
@@ -1680,7 +1753,7 @@ function resolveTarget(
 
       } else {
         miss(`The fire at ${placeName(w, building)} would not take.`);
-        if (w.cityLayout?.original) blastFear(w, gang.id, building, BLAST_DAMAGE.torchFailed);
+        if (standardRules(w)) blastFear(w, gang.id, building, BLAST_DAMAGE.torchFailed);
       }
       break;
     }
@@ -1706,7 +1779,7 @@ function resolveTarget(
       if (success) {
         const before=structuredClone(building);
         startBuildingEmergency(w,rng,building,'explosion',THROW_TIMING.release+THROW_TIMING.flight,lead);
-        if (w.cityLayout?.original) blastFear(w, gang.id, building, BLAST_DAMAGE.bomb);
+        if (standardRules(w)) blastFear(w, gang.id, building, BLAST_DAMAGE.bomb);
         destroyBuilding(w, building);
         presentBuildingEffect(w, 'explosion', here, building.id,THROW_TIMING.release+THROW_TIMING.flight,before);
         say(`${placeName(w, building)} is a pile of rubble.`);
@@ -1721,7 +1794,7 @@ function resolveTarget(
 
       } else {
         miss('The bomb went off early.');
-        if (w.cityLayout?.original) blastFear(w, gang.id, building, BLAST_DAMAGE.bombFailed);
+        if (standardRules(w)) blastFear(w, gang.id, building, BLAST_DAMAGE.bombFailed);
         presentBuildingEffect(w, 'explosion', lead.pos);
         const bomber = lead;
         bomber.hp -= 80;
@@ -1752,7 +1825,7 @@ function resolveTarget(
       // 5 or 11) turns the Kill into an Assault (order 0x18), whose close
       // combat never kills; only a shopkeeper is executed in his premises
       // (0x4E0220) whatever the weapon.
-      const beating = !!w.cityLayout?.original && !armed && victim.role !== 'owner';
+      const beating = standardRules(w) && !armed && victim.role !== 'owner';
       recordCrime(w, rng, {
         gangId: gang.id,
         perpetratorId: lead.id,
@@ -1767,7 +1840,7 @@ function resolveTarget(
         say(`Without a gun it came down to fists: ${victim.name} took a beating.`);
         blastAtVictim(w, gang.id, victim, BLAST_DAMAGE.assault);
       } else if (success) {
-        if (w.cityLayout?.original) blastAtVictim(w, gang.id, victim, BLAST_DAMAGE.kill);
+        if (standardRules(w)) blastAtVictim(w, gang.id, victim, BLAST_DAMAGE.kill);
         killPerson(w, victim, `${armed ? 'shot' : 'killed in close combat'} on the orders of ${gang.name}`);
         // Recorded as an attack while he lived; the death makes it a killing.
         provoke(w, victim.gangId, gang.id, INCIDENT_HOSTILITY.kill - INCIDENT_HOSTILITY.attacked);
@@ -1951,7 +2024,7 @@ export function knockDown(w: WorldState, victim: Person): void {
  * above his demand, else his demand; pay and demand are both set to it.
  */
 export function setLieutenantPay(w: WorldState, gang: Gang, hood: Person): void {
-  if (w.cityLayout?.original) {
+  if (standardRules(w)) {
     const quote = originalWageQuote(hood, gang.id);
     if (quote > hood.payDemand + 20) hood.payDemand = quote;
   } else hood.payDemand = Math.max(hood.payDemand, hoodPayDemand(hood, 'lieutenant'));
@@ -2070,4 +2143,4 @@ export function promoteToLieutenant(w: WorldState, gang: Gang, hood: Person): Te
   hood.teamId = team.id;
   return team;
 }
-import { blockPavement } from './cityLayout';
+import { blockPavement, cityBlockAt } from './cityLayout';

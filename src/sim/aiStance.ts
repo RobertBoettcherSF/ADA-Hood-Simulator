@@ -43,6 +43,7 @@ import type { Rng } from './rng';
 import type { DiplomacyLevel, Gang, GameOptions, ID, WorldState } from './types';
 import { gangWealth, territoryCount } from './world';
 import { peopleList } from './entityLists';
+import { standardRules } from './rules';
 
 export const ORIGINAL_AI_PROFILES: readonly (readonly number[])[] = [
   // 0..7 Passive
@@ -196,7 +197,7 @@ export function originalWeeklyStance(w: WorldState, rng: Rng, gang: Gang): Map<I
   // The planner runs after the stance machine (0x6D61C4) and expands its root
   // task 0x31 every week, so 0x19 books every week: a rising week for next
   // week's machine. Original city only.
-  if (w.cityLayout?.original)
+  if (standardRules(w))
     for (const [id, amount] of strengthBooking(w, gang)) provoke(w, gang.id, id, amount);
   return result;
 }

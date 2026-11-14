@@ -282,6 +282,8 @@ export type GoodsKind = 'liquor' | 'stolen' | 'counterfeit';
 export interface BuildingType {
   id: string;
   name: string;
+  /** 1.2.50: a line about the place, shown on its panel. */
+  desc?: string;
   cls: BuildingClass;
   /** Purchase cost basis, scaled by land value. */
   cost: number;
@@ -339,6 +341,10 @@ export interface Block {
   lotIds: ID[];
   landValue: number; // 0..100
   squalor: number; // 0..100
+  /** 1.2.50: the block's squalor at the start of the game; squalor drifts back toward it. Set at creation and, for older saves, on load. */
+  squalorStart?: number;
+  /** 1.2.50: the block's land value at the start of the game; squalor above its start lowers the land value from it. */
+  landValueStart?: number;
   crimeHeat: number; // decays weekly
   policePresence: number; // 0..10 officers assigned
   /** Logical cells can join into one physical city block. Absorbed cells own no lots. */
@@ -454,6 +460,8 @@ export type OrderType =
   | 'adjustProtection'
   | 'export'
   | 'donate'
+  | 'cleanUp'
+  | 'clearStreets'
   // Personnel
   | 'guardBusiness'
   | 'patrol'
@@ -905,6 +913,8 @@ export interface GameOptions {
    * before the original 40 × 32 grid was restored. */
   cityHeight?: number;
   cityLayout?: 'classic' | 'varied';
+  /** 1.2.50: the Standard rules at every city size (on for every new game; saves made before keep the rules of their city). */
+  standardRules?: boolean;
   /** A hand-crafted scenario, or one of the four lessons, if the game is one. */
   scenarioId?: string;
   tutorialId?: number;

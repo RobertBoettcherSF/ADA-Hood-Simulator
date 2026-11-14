@@ -976,6 +976,22 @@
           }
         ],
         [
+          "standardRules",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "literal": false
+                },
+                {
+                  "literal": true
+                }
+              ]
+            }
+          }
+        ],
+        [
           "scenarioId",
           {
             "optional": true,
@@ -1398,6 +1414,32 @@
             "optional": false,
             "shape": {
               "type": "number"
+            }
+          }
+        ],
+        [
+          "squalorStart",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "landValueStart",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
             }
           }
         ],
@@ -5723,6 +5765,12 @@
                 },
                 {
                   "literal": "donate"
+                },
+                {
+                  "literal": "cleanUp"
+                },
+                {
+                  "literal": "clearStreets"
                 },
                 {
                   "literal": "guardBusiness"

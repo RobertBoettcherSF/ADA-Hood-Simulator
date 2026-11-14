@@ -270,6 +270,28 @@ export const ORDERS: Record<OrderType, OrderDef> = {
     skills: ['intelligence'],
     severity: 0,
   },
+  cleanUp: {
+    type: 'cleanUp',
+    maxManpower: 4,
+    group: 'business',
+    name: 'Clean-up Drive',
+    desc: 'Pay for brooms, paint and a cart for the rubbish. Each site visited costs money, lifts the squalor of its block a little and warms its people toward you.',
+    minutesPerTarget: 40,
+    target: 'area',
+    skills: ['organization'],
+    severity: 0,
+  },
+  clearStreets: {
+    type: 'clearStreets',
+    maxManpower: 4,
+    group: 'business',
+    name: 'Clear the Streets',
+    desc: 'With the mayor or the police chief in your pocket, have the beat clear out vagrants and rubbish. Squalor falls fast, but the people living and trading there resent it.',
+    minutesPerTarget: 20,
+    target: 'area',
+    skills: ['intimidation'],
+    severity: 0,
+  },
 
   // ---------------- Personnel ----------------
   guardBusiness: {

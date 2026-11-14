@@ -1,6 +1,7 @@
 import { ORDERS } from './constants';
 import type { Order, Person, Team, WorldState } from './types';
 import { skillAvg } from './world';
+import { idleInside, isGangOffice } from './officeDefence';
 
 export function crewPeople(w: WorldState, team: Team): Person[] {
   return [...new Set([team.lieutenantId, ...team.memberIds])].map(id => w.people[id])
@@ -13,9 +14,25 @@ export function readyForPlanning(w: WorldState, p: Person): boolean {
   return p.status === 'active' && p.buildingId == null && p.burningEscape?.week !== w.week;
 }
 
+/**
+ * 1.2.50 (Robert): a crew man or lieutenant of a gang that keeps its idle men
+ * inside (Auto sets idleInside for its own gang only) waiting inside his own
+ * office counts as free for orders; he walks out when an order takes him.
+ * readyForPlanning stays as it is for player orders and rival gangs.
+ */
+export function waitingInside(w: WorldState, p: Person): boolean {
+  return p.status === 'active' && p.buildingId != null && p.burningEscape?.week !== w.week &&
+    !!idleInside.get(w)?.has(p.gangId ?? -1) && isGangOffice(w.buildings[p.buildingId], p.gangId);
+}
+
+/** Free for orders: ready for planning, or waiting inside his own office (1.2.50). */
+export function freeForOrders(w: WorldState, p: Person): boolean {
+  return readyForPlanning(w, p) || waitingInside(w, p);
+}
+
 export function orderStaffing(w: WorldState, team: Team, order: Pick<Order, 'type' | 'opts'>, planning = false) {
   const members = crewPeople(w, team).filter(p => p.status !== 'dead');
-  const available = members.filter(p => readyForPlanning(w, p) &&
+  const available = members.filter(p => freeForOrders(w, p) &&
     (planning || !p.vehicleKey && p.orderId == null && !p.dest && !p.streetOrder));
   const want = Math.max(1, order.opts.manpower);
   const preferred = order.opts.preferredHoodId == null ? null : members.find(p => p.id === order.opts.preferredHoodId);

@@ -104,3 +104,9 @@ export function originalElectionPoll(w: WorldState): { votes: Map<ID, number>; r
   return { votes, result };
 }
 
+
+/** 1.2.50: a gang's slot in the Standard election count (the first four gangs), or null. */
+export function originalElectionSlot(w: WorldState, gangId: ID): GangSlot | null {
+  const i = Object.keys(w.gangs).map(Number).slice(0, 4).indexOf(gangId);
+  return i < 0 ? null : i as GangSlot;
+}

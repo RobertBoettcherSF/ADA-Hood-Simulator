@@ -13,7 +13,8 @@
  * Compact cities keep the remake's wage drift and loyalty-based skim.
  */
 import { effectiveHostility, fearOf, hostilityOf, shiftAttitude } from './attitudes';
-import { SKILLS, type ID, type Person, type Skill } from './types';
+import { SKILLS, type GameOptions, type ID, type Person, type Skill } from './types';
+import { standardRules } from './rules';
 
 /** Our half-star skill to the original byte: the midpoint of each star band
  * in Character Generation.txt (intelligence 0..256, other skills 0..64). */
@@ -117,6 +118,6 @@ export function originalStartingWage(p: Person, gangId: ID): void {
  * fear and hostility toward it), which is why a list could say $210 and the
  * first wage come to $133.
  */
-export function hireQuote(w: { cityLayout?: { original?: unknown } | null }, p: Person, gangId: ID): number {
-  return w.cityLayout?.original ? originalWageQuote(p, gangId) : p.payDemand;
+export function hireQuote(w: { options: Pick<GameOptions, 'standardRules'> }, p: Person, gangId: ID): number {
+  return standardRules(w) ? originalWageQuote(p, gangId) : p.payDemand;
 }

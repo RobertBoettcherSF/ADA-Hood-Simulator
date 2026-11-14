@@ -238,6 +238,26 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.50 decisions
+
+Auto Test, charity, squalor and one ruleset (Robert). Numbers marked (proposed) were not given by Robert.
+
+1. **Men waiting in our offices.** Auto's planning and crew time count crew men and lieutenants waiting inside our own offices as free (`freeForOrders`, Auto only; the shared `readyForPlanning` for player orders and rivals is unchanged). Nobody is moved; a man steps out of the door when an order picks him.
+2. **Raid due.** Idle men are not sent into the HQ while a raid is due. With no other premises they wait in the street just past the raid reach, 12 m + 4 m (proposed) from the HQ door (`raidWaitSpot`).
+3. **Police payroll.** No new hire unless last week's takings at full pay cover every retainer and cash is above the reserve; retainers count in the reserve as a fixed cost and are never stopped mid-deal. When next week's bill cannot be met, one officer a week is dismissed, least useful first: beat without our illegal businesses, then outside our blocks, then the most expensive. No rehire for 4 weeks after a dismissal; about 6 officers at most, on illegal-business blocks (all proposed). Replaces the cash > $8000 rule.
+4. **Pay cuts** only when the forecast end-of-week cash is below one week's asks + upkeep (the forecast used for sacking).
+5. **Reinvest** keeps 1.2.49 point 13; the extra week's bill is held back only once the reserve is full (proposed).
+6. **FITNESS line** each week (reporting only): protection claimed, collected (full and after skim), uncollected split refused / closed / not visited, running totals; blocks, men, cash vs reserve, threat, suspicion, losses.
+7. **Shadow scores.** Collect and extort carry a fitness score logged beside the old value (no behaviour change): extort = p(success) × weekly × 12 weeks (proposed); collect adds the fear lost (5 a week) for shops not collected last week, at 10 per fear point (proposed).
+8. **Campaign collecting** goes on with hostile shopkeepers; only those at 180+ hostility to us are skipped.
+9. **Campaign intimidation.** Shopkeepers in our reluctant blocks (average voter value 64–163) are intimidated to bring the block under 64, up to 3 blocks a week (proposed). The 75% rate-cut rule is gone.
+10. **No campaign donations.** Other donations keep their rule.
+11. **Raising rates.** One step up to 150% when grievance < 0.4, owner opinion ≥ −20, no campaign and no FBI cap, at most 8 shops a week (proposed); no lowering rule undoes it.
+12. **Charity premises** work only while a gang owns and runs them (all numbers proposed): a soup kitchen takes 4 hostility a week toward its owner off the voters of its block and the blocks around it and 2 off their squalor. The new Clothing Bank ($2,000, −$100 a week) gives the owner's men in its block and the blocks around it +1 loyalty a week and the hood venues within 2 blocks one more hood. A donation to a church or orphanage also takes 2 hostility off the people within 90 m. Auto sets up a kitchen before a campaign next to our blocks that lean against us, and a clothing bank when a man is within 10 loyalty of deserting or a recruit run came back empty.
+13. **Docs** for the soup kitchen and charity match the code.
+14. **Squalor both ways** (all numbers proposed). Rises: bombings and arson as before; +1 per robbery and +0.5 per other crime in the block; +0.3 per closed or destroyed site. Falls: soup kitchen −2 (block and neighbours), clothing bank −1, church or orphanage −0.5, −0.1 per trading business. Each week it drifts 5% of the way back to the block's starting squalor (stored on the block; older saves take their squalor at load). Each point above the start takes 1/200 of the starting land value off (and gives it back when shed). New orders: **Clean-up Drive** ($50 a site, −1 squalor, −1 hostility near the site, +0.1 goodwill) and **Clear the Streets** (needs the mayor or the police chief bribed; −3 squalor a site, +4 hostility near it). Auto runs one clean-up drive a week in our dirtiest block 5+ above its start when the cash above the reserve pays; it never clears the streets.
+15. **One ruleset.** Every city size plays the Standard rules through one switch (`options.standardRules`, `src/sim/rules.ts`), on for every new game; it replaces the layout checks in every rule branch. Police and civilians per block follow the Standard city's numbers. Older saves keep the rules they began with. Elections for other sizes are unchanged (1.2.51).
+
 ## v1.2.49 decisions
 
 Auto Test fixes after the 1.2.48 runs (Full game, Territory and the long Territory win) (Robert).
@@ -1007,7 +1027,7 @@ Three goods (`GoodsKind` in `types.ts`): `liquor`, `stolen`, `counterfeit`. Stil
 
 Illegal sites sit on the centre lot and name a legal front (`fronts` on the type, `frontId` / `hidesId` on the building). `coverQuality` scores how convincing the front is, from 0.35 to 0.95. The FBI tracks `fbiSuspicion` and `discovered`.
 
-Legal weekly profit is `businessProfit` in `src/sim/systems/economy.ts`: base profit from our catalogue, times the economy setting (`weak` / `normal` / `strong`), a market roll, land value, squalor, and the manager's business skill. A recalled manager takes that week's takings. Municipal buildings pay nothing. Soup kitchens lose money and buy goodwill (`src/sim/charity.ts`).
+Legal weekly profit is `businessProfit` in `src/sim/systems/economy.ts`: base profit from our catalogue, times the economy setting (`weak` / `normal` / `strong`), a market roll, land value, squalor, and the manager's business skill. A recalled manager takes that week's takings. Municipal buildings pay nothing. Charity premises (soup kitchen, clothing bank) lose their running cost each week; their effects on hostility, squalor, loyalty and recruiting apply only while a gang owns and runs them (`src/sim/systems/charityEffects.ts`, v1.2.50). Donations to a church or orphanage are `src/sim/charity.ts`.
 
 Protection is a weekly amount on a building (`Protection` in `types.ts`). Collect and adjust are orders. An owner can refuse. Grievance can turn into squealing (`weeklyLaw`).
 
@@ -1302,6 +1322,7 @@ Legal businesses. The id in parentheses is the one in `buildings.ts`.
 | Residences, tenement (`tenementRich`) | Better apartments |
 | Row houses (`residence`) | Row houses |
 | Soup kitchen (`soupKitchen`) | Meal kitchen |
+| Clothing bank (`clothingBank`) | Clothing bank |
 
 Illegal businesses. Fronts stay the fronts already listed on each type.
 
@@ -1373,7 +1394,7 @@ Mechanics. The 2032 column is the same rule.
 | Go straight: lawyer, assets, no open cases, no illegal shops | Same thresholds |
 | Territory as blocks the gang holds | Same |
 | Newspaper as the morning report | A morning edition. Paper or a site, the `NewsItem` is the same. |
-| Charity and the soup kitchen | The meal kitchen. Same goodwill. |
+| Charity premises: soup kitchen and clothing bank | The meal kitchen and the clothing bank. Same effects while owned and run. |
 
 Districts stay districts: downtown, civic, commercial, industrial, residential. The original map also has parks, plazas, avenues, water, and the elevated line. Those are geometry, not a second economy. In 2032 they are the same shapes with different trim.
 

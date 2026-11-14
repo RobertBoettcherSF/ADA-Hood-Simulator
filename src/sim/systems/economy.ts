@@ -16,6 +16,7 @@ import type { Rng } from '../rng';
 import type { Building, Gang, ID, Person, WorldState } from '../types';
 import { disbandTeam } from '../execution';
 import { allBuildings, gangMembers, ownedBuildings, teamsOf } from '../world';
+import { standardRules } from '../rules';
 
 export function businessProfit(w: WorldState, b: Building, rng: Rng): number {
   const t = BUILDING_BY_ID[b.typeId];
@@ -117,7 +118,7 @@ export function weeklyEconomy(w: WorldState, rng: Rng): void {
       const mgr = w.people[b.managerId];
       if (mgr && profit > 0) {
         // The original's runner banking rule (0x4C3AA0) in the original city.
-        const rate = w.cityLayout?.original ? originalSkimFraction(mgr, gang.id) : skimRate(mgr.loyalty, mgr.skills.organization);
+        const rate = standardRules(w) ? originalSkimFraction(mgr, gang.id) : skimRate(mgr.loyalty, mgr.skills.organization);
         declared = Math.round(profit * (1 - rate));
       }
     }
@@ -154,7 +155,7 @@ export function weeklyEconomy(w: WorldState, rng: Rng): void {
     gang.lastWeekCosts.upkeep += closedSites;
     // Original city: officials are paid by their own ladder after wages
     // (0x75DA90), not with the rest of the upkeep.
-    const original = !!w.cityLayout?.original;
+    const original = standardRules(w);
     if (!original) for (const id of gang.employedPoliceIds) {
       const o = w.people[id];
       if (o && o.status === 'active') gang.lastWeekCosts.upkeep += o.weeklyRetainer;
@@ -271,11 +272,11 @@ function letGo(w: WorldState, gang: Gang, o: Person, why: string): void {
 
 /** 1.2.46: a member at or below this loyalty deserts at the week's end. */
 export function desertionLoyalty(w: WorldState): number {
-  return w.cityLayout?.original ? ORIGINAL_DESERTION_LOYALTY : STREET_DESERTION_LOYALTY;
+  return standardRules(w) ? ORIGINAL_DESERTION_LOYALTY : STREET_DESERTION_LOYALTY;
 }
 /** 1.2.47: the loyalty every member loses in a half-pay week (the rule applyLoyalty uses). */
 export function halfPayLoyalty(w: WorldState): number {
-  return w.cityLayout?.original ? ORIGINAL_HALF_PAY_LOYALTY : STREET_HALF_PAY_LOYALTY;
+  return standardRules(w) ? ORIGINAL_HALF_PAY_LOYALTY : STREET_HALF_PAY_LOYALTY;
 }
 const ORIGINAL_HALF_PAY_LOYALTY = 16 * 100 / 255;
 const STREET_HALF_PAY_LOYALTY = 8;
@@ -291,13 +292,13 @@ function streetWageLoyalty(p: Person, pay: number): number {
  * if he is paid `pay` in full — the game's own wage rules, nothing changed.
  */
 export function weeklyWageLoyalty(w: WorldState, p: Person, gangId: ID, pay: number): number {
-  return w.cityLayout?.original ? originalWageEffect(p, gangId, pay).loyalty : streetWageLoyalty(p, pay);
+  return standardRules(w) ? originalWageEffect(p, gangId, pay).loyalty : streetWageLoyalty(p, pay);
 }
 
 function applyLoyalty(w: WorldState, gang: Gang, paidFraction: number): void {
   for (const p of gangMembers(w, gang)) {
     if (p.role === 'boss') continue;
-    if (paidFraction < 1 && w.cityLayout?.original) {
+    if (paidFraction < 1 && standardRules(w)) {
       // 0x6D3D20: half pay costs the crew +8 hostility toward the gang and 16
       // loyalty; no pay +32 and 48 (loyalty bytes, scaled onto our 0..100).
       const none = paidFraction === 0;
@@ -306,7 +307,7 @@ function applyLoyalty(w: WorldState, gang: Gang, paidFraction: number): void {
     } else if (paidFraction < 1) {
       p.loyalty -= paidFraction === 0 ? 16 : STREET_HALF_PAY_LOYALTY;
     }
-    if (w.cityLayout?.original) {
+    if (standardRules(w)) {
       // 0x460300 steps 6–7: the original quote, ratchet and satisfaction.
       originalWeeklyWage(p, gang.id);
       p.loyalty = Math.max(0, Math.min(100, p.loyalty));

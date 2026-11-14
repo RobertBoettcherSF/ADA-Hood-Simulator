@@ -1,5 +1,5 @@
 import { BUILDING_BY_ID } from './data/buildings';
-import { buildingValue } from './execution';
+import { buildingValue, CLEANUP_COST_PER_SITE } from './execution';
 import type { ID, OrderOptions, OrderType, WorldState } from './types';
 
 const CLOSED = new Set(['done', 'failed', 'cancelled']);
@@ -20,6 +20,7 @@ export function orderCashCost(
     return kind ? kind.cost : null;
   }
   if (type === 'donate' || type === 'bribe') return opts.amount != null ? Math.max(0, opts.amount) : null;
+  if (type === 'cleanUp') return buildingIds.length * CLEANUP_COST_PER_SITE;
   return 0;
 }
 

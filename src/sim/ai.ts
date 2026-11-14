@@ -51,6 +51,7 @@ import { peopleList } from './entityLists';
 import { quitGangPayroll } from './payrollMark';
 import { applyRivalPlaybook } from './rivalPlaybook';
 import { crewUsedShare } from './crewTime';
+import { standardRules } from './rules';
 
 /** Blocks within `radius` of anywhere the gang already has a presence. */
 function homeBlocks(w: WorldState, gang: Gang, radius: number): Block[] {
@@ -494,7 +495,7 @@ function manageSpecialists(w: WorldState, rng: Rng, gang: Gang): void {
   // Stand for office when the moment comes. The original city follows the
   // planner's election task (0x6AFA90, below); compact cities keep the
   // remake's 80% entry roll and nothing more.
-  if (w.cityLayout?.original) originalElectionCampaign(w, gang);
+  if (standardRules(w)) originalElectionCampaign(w, gang);
   else if (!gang.runningForOffice && canRunForOffice(w, gang.id) && rng.chance(0.8)) setRunForOffice(w, gang.id, true);
 }
 
@@ -543,12 +544,16 @@ function originalElectionCampaign(w: WorldState, gang: Gang): void {
     }
     if (gang.lawyerId == null || !setRunForOffice(w, gang.id, true).ok) return;
     // Entered: the poll is recounted with the new candidate on the ballot.
+    // 1.2.50: a city without the Standard map still counts its ballot the
+    // older way (until 1.2.51); there the entry stands until the weekly poll.
     const poll = originalElectionPoll(w);
-    votes = c => poll?.votes.get(c.id) ?? 0;
-    const top = pollLeader(w, votes), mine = poll?.votes.get(gang.bossId) ?? 0;
-    if (!(top?.c.kind === 'gang' && top.c.gangId === gang.id) && mine * 5 <= 4 * (top?.votes ?? 0)) {
-      setRunForOffice(w, gang.id, false);
-      return;
+    if (poll) {
+      votes = c => poll.votes.get(c.id) ?? 0;
+      const top = pollLeader(w, votes), mine = poll.votes.get(gang.bossId) ?? 0;
+      if (!(top?.c.kind === 'gang' && top.c.gangId === gang.id) && mine * 5 <= 4 * (top?.votes ?? 0)) {
+        setRunForOffice(w, gang.id, false);
+        return;
+      }
     }
   }
   const leader = pollLeader(w, votes)?.c;
@@ -653,7 +658,7 @@ function manageDiplomacy(w: WorldState, rng: Rng, gang: Gang): void {
   if (!others.length) return;
   // The original city runs the original stance machine (0x6DD950) on the gang's
   // rolled profile; compact cities keep the remake's power-ratio appetite.
-  if (w.cityLayout?.original) {
+  if (standardRules(w)) {
     gang.aiProfile ??= rollOriginalProfile(w.options.opponents, rng);
     for (const [id, stance] of originalWeeklyStance(w, rng, gang))
       if ((gang.offered[id] ?? 'peace') !== stance) setDiplomacy(w, gang.id, id, stance);

@@ -83,6 +83,28 @@ export function originalCivicBlocks(city: OriginalElectionCity, claimed: Readonl
   }).map(block => block.index);
 }
 
+/**
+ * One block's average voter value toward a gang (0 = friendliest; under 64
+ * the block is kept, 64–163 reluctant, 164+ lost), or null for the special
+ * kinds that are always kept. 1.2.50: exported for Auto's campaign.
+ */
+export function originalBlockVoterAverage(block: OriginalVoteBlock, slot: GangSlot): number | null {
+  if ([4, 7, 9, 11, 12, 13, 14].includes(block.content)) return null;
+  let count = 0, sum = 0;
+  for (const cell of block.cells) {
+    const p = cell.owner;
+    if (!p) continue;
+    if (cell.kind === 3 || cell.kind === 9) { if (cell.hasOverlay) continue; }
+    else if (cell.kind === 6 || cell.kind === 7 || cell.kind === 8) { if (!cell.isMaster) continue; }
+    else if (cell.kind !== 2) continue;
+    // Kind8 reads its occupier directly. It does NOT zero self-hostility.
+    const suppressSelf = cell.kind !== 8 && (cell.kind === 2 || p.role === 28 || p.role === 30);
+    sum += originalEffectiveHostility(p, slot, suppressSelf);
+    count++;
+  }
+  return count ? Math.trunc(sum / count) : 0;
+}
+
 /** 0x4BDA70 consumes one gang's expanded bitmap. Special kinds bypass rejection:
  * their effective-hostility return is discarded at 0x4BE093, not accumulated. */
 export function originalGangSupport(city: OriginalElectionCity, territory: ReadonlySet<number>, slot: GangSlot): number[] {
@@ -90,23 +112,11 @@ export function originalGangSupport(city: OriginalElectionCity, territory: Reado
   let reluctantSum = 0;
   for (const block of city.blocks) {
     if (!territory.has(block.index)) continue;
-    if ([4, 7, 9, 11, 12, 13, 14].includes(block.content)) {
+    const average = originalBlockVoterAverage(block, slot);
+    if (average == null) {
       kept.push(block.index);
       continue;
     }
-    let count = 0, sum = 0;
-    for (const cell of block.cells) {
-      const p = cell.owner;
-      if (!p) continue;
-      if (cell.kind === 3 || cell.kind === 9) { if (cell.hasOverlay) continue; }
-      else if (cell.kind === 6 || cell.kind === 7 || cell.kind === 8) { if (!cell.isMaster) continue; }
-      else if (cell.kind !== 2) continue;
-      // Kind8 reads its occupier directly. It does NOT zero self-hostility.
-      const suppressSelf = cell.kind !== 8 && (cell.kind === 2 || p.role === 28 || p.role === 30);
-      sum += originalEffectiveHostility(p, slot, suppressSelf);
-      count++;
-    }
-    const average = count ? Math.trunc(sum / count) : 0;
     if (average < 64) kept.push(block.index);
     else if (average < 164) {
       reluctant.push(block.index);

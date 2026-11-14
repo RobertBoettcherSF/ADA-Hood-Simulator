@@ -9,6 +9,7 @@ import { noteBribe, payCash } from './finances';
 import { clearDestination } from './movement';
 import type { Rng } from './rng';
 import type { ID, Person, WorldState } from './types';
+import { standardRules } from './rules';
 
 export function isBribableOfficial(p: Person): boolean {
   return p.status === 'active' && ['mayor', 'policeChief', 'judge', 'da', 'police'].includes(p.role);
@@ -88,7 +89,7 @@ export function completePoliceEmployment(w: WorldState, gangId: ID, p: Person): 
   if (p.employedBy != null) return { ok: false, error: 'That officer is already on another gang\'s payroll.' };
   // 0x75D3B0 does nothing for an official who still carries the gang's bit.
   if (quitGangPayroll(p, gangId)) return { ok: false, error: `${p.name} quit your payroll and will not go back on it.` };
-  const original = !!w.cityLayout?.original;
+  const original = standardRules(w);
   // Original city, the lawyer's hire 0x75D3B0: the fee is the official's quote
   // (eff >> 1) + 50 taken before the hire, which then halves his hostility
   // toward the gang (vt+0x6C add-hostility −(h >> 1)). It has no cash check.
