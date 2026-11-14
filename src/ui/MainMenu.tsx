@@ -128,7 +128,7 @@ export function MainMenu() {
   return (
     <div className="scene scene-casino">
       <div className="scene-light" aria-hidden="true" />
-      <div className="scene-version" aria-label={`Version ${__APP_VERSION__}`}>v{__APP_VERSION__}</div>
+      <div className="scene-version" aria-label={`Version ${__APP_VERSION__}`}>v{__APP_VERSION__} · {__APP_COMMIT__}</div>
       <h1 className="scene-title scene-wordmark">Hood Simulator</h1>
 
       <nav className="plaque-stack" aria-label="Main menu">
@@ -275,7 +275,7 @@ export function MainMenu() {
             <h4>Type and tools</h4>
             <p>Barlow, Barlow Condensed, Special Elite and Cinzel from Google Fonts (Open Font License) · Three.js · React · Vite · Zustand · Electron · Vitest.</p>
             <p className="muted">Saint Volstead is fictional. Any resemblance to a Chicago of the early 1930s is entirely the point.</p>
-            <p className="muted">Version {__APP_VERSION__}</p>
+            <p className="muted">Version {__APP_VERSION__} · {__APP_COMMIT__}</p>
           </div>
         </Modal>
       )}

@@ -7,6 +7,7 @@ import { execSync } from 'node:child_process';
 const version = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version as string;
 // 1.2.53: the commit the build was made from, for the Auto Test BUILD line;
 // "+changes" when src/ differed from that commit. A copy built outside git says so.
+// 1.2.54: also shown on screen next to the version ("v1.2.54 · <commit>").
 const git = (cmd: string) => { try { return execSync(cmd, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { return null; } };
 const head = git('git rev-parse --short HEAD');
 const commit = head == null ? 'not built from git' : `${head}${git('git status --porcelain -- src') ? '+changes' : ''}`;

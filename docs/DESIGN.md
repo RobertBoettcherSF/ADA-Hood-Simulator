@@ -238,6 +238,19 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.54 decisions
+
+- **Order completion score (autoExec.ts).** Each week the Auto counts orders put forward, given, carried out, cancelled and not carried out, with a reason for each (no time, nobody free, crew at rest, lying low, on defence, refused by the game, no crew took it, held back). The ORDER EXEC report line shows the counts, $ carried out of $ approved and the top reasons.
+- **Chance of being carried out.** Learned over the last 8 weeks (EXEC_WEEKS, proposed) per order kind, then crew, then site, each pulled toward the wider rate with EXEC_PRIOR 2 (proposed). Order fitness multiplies every proposal's score by it; the cash pass ranks spends by return × chance and books cost × chance, so the rest stays free for other spends.
+- **No permanent crew-and-site bans or fixed 4-week buy waits**: a site that failed is simply weighed by its lower chance.
+- **Any crew may buy**, if the buy pays at least the crew's own work per man-minute, keeping MIN_CREW_AFTER_MANAGER men.
+- **Managers as a weekly policy by manager value**: takings factor 0.45 + 0.16 business + 0.05 org against unmanned 1, minus the expected raid cost (illegal sites: business + org against zeal; counterfeit or stolen stock: business + stealth + org up to the safe bar at worst-case zeal 207). Swaps go by Run Business only, never Return to base, when SWAP_WEEKS (8, proposed) × the gain beats SWAP_MARGIN (1.5, proposed) × (SWAP_MAN_MINUTES 150 × the crew's rate + 8 weeks of the candidate's current earnings − the old man's earnings in his next job). A skimmer is swapped without the margin. Candidates come from crews or the pool. Replaces the 3★ gate, lending and LEAD_SWAP_GAIN for managers. SITE HISTORY logs 6 weeks per site.
+- **Rest line**: a man at the rest line goes to the pool through the wanted swap; unarmed orders are no longer blocked crew-wide.
+- **Police value is forward-looking**: expected street arrests at today's opinion (STREET_ARREST_RATE 0.2, prior 20 heat-units, both proposed). An officer is dismissed only after POLICE_LOW_WEEKS 4 weeks below his retainer. CHIEF_BRIBE_WEEKS 12.
+- **A pool spare is worth his hire cost ÷ the expected weeks until he is needed** (from the 8-week loss rate).
+- **Fixes**: "every crew is full" label; a better lawyer/accountant shows as "replaced by a better …" and the hire as "hired as lawyer"; a doubled condition removed; "(unexplained remainder)" printed only when not $0.
+- **The commit is shown next to the version on screen** ("v1.2.54 · <commit>").
+
 ## v1.2.53 decisions
 
 Fixes from the 1.2.52 run (seed 2077284302). Numbers marked *proposed* are ours, not Robert's. Where a point fits an existing fitness function, it goes through that function instead of a new hard gate.

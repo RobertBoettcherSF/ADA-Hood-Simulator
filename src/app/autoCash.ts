@@ -54,6 +54,8 @@ export interface CashSpend {
   run: () => boolean;
   /** 1.2.53: paid at once (an API call), so it can still be taken after the decision with cash a refused order released. */
   immediate?: boolean;
+  /** 1.2.54 (Robert): the chance it is carried out (order completion); an API spend is 1. */
+  chance?: number;
 }
 
 export interface CashPassResult { lines: string[]; spent: number; taken: number; takenSet: Set<CashSpend> }
@@ -62,20 +64,27 @@ export interface CashPassResult { lines: string[]; spent: number; taken: number;
  * The one spending pass: best return per dollar first; a spend is taken while
  * its return is at least λ at the cash left after it and the week-end
  * forecast still covers the bill (the hard rule).
+ *
+ * 1.2.54 (Robert): a spend counts at its chance of being carried out — its
+ * return is weighed by it (ret × chance against λ), and only the expected
+ * cost (cost × chance) is held from the cash the next spends see. The wage
+ * floor is kept on the full cost of everything taken, in case all of it runs.
  */
 export function runCashPass(spends: CashSpend[], cash: number, R: number, floor: number, avgPay: number, scale: DollarScale): CashPassResult {
   const lines: string[] = [];
-  let left = cash, spent = 0, taken = 0;
+  let left = cash, worst = cash, spent = 0, taken = 0;
   const takenSet = new Set<CashSpend>();
-  const order = [...spends].sort((a, b) => b.ret - a.ret || a.cost - b.cost);
+  const eff = (s: CashSpend) => s.ret * (s.chance ?? 1);
+  const order = [...spends].sort((a, b) => eff(b) - eff(a) || a.cost - b.cost);
   for (const s of order) {
-    const after = left - s.cost;
+    const p = s.chance ?? 1;
+    const after = left - s.cost * p;
     const lambda = holdValue(after, R, avgPay, scale);
-    const line = `${s.label} [${s.kind}] $${Math.round(s.cost)} at ${s.ret.toFixed(2)}/$ vs λ ${lambda.toFixed(2)}`;
-    if (after < floor) { lines.push(`${line} — not taken: it would put the wage bill at risk`); continue; }
-    if (s.ret < lambda) { lines.push(`${line} — not taken (${s.why})`); continue; }
+    const line = `${s.label} [${s.kind}] $${Math.round(s.cost)} at ${s.ret.toFixed(2)}/$${p < 1 ? ` × chance ${p.toFixed(2)} = ${eff(s).toFixed(2)}` : ''} vs λ ${lambda.toFixed(2)}`;
+    if (worst - s.cost < floor) { lines.push(`${line} — not taken: it would put the wage bill at risk`); continue; }
+    if (eff(s) < lambda) { lines.push(`${line} — not taken (${s.why})`); continue; }
     if (!s.run()) { lines.push(`${line} — taken but refused by the game (${s.why})`); continue; }
-    left = after; spent += s.cost; taken++; takenSet.add(s);
+    left = after; worst -= s.cost; spent += s.cost * p; taken++; takenSet.add(s);
     lines.push(`${line} — taken (${s.why})`);
   }
   return { lines, spent, taken, takenSet };

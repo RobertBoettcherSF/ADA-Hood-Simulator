@@ -90,7 +90,7 @@ export function AlwaysChrome() {
 
   return (
     <div className="always-chrome wood-tools" aria-label="Desk tools">
-      <div className="always-version" aria-label={`Version ${__APP_VERSION__}`} title={`Version ${__APP_VERSION__}`}>v{__APP_VERSION__}</div>
+      <div className="always-version" aria-label={`Version ${__APP_VERSION__}`} title={`Version ${__APP_VERSION__}`}>v{__APP_VERSION__} · {__APP_COMMIT__}</div>
       <InterfaceButton label={muted ? 'Unmute music' : 'Mute music'} glyph={muted ? '×' : '♪'} caption="Sound" aria-pressed={!muted}
         title={muted ? 'Sound off. Click or press M to unmute.' : 'Sound on. Click or press M to mute.'}
         onClick={() => setMuted(audio.toggleMusicMuted())} />

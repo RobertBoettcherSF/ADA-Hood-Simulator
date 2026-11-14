@@ -6,8 +6,8 @@
  * - Buys and set-ups are given with a minutes estimate that has learned how
  *   far the game's own estimate falls short (an order that never completes
  *   raises it, a completed one lowers it). A target that fits the crew's
- *   free week is chosen; one that failed twice is dropped for some weeks,
- *   and a crew is never sent again to a buy it failed.
+ *   free week is chosen. (1.2.54: no ban of a failed target or crew — the
+ *   order-completion chance, autoExec.ts, weighs every try instead.)
  * - A crew move refused once (crew full or out of time) is not repeated for
  *   a few weeks.
  * - Rival HQs are only those the gang's own scouting has identified.
@@ -17,9 +17,6 @@ import { buildingList } from '../sim/entityLists';
 import type { Building, Gang, WorldState } from '../sim/types';
 import { hm } from '../sim/timeFormat';
 
-/** Failures before a target is dropped, and for how many weeks. */
-export const FAILS_TO_DROP = 2;
-export const DROP_WEEKS = 6;
 /** Weeks a refused crew move is not tried again. */
 export const MOVE_REFUSED_WEEKS = 4;
 /** Weeks between rival-HQ strikes. */
@@ -28,12 +25,8 @@ export const HQ_STRIKE_GAP = 4;
 export interface PendingBuy { orderId: number; buildingId: number; teamId: number; type: string; estimate: number; free: number; week: number }
 
 export interface DeskMemory {
-  /** Failures per target building. */
+  /** Failures per target building (for the log). */
   fails: Map<number, number>;
-  /** Target building → week it may be tried again. */
-  dropped: Map<number, number>;
-  /** "teamId:buildingId" pairs that failed: never given to that crew again. */
-  failedPairs: Set<string>;
   /** How many times the game's own minutes estimate a buy really takes. */
   ratio: number;
   pending: PendingBuy[];
@@ -47,7 +40,7 @@ const memories = new WeakMap<WorldState, DeskMemory>();
 export function deskMemory(w: WorldState): DeskMemory {
   let m = memories.get(w);
   if (!m) {
-    m = { fails: new Map(), dropped: new Map(), failedPairs: new Set(), ratio: 2.5, pending: [], refusedMoves: new Map(), lastHqStrike: -Infinity };
+    m = { fails: new Map(), ratio: 2.5, pending: [], refusedMoves: new Map(), lastHqStrike: -Infinity };
     memories.set(w, m);
   }
   return m;
@@ -71,25 +64,13 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
     }
     const n = (m.fails.get(p.buildingId) ?? 0) + 1;
     m.fails.set(p.buildingId, n);
-    m.failedPairs.add(`${p.teamId}:${p.buildingId}`);
     m.ratio = Math.min(5, Math.round(m.ratio * 1.15 * 100) / 100);
     const why = done?.failReason ?? (done ? 'nothing done' : 'never finished in the week');
     out.push(`NOTE business: ${label} failed (${why}); failure ${n}, minutes factor now ×${m.ratio}`);
-    if (n >= FAILS_TO_DROP) {
-      m.dropped.set(p.buildingId, w.week + DROP_WEEKS);
-      m.fails.delete(p.buildingId);
-      out.push(`NOTE business: dropped building ${p.buildingId} (${b?.typeId ?? '?'}) after ${n} failures — not tried again until week ${w.week + DROP_WEEKS}`);
-    }
   }
   m.pending = [];
-  for (const [id, until] of m.dropped) if (until <= w.week) m.dropped.delete(id);
   for (const [key, week] of m.refusedMoves) if (w.week - week >= MOVE_REFUSED_WEEKS) m.refusedMoves.delete(key);
   return out;
-}
-
-/** May this building be tried by this crew? */
-export function buyAllowed(m: DeskMemory, teamId: number, buildingId: number): boolean {
-  return !m.dropped.has(buildingId) && !m.failedPairs.has(`${teamId}:${buildingId}`);
 }
 
 export function moveRefused(m: DeskMemory, personId: number, teamId: number): boolean {
