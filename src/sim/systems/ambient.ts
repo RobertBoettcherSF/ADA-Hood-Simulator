@@ -7,7 +7,7 @@ import { boardingCount, sendHome } from '../transport';
 import { hqAvoidance, isGangOffice, RAID_REACH } from '../officeDefence';
 import { peopleSlice } from '../peopleSlices';
 import type { Rng } from '../rng';
-import type { Block, Building, Person, WorldState } from '../types';
+import type { Block, Building, ID, Person, WorldState } from '../types';
 import { allBuildings, buildingDoor, dist } from '../world';
 
 /**
@@ -21,6 +21,7 @@ export function tickAmbient(w: WorldState, rng: Rng, minutes: number,
   // Slices take the closing minute's traffic, already built: the coming
   // minute's is not settled until its tick runs tickTraffic.
   const traffic = slice?.traffic ?? trafficContext(w);
+  passOffices = null;
   const meeting = specialistParticipants(w), awaited = specialistVisitTargets(w);
   // One slice of the city at a time (sim.ts), or everyone; both in id order.
   // The tick's drivers-only pass over a slice that ran ahead walks the riders
@@ -118,8 +119,8 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
         // 1.2.41: a hood stationed at an office of his gang waits only there.
         const station = p.homeOfficeId != null ? w.buildings[p.homeOfficeId] : undefined;
         const stationed = isGangOffice(station, p.gangId) ? station : undefined;
-        for (const b of allBuildings(w)) {
-          if (!isGangOffice(b, p.gangId) || (stationed && b.id !== stationed.id) || b.id === avoid?.hqId) continue;
+        for (const b of gangOfficesThisPass(w, p.gangId).offices) {
+          if ((stationed && b.id !== stationed.id) || b.id === avoid?.hqId) continue;
           if (dist(buildingDoor(w, b), p.pos) < 24) { home = b; break; }
           far = true;
         }
@@ -210,9 +211,33 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
   }
 }
 
+/**
+ * 1.2.47 (Robert): each gang's offices (isGangOffice) and HQ buildings, in
+ * building order, gathered once per ambient pass on first need instead of
+ * scanning every building for each man. Nothing in a pass changes buildings,
+ * so the answers are the same.
+ */
+let passOffices: Map<ID, { offices: Building[]; hqs: Building[] }> | null = null;
+const NO_OFFICES: { offices: Building[]; hqs: Building[] } = { offices: [], hqs: [] };
+function gangOfficesThisPass(w: WorldState, gangId: ID): { offices: Building[]; hqs: Building[] } {
+  if (!passOffices) {
+    const map = new Map<ID, { offices: Building[]; hqs: Building[] }>();
+    for (const b of allBuildings(w)) {
+      if (b.ownerGangId == null || !(b.isHQ || b.typeId === 'office')) continue;
+      let entry = map.get(b.ownerGangId);
+      if (!entry) { entry = { offices: [], hqs: [] }; map.set(b.ownerGangId, entry); }
+      if (isGangOffice(b, b.ownerGangId)) entry.offices.push(b);
+      if (b.isHQ) entry.hqs.push(b);
+    }
+    passOffices = map;
+  }
+  return passOffices.get(gangId) ?? NO_OFFICES;
+}
+
 /** 1.2.39: any office of his gang within reach (where sendHome walks him). */
 function officeNear(w: WorldState, p: Person): Building | undefined {
-  for (const b of allBuildings(w)) if (isGangOffice(b, p.gangId) && dist(buildingDoor(w, b), p.pos) < 24) return b;
+  if (p.gangId == null) return undefined;
+  for (const b of gangOfficesThisPass(w, p.gangId).offices) if (dist(buildingDoor(w, b), p.pos) < 24) return b;
   return undefined;
 }
 
@@ -220,7 +245,8 @@ function officeNear(w: WorldState, p: Person): Building | undefined {
  * out of ambientPerson — a closure there made V8 allocate a context on every call,
  * about 1.3 GB a week of garbage on a 36 × 28 city.) */
 function officeAtHand(w: WorldState, p: Person): Building | undefined {
-  for (const b of allBuildings(w)) if (b.ownerGangId === p.gangId && b.isHQ && dist(buildingDoor(w, b), p.pos) < 24) return b;
+  if (p.gangId == null) return undefined;
+  for (const b of gangOfficesThisPass(w, p.gangId).hqs) if (dist(buildingDoor(w, b), p.pos) < 24) return b;
   return undefined;
 }
 

@@ -273,6 +273,12 @@ function letGo(w: WorldState, gang: Gang, o: Person, why: string): void {
 export function desertionLoyalty(w: WorldState): number {
   return w.cityLayout?.original ? ORIGINAL_DESERTION_LOYALTY : STREET_DESERTION_LOYALTY;
 }
+/** 1.2.47: the loyalty every member loses in a half-pay week (the rule applyLoyalty uses). */
+export function halfPayLoyalty(w: WorldState): number {
+  return w.cityLayout?.original ? ORIGINAL_HALF_PAY_LOYALTY : STREET_HALF_PAY_LOYALTY;
+}
+const ORIGINAL_HALF_PAY_LOYALTY = 16 * 100 / 255;
+const STREET_HALF_PAY_LOYALTY = 8;
 const STREET_DESERTION_LOYALTY = 14;
 
 /** Outside the 40 × 32 city: +3 a fully paid week, else the shortfall share × 12 lost. */
@@ -296,9 +302,9 @@ function applyLoyalty(w: WorldState, gang: Gang, paidFraction: number): void {
       // loyalty; no pay +32 and 48 (loyalty bytes, scaled onto our 0..100).
       const none = paidFraction === 0;
       shiftAttitude(p, gang.id, none ? 32 : 8, 0);
-      p.loyalty -= (none ? 48 : 16) * 100 / 255;
+      p.loyalty -= none ? 48 * 100 / 255 : ORIGINAL_HALF_PAY_LOYALTY;
     } else if (paidFraction < 1) {
-      p.loyalty -= paidFraction === 0 ? 16 : 8;
+      p.loyalty -= paidFraction === 0 ? 16 : STREET_HALF_PAY_LOYALTY;
     }
     if (w.cityLayout?.original) {
       // 0x460300 steps 6–7: the original quote, ratchet and satisfaction.

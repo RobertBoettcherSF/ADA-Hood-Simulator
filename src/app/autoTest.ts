@@ -4,7 +4,7 @@ import { devJournalWeeks, splitReport } from './devJournal';
 import { peekStopTraces } from '../sim/devTrace';
 import { planRoute } from './routing';
 import { weeklyHoodSupply } from '../sim/recruitPool';
-import { desertionLoyalty, weeklyWageLoyalty } from '../sim/systems/economy';
+import { desertionLoyalty, halfPayLoyalty, weeklyWageLoyalty } from '../sim/systems/economy';
 import { resetSystemTimings, systemTimings } from '../sim/simTimings';
 import { buyAllowed, deskMemory, HQ_STRIKE_GAP, knownRivalHQs, moveRefused, noteRefusedMove, reviewBuys } from './autoBusiness';
 import { decideWeek, inputFor, MIN_FREE_MINUTES, type Decision, type OrderKind, type Proposal } from './autoDecide';
@@ -451,8 +451,20 @@ const savingFor = new WeakMap<Sim['world'], { name: string; cost: number }>();
 
 /** Suspicion at which the desk starts paying the police chief and easing the extortion (1.2.19: 30, was 40). */
 const SUSPICION_BRIBE = 30;
-/** 1.2.25 (Robert): the cash reserve is three weeks of wages, at most this much. */
+/** 1.2.25 (Robert): the cash reserve is three weeks of wages, at most this much (1.2.47: three weeks of asks and upkeep). */
 const RESERVE_CAP = 50_000;
+/** 1.2.47 (Robert): weeks of cash the reserve and the recruiting check hold — asks plus upkeep. */
+const RESERVE_WEEKS = 3;
+/** 1.2.47 (Robert): pay floor — no cut below the lesser of ask − this (no loyalty loss) … */
+const PAY_FLOOR_UNDER_ASK = 20;
+/** … and the least pay above this share of the ask (the smallest weekly loss band, 4 loyalty bytes). */
+const PAY_FLOOR_SHARE = 0.76;
+/** 1.2.47 (Robert): a cut must keep a man above the desertion line for this many weeks, plus one half-pay week. */
+const CUT_WEEKS = 4;
+/** 1.2.47 (Robert): weeks without recruiting after a week that sacked for wages. */
+const HIRE_COOLDOWN_WEEKS = 3;
+/** 1.2.47 (Robert): weeks of takings averaged for the week-end forecast (the lower of this and last week counts). */
+const TAKINGS_WEEKS = 4;
 /** 1.2.25 (Robert): surplus spending starts once the surplus is above this. */
 const SURPLUS_START = 50_000;
 /** 1.2.23: a strike goes only to a crew with this much of its week left. */
@@ -574,6 +586,10 @@ const v140 = new WeakMap<Sim['world'], {
   staffSeen?: Map<string, number>;
   /** 1.2.43: on defence through this week (heavy losses). */
   defenceUntil?: number;
+  /** 1.2.47: takings of the last TAKINGS_WEEKS weeks, oldest first. */
+  takingsSeen?: number[];
+  /** 1.2.47: the last week we sacked for wages. */
+  wageSackWeek?: number;
   /** 1.2.46: the week the heavy-losses defence started, and the kills that started it. */
   defenceFrom?: number;
   defenceKills?: number;
@@ -901,69 +917,95 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
   }
 
-  // Wages: everyone gets what he asks while the takings (or a year's cash) can
-  // carry it — underpaid men lose loyalty and walk out, lieutenants with their crews.
+  // Wages. 1.2.47 (Robert): one reserve and the recruiting count by what our
+  // men ask (not by cut pay); sacking from a week-end forecast; cuts with a
+  // floor, planned over several weeks.
   const payroll = gangMembers(w, gang).filter((p) => p.role !== 'boss');
   const wageBill = payroll.reduce((sum, p) => sum + p.pay, 0);
+  const asksBill = payroll.reduce((sum, p) => sum + p.payDemand, 0);
+  const upkeepLast = gang.lastWeekCosts.upkeep;
   const income = gang.lastWeekIncome;
-  const weeklyNet = income.legal + income.illegal + income.protection + income.other - gang.lastWeekCosts.wages - gang.lastWeekCosts.upkeep;
-  const short = payroll.filter((p) => p.pay < p.payDemand);
-  const raise = short.reduce((sum, p) => sum + p.payDemand - p.pay, 0);
-  // Short of cash: below the reserve (three weeks of wages). 1.2.46 replaces the
-  // 1.2.40 "$20 under the ask" cut (see below); managers are never cut (an underpaid manager can skim).
-  const shortOfCash = gang.cash < Math.min(RESERVE_CAP, Math.round(wageBill * 3));
+  const takingsLast = income.legal + income.illegal + income.protection + income.other;
+  /** 1.2.47 (Robert): last week's net at full asks — takings − asks − upkeep. */
+  const weeklyNet = takingsLast - asksBill - upkeepLast;
+  /** 1.2.47 (Robert): the one reserve — three weeks of asks and upkeep, at most RESERVE_CAP. */
+  const reserveNeed = Math.min(RESERVE_CAP, Math.round(RESERVE_WEEKS * (asksBill + upkeepLast)));
+  const takingsSeen = mem.takingsSeen ?? (mem.takingsSeen = []);
+  takingsSeen.push(takingsLast);
+  if (takingsSeen.length > TAKINGS_WEEKS) takingsSeen.shift();
+  const expectedTakings = Math.min(takingsLast, takingsSeen.reduce((sum, t) => sum + t, 0) / takingsSeen.length);
+  // Buys and set-ups already given and not yet paid for.
+  const plannedSpend = desk.pending.reduce((sum, p) => {
+    const order = w.orders[p.orderId];
+    if (!order || order.state === 'done' || order.state === 'failed' || order.state === 'cancelled') return sum;
+    const b = w.buildings[p.buildingId];
+    const type = order.opts.businessTypeId ? BUILDING_BY_ID[order.opts.businessTypeId] : undefined;
+    return sum + (type ? type.cost : b && p.type === 'buyPremises' ? buildingValue(w, b) : 0);
+  }, 0);
+  const forecastCash = gang.cash + expectedTakings - plannedSpend;
   const managerIds = new Set(buildingList(w).filter((b) => b.ownerGangId === gang.id && b.managerId != null).map((b) => b.managerId!));
-  // 1.2.41 (Robert): unpaid wages — when the cash cannot cover this week's
-  // wages, pool hoods are sacked, the newest first, never the office defenders.
-  /** 1.2.46 (Robert): pool hoods sacked this week because the cash could not cover the wages — no recruiting then. */
+  // 1.2.47 (Robert): when the forecast week-end cash (cash + the lower of last
+  // week's and the 4-week average takings − spending already given) is under
+  // the wages and upkeep, spending and hiring stop this week and pool hoods are
+  // sacked until it covers them: lowest value per wage (best crew-job stars ÷
+  // pay) first, the office defenders last.
+  let bill = wageBill + upkeepLast;
+  const spendStop = forecastCash < bill;
   let sackedForWages = 0;
-  if (gang.cash < wageBill) {
+  if (spendStop) {
     const warsNow = Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated && gang.known[g.id] === 'war').length;
-    // The HQ's defenders are the oldest pool hoods; hoods stationed at our other offices are never sacked.
+    // The HQ's defenders are the oldest pool hoods, plus hoods stationed at our other offices.
     const keep = POOL_DEFENDERS + DEFENDERS_PER_WAR * warsNow;
     const stationedAway = (p: Person) => { const st = p.homeOfficeId != null ? w.buildings[p.homeOfficeId] : undefined; return !!st && isGangOffice(st, gang.id) && !st.isHQ; };
-    // The defenders are the oldest pool hoods; 1.2.46 (Robert): of the rest, the lowest value per wage
-    // (his best crew-job stars ÷ his pay) goes first, no longer the newest.
-    const pool = gang.poolIds.map((id) => w.people[id]).filter((p): p is Person => !!p && p.role === 'hood' && p.status === 'active' && !stationedAway(p)).sort((a, b) => a.id - b.id);
+    const pool = gang.poolIds.map((id) => w.people[id]).filter((p): p is Person => !!p && p.role === 'hood' && p.status === 'active').sort((a, b) => a.id - b.id);
+    const atHq = pool.filter((p) => !stationedAway(p));
+    const defenders = new Set([...atHq.slice(0, keep), ...pool.filter(stationedAway)].map((p) => p.id));
     const valuePerWage = (p: Person) => Math.max(...CREW_OPENING_ORDER.map((r) => roleStars(p, r))) / p.pay;
-    let bill = wageBill;
+    const byValue = (a: Person, b: Person) => valuePerWage(a) - valuePerWage(b) || b.id - a.id;
+    const order = [...pool.filter((p) => !defenders.has(p.id)).sort(byValue), ...pool.filter((p) => defenders.has(p.id)).sort(byValue)];
     const sacked: string[] = [];
-    for (const p of pool.slice(keep).sort((a, b) => valuePerWage(a) - valuePerWage(b) || b.id - a.id)) {
-      if (gang.cash >= bill) break;
+    for (const p of order) {
+      if (forecastCash >= bill) break;
+      const pay = p.pay, value = valuePerWage(p), defender = defenders.has(p.id);
       const r = sackPerson(w, gang.id, p.id);
-      if (r.ok) { bill -= p.pay; sacked.push(`${p.name} ($${p.pay}, ${valuePerWage(p).toFixed(3)}★ per $)`); }
+      if (r.ok) { bill -= pay; sacked.push(`${p.name} ($${pay}, ${value.toFixed(3)}★ per $${defender ? ', a defender' : ''})`); }
     }
     sackedForWages = sacked.length;
-    actions.push(`PAY cash $${Math.round(gang.cash)} cannot cover the wages ($${wageBill}): ${sacked.length ? `sacked ${sacked.length} pool hood(s), lowest value per wage first — ${sacked.join(', ')}` : 'no pool hood to sack'}; ${keep} office defender(s) kept`);
+    if (sacked.length) mem.wageSackWeek = w.week;
+    actions.push(`PAY forecast week-end cash $${Math.round(forecastCash)} (cash $${Math.round(gang.cash)} + expected takings $${Math.round(expectedTakings)} − spending given $${Math.round(plannedSpend)}) under wages + upkeep $${wageBill + upkeepLast}: spending and hiring stopped this week; ${sacked.length ? `sacked ${sacked.length} pool hood(s), lowest value per wage first, defenders last — ${sacked.join(', ')}` : 'no pool hood to sack'}${forecastCash < bill ? ` — still $${Math.round(bill - forecastCash)} short` : ''}`);
   }
-  if (shortOfCash) {
-    // 1.2.41 (Robert): never the lawyer, the accountant or a manager.
-    // 1.2.46 (Robert): each man's pay goes to the least that keeps his loyalty
-    // above the game's desertion line after this week — the cut's own cost,
-    // and the week's wage judgement against his ask as the game will re-quote
-    // it (it rises with his hostility). A man the cut would push to the line
-    // is raised to the least pay that keeps him above it.
-    const line = desertionLoyalty(w);
-    const after = (p: Person, pay: number) => p.loyalty - (pay < p.pay ? PAY_CUT_LOYALTY : 0) + (pay > p.pay && pay >= p.payDemand ? PAY_RAISE_LOYALTY : 0) + weeklyWageLoyalty(w, p, gang.id, pay);
+  /** 1.2.47 (Robert): the one reserve for every spend; in a week spending stopped, all the cash is held back. */
+  const cashReserve = spendStop ? Math.max(reserveNeed, Math.round(gang.cash)) : reserveNeed;
+  const spendOk = (cost: number) => gang.cash - cost >= cashReserve;
+  const aboveReserve = () => gang.cash - cashReserve;
+  const members = payroll.filter((p) => p.gangId === gang.id && p.status === 'active');
+  const short = members.filter((p) => p.pay < p.payDemand);
+  if (gang.cash < reserveNeed) {
+    // 1.2.47 (Robert): below the reserve, crew hoods only (never lieutenants,
+    // managers, the lawyer or the accountant) are cut, re-planned each week:
+    // no lower than the lesser of ask − $20 and the least pay above 76% of the
+    // ask, and only as low as keeps him above the desertion line for
+    // CUT_WEEKS weeks at that pay with the cut's own cost and one half-pay
+    // week. No pay from the floor up does: his full ask.
+    const line = desertionLoyalty(w), hit = halfPayLoyalty(w);
+    const floorPay = (p: Person) => Math.min(p.payDemand - PAY_FLOOR_UNDER_ASK, Math.floor(p.payDemand * PAY_FLOOR_SHARE) + 1);
+    const after = (p: Person, pay: number) => p.loyalty - (pay < p.pay ? PAY_CUT_LOYALTY : 0) + (pay > p.pay && pay >= p.payDemand ? PAY_RAISE_LOYALTY : 0) + CUT_WEEKS * weeklyWageLoyalty(w, p, gang.id, pay) - hit;
     const changed: string[] = [];
     let saved = 0;
-    for (const p of payroll.filter((x) => !managerIds.has(x.id) && x.role !== 'lawyer' && x.role !== 'accountant')) {
-      const top = Math.max(p.pay, p.payDemand);
-      let pay = top;
-      for (let v = 1; v <= top; v++) if (after(p, v) > line) { pay = v; break; }
+    for (const p of members.filter((x) => x.role === 'hood' && !managerIds.has(x.id))) {
+      let pay = Math.max(p.pay, p.payDemand);
+      for (let v = floorPay(p); v < p.payDemand; v++) if (after(p, v) > line) { pay = v; break; }
       if (pay === p.pay) continue;
       saved += p.pay - pay;
-      changed.push(`${p.name} $${p.pay}→$${pay} (loyalty ${Math.round(p.loyalty)}→${Math.round(after(p, pay))})`);
+      changed.push(`${p.name} $${p.pay}→$${pay} (ask $${p.payDemand}, loyalty ${Math.round(p.loyalty)}, ${Math.round(after(p, pay) + hit)} after ${CUT_WEEKS} weeks)`);
       setPay(w, p.id, pay);
     }
-    actions.push(`PAY short of cash ($${Math.round(gang.cash)} under the reserve): ${changed.length ? `${changed.length} pay change(s), $${saved} a week less — each to the least that keeps loyalty above the desertion line ${line.toFixed(1)}: ${changed.slice(0, NOT_GIVEN_NAMES).join(', ')}${changed.length > NOT_GIVEN_NAMES ? `; and ${changed.length - NOT_GIVEN_NAMES} more` : ''}` : 'nobody to change'}; the lawyer, the accountant and managers untouched`);
-  } else if (short.length && (weeklyNet >= raise || gang.cash >= (wageBill + raise) * 26)) {
-    for (const p of short) setPay(w, p.id, p.payDemand);
-    actions.push(`NOTE pay raised to what they ask for ${short.length} m${short.length === 1 ? 'an' : 'en'} (+$${raise} a week)`);
+    actions.push(`PAY short of cash ($${Math.round(gang.cash)} under the $${reserveNeed} reserve): ${changed.length ? `${changed.length} pay change(s), $${saved} a week less — floor min(ask − $${PAY_FLOOR_UNDER_ASK}, above ${Math.round(PAY_FLOOR_SHARE * 100)}% of ask), above the desertion line ${line.toFixed(1)} for ${CUT_WEEKS} weeks with one half-pay week: ${changed.slice(0, 3).join(', ')}${changed.length > 3 ? `; and ${changed.length - 3} more` : ''}` : 'no pay change'}; lieutenants, managers, the lawyer and the accountant untouched`);
   } else if (short.length) {
-    // 1.2.25 (B1, loyalty and pay demand): what last week netted pays the
-    // least loyal men's raises first, so the likeliest to walk are kept.
-    let room = Math.max(0, weeklyNet);
+    // 1.2.47 (Robert, replaces the 1.2.25 raise tests): cash above the
+    // reserve — underpaid men back to their ask, least loyal first, while the
+    // cash above the reserve covers a week of each raise.
+    let room = aboveReserve();
     const raised: string[] = [];
     for (const p of [...short].sort((a, b) => a.loyalty - b.loyalty || a.id - b.id)) {
       const step = p.payDemand - p.pay;
@@ -971,8 +1013,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       setPay(w, p.id, p.payDemand); room -= step;
       raised.push(`${p.name} (loyalty ${Math.round(p.loyalty)}, +$${step})`);
     }
-    if (raised.length) actions.push(`B1 pay: the least loyal raised first — ${raised.join(', ')}`);
-    actions.push(`NOTE ${short.length - raised.length} underpaid m${short.length - raised.length === 1 ? 'an' : 'en'} left short — the books cannot carry every raise`);
+    actions.push(`PAY restored to the ask, least loyal first: ${raised.length ? raised.slice(0, 5).join(', ') + (raised.length > 5 ? `; and ${raised.length - 5} more` : '') : 'none'}${short.length > raised.length ? `; ${short.length - raised.length} left short — the cash above the reserve cannot carry it` : ''}`);
   }
   const lastMen = menLastWeek.get(w);
   const menNow = crewMen();
@@ -1443,7 +1484,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (!result.ok) { moveToTeam(w, gang.id, weak.id, bizCrew.id); break; }
       talentPlaced.add(best.id);
     }
-    if (!Object.values(bizCrew.vehicles).some((n) => n > 0) && gang.cash > VEHICLES.coupe.cost * 3) {
+    if (!Object.values(bizCrew.vehicles).some((n) => n > 0) && spendOk(VEHICLES.coupe.cost)) {
       const result = buyVehicle(w, gang.id, 'coupe', bizCrew.id);
       logResult(actions, `business crew: a car for ${w.people[bizCrew.lieutenantId]?.name ?? 'the crew'}`, result.ok, result.ok ? '' : result.error);
     }
@@ -2131,14 +2172,13 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const propose = (p: Proposal<Team>) => { proposals.push(p); };
   /** Buildings put forward for a buy or a set-up this week (one order each). */
   const offered = new Set<number>();
-  /** 1.2.25 (Robert): the reserve — three weeks of wages, at most RESERVE_CAP — used everywhere cash is kept back. */
-  const cashReserve = Math.min(RESERVE_CAP, Math.round(wageBill * 3));
+  // 1.2.47: cashReserve (the one reserve) is set with the wages above.
   /** 1.2.45 (Robert): declared before the collect routes read it (it crashed when used before this line). */
   const bizCollects = !!bizCrew && gang.cash <= cashReserve;
   // 1.2.37 (Robert): losses. The gang is weak when its men fall below
   // a share of the biggest rival as far as we know it (1.2.43: see below; the rival men
   // our men have seen and who are still alive), or its cash falls below the
-  // reserve (three weeks of wages). Weak, the armed crews keep out of rival
+  // reserve (three weeks of asks and upkeep). Weak, the armed crews keep out of rival
   // blocks (no hits, strikes, smash-ups or bombs on rivals); otherwise they
   // ambush rival men with rifles and the rival HQ strike comes first.
   // 1.2.40 (Robert): the larger of the men we have identified (our list, never
@@ -2351,7 +2391,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (!team) continue;
     const full = team.memberIds.length >= MAX_TEAM_SIZE - 1;
     const carless = !Object.values(team.vehicles).some((n) => n > 0);
-    if (carless && gang.cash > VEHICLES.coupe.cost * 3) {
+    if (carless && spendOk(VEHICLES.coupe.cost)) {
       const result = buyVehicle(w, gang.id, 'coupe', team.id);
       logResult(actions, `buy car for ${w.people[team.lieutenantId]?.name ?? 'crew'} (out of time last week)`, result.ok, result.ok ? '' : result.error);
       if (result.ok) continue;
@@ -2417,7 +2457,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         .sort((a, b) => Number(isExp(b.id)) - Number(isExp(a.id)) || total(a) - total(b) || a.id - b.id)[0];
       if (hood) {
         moveToPool(w, gang.id, hood.id);
-        if ((gang.weapons.pistol ?? 0) < 1 && gang.cash > WEAPONS.pistol.cost) buyWeapon(w, gang.id, 'pistol');
+        if ((gang.weapons.pistol ?? 0) < 1 && spendOk(WEAPONS.pistol.cost)) buyWeapon(w, gang.id, 'pistol');
         const result = issueStreetOrder(w, gang.id, [hood.id], 'kill', agent.id, null);
         const at = watchedSites.filter((b) => dist(agent.pos, buildingDoor(w, b)) <= 30).sort((a, b) => dist(agent.pos, buildingDoor(w, a)) - dist(agent.pos, buildingDoor(w, b)))[0];
         logResult(actions, `FBI agent ${agent.name} seen at our ${at ? (BUILDING_BY_ID[at.typeId]?.name ?? at.typeId) : 'site'}${lieLow ? ' (lying low, sent all the same)' : ''} — ${hood.name} (expendable) sent to kill him; the FBI cannot be bought`, result.ok, result.ok ? '' : result.error);
@@ -2574,7 +2614,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const lawyer = availableSpecialist(w, gang, 'lawyer');
   const buyable = (id: number | undefined, share: number) => {
     const o = id == null ? undefined : w.people[id];
-    return !!o && o.bribedBy !== gang.id && isBribableOfficial(o) && !refusesBribe(o, gang.id) && bribePrice(w, o, gang.id) <= gang.cash * share ? o : undefined;
+    return !!o && o.bribedBy !== gang.id && isBribableOfficial(o) && !refusesBribe(o, gang.id) && bribePrice(w, o, gang.id) <= Math.min(gang.cash * share, aboveReserve()) ? o : undefined;
   };
   // 1.2.25 (B7, court cases): the nearest trial first, the strongest case among equals.
   const urgentCases = [...openCases].sort((a, b) => a.weeksToTrial - b.weeksToTrial || b.strength - a.strength || a.id - b.id);
@@ -2589,7 +2629,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (judge) options.push('bribeJudge');
     if (da) options.push('bribeDA');
     if (witnesses.length) options.push('bribeWitness', 'scareWitness');
-    if (jurors.length) options.push('bribeJuror');
+    if (jurors.length && spendOk(Math.round(400 + jurors[0].skills.intelligence * 300))) options.push('bribeJuror');
     const key = rollAction(actionRanks, options, rng);
     if (!key) {
       const why = (id: number) => {
@@ -2690,7 +2730,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (chief && chief.status === 'active' && rivalId != null && rivalId !== gang.id && w.gangs[rivalId]) {
       const offer = Math.round(bribePrice(w, chief, gang.id) * CHIEF_OUTBID);
       const crew = bribeCrew();
-      if (gang.cash >= offer && !refusesBribe(chief, gang.id)) {
+      if (spendOk(offer) && !refusesBribe(chief, gang.id)) {
         chiefPaid = true;
         propose({ label: 'outbid for the chief', kind: 'safety', value: 5000 + gang.suspicion * 10, why: `${w.gangs[rivalId].name} bought him — we offer $${offer} (120%)`, teams: crew ? [crew, ...ready.filter((t) => t !== crew)] : undefined,
           input: (team) => ({ type: 'bribe', personId: chief.id, opts: { manpower: manpowerFor(team, 2), amount: offer, ...sharp(team) } as IssueOrderInput['opts'] }) });
@@ -2704,7 +2744,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   }
   if ((hot || policeHostile || crackdownNamed) && !chiefPaid && chiefCooling) {
     const chief = w.people[w.policeChiefId];
-    if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > 1500) {
+    if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > 1500 && spendOk(bribeSum(400))) {
       const crew = bribeCrew();
       propose({ label: 'bribe chief', kind: 'safety', value: (policeHostile ? 5000 : 1200) + gang.suspicion * 10, why: `the chief is cooling (${chiefOpinion}${crackdownNamed ? ', crackdown' : ''})${policeHostile ? ', the police are hostile' : ''}`, teams: crew ? [crew, ...ready.filter((t) => t !== crew)] : undefined,
         input: (team) => ({ type: 'bribe', personId: chief.id, opts: { manpower: manpowerFor(team, 2), amount: bribeSum(400), ...sharp(team) } as IssueOrderInput['opts'] }) });
@@ -2720,7 +2760,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       actions.push(`NOTE going straight blocked: ${check.reason} [assets $${assetsNow.toLocaleString('en-US')} of $${GO_STRAIGHT_ASSETS.toLocaleString('en-US')} (cash does not count); ${illegalNow.length} illegal business(es); ${openCases.length} on trial; lawyer ${lawyer ? 'ready' : gang.lawyerId == null ? 'none hired' : 'not available'}]`);
     }
     if (assetsNow < GO_STRAIGHT_ASSETS * 1.2 && gang.cash > 20000) {
-      let budget = gang.cash - 20000;
+      let budget = Math.min(gang.cash - 20000, aboveReserve());
       let projected = assetsNow;
       const value = (b: Building) => (BUILDING_BY_ID[b.typeId]?.cost ?? 0) * (0.6 + (w.blocks[b.blockId]?.landValue ?? 0) / 100);
       const picks = buildingList(w).filter((b) => b.ownerGangId == null && b.state === 'trading' && ['commercial', 'industrial', 'tenement'].includes(b.cls) &&
@@ -2795,18 +2835,24 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           return (everyMan ? frees : frees.slice(0, 1)).map((free) => ({ team, free }));
         });
         const takers = everyMan || crewRoom ? hands : hands.slice(0, 1);
-        // 1.2.46 (Robert, replaces the 1.2.25 "nothing holds it back"): hires
-        // only while last week's net (takings − wages − upkeep) covers about one
-        // new man's wage (our men's average ask) per hire; otherwise only last
-        // week's losses are replaced. A stop that finds people signs at least
-        // one, so the stops are capped at the hires. Below RECRUIT_EVERY_MAN men
-        // the 1.2.45 rule stands. No recruiting in a week that sacked for wages.
-        const asks = payroll.filter((p) => p.role === 'hood' || p.role === 'lieutenant').map((p) => p.payDemand);
+        // 1.2.47 (Robert, replaces 1.2.46's net cap): hood hires only while
+        // the cash covers three weeks of our men's asks and upkeep plus three
+        // weeks of each new man's ask (our hoods' and lieutenants' average ask):
+        // hires ≤ (cash − 3 × (asks + upkeep)) ÷ (3 × a new man's ask). None in a
+        // week spending stopped, for 3 weeks after a week that sacked for wages,
+        // nor after that until the cash is back above the reserve. Below
+        // RECRUIT_EVERY_MAN men the 1.2.45 rule stands. A stop that finds people
+        // signs at least one, so the stops are capped at the hires.
+        const asks = members.filter((p) => p.role === 'hood' || p.role === 'lieutenant').map((p) => p.payDemand);
         const newWage = asks.reduce((sum, a) => sum + a, 0) / asks.length;
-        const lostLastWeek = memberLosses(w, gang.id, w.week - 1).filter((l) => l.week === w.week - 1).length;
-        const byNet = Math.floor(weeklyNet / newWage);
-        let stopsLeft = sackedForWages ? 0 : everyMan ? Infinity : byNet > 0 ? byNet : lostLastWeek;
-        actions.push(`NOTE recruit: ${sackedForWages ? `none — ${sackedForWages} sacked for wages this week` : everyMan ? `below ${RECRUIT_EVERY_MAN} men, no cap` : byNet > 0 ? `up to ${byNet} hire(s) — last week's net $${Math.round(weeklyNet)} at about $${Math.round(newWage)} a man` : `only replacing last week's ${lostLastWeek} loss(es) — last week's net $${Math.round(weeklyNet)} does not cover a $${Math.round(newWage)} wage`}`);
+        const hold = RESERVE_WEEKS * (members.reduce((sum, p) => sum + p.payDemand, 0) + upkeepLast);
+        const byCash = Math.floor((gang.cash - hold) / (RESERVE_WEEKS * newWage));
+        const sackWeek = mem.wageSackWeek;
+        const cooling = sackWeek != null && w.week - sackWeek <= HIRE_COOLDOWN_WEEKS;
+        const awaitingReserve = sackWeek != null && !cooling && gang.cash < reserveNeed;
+        if (sackWeek != null && !cooling && !awaitingReserve) mem.wageSackWeek = undefined;
+        let stopsLeft = spendStop || cooling || awaitingReserve ? 0 : everyMan ? Infinity : byCash;
+        actions.push(`NOTE recruit: ${spendStop ? `none — spending and hiring stopped (week-end forecast under the wages)${sackedForWages ? `, ${sackedForWages} sacked` : ''}` : cooling ? `none — sacked for wages in week ${sackWeek}, no hiring for ${HIRE_COOLDOWN_WEEKS} weeks after` : awaitingReserve ? `none — since the sacking in week ${sackWeek}, not until the cash ($${Math.round(gang.cash)}) is back above the $${reserveNeed} reserve` : everyMan ? `below ${RECRUIT_EVERY_MAN} men, no cap` : `${byCash > 0 ? `up to ${byCash} hire(s)` : 'none'} — cash $${Math.round(gang.cash)} against ${RESERVE_WEEKS} weeks of asks and upkeep $${Math.round(hold)} + ${RESERVE_WEEKS} weeks of about $${Math.round(newWage)} a new man; last week's net at full asks $${Math.round(weeklyNet)}`}`);
         const left = [...sites];
         for (let k = 0; k < takers.length && left.length && stopsLeft > 0; k++) {
           const { team, free } = takers[k];
@@ -2995,7 +3041,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (weight.rackets >= 0.45 && policy.illegal && !lieLow) {
         const owned = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.state === 'trading');
         const lands = owned.filter((b) => b.cls === 'empty' && w.lots[b.lotId]?.index === 4);
-        let budget = gang.cash * 0.5;
+        let budget = Math.min(gang.cash * 0.5, aboveReserve());
         for (const land of lands.slice(0, 2)) {
           const front = owned.find((b) => b.blockId === land.blockId && b.id !== land.id && b.hidesId == null && ['commercial', 'industrial', 'tenement'].includes(b.cls));
           if (!front) continue;
@@ -3011,7 +3057,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (key === 'bribes' && !hot && chiefCooling && w.week >= 4 && weight.bribes >= 0.25) {
       const chief = w.people[w.policeChiefId];
       const gate = 1500 + (1 - weight.bribes) * 2500;
-      if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > gate) {
+      if (chief && chief.status === 'active' && chief.bribedBy !== gang.id && gang.cash > gate && spendOk(bribeSum(Math.round(200 + weight.bribes * 800)))) {
         const crew = bribeCrew();
         propose({ label: 'bribe', kind: 'safety', value: 500, why: 'the police chief is cooling', teams: crew ? [crew, ...ready.filter((t) => t !== crew)] : undefined,
           input: (team) => ({ type: 'bribe', personId: chief.id, opts: { manpower: manpowerFor(team, 2), amount: bribeSum(Math.round(200 + weight.bribes * 800)), ...sharp(team) } as IssueOrderInput['opts'] }) });
@@ -3034,7 +3080,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           return b.ownerGangId == null && b.state === 'trading' && cost > 0 && cost < gang.cash * fraction;
         }).sort(nearer);
         // Legal takings cover the money the Bureau cannot explain: worth more while suspicion is up.
-        if (sites.length) planBuy(legalPush ? 'buy (premises takings vs office takings)' : 'buy', sites, undefined, (b) => (BUILDING_BY_ID[b.typeId]?.profit ?? 0) * (coverFirst ? 12 : 4), undefined, gang.cash * fraction);
+        if (sites.length) planBuy(legalPush ? 'buy (premises takings vs office takings)' : 'buy', sites, undefined, (b) => (BUILDING_BY_ID[b.typeId]?.profit ?? 0) * (coverFirst ? 12 : 4), undefined, Math.min(gang.cash * fraction, aboveReserve()));
         else if (coverFirst) actions.push(`NOTE no legal premises for sale under $${Math.round(gang.cash * fraction)}`);
       }
     }
@@ -3058,10 +3104,10 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // a truck to export what the outlets cannot take. The trucks between the
   // gang's own sites run by themselves; only the export needs a crew.
   if (w.week >= 4) {
-    // 1.2.25 (Robert): one reserve everywhere — three weeks of wages, at most
+    // 1.2.25 (Robert): one reserve everywhere — three weeks of asks and upkeep (1.2.47), at most
     // RESERVE_CAP (plus any campaign fund).
     const keep = cashReserve + campaignReserve;
-    actions.push(`NOTE reserve $${keep.toLocaleString('en-US')} (3 weeks' payroll, at most $${RESERVE_CAP.toLocaleString('en-US')}${campaignReserve ? ' + campaign' : ''}); $${Math.max(0, Math.round(gang.cash - keep)).toLocaleString('en-US')} to reinvest`);
+    actions.push(`NOTE reserve $${keep.toLocaleString('en-US')} (${spendStop ? 'all the cash — spending stopped this week' : `3 weeks of asks and upkeep, at most $${RESERVE_CAP.toLocaleString('en-US')}`}${campaignReserve ? ' + campaign' : ''}); $${Math.max(0, Math.round(gang.cash - keep)).toLocaleString('en-US')} to reinvest`);
     let spareCash = gang.cash - keep;
     const owned = () => buildingList(w).filter((b) => b.ownerGangId === gang.id && b.state === 'trading');
     // Counted from the day it is bought or set up, not only once it trades.
@@ -3195,7 +3241,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // 1.2.25: never the business crew (it only buys and sets up, and gets no truck).
       const street = ready.filter((t) => roles.get(t.id) !== 'business');
       const team = street.find((t) => (t.vehicles.truck ?? 0) > 0 && freeShare(t) > 0.15) ?? street.filter((t) => !outOfTime.has(t.id)).sort((a, b) => crewFreeMinutes(w, b) - crewFreeMinutes(w, a) || a.id - b.id)[0];
-      if (team && (team.vehicles.truck ?? 0) === 0 && gang.cash > VEHICLES.truck.cost + 1000) {
+      if (team && (team.vehicles.truck ?? 0) === 0 && spendOk(VEHICLES.truck.cost)) {
         const result = buyVehicle(w, gang.id, 'truck', team.id);
         logResult(actions, `reinvest: buy truck for ${w.people[team.lieutenantId]?.name ?? 'crew'} to export`, result.ok, result.ok ? '' : result.error);
       }
@@ -3293,7 +3339,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   }
 
   // ---- equipment: cars where they save time, guns and explosives for the rough work
-  const reserve = 2500 + gangManpower(w, gang) * 60;
+  // 1.2.47 (Robert): cars and guns keep the one reserve too (was $2,500 + $60 a man).
+  const reserve = cashReserve;
   if (w.week >= 2) {
     const owed = protectedBuildings(w, gang.id);
     const reach = owed.length ? owed.reduce((sum, b) => sum + dist(w.lots[b.lotId].center, origin), 0) / owed.length : 0;
@@ -3536,7 +3583,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // graph), otherwise the strongest per man we know of (rich, thinly manned).
   const liveRivals = Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated);
   const knownMen = (g: Gang) => identified(g);
-  // 1.2.25 (Robert): surplus = cash − the reserve (three weeks of wages) − $20,000.
+  // 1.2.25 (Robert): surplus = cash − the reserve (three weeks of asks and upkeep) − $20,000.
   const surplusCash = Math.round(gang.cash - cashReserve - 20000);
   // Surplus spending (bribes, buys, the strongest rival's HQ) starts above SURPLUS_START.
   const surplus = surplusCash > SURPLUS_START;
@@ -3583,7 +3630,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     let cars = 0;
     for (const team of ready) {
       if (cars >= 2 || Object.values(team.vehicles).some((n) => n > 0)) continue;
-      if (gang.cash < wageBill * 3 + VEHICLES.coupe.cost * 2) break;
+      if (!spendOk(VEHICLES.coupe.cost * 2)) break;
       const result = buyVehicle(w, gang.id, 'coupe', team.id);
       logResult(actions, `territory: a car for ${w.people[team.lieutenantId]?.name ?? 'crew'}`, result.ok, result.ok ? '' : result.error);
       if (result.ok) cars++;

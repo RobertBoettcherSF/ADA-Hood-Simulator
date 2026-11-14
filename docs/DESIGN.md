@@ -238,6 +238,19 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.47 decisions
+
+Auto Test pay, reserve, sacking and recruiting by what the men ask, after the two 1.2.46 runs (Robert).
+
+1. Pay floor. No cut below the lesser of ask − $20 (no loyalty loss) and the least pay above 76% of the ask (the smallest weekly loss band, 1.57 loyalty). Replaces 1.2.46's cuts to $1.
+2. Cuts over several weeks. A man is cut only as low as keeps him above the desertion line for 4 weeks at that pay, counting the cut's own −6 and one half-pay week (6.27); if no pay from the floor up does, he gets his full ask. Re-planned every week below the reserve. Above the reserve, underpaid men go back to their ask, least loyal first, while the cash above the reserve covers a week of each raise (replaces the 1.2.25 raise tests).
+3. Hiring cooldown. No recruiting for 3 weeks after a week that sacked for wages, and after that not until the cash is back above the reserve.
+4. Recruiting by cash. Last week's net is takings − the men's asks − upkeep. Hood hires only while cash ≥ 3 × (asks + upkeep + the new men's asks): hires ≤ (cash − 3 × (asks + upkeep)) ÷ (3 × a new man's ask), a new man's ask being our hoods' and lieutenants' average. 1.2.46's net cap and loss replacement are dropped. Below 6 men the 1.2.45 every-man rule stays.
+5. One reserve: min($50,000, 3 × (the men's asks + upkeep)), kept back by every spend — the strategy buys, chief and court bribes, guns and cars (was $2,500 + $60 a man), the Business and other crew cars, donations, reinvesting, going straight and rackets.
+6. Sacking from a forecast. When cash + the lower of last week's and the 4-week average takings − buys already given and unpaid falls under this week's wages + upkeep, spending and hiring stop for the week (all the cash is held back) and pool hoods are sacked until it covers them: lowest value per wage first, the office defenders (the oldest pool hoods at the HQ, and hoods stationed at our other offices) last.
+7. Cuts are for crew and pool hoods only: lieutenants, managers, the lawyer and the accountant are never cut.
+8. Speed. Idle hoods and specialists looking for an office use each gang's office and HQ lists, gathered once per ambient pass, instead of scanning every building for each man. Same answers in the same order.
+
 ## v1.2.46 decisions
 
 Auto Test fixes from the second 1.2.45 run: spending, defence, wages and FBI exposure (Robert).
