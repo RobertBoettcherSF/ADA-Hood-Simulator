@@ -32,8 +32,11 @@ export function freeForOrders(w: WorldState, p: Person): boolean {
 
 export function orderStaffing(w: WorldState, team: Team, order: Pick<Order, 'type' | 'opts'>, planning = false) {
   const members = crewPeople(w, team).filter(p => p.status !== 'dead');
+  // 1.2.61 (Robert): a man on no job who is only on his way home — on foot, or in a
+  // crew car that is only driving home (no job, no goods) — is free for queued orders.
+  const homeward = (p: Person) => { const v = p.vehicleKey ? w.vehicleFleet?.[p.vehicleKey] : undefined; return !p.vehicleKey || (!!v && v.orderId == null && !!v.returning && !v.cargo); };
   const available = members.filter(p => freeForOrders(w, p) &&
-    (planning || !p.vehicleKey && p.orderId == null && !p.dest && !p.streetOrder));
+    (planning || homeward(p) && p.orderId == null && !p.streetOrder));
   const want = Math.max(1, order.opts.manpower);
   const preferred = order.opts.preferredHoodId == null ? null : members.find(p => p.id === order.opts.preferredHoodId);
   // 1.2.60 (Robert): a man named on another of the crew's queued orders is held

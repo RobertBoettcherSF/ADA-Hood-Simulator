@@ -482,7 +482,10 @@ export class Sim {
         order.state = 'failed';
         order.failReason = order.failReason ?? (neverStarted
           ? `The order never started. ${order.dispatchWaitReason ?? 'No crew was available before the week ended.'}`
-          : 'There was not enough time in the week to perform the order.');
+          // 1.2.61 (Robert): a Kill still hunting at the week's end never found its man.
+          : order.type === 'kill' && order.hunting
+            ? `Searched all week but never found ${(order.targetPersonId != null ? w.people[order.targetPersonId]?.name : undefined) ?? 'the target'}.`
+            : 'There was not enough time in the week to perform the order.');
       }
       delete order.dispatchWaitReason;
       // 1.2.52: an order still running at the week's end ran to the end of

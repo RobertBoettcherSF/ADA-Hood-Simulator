@@ -238,6 +238,11 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.61 decisions
+
+1. **Men heading home are free for queued orders (all gangs).** A crew man on no job who is only on his way home — on foot, or in a crew car that is only driving home with no job and no goods — counts as free for a queued order. When picked he gets out where he is and goes straight to the new job, so a waiting order starts as soon as enough men finish their last one.
+2. **A Kill that hunted all week says so.** A Kill order still hunting at the week's end (its target never found) fails with "Searched all week but never found <name>." instead of "There was not enough time in the week to perform the order." No other message changes.
+
 ## v1.2.60 decisions
 
 Numbers marked *proposed* are ours, not Robert's.

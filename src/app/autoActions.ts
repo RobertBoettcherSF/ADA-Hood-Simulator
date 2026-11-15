@@ -104,7 +104,8 @@ export interface PendingAction {
 }
 
 /** The order's fail reason when the crew simply ran out of week. */
-export const OUT_OF_TIME = /not enough time|out of time|ran out of (the )?week/i;
+// 1.2.61: a Kill that hunted all week ("Searched all week but never found …") ran out of week as before.
+export const OUT_OF_TIME = /not enough time|out of time|ran out of (the )?week|searched all week/i;
 
 const LOST = new Set<Person['status']>(['arrested', 'onTrial', 'jailed', 'dead', 'kidnapped']);
 

@@ -520,6 +520,8 @@ function assignOrder(w: WorldState, team: Team, order: Order, atWeekStart = fals
   }
 
   // 1.2.50 (Robert): a man waiting inside his own office walks out to take the order.
+  // 1.2.61 (Robert): a man riding home in a crew car with no job gets out where he is and goes.
+  for (const p of chosen) if (p.vehicleKey) alight(w, p);
   for (const p of chosen) if (waitingInside(w, p)) { const office = w.buildings[p.buildingId!]; p.buildingId = null; p.pos = buildingDoor(w, office); }
   order.assignedIds = chosen.map((p) => p.id);
   // 1.2.51: who went and when, kept after the order finishes (order fitness).
