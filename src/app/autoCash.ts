@@ -61,6 +61,8 @@ export interface CashSpend {
   immediate?: boolean;
   /** 1.2.54 (Robert): the chance it is carried out (order completion); an API spend is 1. */
   chance?: number;
+  /** 1.2.59 (Robert): no fixed wage-bill veto — the cash fitness (λ at the cash left) alone decides (the mayor's bribe). */
+  noFloor?: boolean;
 }
 
 export interface CashPassResult { lines: string[]; spent: number; taken: number; takenSet: Set<CashSpend> }
@@ -86,7 +88,7 @@ export function runCashPass(spends: CashSpend[], cash: number, R: number, floor:
     const after = left - s.cost * p;
     const lambda = holdValue(after, R, avgPay, scale);
     const line = `${s.label} [${s.kind}] $${Math.round(s.cost)} at ${s.ret.toFixed(2)}/$${p < 1 ? ` × chance ${p.toFixed(2)} = ${eff(s).toFixed(2)}` : ''} vs λ ${lambda.toFixed(2)}`;
-    if (worst - s.cost < floor) { lines.push(`${line} — not taken: it would put the wage bill at risk`); continue; }
+    if (!s.noFloor && worst - s.cost < floor) { lines.push(`${line} — not taken: it would put the wage bill at risk`); continue; }
     if (eff(s) < lambda) { lines.push(`${line} — not taken (${s.why})`); continue; }
     if (!s.run()) { lines.push(`${line} — taken but refused by the game (${s.why})`); continue; }
     left = after; worst -= s.cost; spent += s.cost * p; taken++; takenSet.add(s);

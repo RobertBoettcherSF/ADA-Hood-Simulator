@@ -238,6 +238,42 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.59 decisions
+
+Numbers marked *proposed* are ours, not Robert's.
+
+1. **Bribes count the gang-wide rest they prevent.**
+   - The rest line is the officers' opinion at which a man with no wanted level reaches the rest line (about −84).
+   - The officers' lowest opinion over the next 4 weeks is projected the way the game moves opinion: the mayor drifts with our crime, the chief follows him 35% a week, and the officers follow the chief 25% a week.
+   - A rest is priced at crew men × V × 4 weeks (*proposed*). It counts from 20 points above the rest line (band *proposed*) and in full at the line.
+   - The chief's and the mayor's bribes count the fall in that nearness. One more paid officer counts his share (÷ the number of officers).
+   - The mayor's bribe has no fixed wage-bill veto: the cash fitness (λ) decides.
+   - A REST RISK line logs this every week.
+2. **The urgent lawyer/accountant search learns separately.** It is logged and learned as its own order type (`recruitStaff`). Priority-valued orders (1e9 and up) never enter LEARN, so the recruit factor learns from real recruits only.
+3. **A manager hire or swap pays for the man it takes.** It goes ahead only if the profit it adds (× 8 weeks, margin 1.5) beats:
+   - 150 man-minutes at the crew's rate;
+   - 8 weeks of the hood's street value (his crew's man-minute rate × half a week's minutes), less the old manager's earnings back at work;
+   - one hire's cost when he leaves a crew.
+4. **The man named for an order is free that week.** He must be staffable, on no order, not resting, and not named on (or assigned to) another of his crew's orders. A busy man is passed over for the next free one. This applies to buys, the best-skill man for bombing, arson, kidnap and smash-up, and bribe runs.
+5. **New blocks count in the buy check in a territory race.** The goal value of a new block (900 × the territory weight 2 = 1,800, *proposed*) is added to a block-adding buy before it is compared with the crew's own man-minute rate.
+6. **SUMMARY block** right after BUILD and TEST KEY, in the final report (the whole run) and in each 60-week file (its weeks):
+   - outcome, week and score;
+   - blocks, men, managers, cash and reserve every 10 weeks;
+   - slow stretches (3+ weeks under 2 blocks a week) and no-crew weeks;
+   - losses by cause, with sacked and re-arrests apart;
+   - peaks: FBI total, top FBI score, top wanted, lowest chief and mayor;
+   - idle cash;
+   - ORDER EXEC totals and the top 3 reasons;
+   - the final LEARN factors, coin and trial counts;
+   - buys done and failed by reason.
+7. **Smaller files.**
+   - WON, the CASH FIT spend lists, per-order ORDER FIT lines (only outliers: net below $0, or a man lost or arrested) and NOTE business buy lines are cut to the top 10 plus "N more". The buy results become one BUYS line.
+   - The OK and MANAGER SWAP given pairs are merged.
+   - WEEK-END TIMING, SIZES and MEMPROBE are printed every 10 weeks, or when the heap grew 10% (*proposed*).
+   - Files split only at week boundaries.
+   - BUILD, TEST KEY, LEARN, ORDER EXEC, HEAT, the CASH FIT head and FITNESS lines are unchanged.
+8. **60-week files are written as soon as each 60 weeks are played,** no longer once 120 are held in memory.
+
 ## v1.2.58 decisions
 
 Auto Test never changes game settings (Robert).

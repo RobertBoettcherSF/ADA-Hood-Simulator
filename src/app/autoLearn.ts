@@ -42,9 +42,12 @@ export function exploreRng(seed: number, week: number): Rng {
   return new Rng(((seed ^ EXPLORE_SALT) >>> 0) + week * 7919);
 }
 
-export function noteExpect(m: LearnMemory, e: LearnExpect): void { m.pending.push(e); }
+/** 1.2.59 (Robert): an expected value this large is a priority mark (STAFF_TOP_VALUE), not a forecast — never learned from. */
+export const LEARN_PRIORITY_VALUE = 1e9;
+export function noteExpect(m: LearnMemory, e: LearnExpect): void { if (Number.isFinite(e.value) && e.value < LEARN_PRIORITY_VALUE) m.pending.push(e); }
 
 const add = (book: Record<string, Sums>, type: string, exp: number, act: number) => {
+  if (!Number.isFinite(exp) || exp >= LEARN_PRIORITY_VALUE) return;
   const s = book[type] ?? (book[type] = { exp: 0, act: 0, n: 0 });
   s.exp += exp; s.act += act; s.n += 1;
 };

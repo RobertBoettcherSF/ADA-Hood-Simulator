@@ -251,7 +251,13 @@ export function splitReport(text: string, size = 4_000_000): string[] {
   let start = 0;
   while (start < text.length) {
     let end = Math.min(text.length, start + size);
-    if (end < text.length) { const nl = text.lastIndexOf('\n', end); if (nl > start) end = nl + 1; }
+    // 1.2.59 (Robert): a part ends before a week's '-- week' line, so no week is split across files;
+    // only a single week larger than a part falls back to the last line break.
+    if (end < text.length) {
+      const wk = text.lastIndexOf('\n-- week ', end - 1);
+      const nl = text.lastIndexOf('\n', end);
+      if (wk > start) end = wk + 1; else if (nl > start) end = nl + 1;
+    }
     parts.push(text.slice(start, end));
     start = end;
   }

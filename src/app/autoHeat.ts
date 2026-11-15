@@ -140,6 +140,45 @@ export function streetRisk(wanted: number, officer: number): number {
   return clamp01((wanted - WANTED_DECAY_WORKING - (line - WANTED_BAND)) / WANTED_BAND);
 }
 
+/**
+ * 1.2.59 (Robert): the officers' opinion at which even a man with no wanted
+ * level reaches the rest line (streetRisk(0, op) = REST_RISK) — below it the
+ * whole gang rests. About −84 with the lines above.
+ */
+export function restOpinionLine(): number {
+  return 2 * (WANTED_BAND - WANTED_DECAY_WORKING - STREET_LINE - REST_RISK * WANTED_BAND);
+}
+/** 1.2.59 (proposed): opinion points above the rest line where a gang-wide rest starts to be priced (0 there, full at the line). */
+export const REST_OPINION_BAND = 20;
+/** 1.2.59 (proposed): weeks a gang-wide rest takes (4–5 seen in the 1.2.58 runs). */
+export const REST_WEEKS_LOST = 4;
+/** How close the officers' opinion is to the gang-wide rest line (0 far above, 1 at or below it). */
+export function restNearness(officer: number): number {
+  return clamp01((restOpinionLine() + REST_OPINION_BAND - officer) / REST_OPINION_BAND);
+}
+/**
+ * 1.2.59 (Robert): the officers' lowest opinion over HEAT_WEEKS — the mayor
+ * drifts by our crime load (MAYOR_PER_RISK a point of risk), the chief follows
+ * him 35% a week and the officers follow the chief 25% a week (the game's
+ * weekly opinion). dMayor / dChief / dOfficer are a bribe's lift.
+ */
+export function officerLow(s: HeatState, riskPerWeek: number, dMayor = 0, dChief = 0, dOfficer = 0): number {
+  let m = s.mayor + dMayor, c = s.chief + dChief, o = s.officer + dOfficer, low = o;
+  for (let k = 0; k < HEAT_WEEKS; k++) {
+    m = Math.max(-100, m - riskPerWeek * MAYOR_PER_RISK);
+    c += (m - c) * CHIEF_PULL;
+    o += (c - o) * 0.25;
+    low = Math.min(low, o);
+  }
+  return low;
+}
+/** 1.2.59 (Robert): the gang-wide rest a lift prevents — restCost (men × V × REST_WEEKS_LOST) × the fall in nearness. */
+export function restRelief(s: HeatState, riskPerWeek: number, restCost: number, dMayor = 0, dChief = 0, dOfficer = 0): number {
+  const before = restNearness(officerLow(s, riskPerWeek));
+  const after = restNearness(officerLow(s, riskPerWeek, dMayor, dChief, dOfficer));
+  return Math.max(0, restCost * (before - after));
+}
+
 /** The arrest risk the game gives a planned crime of this severity (one witness of weight WITNESS_WEIGHT_EST). */
 export function crimeRisk(type: string): number {
   const sev = ORDERS[type as OrderType]?.severity ?? 0;
