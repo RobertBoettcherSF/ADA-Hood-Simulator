@@ -238,6 +238,19 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.60 decisions
+
+Numbers marked *proposed* are ours, not Robert's.
+
+1. **A street man's value counts only street takings.** V = (last week's takings − what our businesses took) ÷ crew men; L = V × 26 + hire as before. Every fitness that uses V, A or L follows.
+2. **No endgame bans; risk is priced.** An order with a target in a rival-held or rival-sighted block, or in the defence zone while on defence, goes ahead while its worth (a new block's goal value included) beats hazard × L × the men it really sends (the game's default is 1). Stops that do not pay are dropped. A site attacked last week multiplies the hazard by 2 (*proposed*) instead of keeping the armed men home. The land freeze is gone (a note says when it would have applied). Specialist visits (bribes) into danger blocks are priced the same against the bribe's benefit.
+3. **Paths into rival blocks.** Claims overlap, so one standing business owned or protected in a rival block adds the block. Extortion of unprotected shops and collection now reach rival blocks. Buys, lots and set-ups in a block we do not hold carry the new block's goal value (900 × the territory weight). The surplus list takes any business for sale in a rival's block and empty lots outside our blocks. An HQ strike is valued at least at the blocks our map shows the gang holding and we do not × the goal value × 1 ÷ (its men + 1).
+4. **Managers are recalled when they do not pay.** A hood manager stays only while his takings at his factor, against the site unmanned (no skim), less his wage, beat V. Otherwise he is recalled (Return to base) when V × 12 weeks beats one week's takings, best gain first, while a crew seat or a missing office defender is open, and joins the shortest crew with room.
+5. **Game rule: a named man is held for his order.** When a crew's orders are staffed, a man named on another of its queued orders is skipped. This applies to players too.
+6. **Early bribes.** In the cash pass, a spend that crosses the reserve is weighed at λ above R for the part above and λ below R only for the dollars below. Rest nearness is the expected weeks under the rest line over 4 weeks (each week's depth in bands, not capped) ÷ 4. A paid officer's value for dismissal includes his share of the rest. The chief's hostility-224 bribe refusal stays.
+7. **Idle cash** flows into points 2–4; no new rule.
+8. **Report.** Held-back notes name the defence loss. MANAGERS, NOTE managers and MANAGER RECALL lists keep the top 10 plus "N more".
+
 ## v1.2.59 decisions
 
 Numbers marked *proposed* are ours, not Robert's.

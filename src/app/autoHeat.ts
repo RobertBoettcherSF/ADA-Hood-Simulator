@@ -172,10 +172,31 @@ export function officerLow(s: HeatState, riskPerWeek: number, dMayor = 0, dChief
   }
   return low;
 }
-/** 1.2.59 (Robert): the gang-wide rest a lift prevents — restCost (men × V × REST_WEEKS_LOST) × the fall in nearness. */
+/**
+ * 1.2.60 (Robert): the expected weeks under the rest line over HEAT_WEEKS —
+ * each projected week of the officers' opinion counts its depth below the line
+ * + REST_OPINION_BAND in bands, not capped at 1 (a deeper week takes a bigger
+ * lift to clear), so a lift always shows. Same projection as officerLow.
+ */
+export function restWeeksUnder(s: HeatState, riskPerWeek: number, dMayor = 0, dChief = 0, dOfficer = 0): number {
+  let m = s.mayor + dMayor, c = s.chief + dChief, o = s.officer + dOfficer, weeks = 0;
+  const top = restOpinionLine() + REST_OPINION_BAND;
+  for (let k = 0; k < HEAT_WEEKS; k++) {
+    m = Math.max(-100, m - riskPerWeek * MAYOR_PER_RISK);
+    c += (m - c) * CHIEF_PULL;
+    o += (c - o) * 0.25;
+    weeks += Math.max(0, (top - o) / REST_OPINION_BAND);
+  }
+  return weeks;
+}
+/** 1.2.60 (Robert): nearness to a gang-wide rest — the expected weeks under the line ÷ HEAT_WEEKS (uncapped). */
+export function restNearnessAhead(s: HeatState, riskPerWeek: number, dMayor = 0, dChief = 0, dOfficer = 0): number {
+  return restWeeksUnder(s, riskPerWeek, dMayor, dChief, dOfficer) / HEAT_WEEKS;
+}
+/** 1.2.59 (Robert): the gang-wide rest a lift prevents — restCost (men × V × REST_WEEKS_LOST) × the fall in nearness (1.2.60: expected weeks under the line, uncapped). */
 export function restRelief(s: HeatState, riskPerWeek: number, restCost: number, dMayor = 0, dChief = 0, dOfficer = 0): number {
-  const before = restNearness(officerLow(s, riskPerWeek));
-  const after = restNearness(officerLow(s, riskPerWeek, dMayor, dChief, dOfficer));
+  const before = restNearnessAhead(s, riskPerWeek);
+  const after = restNearnessAhead(s, riskPerWeek, dMayor, dChief, dOfficer);
   return Math.max(0, restCost * (before - after));
 }
 

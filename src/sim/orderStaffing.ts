@@ -36,6 +36,15 @@ export function orderStaffing(w: WorldState, team: Team, order: Pick<Order, 'typ
     (planning || !p.vehicleKey && p.orderId == null && !p.dest && !p.streetOrder));
   const want = Math.max(1, order.opts.manpower);
   const preferred = order.opts.preferredHoodId == null ? null : members.find(p => p.id === order.opts.preferredHoodId);
+  // 1.2.60 (Robert): a man named on another of the crew's queued orders is held
+  // for it — the crew's other orders are staffed without him.
+  const held = new Set<number>();
+  for (const oid of team.orderIds) {
+    const other = w.orders[oid];
+    if (!other || other === order || other.state !== 'queued' || other.opts.preferredHoodId == null) continue;
+    if (other.opts.preferredHoodId !== order.opts.preferredHoodId) held.add(other.opts.preferredHoodId);
+  }
+  const open = available.filter(p => p === preferred || !held.has(p.id));
   let reason: string | null = null, impossible = false;
   if (order.opts.preferredHoodId != null && !preferred) {
     reason = 'The preferred person is no longer available in this crew.'; impossible = true;
@@ -43,18 +52,18 @@ export function orderStaffing(w: WorldState, team: Team, order: Pick<Order, 'typ
     reason = `This order needs ${want} people, but only ${members.length} remain in the crew.`; impossible = true;
   } else if (preferred && !available.includes(preferred)) {
     reason = `${preferred.name} is ${planning ? 'unavailable' : 'not free yet'}; this order needs that person.`;
-  } else if (available.length < want) {
-    reason = `This order needs ${want} people; ${available.length} ${available.length === 1 ? 'is' : 'are'} ${planning ? 'available' : 'free'}.`;
+  } else if (open.length < want) {
+    reason = `This order needs ${want} people; ${open.length} ${open.length === 1 ? 'is' : 'are'} ${planning ? 'available' : 'free'}.`;
   }
   const chosen = preferred && available.includes(preferred) ? [preferred] : [];
-  const lt = available.find(p => p.id === team.lieutenantId);
+  const lt = open.find(p => p.id === team.lieutenantId);
   const def = ORDERS[order.type];
   const dangerous = def.group === 'minor' || def.group === 'violent' || order.type === 'guardBusiness' || order.type === 'patrol';
   // Manual p.88: poor leaders avoid danger even when best suited to the job.
   // Three stars is remake tuning. A capable leader competes on task skill;
   // otherwise they remain the fallback, so accepted manpower is still filled.
   const willing = dangerous && lt && skillAvg(lt, ['organization', 'intelligence']) >= 3;
-  const candidates = available.filter(p => p !== preferred && (p.id !== team.lieutenantId || willing))
+  const candidates = open.filter(p => p !== preferred && (p.id !== team.lieutenantId || willing))
     .sort((a, b) => skillAvg(b, def.skills) - skillAvg(a, def.skills) ||
       Number(a.id === team.lieutenantId) - Number(b.id ===team.lieutenantId));
   while (chosen.length < want && candidates.length) chosen.push(candidates.shift()!);

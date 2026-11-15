@@ -86,8 +86,14 @@ export function runCashPass(spends: CashSpend[], cash: number, R: number, floor:
   for (const s of order) {
     const p = s.chance ?? 1;
     const after = left - s.cost * p;
-    const lambda = holdValue(after, R, avgPay, scale);
-    const line = `${s.label} [${s.kind}] $${Math.round(s.cost)} at ${s.ret.toFixed(2)}/$${p < 1 ? ` × chance ${p.toFixed(2)} = ${eff(s).toFixed(2)}` : ''} vs λ ${lambda.toFixed(2)}`;
+    // 1.2.60 (Robert): only the dollars that fall below R carry the below-R
+    // price; the rest of the spend is weighed at λ above R.
+    const outlay = s.cost * p;
+    const below = Math.max(0, Math.min(outlay, R - after));
+    const lambda = outlay > 0 && below > 0
+      ? ((outlay - below) * holdValue(Math.max(after, R), R, avgPay, scale) + below * holdValue(Math.min(after, R - 1), R, avgPay, scale)) / outlay
+      : holdValue(after, R, avgPay, scale);
+    const line = `${s.label} [${s.kind}] $${Math.round(s.cost)} at ${s.ret.toFixed(2)}/$${p < 1 ? ` × chance ${p.toFixed(2)} = ${eff(s).toFixed(2)}` : ''} vs λ ${lambda.toFixed(2)}${below > 0 && below < outlay ? ` ($${Math.round(below)} of it below R)` : ''}`;
     if (!s.noFloor && worst - s.cost < floor) { lines.push(`${line} — not taken: it would put the wage bill at risk`); continue; }
     if (eff(s) < lambda) { lines.push(`${line} — not taken (${s.why})`); continue; }
     if (!s.run()) { lines.push(`${line} — taken but refused by the game (${s.why})`); continue; }
