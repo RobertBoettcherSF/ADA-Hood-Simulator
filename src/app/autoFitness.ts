@@ -155,7 +155,7 @@ const GONE = /killed|shot|died|kidnap|deserted|left the gang|convicted|jailed/;
  * Settle last week's orders (call once at planning). Returns report lines:
  * one ORDER FIT line per order and a summary of the running efficiencies.
  */
-export function settleOrders(book: OrderBook, w: WorldState, gang: Gang, ctx: ValueContext): string[] {
+export function settleOrders(book: OrderBook, w: WorldState, gang: Gang, ctx: ValueContext, outcomes?: Map<ID, { value: number; lossCost: number }>): string[] {
   const last = w.week - 1;
   const lines: string[] = [];
   if (book.decayedWeek === w.week) return lines;
@@ -178,6 +178,8 @@ export function settleOrders(book: OrderBook, w: WorldState, gang: Gang, ctx: Va
     const cost = o.spent ?? 0;
     if (!v) { lines.push(`ORDER FIT #${e.id} ${e.type} (${e.label}): no value rule — ${sent.length} men × ${hm(span)}, cash out $${Math.round(cost)}, lost ${lost}, arrested ${arrests}`); continue; }
     const net = v.value - cost - lost * L - arrests * A;
+    // 1.2.56: what the order brought, for Auto's own learning (autoLearn.ts).
+    outcomes?.set(e.id, { value: v.value, lossCost: lost * L + arrests * A });
     if (manMinutes <= 0) { lines.push(`ORDER FIT #${e.id} ${e.type} (${e.label}): no man-minutes worked — net $${Math.round(net)} not averaged`); continue; }
     const f = book.fit[e.type] ?? (book.fit[e.type] = { net: 0, manMinutes: 0, orders: 0 });
     f.net += net; f.manMinutes += manMinutes; f.orders++;

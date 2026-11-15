@@ -13,7 +13,7 @@ export const EXEC_WEEKS = 8;
 /** Pseudo-tries that pull a thin record (one crew, one site) toward the wider one (proposed). */
 export const EXEC_PRIOR = 2;
 
-export type ExecReason = 'no time' | 'nobody free' | 'crew at rest' | 'lying low' | 'on defence' | 'refused by the game' | 'no crew took it' | 'held back';
+export type ExecReason = 'no time' | 'nobody free' | 'crew at rest' | 'lying low' | 'on defence' | 'refused by the game' | 'no crew took it' | 'held back' | 'guard' | 'shop refused';
 export type ExecEnd = 'carried out' | 'cancelled' | 'not carried out';
 
 export interface ExecTry {
@@ -43,6 +43,9 @@ export function execMemory(w: WorldState): ExecMemory {
 
 /** The reason class of a refusal — ours (the desk) or the game's. */
 export function execReason(error: string): ExecReason {
+  // 1.2.56 (Robert): the FBI guard and a shop's own answer have their own reasons.
+  if (/FBI guard/i.test(error)) return 'guard';
+  if (/refused your protection|already pays somebody|no longer available to extort/i.test(error)) return 'shop refused';
   if (/lying low|lies low|off heavy/i.test(error)) return 'lying low';
   if (/defence|rival-held|rival block/i.test(error)) return 'on defence';
   if (/wanted|rest line|hurt|warrant/i.test(error)) return 'crew at rest';
@@ -104,12 +107,28 @@ export function settleExec(m: ExecMemory, w: WorldState, cancelledIds: ReadonlyS
  * The chance an order of this type (for this crew, at this site) is carried
  * out: the type's record (Laplace), then the crew's and the site's, each
  * pulled toward the wider one by EXEC_PRIOR pseudo-tries. Settled tries only.
+ * 1.2.56 (Robert): only orders a crew was given count — an order held back,
+ * out of time or on defence is not a failure of the order (it fed on itself).
  */
 export function execChance(m: ExecMemory, type: string, teamId: number | null, siteId: number | null): number {
-  const settled = m.tries.filter((t) => t.type === type && t.end);
+  const settled = m.tries.filter((t) => t.type === type && t.end && t.end !== 'not given');
   const rate = (list: ExecTry[], prior: number, n0: number) => (list.filter((t) => t.end === 'carried out').length + prior * n0) / (list.length + n0);
   let p = rate(settled, 0.5, 2);
   if (teamId != null) p = rate(settled.filter((t) => t.teamId === teamId), p, EXEC_PRIOR);
   if (siteId != null) p = rate(settled.filter((t) => t.siteId === siteId), p, EXEC_PRIOR);
   return p;
+}
+
+/** 1.2.56: carried out / failed counts of the given orders of a type (for the Beta draw). */
+export function execCounts(m: ExecMemory, type: string): { done: number; failed: number } {
+  const settled = m.tries.filter((t) => t.type === type && t.end && t.end !== 'not given');
+  const done = settled.filter((t) => t.end === 'carried out').length;
+  return { done, failed: settled.length - done };
+}
+
+/** 1.2.56: the last week an order of this type was given (null: not in the last EXEC_WEEKS weeks). */
+export function lastGivenWeek(m: ExecMemory, type: string): number | null {
+  let wk: number | null = null;
+  for (const t of m.tries) if (t.type === type && t.end !== 'not given' && (wk == null || t.week > wk)) wk = t.week;
+  return wk;
 }

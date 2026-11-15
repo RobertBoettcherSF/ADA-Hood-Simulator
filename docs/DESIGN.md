@@ -238,6 +238,23 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.56 decisions
+
+Auto learns from its own results. Numbers marked *proposed* are ours, not Robert's.
+
+1. **The chance an order is carried out is learned only from orders a crew was given.** An order that was held back, ran out of time or was stopped by defence no longer counts as a failure. Before, it lowered its own chance, which held it back again. The FBI guard and a shop's refusal now have their own reasons ("guard", "shop refused").
+2. **The FBI guard counts every order of the week.** Collects, raids and exports count as well as extortions. Each order given adds its office takings, so the next order sees them. An order is stopped only if it raises the projected total past 200.
+3. **Extortion targets.** A shop on the refusers list, or dropped from it, is not extorted again. An extortion's value is each site's real odds (the crew's intimidation against the game's difficulty) × its protection × 12 weeks, plus the new-block bonus at the first site's odds.
+4. **Rescue when the gang has no crew.** Below 6 men, recruiting is not stopped by the wage forecast or the sacking cooldown. When the upkeep has been above the cash for 2 weeks running (*proposed*), the lawyer or the accountant is let go, whichever is worth less per dollar. No new lawyer or accountant is hired while the upkeep is above the cash. With no crew at all, a resting man may lead a new one.
+5. **Learning (LEARN line).** Every order given records its expected value (value × chance) and its heat. A week later these are compared with the value it brought and the men it cost (lost × L, arrested × A). The ratio per order type decays ×0.9 a week, is clamped to 0.25–4 and uses a prior of 2 (*proposed*). Next week's proposal values and heat are multiplied by it.
+6. **Exploration.** The chance is drawn from Beta(carried out + 1, failed + 1). A hold-back within ±15% of the order's worth or $100 is settled by a coin weighted worth ÷ (worth + heat). An order type not given for 4 weeks is tried anyway with a 10% chance (all *proposed*). Every flip is logged as "LEARN coin:". The draws come from Auto's own seeded stream, so the default seed replays exactly and the week's other rolls do not shift.
+7. **Heat close to $0 far from the lines.** The chief's opinion costs nothing above 0 and ramps in down to −10. Evidence is priced only while a trial is likely: an open case, a man in custody, or the FBI total within 20 of 200.
+8. **Refusers.** After the smash-up, Auto offers to buy the shop when it can afford to (checked every week). Otherwise it plans a torching worth the shop's profit × 4 weeks, priced by heat. If the shop still refuses after that, it is dropped for 12 weeks (*proposed*).
+9. **Lying low after an arrest or a warrant** no longer blocks heavy crimes. The man's arrest counts 2× in the crew's heat (*proposed*).
+10. **Switching back to Business.** The crew that switched to Protection goes back to Business when no shop went unvisited for 2 weeks (*proposed*), and either last week's buys found no crew or time, or Protection pays less per man-minute than buying.
+11. **Defence is priced.** On defence, an order in or beside a rival block goes ahead if its worth beats its heat plus the expected losses. Expected losses = hazard (our men killed by rivals ÷ orders given in the loss window, kept between 0.02 and 0.5, *proposed*) × L × the men sent. The armed crews stay home only after a site attack last week.
+12. **Growth stall.** When the blocks held have not changed for 6 weeks and the cash is under the reserve, heat is halved (*proposed*).
+
 ## v1.2.55 decisions
 
 Heat replaces lying low. Numbers marked *proposed* are ours, not Robert's.

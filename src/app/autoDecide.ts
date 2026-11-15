@@ -80,6 +80,8 @@ export function decideWeek<T>(
   chance?: (p: Proposal<T>) => number,
   /** 1.2.55 (Robert): the order's expected heat cost (autoHeat.ts), taken off its score. */
   heat?: (p: Proposal<T>) => number,
+  /** 1.2.56 (Robert): exploration — true to give an order its heat would hold back (a weighted coin in a close call, or a trial of an order type not tried for weeks). */
+  explore?: (p: Proposal<T>, worth: number, heat: number) => boolean,
 ): { given: Decision[]; skipped: Decision[] } {
   const given: Decision[] = [], skipped: Decision[] = [];
   const ranked = proposals.map((p, i) => { const c = chance ? chance(p) : 1; const h = heat ? heat(p) : 0; return { p, i, c, h, score: Math.round(scoreOf(goal, p) * c - h) }; }).sort((a, b) => Number(!!b.p.first) - Number(!!a.p.first) || b.score - a.score || a.i - b.i);
@@ -96,7 +98,7 @@ export function decideWeek<T>(
     const weight = KIND_WEIGHTS[goal][p.kind];
     const why = `score ${score} = value ${Math.round(p.value)} × ${goal} weight ${weight} for ${p.kind}${chance ? ` × chance ${c.toFixed(2)} carried out` : ''}${h > 0 ? ` − heat $${Math.round(h)}` : ''}${p.why ? ` — ${p.why}` : ''}`;
     // 1.2.55 (Robert): heat priced above the order's worth — not given (no lie-low rule).
-    if (h > 0 && score <= 0 && !p.first) {
+    if (h > 0 && score <= 0 && !p.first && !(explore && explore(p, score + h, h))) {
       const none = 'held back — its heat costs more than it is worth';
       skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; ${none}`, reason: none });
       p.onSkipped?.();
