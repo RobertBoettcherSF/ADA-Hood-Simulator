@@ -18,6 +18,9 @@ export const VICTORY_GOALS: readonly VictoryGoal[] = ['office', 'straight', 'eli
 export const MODE_GOAL: Partial<Record<string, VictoryGoal>> = { wealth: 'wealth', territory: 'territory', power: 'power' };
 /** The goals open in this game's mode. */
 export function goalsFor(w: WorldState): readonly VictoryGoal[] {
+  // 1.2.57 (Robert): a Full game played for one ending has only that goal.
+  const v = w.options.mode === 'normal' ? w.options.victory ?? 'any' : 'any';
+  if (v !== 'any') return [v];
   const only = MODE_GOAL[w.options.mode];
   return only ? [only] : VICTORY_GOALS;
 }

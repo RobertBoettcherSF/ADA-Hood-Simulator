@@ -6,9 +6,15 @@ import { Modal } from './common';
 import { InterfaceButton } from './InterfaceControls';
 import './interface.css';
 import { recordAction } from '../app/actionLog';
-import { runAutoTest, defaultAutoTestOptions, DEFAULT_AUTO_TEST_SEED, campaignOf, autoTestRunState, onAutoTestRun, takeAutoTestStopped, takeAutoTestMemoryStop, toggleAutoTestStop, type AutoTestSettings } from '../app/autoTest';
+import { runAutoTest, defaultAutoTestOptions, SAVED_AUTO_TEST_SEEDS, type AutoTestStart, campaignOf, autoTestRunState, onAutoTestRun, takeAutoTestStopped, takeAutoTestMemoryStop, toggleAutoTestStop, type AutoTestSettings } from '../app/autoTest';
 import { folderDiary, importLearnedState } from '../app/diary';
-import { campaignLabel, isDefaultCampaign } from '../app/strategy';
+import { campaignLabel, DIARY_LEARNING } from '../app/strategy';
+import { defaultAutoTestChoice, loadAutoTestChoice, saveAutoTestChoice, type AutoTestChoice } from '../app/autoTestOptions';
+import { FULL_VICTORIES, FULL_VICTORY_LABELS, type FullVictory } from '../sim/victory';
+import { CITY_SIZE_PRESETS, TERRITORY_TARGET_RANGE, territorySetupMaximum } from '../sim/newGameValidation';
+
+/** 1.2.57: a random 32-bit seed for the Auto Test picker. */
+const randomSeed = () => Math.floor(Math.random() * 0xffffffff) >>> 0;
 import { installCrashReports, noteAutoTestStopped, setReportWish, setReportWorld, writeDebugReport } from '../app/debugReport';
 import { checkForUpdate, type UpdateOffer } from '../app/versionCheck';
 import { activeWorldStore } from '../app/worldFolder';
@@ -138,13 +144,18 @@ export function AlwaysChrome() {
 function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) {
   const resolving = useGame((s) => s.resolvingHeadless);
   const sim = useGame((s) => s.sim);
-  const [untilEnd, setUntilEnd] = useState(false);
-  const [weeks, setWeeks] = useState(4);
-  // 1.2.53 (Robert): the default start is a new city on the default seed and settings; "This city" tests the open one.
-  const [fresh, setFresh] = useState(true);
-  const [seed, setSeed] = useState(DEFAULT_AUTO_TEST_SEED);
-  const [speed, setSpeed] = useState(4);
-  const [learn, setLearn] = useState(true);
+  // 1.2.57 (Robert): the options hold the whole start (seed picker, victory and
+  // target, opponents, economy, size, or this city) and are remembered across runs.
+  const [choice, setChoice] = useState<AutoTestChoice>(defaultAutoTestChoice);
+  const patch = (p: Partial<AutoTestChoice>) => setChoice((c) => ({ ...c, ...p }));
+  const patchStart = (p: Partial<AutoTestStart>) => setChoice((c) => ({ ...c, start: { ...c.start, ...p } }));
+  useEffect(() => { if (open) void loadAutoTestChoice().then(setChoice); }, [open]);
+  const { untilEnd, weeks, seed, speed } = choice;
+  const sizeNow = CITY_SIZE_PRESETS[choice.start.size] ?? CITY_SIZE_PRESETS.standard;
+  const targetMax = territorySetupMaximum({ citySize: sizeNow.w, cityHeight: sizeNow.h });
+  const fresh = !choice.thisCity;
+  // 1.2.57 (Robert): diary learning is off for now — the option is hidden, the code kept.
+  const learn = DIARY_LEARNING;
   const [running, setRunning] = useState(false);
   const campaign = sim ? campaignOf(sim) : null;
   /** 1.2.53: start a new city with the default Auto Test settings; resolves with it, or null when the player kept the old city. */
@@ -152,12 +163,13 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
     const before = useGame.getState().sim;
     let settled = false;
     const unsubscribe = useGame.subscribe((state) => { if (!settled && state.sim && state.sim !== before) { settled = true; unsubscribe(); resolve(state.sim); } });
-    useGame.getState().startGame(defaultAutoTestOptions(useGame.getState().options, s));
+    useGame.getState().startGame(defaultAutoTestOptions(useGame.getState().options, s, choice.start));
     // startGame asks before replacing a city; when the player says no, nothing changes.
     window.setTimeout(() => { if (!settled) { settled = true; unsubscribe(); resolve(null); } }, NEW_CITY_WAIT_MS);
   });
   const start = async () => {
     if (running) return;
+    void saveAutoTestChoice(choice).catch(() => { /* no world folder: not remembered */ });
     const current = fresh ? await newCity(Math.round(seed) >>> 0) : useGame.getState().sim;
     if (!current) return;
     const settings: AutoTestSettings = {
@@ -197,9 +209,9 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
       <InterfaceButton label="Auto Test" glyph="⚑" caption={running ? 'Testing' : 'Test'} disabled={resolving || running}
         title="Auto Test — a simulated player runs the desk and writes a report"
         onClick={() => setOpen(true)} />
-      <InterfaceButton label="Import Auto Test" glyph="⇪" caption="Import" disabled={resolving || running}
+      {DIARY_LEARNING && <InterfaceButton label="Import Auto Test" glyph="⇪" caption="Import" disabled={resolving || running}
         title="Import — load an Auto Test report (all its parts) as Auto Test's learned state"
-        onClick={() => importRef.current?.click()} />
+        onClick={() => importRef.current?.click()} />}
       <input ref={importRef} type="file" accept=".txt,.json" multiple hidden onChange={(event) => {
         const files = [...(event.target.files ?? [])];
         event.target.value = '';
@@ -212,37 +224,84 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
           footer={<>
             <button className="btn brass" type="button" onClick={() => void start()}>Start</button>
             <button className="btn" type="button" onClick={() => setOpen(false)}>Cancel</button>
-            <button className="btn" type="button" onClick={() => void resetDiary()}>Reset diary</button>
+            {DIARY_LEARNING && <button className="btn" type="button" onClick={() => void resetDiary()}>Reset diary</button>}
           </>}>
-          <p>A simulated player uses the same actions as the desk. The diary learns the default campaign: normal opponents, normal economy, 40×32. This city is {campaign ? campaignLabel(campaign) : 'not open'}{campaign && isDefaultCampaign(campaign) ? ', the default.' : '. It is kept separate.'}</p>
+          <p>A simulated player uses the same actions as the desk. The game is won only by the victory chosen here (or the open city's own, with "This city"). {campaign ? `This city: ${campaignLabel(campaign)}.` : ''}</p>
+          {DIARY_LEARNING && (
+            <label className="wood-field">
+              <input type="checkbox" checked={learn} readOnly />
+              <span>Learn from diary</span>
+            </label>
+          )}
           <label className="wood-field">
-            <input type="checkbox" checked={learn} onChange={(event) => setLearn(event.target.checked)} />
-            Learn from diary
+            <span>Start</span>
+            <select aria-label="Auto test start" value={choice.thisCity ? 'this' : 'new'} onChange={(e) => patch({ thisCity: e.target.value === 'this' })}>
+              <option value="new">A new city (the settings below)</option>
+              <option value="this">This city, as it is</option>
+            </select>
           </label>
           <label className="wood-field">
-            <input type="checkbox" checked={untilEnd} onChange={(event) => setUntilEnd(event.target.checked)} />
-            Until victory or loss
+            <span>Seed</span>
+            <select aria-label="Saved seeds" value={choice.savedSeeds.includes(seed) ? String(seed) : 'other'} onChange={(e) => { if (e.target.value === 'random') patch({ seed: randomSeed() }); else if (e.target.value !== 'other') patch({ seed: Number(e.target.value) }); }}>
+              {choice.savedSeeds.map((x, i) => <option key={x} value={String(x)}>{x}{i === 0 && x === SAVED_AUTO_TEST_SEEDS[0] ? ' (default)' : ''}</option>)}
+              {!choice.savedSeeds.includes(seed) && <option value="other">{seed} (not saved)</option>}
+              <option value="random">Random…</option>
+            </select>
+            <input type="number" value={seed} aria-label="Auto test seed" onChange={(e) => patch({ seed: Number(e.target.value) >>> 0 })} />
+            <button className="btn" type="button" onClick={() => patch({ seed: randomSeed() })}>Random</button>
+            <button className="btn" type="button" disabled={choice.savedSeeds.includes(seed)} onClick={() => patch({ savedSeeds: [...choice.savedSeeds, seed] })}>Save seed</button>
+            <button className="btn" type="button" disabled={!choice.savedSeeds.includes(seed) || choice.savedSeeds.length <= 1} onClick={() => patch({ savedSeeds: choice.savedSeeds.filter((x) => x !== seed) })}>Remove</button>
+          </label>
+          <fieldset className="wood-field" disabled={choice.thisCity} style={{ border: 0, padding: 0, margin: 0 }}>
+            <label className="wood-field">
+              <span>Victory</span>
+              <select aria-label="Auto test victory" value={choice.start.mode === 'normal' ? `normal:${choice.start.victory}` : choice.start.mode} onChange={(e) => {
+                const v = e.target.value;
+                if (v.startsWith('normal:')) patchStart({ mode: 'normal', victory: v.slice(7) as FullVictory });
+                else patchStart({ mode: v as AutoTestStart['mode'] });
+              }}>
+                {FULL_VICTORIES.map((v) => <option key={v} value={`normal:${v}`}>Full game — {FULL_VICTORY_LABELS[v]}</option>)}
+                <option value="territory">Territory</option>
+                <option value="wealth">Wealth</option>
+                <option value="power">Power</option>
+              </select>
+              {choice.start.mode === 'territory' && (
+                <input type="number" min={TERRITORY_TARGET_RANGE.min} max={targetMax} step={25} value={choice.start.territoryTarget} aria-label="Target blocks" onChange={(e) => patchStart({ territoryTarget: Number(e.target.value) })} />
+              )}
+              {choice.start.mode === 'territory' && <span>blocks (up to {targetMax} here)</span>}
+              {choice.start.mode === 'wealth' && <input type="number" min={100000} max={500000} step={25000} value={choice.start.wealthTarget} aria-label="Target wealth" onChange={(e) => patchStart({ wealthTarget: Number(e.target.value) })} />}
+              {choice.start.mode === 'power' && <input type="number" min={20} max={100} step={5} value={choice.start.powerWeeks} aria-label="Power weeks" onChange={(e) => patchStart({ powerWeeks: Number(e.target.value) })} />}
+              {choice.start.mode === 'power' && <span>weeks</span>}
+            </label>
+            <label className="wood-field">
+              <span>Opponents</span>
+              <select aria-label="Auto test opponents" value={choice.start.opponents} onChange={(e) => patchStart({ opponents: e.target.value as AutoTestStart['opponents'] })}>
+                {(['passive', 'normal', 'aggressive', 'random'] as const).map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+              <span>Economy</span>
+              <select aria-label="Auto test economy" value={choice.start.economy} onChange={(e) => patchStart({ economy: e.target.value as AutoTestStart['economy'] })}>
+                {(['weak', 'normal', 'strong'] as const).map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+              <span>Size</span>
+              <select aria-label="Auto test size" value={choice.start.size} onChange={(e) => patchStart({ size: e.target.value as AutoTestStart['size'] })}>
+                {(Object.keys(CITY_SIZE_PRESETS) as AutoTestStart['size'][]).map((k) => <option key={k} value={k}>{CITY_SIZE_PRESETS[k].label} {CITY_SIZE_PRESETS[k].w}×{CITY_SIZE_PRESETS[k].h}</option>)}
+              </select>
+            </label>
+            <span className="tiny">$6,000, 5 hoods, 3 businesses.</span>
+          </fieldset>
+          <label className="wood-field">
+            <input type="checkbox" checked={untilEnd} onChange={(event) => patch({ untilEnd: event.target.checked })} />
+            <span>Until victory or loss</span>
           </label>
           {!untilEnd && (
             <label className="wood-field">
               Weeks
-              <input type="number" min={1} max={52} value={weeks} aria-label="Auto test weeks" onChange={(event) => setWeeks(Number(event.target.value))} />
+              <input type="number" min={1} max={52} value={weeks} aria-label="Auto test weeks" onChange={(event) => patch({ weeks: Number(event.target.value) })} />
             </label>
           )}
           <label className="wood-field">
-            <input type="checkbox" checked={fresh} aria-label="Default start" onChange={(event) => setFresh(event.target.checked)} />
-            {/* 1.2.55: the long text wrapped onto a line of its own and left the box unlabelled — it is kept beside the box now. */}
-            <span style={{ flex: '1 1 0', minWidth: 0 }}>Default start: a new city — Full game, normal opponents, normal economy, 40×32, $6,000, 5 hoods, 3 businesses (off: test this city)</span>
-          </label>
-          <label className="wood-field">
-            Seed
-            <input type="number" value={seed} aria-label="Auto test seed" onChange={(event) => setSeed(Number(event.target.value))} />
-            <button className="btn" type="button" onClick={() => setSeed(Math.floor(Math.random() * 0xffffffff) >>> 0)}>Random</button>
-            <button className="btn" type="button" onClick={() => setSeed(DEFAULT_AUTO_TEST_SEED)}>Default</button>
-          </label>
-          <label className="wood-field">
             Speed
-            <input type="number" min={1} max={10} value={speed} aria-label="Auto test speed" onChange={(event) => setSpeed(Number(event.target.value))} />
+            <input type="number" min={1} max={10} value={speed} aria-label="Auto test speed" onChange={(event) => patch({ speed: Number(event.target.value) })} />
             <span>Written on the report. The test runs flat out.</span>
           </label>
         </Modal>

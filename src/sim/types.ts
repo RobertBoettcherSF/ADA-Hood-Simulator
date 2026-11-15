@@ -916,6 +916,8 @@ export interface GameOptions {
   playerPortrait: number;
   playerColor: GangColorName;
   mode: 'normal' | 'power' | 'wealth' | 'territory';
+  /** 1.2.57 (Robert): the one win a Full game is played for (absent: 'any', all three). */
+  victory?: 'any' | 'office' | 'straight' | 'eliminate';
   economy: 'weak' | 'normal' | 'strong';
   opponents: 'passive' | 'normal' | 'aggressive' | 'random';
   startMoney: number;

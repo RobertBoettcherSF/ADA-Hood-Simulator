@@ -238,6 +238,24 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.57 decisions
+
+A game is won only by the victory chosen for it. Numbers marked *proposed* are ours, not Robert's.
+
+1. **Auto Test starts with the chosen victory.** A new Auto Test city is built from the chosen victory and target, opponents, economy and size; the Full game is no longer hard-coded. The territory target is clamped to the city size, as on the New Game screen.
+2. **The game grants only the selected victory** (`victoryAllowed` in sim/victory.ts). A Full game has a new Victory choice: any ending (the default, *proposed*), become mayor, go straight, or last gang standing. Territory and Wealth are won only by their target, Power only when its clock runs out. Wiping out every rival (or carving the city in two with the last ally) wins only a Full game set to 'any' or 'last gang standing'. Going straight can be started only when it is the chosen win. This applies to human games too.
+3. **Auto's goal is fixed by the selected victory.** A Full game set to one ending has only that goal, and Territory has only territory. A Full game set to 'any' keeps switching between its goals.
+4. **When Auto leaves the straight goal, it stops going straight.**
+5. **The victory is recorded.** The victory and its target ('full any', 'territory 500', …) are part of the campaign settings: the report's settings JSON, the diary label, and the check for matching runs. Older entries count as 'full any'.
+6. **Auto Test options hold the whole start:**
+   - New city or this city.
+   - A seed picker with saved seeds 2158733425 (default), 584300274 and 4043194376, plus Random, Save seed and Remove.
+   - Victory and its target (Territory 500, Wealth $250,000 and Power 50 weeks are the *proposed* defaults).
+   - Opponents, economy and size.
+7. **TEST KEY line** after the title and BUILD of every report (and every interim file): build, commit, seed, victory and target, opponents, economy, size.
+8. **The choices and saved seeds are remembered** in the world folder (auto-test-options.json, *proposed* name).
+9. **Diary learning is off for now** (`DIARY_LEARNING = false`). The option, Import and Reset diary are hidden, and the code is kept. While it is off, new cities do not copy the diary's best strategy into the rivals, so a seed and settings replay exactly.
+
 ## v1.2.56 decisions
 
 Auto learns from its own results. Numbers marked *proposed* are ours, not Robert's.

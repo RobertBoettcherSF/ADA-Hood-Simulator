@@ -15,13 +15,21 @@ export interface PlayStrategy {
 }
 
 /** The campaign the diary is trying to get good at. Other combinations are stored apart. */
-export const DEFAULT_CAMPAIGN = { opponents: 'normal', economy: 'normal', mapW: 40, mapH: 32 } as const;
+export const DEFAULT_CAMPAIGN = { opponents: 'normal', economy: 'normal', mapW: 40, mapH: 32, victory: 'full any' } as const;
+/**
+ * 1.2.57 (Robert): learning from the diary is off for now — the option is
+ * hidden and the code kept. While it is off, new cities do not copy the
+ * diary's best strategy into the rivals, so a seed and settings replay exactly.
+ */
+export const DIARY_LEARNING = false;
 
 export interface CampaignSettings {
   opponents: 'passive' | 'normal' | 'aggressive' | 'random';
   economy: 'weak' | 'normal' | 'strong';
   mapW: number;
   mapH: number;
+  /** 1.2.57: the victory played for ('full any', 'full office', 'territory 500', …); absent in older diary entries (= 'full any'). */
+  victory?: string;
 }
 
 export interface DiaryEntry {
@@ -68,7 +76,7 @@ export function defaultStrategy(): PlayStrategy {
 }
 
 export function sameCampaign(a: CampaignSettings, b: CampaignSettings): boolean {
-  return a.opponents === b.opponents && a.economy === b.economy && a.mapW === b.mapW && a.mapH === b.mapH;
+  return a.opponents === b.opponents && a.economy === b.economy && a.mapW === b.mapW && a.mapH === b.mapH && (a.victory ?? 'full any') === (b.victory ?? 'full any');
 }
 
 export function isDefaultCampaign(settings: CampaignSettings): boolean {
@@ -76,7 +84,7 @@ export function isDefaultCampaign(settings: CampaignSettings): boolean {
 }
 
 export function campaignLabel(settings: CampaignSettings): string {
-  return `${settings.opponents} opponents, ${settings.economy} economy, ${settings.mapW}×${settings.mapH}`;
+  return `${settings.opponents} opponents, ${settings.economy} economy, ${settings.mapW}×${settings.mapH}, victory ${settings.victory ?? 'full any'}`;
 }
 
 function round2(n: number): number {

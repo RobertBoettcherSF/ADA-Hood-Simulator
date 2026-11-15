@@ -1,3 +1,4 @@
+import { FULL_VICTORY_LABELS } from '../sim/victory';
 import { scenarioById } from './scenarios';
 import type { WorldState } from '../sim/types';
 
@@ -11,6 +12,9 @@ export function victoryTarget(w: WorldState): string {
   if (o.mode === 'territory') return `Territory ${o.territoryTarget} blocks`;
   if (o.mode === 'wealth') return `Wealth $${o.wealthTarget.toLocaleString('en-US')}`;
   if (o.mode === 'power') return `Power after ${o.powerWeeks} weeks`;
+  // 1.2.57 (Robert): a Full game may be played for one ending only.
+  const v = o.victory ?? 'any';
+  if (v !== 'any') return `Full game — ${FULL_VICTORY_LABELS[v]} only`;
   return 'Full game (become mayor, go straight, or be the last gang standing)';
 }
 

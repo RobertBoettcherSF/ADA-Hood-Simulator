@@ -1,3 +1,4 @@
+import { victoryAllowed } from './victory';
 import { isGangOffice } from './officeDefence';
 import {settleBurningEscapes, tickBuildingEmergencies} from './systems/buildingEmergency';
 import { driveFrom, earlySteps, finishMovementTick, repairVehicleRoutes } from './movement';
@@ -798,23 +799,24 @@ export class Sim {
     const w = this.world, player = this.playerGang;
 
     // ---- winning
-    if (w.options.mode === 'normal' && w.electionWinnerGangId === player.id) {
+    // 1.2.57 (Robert): only the victory chosen for this game (victory.ts).
+    if (victoryAllowed(w.options, 'mayor') && w.electionWinnerGangId === player.id) {
       return this.makeOutcome(true, 'You were elected Mayor of Saint Volstead.', WIN_BONUS.mayor);
     }
 
     const rivals = Object.values(w.gangs).filter((g) => !g.isPlayer && !g.eliminated);
-    if (!rivals.length) {
+    if (!rivals.length && victoryAllowed(w.options, 'domination')) {
       return this.makeOutcome(true, 'Every rival gang has been wiped out. The city is yours.', WIN_BONUS.domination);
     }
     // Two survivors in a firm alliance also counts as settling the question.
-    if (rivals.length === 1) {
+    if (rivals.length === 1 && victoryAllowed(w.options, 'domination')) {
       const other = rivals[0];
       if (player.offered[other.id] === 'alliance' && player.known[other.id] === 'alliance') {
         return this.makeOutcome(true, 'You and your last rival have carved the city in two.', WIN_BONUS.domination);
       }
     }
 
-    if (player.goingStraight && w.options.mode === 'normal' && canGoStraight(w, player.id).can) {
+    if (player.goingStraight && victoryAllowed(w.options, 'straight') && canGoStraight(w, player.id).can) {
       return this.makeOutcome(true, 'You went straight, with every dollar accounted for.', WIN_BONUS.straight);
     }
 

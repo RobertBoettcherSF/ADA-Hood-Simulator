@@ -1,3 +1,4 @@
+import { DIARY_LEARNING } from './strategy';
 import { captureDevWeek, clearDevJournal } from './devJournal';
 import { autosaveName } from './instance';
 import { readTextureQuality, writeTextureQuality, type TextureQuality } from '../render/textureQuality';
@@ -372,7 +373,8 @@ export const useGame = create<GameState>((set, get) => ({
     void (async () => {
     const sim = new Sim({ ...options, era: '1932' });
     clearDevJournal();
-    if (options.tutorialId == null && options.scenarioId == null) {
+    // 1.2.57 (Robert): rivals copy the diary's best strategy only while diary learning is on.
+    if (DIARY_LEARNING && options.tutorialId == null && options.scenarioId == null) {
       try { await stampRivalPlaybook(sim.world); } catch { /* a missing diary leaves rivals as they are */ }
     }
     const player = sim.playerGang;

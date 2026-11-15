@@ -12,7 +12,9 @@ import { betaDraw, COIN_BAND_DOLLARS, COIN_BAND_SHARE, exploreRng, heatRatio, le
 import { crimeRisk, fbiGuard, fbiProject, FBI_BAND, HEAT_WEEKS, heatCost, officeAdds, heatLine, legalCredit, opinionRelief, REST_RISK, streetRisk, warrantRisk, type HeatCost, type HeatMan, type HeatMeasure, type HeatState } from './autoHeat';
 import { decideWeek, inputFor, MIN_FREE_MINUTES, scoreOf, type Decision, type OrderKind, type Proposal } from './autoDecide';
 import { noteDevDesk } from './devJournal';
-import { startingConditions } from './startingConditions';
+import { startingConditions, victoryTarget } from './startingConditions';
+import { CITY_SIZE_PRESETS, reconcileTerritorySetup } from '../sim/newGameValidation';
+import type { FullVictory } from '../sim/victory';
 import { instanceFile } from './instance';
 /**
  * A player made of the same actions the desk uses. The seed picks his choices
@@ -210,6 +212,7 @@ import {
   type DiaryEntry,
   type PlayStrategy,
 } from './strategy';
+import { DIARY_LEARNING } from './strategy';
 import { standardRules } from '../sim/rules';
 import { effectiveHostility } from '../sim/attitudes';
 
@@ -225,9 +228,42 @@ export function buildLine(): string {
  * and portrait are kept. A random seed can be chosen instead.
  */
 export const DEFAULT_AUTO_TEST_SEED = 2158733425;
-export function defaultAutoTestOptions(base: GameOptions, seed: number): GameOptions {
-  return { ...base, seed, mode: 'normal', economy: 'normal', opponents: 'normal', startMoney: 6000, startHoods: 5, startBusinesses: 3,
-    citySize: 40, cityHeight: 32, cityLayout: 'varied', standardRules: true, scenarioId: undefined, tutorialId: undefined };
+/** 1.2.57 (Robert): the saved seeds offered in the Auto Test options (the first is the default). */
+export const SAVED_AUTO_TEST_SEEDS: readonly number[] = [2158733425, 584300274, 4043194376];
+
+/** 1.2.57 (Robert): the whole start of an Auto Test city — victory and its target, opponents, economy and size. */
+export interface AutoTestStart {
+  mode: GameOptions['mode'];
+  /** The Full game's ending ('any' keeps all three). */
+  victory: FullVictory;
+  territoryTarget: number;
+  wealthTarget: number;
+  powerWeeks: number;
+  opponents: GameOptions['opponents'];
+  economy: GameOptions['economy'];
+  size: keyof typeof CITY_SIZE_PRESETS;
+}
+/** 1.2.57: the default start (Full game, any ending, normal, 40×32); the short-game targets are proposed defaults. */
+export const DEFAULT_AUTO_TEST_START: AutoTestStart = {
+  mode: 'normal', victory: 'any', territoryTarget: 500, wealthTarget: 250000, powerWeeks: 50, opponents: 'normal', economy: 'normal', size: 'standard',
+};
+
+/**
+ * 1.2.57 (Robert): an Auto Test city is built from the chosen start — no more
+ * hard-coded Full game. The territory target is clamped to the city size as
+ * the New Game screen does (reconcileTerritorySetup).
+ */
+export function defaultAutoTestOptions(base: GameOptions, seed: number, start: AutoTestStart = DEFAULT_AUTO_TEST_START): GameOptions {
+  const size = CITY_SIZE_PRESETS[start.size] ?? CITY_SIZE_PRESETS.standard;
+  return reconcileTerritorySetup({ ...base, seed, mode: start.mode, victory: start.mode === 'normal' ? start.victory : undefined,
+    territoryTarget: start.territoryTarget, wealthTarget: start.wealthTarget, powerWeeks: start.powerWeeks,
+    economy: start.economy, opponents: start.opponents, startMoney: 6000, startHoods: 5, startBusinesses: 3,
+    citySize: size.w, cityHeight: size.h, cityLayout: 'varied', standardRules: true, scenarioId: undefined, tutorialId: undefined });
+}
+
+/** 1.2.57 (Robert): the TEST KEY line — build, seed, victory and target, opponents, economy, size — after the title and BUILD of every report. */
+export function testKeyLine(w: Sim['world'], seed: number): string {
+  return `TEST KEY ${typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'unknown'} ${typeof __APP_COMMIT__ === 'string' ? __APP_COMMIT__ : 'unknown'} | seed ${seed} | ${victoryTarget(w)} | ${w.options.opponents} opponents | ${w.options.economy} economy | ${w.gridW}×${w.gridH}`;
 }
 
 export interface AutoTestSettings {
@@ -451,7 +487,16 @@ export function campaignOf(sim: Sim): CampaignSettings {
     economy: sim.world.options.economy,
     mapW: sim.world.gridW,
     mapH: sim.world.gridH,
+    victory: victoryKey(sim.world.options),
   };
+}
+
+/** 1.2.57: the victory a game is played for, as one key: 'full any', 'full office', 'territory 500', 'wealth 250000', 'power 52'. */
+export function victoryKey(o: GameOptions): string {
+  if (o.mode === 'territory') return `territory ${o.territoryTarget}`;
+  if (o.mode === 'wealth') return `wealth ${o.wealthTarget}`;
+  if (o.mode === 'power') return `power ${o.powerWeeks}`;
+  return `full ${o.victory ?? 'any'}`;
 }
 
 function logResult(actions: string[], label: string, ok: boolean, detail: string): void {
@@ -979,6 +1024,12 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     goalState.progress.push(goalScores(w, gang)[goal]);
   }
   const goal = goalState.goal;
+  // 1.2.57 (Robert): leaving the straight goal ends going straight — the game
+  // would otherwise still grant that win while Auto plays for another.
+  if (goal !== 'straight' && gang.goingStraight) {
+    const r = setGoStraight(w, gang.id, false);
+    logResult(actions, `stop going straight — the goal is ${goal} now`, r.ok, r.ok ? r.message ?? '' : r.error);
+  }
   // Few men and plenty of cash: rebuild the gang first, whatever the goal.
   // 1.2.24: managers running our businesses never count against a headcount
   // (Robert: the long game's 92 men were 28 in crews and 64 managers, so hiring stalled).
@@ -5603,6 +5654,8 @@ function memorySizesLine(sim: Sim, actions: readonly string[]): string {
 function reportText(parts: {
   /** 1.2.23: the game's starting conditions, first in the report. */
   starting: string[];
+  /** 1.2.57: the TEST KEY line. */
+  testKey: string;
   settings: AutoTestSettings;
   citySeed: number;
   campaign: CampaignSettings;
@@ -5626,6 +5679,7 @@ function reportText(parts: {
   const lines = [
     `Hood Simulator — auto test (version ${typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'unknown'})`,
     buildLine(),
+    parts.testKey,
     ...parts.starting,
     '',
     `Strategy seed: ${parts.settings.seed}`,
@@ -5679,7 +5733,8 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     `seed ${settings.seed} learn ${settings.learn === false ? 'off' : 'on'}`,
     settings.weeks == null ? 'until victory or loss' : `${settings.weeks} weeks`,
   );
-  const learn = settings.learn !== false;
+  // 1.2.57 (Robert): diary learning is off for now (option hidden, code kept).
+  const learn = DIARY_LEARNING && settings.learn !== false;
   const campaign = campaignOf(sim);
   const loaded = await loadDiary(sink).catch(() => ({ diary: { version: 1 as const, entries: [] }, unreadable: true }));
   const planned = loaded.unreadable
@@ -5836,7 +5891,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       const file = instanceFile(`auto-test-${runStamp}-weeks-${from}-${to}.txt`);
       try {
         // 1.2.53 (Robert): every actions file opens with the build and the starting conditions.
-        const text = [buildLine(), `Auto Test actions, weeks ${from}–${to} (seed ${settings.seed}); the final report holds the later weeks.`, ...startingConditions(sim.world, settings.seed), '', ...block].join('\n');
+        const text = [buildLine(), testKeyLine(sim.world, settings.seed), `Auto Test actions, weeks ${from}–${to} (seed ${settings.seed}); the final report holds the later weeks.`, ...startingConditions(sim.world, settings.seed), '', ...block].join('\n');
         const parts = splitReport(text);
         for (let k = 0; k < parts.length; k++) await writeReportFile(parts.length === 1 ? file : file.replace(/\.txt$/, `-part${k + 1}of${parts.length}.txt`), parts[k]);
         writtenFiles.push(`weeks ${from}–${to}: ${file}`);
@@ -5962,6 +6017,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   const plateau = plateauNote(recorded, campaign);
   const text = reportText({
     starting: startingConditions(sim.world, settings.seed),
+    testKey: testKeyLine(sim.world, settings.seed),
     settings, citySeed: sim.world.options.seed, campaign, strategy: planned.strategy,
     versusLast: planned.versusLast, planNote: planned.note, weeks, actions, notes, anomalies,
     outcome, score: gameScore, learningScore: score, scoreNote, beat, plateau, diaryNote,

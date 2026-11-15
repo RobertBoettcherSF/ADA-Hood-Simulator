@@ -1,3 +1,4 @@
+import { FULL_VICTORIES, FULL_VICTORY_LABELS } from '../sim/victory';
 import { ArtImage } from './ArtImage';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { describeMode, newCampaignOptions } from '../app/newGame';
@@ -67,7 +68,7 @@ export function NewGameScreen() {
   // Manual p.31: Restore Defaults resets the game conditions; your details stay.
   const restoreDefaults = () => {
     const d = newCampaignOptions();
-    set({ mode: d.mode, scenarioId: undefined, tutorialId: undefined, economy: d.economy, opponents: d.opponents,
+    set({ mode: d.mode, victory: undefined, scenarioId: undefined, tutorialId: undefined, economy: d.economy, opponents: d.opponents,
       startMoney: d.startMoney, startHoods: d.startHoods, startBusinesses: d.startBusinesses, powerWeeks: d.powerWeeks,
       wealthTarget: d.wealthTarget, territoryTarget: d.territoryTarget, citySize: d.citySize, cityHeight: d.cityHeight });
   };
@@ -296,6 +297,13 @@ export function NewGameScreen() {
                     ? 'Full game: three endings — wipe out the rivals, win the mayoralty, or go straight with $250,000 in clean assets.'
                     : describeMode(options)}
               </p>
+              {!options.scenarioId && options.mode === 'normal' && (
+                <div className="field">
+                  <span className="scene-label">Victory</span>
+                  {/* 1.2.57 (Robert): the game is won only by the ending chosen here. */}
+                  {seg(options.victory ?? 'any', FULL_VICTORIES, (v) => cap(FULL_VICTORY_LABELS[v]), (v) => set({ victory: v }))}
+                </div>
+              )}
               {!options.scenarioId && options.mode === 'power' && (
                 <div className="field">
                   <label htmlFor="NewGameScreen-field-1">

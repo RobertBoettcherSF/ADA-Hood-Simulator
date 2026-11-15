@@ -1,3 +1,4 @@
+import { victoryAllowed } from './victory';
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
 import { isGangOffice } from './officeDefence';
 import { noteMemberLoss } from './memberLosses';
@@ -1075,6 +1076,8 @@ export function setGoStraight(w: WorldState, gangId: ID, on: boolean): ApiResult
   const gang = w.gangs[gangId];
   if (!gang) return fail('No such gang.');
   if (w.options.mode !== 'normal' && on) return fail('Going straight is only possible in a full game.');
+  // 1.2.57 (Robert): only when going straight is the win this game is played for.
+  if (on && !victoryAllowed(w.options, 'straight')) return fail('This game is not won by going straight.');
   if (on) {
     const check = canGoStraight(w, gangId);
     if (!check.can) return fail(check.reason);
