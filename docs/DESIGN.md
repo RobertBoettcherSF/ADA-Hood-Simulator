@@ -238,6 +238,17 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.58 decisions
+
+Auto Test never changes game settings (Robert).
+
+1. **The Auto Test dialog has only a Seed row** (a number field with Default and Random buttons) and Start and Cancel. Default is 2158733425.
+2. **Auto Test starts a new city** on that seed with the open game's start settings exactly as chosen at New Game: victory and target, opponents, economy, size. Only the seed differs.
+3. **It always runs until victory or loss**, and Stop works as before. The report still records speed 4, though there is no field for it.
+4. **The TEST KEY line stays.**
+5. **Removed:** the remembered options (auto-test-options.json), the saved-seed list, and the 1.2.57 start settings in the dialog.
+6. **Kept unchanged:** the 1.2.57 victory rules, and diary learning (off and hidden).
+
 ## v1.2.57 decisions
 
 A game is won only by the victory chosen for it. Numbers marked *proposed* are ours, not Robert's.

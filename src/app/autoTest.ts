@@ -13,8 +13,6 @@ import { crimeRisk, fbiGuard, fbiProject, FBI_BAND, HEAT_WEEKS, heatCost, office
 import { decideWeek, inputFor, MIN_FREE_MINUTES, scoreOf, type Decision, type OrderKind, type Proposal } from './autoDecide';
 import { noteDevDesk } from './devJournal';
 import { startingConditions, victoryTarget } from './startingConditions';
-import { CITY_SIZE_PRESETS, reconcileTerritorySetup } from '../sim/newGameValidation';
-import type { FullVictory } from '../sim/victory';
 import { instanceFile } from './instance';
 /**
  * A player made of the same actions the desk uses. The seed picks his choices
@@ -221,44 +219,18 @@ export function buildLine(): string {
   return `BUILD ${typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'unknown'} ${typeof __APP_COMMIT__ === 'string' ? __APP_COMMIT__ : 'unknown'}`;
 }
 
-/**
- * 1.2.53 (Robert): the default Auto Test start — a new city on seed
- * 2158733425, Full game, normal opponents, normal economy, 40×32, with the
- * start of that report ($6,000, 5 hoods, 3 businesses). The player's own name
- * and portrait are kept. A random seed can be chosen instead.
- */
+/** 1.2.53 (Robert): the default Auto Test seed (the dialog's Default button). */
 export const DEFAULT_AUTO_TEST_SEED = 2158733425;
-/** 1.2.57 (Robert): the saved seeds offered in the Auto Test options (the first is the default). */
-export const SAVED_AUTO_TEST_SEEDS: readonly number[] = [2158733425, 584300274, 4043194376];
-
-/** 1.2.57 (Robert): the whole start of an Auto Test city — victory and its target, opponents, economy and size. */
-export interface AutoTestStart {
-  mode: GameOptions['mode'];
-  /** The Full game's ending ('any' keeps all three). */
-  victory: FullVictory;
-  territoryTarget: number;
-  wealthTarget: number;
-  powerWeeks: number;
-  opponents: GameOptions['opponents'];
-  economy: GameOptions['economy'];
-  size: keyof typeof CITY_SIZE_PRESETS;
-}
-/** 1.2.57: the default start (Full game, any ending, normal, 40×32); the short-game targets are proposed defaults. */
-export const DEFAULT_AUTO_TEST_START: AutoTestStart = {
-  mode: 'normal', victory: 'any', territoryTarget: 500, wealthTarget: 250000, powerWeeks: 50, opponents: 'normal', economy: 'normal', size: 'standard',
-};
+/** 1.2.58: the speed written on the report (the dialog has no speed field; the test runs flat out). */
+export const AUTO_TEST_SPEED = 4;
 
 /**
- * 1.2.57 (Robert): an Auto Test city is built from the chosen start — no more
- * hard-coded Full game. The territory target is clamped to the city size as
- * the New Game screen does (reconcileTerritorySetup).
+ * 1.2.58 (Robert): an Auto Test city is a new city on the entered seed with
+ * the open game's start settings exactly as chosen at New Game — victory and
+ * target, opponents, economy, size, start money. Auto Test changes none of them.
  */
-export function defaultAutoTestOptions(base: GameOptions, seed: number, start: AutoTestStart = DEFAULT_AUTO_TEST_START): GameOptions {
-  const size = CITY_SIZE_PRESETS[start.size] ?? CITY_SIZE_PRESETS.standard;
-  return reconcileTerritorySetup({ ...base, seed, mode: start.mode, victory: start.mode === 'normal' ? start.victory : undefined,
-    territoryTarget: start.territoryTarget, wealthTarget: start.wealthTarget, powerWeeks: start.powerWeeks,
-    economy: start.economy, opponents: start.opponents, startMoney: 6000, startHoods: 5, startBusinesses: 3,
-    citySize: size.w, cityHeight: size.h, cityLayout: 'varied', standardRules: true, scenarioId: undefined, tutorialId: undefined });
+export function autoTestCityOptions(base: GameOptions, seed: number): GameOptions {
+  return { ...base, seed };
 }
 
 /** 1.2.57 (Robert): the TEST KEY line — build, seed, victory and target, opponents, economy, size — after the title and BUILD of every report. */
