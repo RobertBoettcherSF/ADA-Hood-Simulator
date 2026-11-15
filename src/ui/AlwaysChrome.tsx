@@ -230,8 +230,9 @@ function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) =
             </label>
           )}
           <label className="wood-field">
-            <input type="checkbox" checked={fresh} onChange={(event) => setFresh(event.target.checked)} />
-            Default start: a new city — Full game, normal opponents, normal economy, 40×32, $6,000, 5 hoods, 3 businesses (off: test this city)
+            <input type="checkbox" checked={fresh} aria-label="Default start" onChange={(event) => setFresh(event.target.checked)} />
+            {/* 1.2.55: the long text wrapped onto a line of its own and left the box unlabelled — it is kept beside the box now. */}
+            <span style={{ flex: '1 1 0', minWidth: 0 }}>Default start: a new city — Full game, normal opponents, normal economy, 40×32, $6,000, 5 hoods, 3 businesses (off: test this city)</span>
           </label>
           <label className="wood-field">
             Seed

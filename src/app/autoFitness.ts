@@ -104,6 +104,8 @@ export interface ValueContext {
   scale: DollarScale;
   /** Our protection collection rate last week (collected ÷ claimed). */
   collectionRate: number;
+  /** 1.2.55: what one hire is worth a week (the best open seat's man value; V when unknown). */
+  hireValue?: number;
 }
 
 const ATTACKS = new Set<OrderType>(['smashUp', 'torch', 'bomb', 'assault']);
@@ -123,7 +125,7 @@ export function orderValue(w: WorldState, o: Order, ctx: ValueContext, protected
       return { value: profit * LASTING_WEEKS, rule: `profit $${Math.round(profit)}/wk × ${LASTING_WEEKS}` };
     }
     case 'recruit':
-      return { value: (o.hired ?? 0) * V * LASTING_WEEKS, rule: `${o.hired ?? 0} hired × V $${V} × ${LASTING_WEEKS}` };
+      return { value: (o.hired ?? 0) * (ctx.hireValue ?? V) * LASTING_WEEKS, rule: `${o.hired ?? 0} hired × ${ctx.hireValue != null ? `seat value $${Math.round(ctx.hireValue)}` : `V $${V}`} × ${LASTING_WEEKS}` };
     default:
       if (ATTACKS.has(o.type) && o.targetPersonId == null) {
         const shut = o.targetBuildingIds.map((id) => w.buildings[id]).filter((b) => b && b.ownerGangId !== ctx.gangId && b.state !== 'trading');

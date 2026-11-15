@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { chooseGoal, goalScores, GOAL_POLICY } from '../src/app/autoGoals';
 import { defaultActionRanks, RANK_MIN } from '../src/app/autoActions';
-import { playAutoWeek, streetHeat, STREET_HEAT_REST } from '../src/app/autoTest';
+import { playAutoWeek } from '../src/app/autoTest';
+import { REST_RISK, streetRisk } from '../src/app/autoHeat';
 import { defaultStrategy } from '../src/app/strategy';
 import { defaultGameOptions } from '../src/app/newGame';
 import { issueOrder, nearTerritory, BUY_REACH_BLOCKS } from '../src/sim/api';
@@ -29,8 +30,9 @@ describe('1.2.20 Auto Test and rules', () => {
   });
 
   it('rests a man before the police arrest line', () => {
-    expect(streetHeat(20, -40)).toBeGreaterThanOrEqual(STREET_HEAT_REST);
-    expect(streetHeat(20, 0)).toBeLessThan(STREET_HEAT_REST);
+    // 1.2.55: priced by the street-arrest risk below the game's line (45 + officer opinion × 0.5).
+    expect(streetRisk(40, -40)).toBeGreaterThanOrEqual(REST_RISK);
+    expect(streetRisk(20, 0)).toBeLessThan(REST_RISK);
   });
 
   it('keeps the FBI strike rare and low-ranked', () => {

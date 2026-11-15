@@ -33,11 +33,16 @@ export function cashNeed(bill: number, takings: readonly number[], committed: nu
 
 /**
  * λ at a cash level: what a dollar held there is worth, in dollars. Above R
- * a dollar held for LASTING_WEEKS loses IDLE_PENALTY a week; below R each
+ * a dollar held for LASTING_WEEKS loses IDLE_PENALTY a week, scaled by R ÷ the
+ * cash (1.2.55, floor IDLE_LAMBDA_FLOOR); below R each
  * dollar short leaves 1/avgPay of a man unpaid.
  */
+/** 1.2.55 (proposed): the least λ falls to with idle cash far above the reserve. */
+export const IDLE_LAMBDA_FLOOR = 0.3;
+
 export function holdValue(cashAfter: number, R: number, avgPay: number, scale: DollarScale): number {
-  if (cashAfter >= R) return 1 - IDLE_PENALTY * LASTING_WEEKS;
+  // 1.2.55 (Robert): idle cash lowers λ above the reserve — × R ÷ the cash, floor IDLE_LAMBDA_FLOOR.
+  if (cashAfter >= R) return Math.max(IDLE_LAMBDA_FLOOR, (1 - IDLE_PENALTY * LASTING_WEEKS) * (cashAfter > 0 ? Math.min(1, R / cashAfter) : 1));
   const perMan = P_DESERT_UNPAID * scale.L + SACKED_CREW_SHARE * scale.A;
   return 1 + (avgPay > 0 ? perMan / avgPay : 0);
 }

@@ -238,6 +238,21 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.55 decisions
+
+Heat replaces lying low. Numbers marked *proposed* are ours, not Robert's.
+
+- **Heat fitness (autoHeat.ts).** `heatCost(order, state)` prices an order's heat: the rise in expected consequence cost from x to x+Δ, projected with the game's own decay. It covers the FBI total (case and raid above 200), a man's FBI score (warrant), wanted (street arrest), mayor and chief opinion (including the crackdown hazard) and evidence. Horizon H = 4 weeks; bands 20 (FBI total) and 10 (wanted); a boss case costs 100 × A (all *proposed*). Other approximations, also *proposed*: chief band 10, witness weight 1, a 0.25 arrests/week prior, and a rest line at a 0.5 street-arrest risk. Each week a HEAT line shows every measure's value, line, gap and price per unit, plus the week's heat spend.
+- **Order score = value × chance − heat.** The gang-level measures go into the ranking. A crew's own wanted and FBI score are checked when the order is given: if the heat is above the order's worth, the order goes to another crew. Removed: lie low and cooling off, the suspicion levels and their bribe and lie-low lines, the risky-work share and its easing, the wanted hold on risky work, the fixed street-heat rest lines, the wanted–suspicion share, the no-heavy-job-past-200 rule and the extortion exemption. One hard guard is kept: no extortion that would take the projected FBI total past 200.
+- **Bribes are worth the heat they take off the coming weeks**, at last week's crime load. A mayor bribe is preferred: his +34 stays, and police presence drops to × 0.6. A chief bribe fades as he moves 35% a week toward the mayor.
+- **Legal buys get an FBI credit** in the cash pass, because they raise the premises base.
+- **Manager swap cost is never $0 or less.** The 150 man-minutes are always priced, at max(crew rate, V per man-minute, $1 *proposed*). The man-value difference counts only when it is a loss.
+- **Recruit value** is what the men of the best open seat's crew earn in its job, or V for a spare when every crew is full. The recruit order is settled at that value too. The "Business crew has room" trigger is gone.
+- **No extort brake.** A new site's value is multiplied by last week's collection rate and by the share of its collect stops the Protection crews have spare time for.
+- **Crew roles by value.** When shops went unvisited and the Business crew used less than 50% of its man-minutes last week (*proposed*), it switches to Protection. Any crew may buy.
+- **Idle cash lowers λ above the reserve:** λ × reserve ÷ cash, floor 0.3 (*proposed*).
+- **Auto Test dialog:** the default-start checkbox keeps its label beside it.
+
 ## v1.2.54 decisions
 
 - **Order completion score (autoExec.ts).** Each week the Auto counts orders put forward, given, carried out, cancelled and not carried out, with a reason for each (no time, nobody free, crew at rest, lying low, on defence, refused by the game, no crew took it, held back). The ORDER EXEC report line shows the counts, $ carried out of $ approved and the top reasons.

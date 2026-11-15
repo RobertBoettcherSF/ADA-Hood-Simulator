@@ -48,14 +48,11 @@ describe('time ledger', () => {
   });
 });
 
-import { heatLevel } from '../src/app/autoTest';
+import { warrantRisk } from '../src/app/autoHeat';
 describe('heat', () => {
-  it('eases past 30, lies low past 50, and counts a fast rise as a level hotter', () => {
-    expect(heatLevel(17, 0)).toBe(1);
-    expect(heatLevel(10, 5)).toBe(0);
-    expect(heatLevel(31, 17)).toBe(1);
-    expect(heatLevel(47, 31)).toBe(2);
-    expect(heatLevel(52, 50)).toBe(2);
-    expect(heatLevel(29, 25)).toBe(0);
+  it('prices a warrant only when a man\'s FBI score can pass 200 within the horizon', () => {
+    expect(warrantRisk(150)).toBe(0);
+    expect(warrantRisk(240)).toBeGreaterThan(0);
+    expect(warrantRisk(300)).toBeGreaterThan(warrantRisk(240));
   });
 });

@@ -78,10 +78,12 @@ export function decideWeek<T>(
   issue: (label: string, team: T, p: Proposal<T>) => ApiResult,
   /** 1.2.54 (Robert): the chance the order is carried out (order completion), which weighs its value. */
   chance?: (p: Proposal<T>) => number,
+  /** 1.2.55 (Robert): the order's expected heat cost (autoHeat.ts), taken off its score. */
+  heat?: (p: Proposal<T>) => number,
 ): { given: Decision[]; skipped: Decision[] } {
   const given: Decision[] = [], skipped: Decision[] = [];
-  const ranked = proposals.map((p, i) => { const c = chance ? chance(p) : 1; return { p, i, c, score: Math.round(scoreOf(goal, p) * c) }; }).sort((a, b) => Number(!!b.p.first) - Number(!!a.p.first) || b.score - a.score || a.i - b.i);
-  for (const { p, c, score } of ranked) {
+  const ranked = proposals.map((p, i) => { const c = chance ? chance(p) : 1; const h = heat ? heat(p) : 0; return { p, i, c, h, score: Math.round(scoreOf(goal, p) * c - h) }; }).sort((a, b) => Number(!!b.p.first) - Number(!!a.p.first) || b.score - a.score || a.i - b.i);
+  for (const { p, c, h, score } of ranked) {
     // 1.2.25 (Robert's rule): the business crew takes business work only.
     // 1.2.54 (Robert): any crew may buy — the business crew is offered it
     // first (its job), another crew only when the buy pays at least its own
@@ -92,7 +94,14 @@ export function decideWeek<T>(
       : crews.filter(allowed).sort((a, b) => Number(b.role === p.role && p.role != null) - Number(a.role === p.role && p.role != null) || b.free() - a.free());
     const open = slots.filter((c) => c.free() >= (p.minFree ?? MIN_FREE_MINUTES));
     const weight = KIND_WEIGHTS[goal][p.kind];
-    const why = `score ${score} = value ${Math.round(p.value)} × ${goal} weight ${weight} for ${p.kind}${chance ? ` × chance ${c.toFixed(2)} carried out` : ''}${p.why ? ` — ${p.why}` : ''}`;
+    const why = `score ${score} = value ${Math.round(p.value)} × ${goal} weight ${weight} for ${p.kind}${chance ? ` × chance ${c.toFixed(2)} carried out` : ''}${h > 0 ? ` − heat $${Math.round(h)}` : ''}${p.why ? ` — ${p.why}` : ''}`;
+    // 1.2.55 (Robert): heat priced above the order's worth — not given (no lie-low rule).
+    if (h > 0 && score <= 0 && !p.first) {
+      const none = 'held back — its heat costs more than it is worth';
+      skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; ${none}`, reason: none });
+      p.onSkipped?.();
+      continue;
+    }
     if (!open.length) {
       const none = `no crew with time${p.teams ? ' among those fit for it' : ''}`;
       skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; ${none}`, reason: none });
