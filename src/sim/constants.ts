@@ -39,7 +39,8 @@ export const DRIVE_SPEED = WALK_SPEED * 3.4;
  */
 export const DRIVE_MIN_DISTANCE = 18.75 * CELL / 5;
 
-export const MAX_TEAMS = 8;
+/** 1.2.68 (Robert): twelve lieutenants for every gang (was eight). */
+export const MAX_TEAMS = 12;
 export const MAX_TEAM_SIZE = 10;
 export const SNITCH_COUNT = 3;
 /** Citizens walking the streets, per block. Every pedestrian is one of them. */

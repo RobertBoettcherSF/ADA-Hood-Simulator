@@ -33,6 +33,8 @@ export interface DeskMemory {
   /** "personId>teamId" or ">teamId" → week refused. */
   refusedMoves: Map<string, number>;
   lastHqStrike: number;
+  /** 1.2.68: "teamId:buildingId" → the week a buy or set-up by that crew failed for want of time. */
+  timeFails?: Map<string, number>;
 }
 
 const memories = new WeakMap<WorldState, DeskMemory>();
@@ -66,11 +68,18 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
     m.fails.set(p.buildingId, n);
     m.ratio = Math.min(5, Math.round(m.ratio * 1.15 * 100) / 100);
     const why = done?.failReason ?? (done ? 'nothing done' : 'never finished in the week');
+    if (/time/i.test(why)) (m.timeFails ??= new Map()).set(`${p.teamId}:${p.buildingId}`, w.week);
     out.push(`NOTE business: ${label} failed (${why}); failure ${n}, minutes factor now ×${m.ratio}`);
   }
   m.pending = [];
   for (const [key, week] of m.refusedMoves) if (w.week - week >= MOVE_REFUSED_WEEKS) m.refusedMoves.delete(key);
   return out;
+}
+
+/** 1.2.68 (Robert, point 10): a buy that failed for want of time is not given to the same crew again for `weeks`. */
+export function buyRetryBanned(m: DeskMemory, w: WorldState, teamId: number, buildingId: number, weeks: number): boolean {
+  const at = m.timeFails?.get(`${teamId}:${buildingId}`);
+  return at != null && w.week - at < weeks;
 }
 
 export function moveRefused(m: DeskMemory, personId: number, teamId: number): boolean {

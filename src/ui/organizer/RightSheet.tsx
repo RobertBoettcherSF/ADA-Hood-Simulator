@@ -572,7 +572,7 @@ function PersonSheet({ person, teamId }: { person: Person; teamId?: ID }) {
         </button>
         {person.role === 'hood' && person.gangId === gang.id && (person.teamId != null || gang.poolIds.includes(person.id)) && <button
           className="btn"
-          title="Make this hood a lieutenant, if one of the eight tabs is free"
+          title="Make this hood a lieutenant, if one of the twelve tabs is free"
           onClick={() => {
             notify(act((s) => promote(s.world, gang.id, person.id))!);
             setSheet(null);

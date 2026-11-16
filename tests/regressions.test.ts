@@ -1,5 +1,5 @@
 import { setAttitude } from '../src/sim/attitudes';
-import { MINUTES_PER_WEEK } from '../src/sim/constants';
+import { MAX_TEAMS, MINUTES_PER_WEEK } from '../src/sim/constants';
 import { describe, expect, it } from 'vitest';
 import { defaultGameOptions } from '../src/app/newGame';
 import {
@@ -279,14 +279,14 @@ describe('regressions', () => {
     const sim = newSim(4242);
     const w = sim.world;
     const gang = sim.playerGang;
-    // Fill all eight lieutenant slots.
-    while (gang.teamIds.length < 8) {
+    // Fill every lieutenant slot.
+    while (gang.teamIds.length < MAX_TEAMS) {
       const free = Object.values(w.people).find(
         (p) => p.gangId == null && p.status === 'active' && p.role === 'hood',
       )!;
       hireRecruit(w, gang.id, free.id, 'lieutenant');
     }
-    expect(gang.teamIds.length).toBe(8);
+    expect(gang.teamIds.length).toBe(MAX_TEAMS);
 
     const another = Object.values(w.people).find(
       (p) => p.gangId == null && p.status === 'active' && p.role === 'hood',

@@ -413,7 +413,7 @@ export function LieutenantsTab() {
   );
 }
 
-/** The Lieutenant Tabs down the left edge of the journal: one per team, eight at most. */
+/** The Lieutenant Tabs down the left edge of the journal: one per team, MAX_TEAMS at most. */
 export function LieutenantStrip() {
   const sim = useGame((s) => s.sim)!;
   const selectedTeamId = useGame((s) => s.selectedTeamId);

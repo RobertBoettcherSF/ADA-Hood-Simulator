@@ -68,7 +68,7 @@ export function HelpSheet({ onClose, onStartLesson }: { onClose: () => void; onS
       <div className="help-keys">
         <h4>Keys</h4>
         <p>
-          <b>Organizer:</b> F1–F8 sections · 1–8 lieutenants · C clipboard · H hoods · V vehicles · W weapons ·
+          <b>Organizer:</b> F1–F8 sections · 1–8 the first eight lieutenants · C clipboard · H hoods · V vehicles · W weapons ·
           Enter confirms a job card · Esc cancels · Ctrl+S save · Ctrl+L load · Ctrl+Q quit · ? this sheet
         </p>
         <p>

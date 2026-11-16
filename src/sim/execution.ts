@@ -17,6 +17,7 @@ import { allocateTransport, alight, availableVehicle, dismount, stepOut, orderVe
 import { cargoVehicles, cargoWarehouse, emptyGoods, goodsTotal, loadCargo, refreshExportCargo, unloadCargo } from './cargo';
 import {
   DRIVE_MIN_DISTANCE,
+  MAX_TEAMS,
   MAX_TEAM_SIZE,
   MINUTES_PER_WEEK,
   ORDERS,
@@ -2130,7 +2131,7 @@ export function disbandTeam(w: WorldState, gang: Gang, teamId: ID, keepLieutenan
 
 /** Promote a hood into a lieutenant, creating a new team. */
 export function promoteToLieutenant(w: WorldState, gang: Gang, hood: Person): Team | null {
-  if (gang.teamIds.length >= 8) return null;
+  if (gang.teamIds.length >= MAX_TEAMS) return null;
   if (hood.teamId != null) {
     const old = w.teams[hood.teamId];
     if (old) old.memberIds = old.memberIds.filter((id) => id !== hood.id);

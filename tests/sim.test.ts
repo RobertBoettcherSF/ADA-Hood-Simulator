@@ -183,7 +183,7 @@ describe('numbers taken from the original manual', () => {
   });
 
   it('keeps the structural limits', () => {
-    expect(MAX_TEAMS).toBe(8);
+    expect(MAX_TEAMS).toBe(12);
     expect(MAX_TEAM_SIZE).toBe(10);
     expect(SNITCH_COUNT).toBe(3);
     expect(WAREHOUSE_GOODS_CAP).toBe(300);

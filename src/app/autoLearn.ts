@@ -32,7 +32,7 @@ const EXPLORE_SALT = 0x5eed;
 
 export interface LearnExpect { orderId: number; type: string; week: number; value: number; heat: number }
 interface Sums { exp: number; act: number; n: number }
-export interface LearnMemory { pending: LearnExpect[]; value: Record<string, Sums>; heat: Record<string, Sums>; settledWeek: number; /** 1.2.67: weeks running each type's value ratio sat below LEARN_MIN. */ biasWeeks?: Record<string, number> }
+export interface LearnMemory { pending: LearnExpect[]; value: Record<string, Sums>; heat: Record<string, Sums>; settledWeek: number; /** 1.2.67: weeks running each type's value ratio sat below LEARN_MIN. */ biasWeeks?: Record<string, number>; /** 1.2.68: types never given the VALUE BIAS floor (kills while eliminating). */ biasExempt?: string[] }
 
 const memories = new WeakMap<WorldState, LearnMemory>();
 export function learnMemory(w: WorldState): LearnMemory {
@@ -66,7 +66,7 @@ function ratioOf(s: Sums | undefined, min = LEARN_MIN): number {
   return Math.max(min, Math.min(LEARN_MAX, rawRatio(s)));
 }
 /** 1.2.67 (Robert, point 16): a type whose value sat below LEARN_MIN for VALUE_BIAS_WEEKS has a value bias; its floor drops to VALUE_BIAS_MIN. */
-export const valueBias = (m: LearnMemory, type: string) => (m.biasWeeks?.[type] ?? 0) >= VALUE_BIAS_WEEKS;
+export const valueBias = (m: LearnMemory, type: string) => !(m.biasExempt ?? []).includes(type) && (m.biasWeeks?.[type] ?? 0) >= VALUE_BIAS_WEEKS;
 export const valueRatio = (m: LearnMemory, type: string) => ratioOf(m.value[type], valueBias(m, type) ? VALUE_BIAS_MIN : LEARN_MIN);
 export const heatRatio = (m: LearnMemory, type: string) => ratioOf(m.heat[type]);
 

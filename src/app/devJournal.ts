@@ -65,7 +65,7 @@ function gangBooks(w: WorldState, gang: Gang): string[] {
   ];
 }
 
-/** Crew capacity (eight lieutenants with nine hoods) against the men in crews and the pool. */
+/** Crew capacity (MAX_TEAMS lieutenants with nine hoods) against the men in crews and the pool. */
 function crewCapacity(w: WorldState, gang: Gang): string {
   const inCrews = teamsOf(w, gang).reduce((sum, t) => sum + t.memberIds.length + 1, 0);
   const idle = gang.poolIds.filter((id) => w.people[id]?.status === 'active').length;

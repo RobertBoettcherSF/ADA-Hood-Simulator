@@ -238,6 +238,25 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.68 decisions
+
+Twelve lieutenants, and Auto's crews, goods, elimination, votes and bribes. All new numbers are proposed constants (`src/app/autoWin.ts`).
+
+1. Every gang may have up to 12 lieutenants (`MAX_TEAMS`); the crew strip shows twelve tabs. Number keys 1–8 still pick the first eight lieutenants; tabs 9–12 are picked with the mouse.
+2. CREW FIT: when last week's orders went ungiven for want of men and free cash covers `IDLE_CASH_WEEKS` (4) of a full new crew's wages, Auto opens a crew and recruits its seats. Past `CREW_FIT_FROM` (8) crews, only then.
+3. Goods trial: one still and one speakeasy are set up as a goal, unvalued, for `GOODS_TRIAL_WEEKS` (8) of trading; then the chain is judged on takings, at most `GOODS_TRIAL_BARS` (2) speakeasies per still.
+4. FINISH: a rival gang at `FINISH_MEN` (4) men or fewer gets kill proposals on its known men, the boss last. Its share of the win value is split across the kills.
+5. A kill target refused by the game is left for `KILL_RETRY_WEEKS` (2).
+6. The win model's elimination rate counts only our own kills.
+7. An HQ strike is worth the expected kills (at most `HQ_STRIKE_KILLS`, 3) × one man's win value; HQ scouting is worth the gang's men × one man's value × the share of its blocks it searches.
+8. Kills are learned in rival men removed × one man's value, and are exempt from the VALUE BIAS floor.
+9. STANCE FIT: on the weakest gang our kill rate starts at `ELIM_KILLS_PER_WEEK` (0.5). When our losses exceed `KILL_RATIO_MAX` (2) × our kills over the threat weeks, the other gangs are offered no aggression or war.
+10. Each block carries a death risk from our men killed there over `DEATH_RISK_WEEKS` (4), priced × L. A buy that failed for time is not retried by the same crew for `BUY_RETRY_WEEKS` (2). A buy's man-time, travel included, counts in its cost at V a man-week.
+11. Vote buys are ranked by votes per dollar and per man-hour, and only as many as the Business crew's free time holds. They stop under HOLD and return once the votes in hand fall below the line + 10.
+12. The vote line is projected to election day from the civic columns' growth since the last election; HOLD and vote buys use the higher of today's and the projected line.
+13. A chief bribe is worth at most `CHIEF_BRIBE_WEEKS` (8) of the arrest costs it prevents (`CHIEF CAP`). Its result (opinion and arrests a week, then and now) is printed (`CHIEF BRIBE RESULT`).
+14. KIND LEARN shows a target only when it differs after rounding. RECRUIT WIDEN is removed.
+
 ## v1.2.67 decisions
 
 Auto's values and the goods rules. All new numbers are proposed constants (`src/app/autoWin.ts`, `src/app/autoLearn.ts`, `src/sim/exportGoods.ts`, `src/sim/systems/economy.ts`).

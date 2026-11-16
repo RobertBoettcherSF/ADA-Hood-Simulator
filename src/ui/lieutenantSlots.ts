@@ -1,11 +1,12 @@
+import { MAX_TEAMS } from '../sim/constants';
 import type { Gang, ID, WorldState } from '../sim/types';
 
 /**
- * 1.2.21: the left panel's eight lieutenant slots. The player may drag a
+ * 1.2.21: the left panel's lieutenant slots (twelve since 1.2.68). The player may drag a
  * lieutenant onto another (they swap) or onto any slot, empty ones included
  * (he moves there and stays). Crews not yet placed fill the first free slots.
  */
-export const SLOT_COUNT = 8;
+export const SLOT_COUNT = MAX_TEAMS;
 
 export function slotLayout(w: WorldState, gang: Gang): (ID | null)[] {
   const live = gang.teamIds.filter((id) => w.teams[id]);

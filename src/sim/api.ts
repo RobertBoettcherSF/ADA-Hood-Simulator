@@ -522,7 +522,7 @@ export function promote(w: WorldState, gangId: ID, personId: ID): ApiResult {
   const crew = p.teamId == null ? null : w.teams[p.teamId];
   if (!gang.poolIds.includes(personId) && !(crew?.gangId === gangId && crew.memberIds.includes(personId)))
     return fail('That hood is not in the pool or a crew.');
-  if (gang.teamIds.length >= MAX_TEAMS) return fail('You already have eight lieutenants.');
+  if (gang.teamIds.length >= MAX_TEAMS) return fail(`You already have ${MAX_TEAMS} lieutenants.`);
   const team = promoteToLieutenant(w, gang, p);
   return team ? ok(`${p.name} now runs his own crew.`) : fail('Could not promote.');
 }

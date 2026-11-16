@@ -25,8 +25,6 @@ export const KIND_LEARN_WEEKS = 8;
 export const KIND_LEARN_STEP = 0.05;
 /** 1.2.67 (proposed): the share of crew slots kept filled before a low-worth site takes a manager. */
 export const CREW_FILL_MIN = 0.6;
-/** 1.2.67 (proposed): empty recruit weeks before the recruiting radius widens. */
-export const RECRUIT_WIDEN_WEEKS = 4;
 /** 1.2.66 (proposed): weeks of history a growth rate is read over. */
 export const WIN_GROWTH_WEEKS = 4;
 /** 1.2.66 (proposed): an ending that cannot be reached at the present pace counts this many weeks away. */
@@ -152,6 +150,11 @@ export interface TrialPoll {
    * remainder to the sitting mayor's column, ties lost) — votesToWin. */
   need: number;
   civic: [number, number];
+  /** 1.2.68: every column's score and our column (for the line projected to election day). */
+  scores: number[];
+  at: number;
+  /** 1.2.68: the line today, when `need` is the one projected to election day. */
+  needNow?: number;
   /** The blocks that vote for this gang. */
   kept: Set<number>;
 }
@@ -197,6 +200,8 @@ export function trialPoll(w: WorldState, gangId: number, teamsters = false, also
     beat: Math.max(0, ...scores.filter((_, i) => i !== at)),
     need: votesToWin(scores, at),
     civic: [scores[0] ?? 0, scores[1] ?? 0],
+    scores: [...scores],
+    at,
     kept: new Set(r.support[slot] ?? []),
   };
 }
@@ -224,3 +229,29 @@ export function kindScales(hist: readonly { logit: number; kinds: Record<string,
   for (const [k, c] of Object.entries(credit)) out[k] = 1 + KIND_LEARN_RATE * c / top;
   return out;
 }
+
+// 1.2.68 (Robert's plan) — all proposed.
+/** Point 2: a new crew when free cash covers this many weeks of its wages and orders went ungiven for want of men. */
+export const IDLE_CASH_WEEKS = 4;
+/** Point 2: crews past this many are opened only on CREW FIT. */
+export const CREW_FIT_FROM = 8;
+/** Point 3: weeks the first still and speakeasy trade unvalued before the chain is judged on takings. */
+export const GOODS_TRIAL_WEEKS = 8;
+/** Point 3: speakeasies per still at most. */
+export const GOODS_TRIAL_BARS = 2;
+/** Point 4: a rival gang at or under this many men is finished off. */
+export const FINISH_MEN = 4;
+/** Point 5: weeks a refused kill target is left alone. */
+export const KILL_RETRY_WEEKS = 2;
+/** Point 7: the kills an HQ strike is expected to make at most. */
+export const HQ_STRIKE_KILLS = 3;
+/** Point 9: our kills a week assumed on the weakest gang before we have any. */
+export const ELIM_KILLS_PER_WEEK = 0.5;
+/** Point 9: men lost per man killed over THREAT_WEEKS above which other gangs get a ceasefire. */
+export const KILL_RATIO_MAX = 2;
+/** Point 10: weeks of our men's deaths per block behind the block death risk. */
+export const DEATH_RISK_WEEKS = 4;
+/** Point 10: weeks a buy that failed for time is not retried by the same crew. */
+export const BUY_RETRY_WEEKS = 2;
+/** Point 13: a chief bribe is worth at most this many weeks of the arrest costs it prevents. */
+export const CHIEF_BRIBE_WEEKS = 8;
