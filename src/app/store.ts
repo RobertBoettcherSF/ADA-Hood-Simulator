@@ -24,7 +24,7 @@ import { activeWorldStore, livingCityOnFile } from './worldFolder';
 import type { GameOptions, ID, MessageCategory, OrderOptions, OrderType, SpecialistJob, Vec2 } from '../sim/types';
 import { specialistTargetEligible } from '../sim/specialistJobs';
 import type { OverlayKind } from '../render/scene';
-import { defaultGameOptions, newCampaignOptions } from './newGame';
+import { DEFAULT_CITY_SEED, newCampaignOptions, randomCitySeed } from './newGame';
 import { cloneSavedWorldResponsive, loadGame, loadSlotWorld, saveGame, type SaveSlot } from './save';
 import { yieldForInput } from '../yieldForInput';
 import { autoTestRunState } from './autoTest';
@@ -357,11 +357,11 @@ export const useGame = create<GameState>((set, get) => ({
     // under a "Full Game" heading. The boss's own details are kept.
     const o = get().options;
     const fresh = screen === 'newGame' && (o.tutorialId != null || o.scenarioId != null)
-      ? { options: { ...newCampaignOptions(), seed: defaultGameOptions().seed, playerName: o.playerName, playerNickname: o.playerNickname,
+      ? { options: { ...newCampaignOptions(), seed: DEFAULT_CITY_SEED, playerName: o.playerName, playerNickname: o.playerNickname,
           playerHeritage: o.playerHeritage, playerSitter: o.playerSitter, playerFemale: o.playerFemale,
           playerPortrait: o.playerPortrait, playerColor: o.playerColor } }
-      // Every new game gets a new city; the seed box can still bring one back.
-      : screen === 'newGame' ? { options: { ...o, seed: defaultGameOptions().seed } }
+      // 1.2.64 (Robert): every new game starts with the default City seed in the box.
+      : screen === 'newGame' ? { options: { ...o, seed: DEFAULT_CITY_SEED } }
       : {};
     set({ screen, ...fresh, ...(screen !== 'game' ? { streetLoading: false } : {}) });
   },
@@ -400,7 +400,7 @@ export const useGame = create<GameState>((set, get) => ({
   startAttract: () => {
     if (get().screen !== 'menu' || get().loadingSave != null) return;
     const names = ['Sal Benedetto', 'Frankie Doyle', 'Mo Kaplan', 'Vito Russo', 'Eddie Malone'];
-    const options: GameOptions = { ...newCampaignOptions(), seed: defaultGameOptions().seed,
+    const options: GameOptions = { ...newCampaignOptions(), seed: randomCitySeed(),
       playerName: names[Math.floor(Math.random() * names.length)], playerPortrait: Math.floor(Math.random() * 8) };
     const sim = new Sim(options);
     set({

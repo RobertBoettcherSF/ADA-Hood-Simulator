@@ -1,7 +1,7 @@
 import { FULL_VICTORIES, FULL_VICTORY_LABELS } from '../sim/victory';
 import { ArtImage } from './ArtImage';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { describeMode, newCampaignOptions } from '../app/newGame';
+import { DEFAULT_CITY_SEED, describeMode, newCampaignOptions, randomCitySeed } from '../app/newGame';
 import { SCENARIOS, applyScenario } from '../app/scenarios';
 import { useGame } from '../app/store';
 import { GANG_COLORS } from '../sim/constants';
@@ -70,7 +70,9 @@ export function NewGameScreen() {
     const d = newCampaignOptions();
     set({ mode: d.mode, victory: undefined, scenarioId: undefined, tutorialId: undefined, economy: d.economy, opponents: d.opponents,
       startMoney: d.startMoney, startHoods: d.startHoods, startBusinesses: d.startBusinesses, powerWeeks: d.powerWeeks,
-      wealthTarget: d.wealthTarget, territoryTarget: d.territoryTarget, citySize: d.citySize, cityHeight: d.cityHeight });
+      wealthTarget: d.wealthTarget, territoryTarget: d.territoryTarget, citySize: d.citySize, cityHeight: d.cityHeight,
+      // 1.2.64 (Robert): the City seed goes back to the default too.
+      seed: DEFAULT_CITY_SEED });
   };
   const beginGame = () => {
     try {
@@ -395,17 +397,29 @@ export function NewGameScreen() {
                       set({ seed });
                     }}
                   />
+                  {/* 1.2.64 (Robert): Default (2158733425) and Random beside the box. */}
                   <button
                     type="button"
                     className="chip"
                     onClick={() => {
                       audio.plaque();
-                      const n = Math.floor(Math.random() * 0xffffffff) >>> 0;
+                      setSeedText(String(DEFAULT_CITY_SEED));
+                      set({ seed: DEFAULT_CITY_SEED });
+                    }}
+                  >
+                    Default
+                  </button>
+                  <button
+                    type="button"
+                    className="chip"
+                    onClick={() => {
+                      audio.plaque();
+                      const n = randomCitySeed();
                       setSeedText(String(n));
                       set({ seed: n });
                     }}
                   >
-                    <Icon name="misc/roll" size={14} /> Roll
+                    <Icon name="misc/roll" size={14} /> Random
                   </button>
                 </div>
               </div>

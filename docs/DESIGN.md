@@ -238,6 +238,10 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.64 decisions
+
+1. **City seed box.** The New Game City seed box always starts with 2158733425 for every new game (a continued game keeps its own seed). Beside it, Default sets 2158733425 and Random (which replaces Roll) picks a random seed. Restore Defaults resets the seed to 2158733425 too. UI only: no rule changes; the Auto seed is untouched; the idle demo city still picks a random seed.
+
 ## v1.2.63 decisions
 
 1. **Stance by fitness, per rival.** Each week Auto prices peace, ceasefire, aggression and war against each rival as the expected weekly loss: (their kills of ours + incidents our own first shots start) × a man's value, less what fighting gains (only when the goal is eliminate, territory or power). Their kills are cut by how soon our stance cools theirs (the game's quiet-week drift over 8 weeks); peace is counted undefended (+50%) since our men never fire; ceasefire starts half the first shots. The lowest loss is picked; ceasefire is offered to an aggression or war gang when it wins. Replaces the 1.2.49 rule. Report line STANCE FIT. Numbers proposed.

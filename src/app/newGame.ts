@@ -4,9 +4,17 @@ import { money } from '../sim/world';
 import { scenarioById } from './scenarios';
 import { tutorialById } from './tutorials';
 
+/** 1.2.64 (Robert): the City seed every new game starts with (Default button, Restore Defaults). */
+export const DEFAULT_CITY_SEED = 2158733425;
+
+/** 1.2.64: a random city seed (the Random button). */
+export function randomCitySeed(): number {
+  return Math.floor(Math.random() * 0xffffffff) >>> 0;
+}
+
 export function defaultGameOptions(): GameOptions {
   return {
-    seed: Math.floor(Math.random() * 0xffffffff) >>> 0,
+    seed: DEFAULT_CITY_SEED,
     playerName: 'Johnny Moretti',
     playerFemale: false,
     playerPortrait: 0,
