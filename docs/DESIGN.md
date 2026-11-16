@@ -238,6 +238,12 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.62 decisions
+
+1. **Auto Test plays the open game.** It never makes a new city. Start hands the game now open (new or continued) to Auto from its current week; Auto plays it under the same rules and saves as a player game until victory, loss or Stop. Stop gives the desk back to the player in the same game. Victory and every setting are the open game's New Game choices; Auto Test changes none.
+2. **The Seed box seeds only Auto.** Default 2158733425 and Random stay, with Start and Cancel; the number seeds Auto's own choices, not the city.
+3. **Report.** The TEST KEY line shows the city seed, the Auto seed and "taken over at week N"; the Starting conditions block shows the same. The SUMMARY timeline and the 60-week files count from the week Auto took over. A run taken over after week 1 is left out of the learning score, "beat the previous best" and the diary (each says so), since those compare runs played from week 1.
+
 ## v1.2.61 decisions
 
 1. **Men heading home are free for queued orders (all gangs).** A crew man on no job who is only on his way home — on foot, or in a crew car that is only driving home with no job and no goods — counts as free for a queued order. When picked he gets out where he is and goes straight to the new job, so a waiting order starts as soon as enough men finish their last one.

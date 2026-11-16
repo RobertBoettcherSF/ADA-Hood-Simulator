@@ -25,7 +25,7 @@ export function victoryTarget(w: WorldState): string {
  * same in week 1 and week 100.
  */
 const written = new WeakMap<WorldState, string[]>();
-export function startingConditions(w: WorldState | null, autoTestSeed?: number): string[] {
+export function startingConditions(w: WorldState | null, autoTestSeed?: number, takenOverWeek?: number): string[] {
   if (!w) return ['Starting conditions', '(no game loaded)'];
   let lines = written.get(w);
   if (!lines) {
@@ -46,5 +46,6 @@ export function startingConditions(w: WorldState | null, autoTestSeed?: number):
     ];
     written.set(w, lines);
   }
-  return autoTestSeed == null ? lines : [...lines.slice(0, 7), `Auto Test strategy seed: ${autoTestSeed}`, ...lines.slice(7)];
+  // 1.2.62 (Robert): Auto Test plays the open game — the week Auto took it over follows the seeds.
+  return autoTestSeed == null ? lines : [...lines.slice(0, 7), `Auto Test strategy seed: ${autoTestSeed}`, ...(takenOverWeek != null ? [`Auto Test taken over at week ${takenOverWeek}`] : []), ...lines.slice(7)];
 }

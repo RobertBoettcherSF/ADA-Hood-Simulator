@@ -6,7 +6,7 @@ import { Modal } from './common';
 import { InterfaceButton } from './InterfaceControls';
 import './interface.css';
 import { recordAction } from '../app/actionLog';
-import { runAutoTest, autoTestCityOptions, DEFAULT_AUTO_TEST_SEED, AUTO_TEST_SPEED, autoTestRunState, onAutoTestRun, takeAutoTestStopped, takeAutoTestMemoryStop, toggleAutoTestStop, type AutoTestSettings } from '../app/autoTest';
+import { runAutoTest, DEFAULT_AUTO_TEST_SEED, AUTO_TEST_SPEED, autoTestRunState, onAutoTestRun, takeAutoTestStopped, takeAutoTestMemoryStop, toggleAutoTestStop, type AutoTestSettings } from '../app/autoTest';
 import { folderDiary, importLearnedState } from '../app/diary';
 import { DIARY_LEARNING } from '../app/strategy';
 
@@ -16,7 +16,6 @@ import { installCrashReports, noteAutoTestStopped, setReportWish, setReportWorld
 import { checkForUpdate, type UpdateOffer } from '../app/versionCheck';
 import { activeWorldStore } from '../app/worldFolder';
 import { isTyping } from './input';
-import type { Sim } from '../sim/sim';
 
 /** 1.2.53: resolves once the desk is neither saving, loading nor resolving a week. */
 function deskIdle(): Promise<void> {
@@ -26,9 +25,6 @@ function deskIdle(): Promise<void> {
     const unsubscribe = useGame.subscribe((s) => { if (idle(s)) { unsubscribe(); resolve(); } });
   });
 }
-
-/** 1.2.53 (proposed): how long the Auto Test start waits for the new city before giving up (the player may have kept the old one). */
-const NEW_CITY_WAIT_MS = 60_000;
 
 /** Version, update offer, and the debug button. Visible on every screen, including before a city is open. */
 export function AlwaysChrome() {
@@ -140,35 +136,25 @@ export function AlwaysChrome() {
 
 function AutoTest({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) {
   const resolving = useGame((s) => s.resolvingHeadless);
-  // 1.2.58 (Robert): the dialog holds only the seed. The new city takes the open
-  // game's start settings unchanged, and the run always goes to victory or loss.
+  // 1.2.62 (Robert): the dialog holds only the seed, and it seeds only Auto's own
+  // choices. Auto Test makes no city: Start hands the open game to Auto from its
+  // current week, with the open game's settings, until victory, loss or Stop.
   const [seed, setSeed] = useState(DEFAULT_AUTO_TEST_SEED);
   // 1.2.57 (Robert): diary learning is off for now — the option is hidden, the code kept.
   const learn = DIARY_LEARNING;
   const [running, setRunning] = useState(false);
-  /** 1.2.53: start a new city for the test; resolves with it, or null when the player kept the old city. */
-  const newCity = (s: number) => new Promise<Sim | null>((resolve) => {
-    const state = useGame.getState();
-    const before = state.sim;
-    let settled = false;
-    const unsubscribe = useGame.subscribe((next) => { if (!settled && next.sim && next.sim !== before) { settled = true; unsubscribe(); resolve(next.sim); } });
-    state.startGame(autoTestCityOptions(before?.world.options ?? state.options, s));
-    // startGame asks before replacing a city; when the player says no, nothing changes.
-    window.setTimeout(() => { if (!settled) { settled = true; unsubscribe(); resolve(null); } }, NEW_CITY_WAIT_MS);
-  });
   const start = async () => {
     if (running) return;
     const s = Math.round(seed) >>> 0;
-    const current = await newCity(s);
-    if (!current) return;
+    const current = useGame.getState().sim;
+    if (!current || current.world.phase !== 'planning') return;
     const settings: AutoTestSettings = { weeks: null, seed: s || current.world.options.seed, speed: AUTO_TEST_SPEED, learn };
     setOpen(false);
     setRunning(true);
     setMusicHold(true);
     try {
-      // 1.2.53: End Week only once the desk is idle — a new city is still
-      // being saved when the run starts, and End Week returns without playing
-      // the week while a save is under way.
+      // 1.2.53: End Week only once the desk is idle — End Week returns without
+      // playing the week while a save is under way.
       await runAutoTest(current, settings, async () => { await deskIdle(); await useGame.getState().endWeekNow(); });
       if (takeAutoTestStopped() && useGame.getState().sim?.world.phase === 'planning') useGame.getState().setTab('lieutenants');
       if (takeAutoTestMemoryStop()) useGame.getState().notify({ ok: false, error: 'Auto Test stopped: the browser is nearly out of memory. The city is saved and the report is in 09 Reports. Reload the page before running more weeks.' });

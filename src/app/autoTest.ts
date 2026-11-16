@@ -226,18 +226,10 @@ export const DEFAULT_AUTO_TEST_SEED = 2158733425;
 /** 1.2.58: the speed written on the report (the dialog has no speed field; the test runs flat out). */
 export const AUTO_TEST_SPEED = 4;
 
-/**
- * 1.2.58 (Robert): an Auto Test city is a new city on the entered seed with
- * the open game's start settings exactly as chosen at New Game — victory and
- * target, opponents, economy, size, start money. Auto Test changes none of them.
- */
-export function autoTestCityOptions(base: GameOptions, seed: number): GameOptions {
-  return { ...base, seed };
-}
-
-/** 1.2.57 (Robert): the TEST KEY line — build, seed, victory and target, opponents, economy, size — after the title and BUILD of every report. */
-export function testKeyLine(w: Sim['world'], seed: number): string {
-  return `TEST KEY ${typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'unknown'} ${typeof __APP_COMMIT__ === 'string' ? __APP_COMMIT__ : 'unknown'} | seed ${seed} | ${victoryTarget(w)} | ${w.options.opponents} opponents | ${w.options.economy} economy | ${w.gridW}×${w.gridH}`;
+/** 1.2.57 (Robert): the TEST KEY line — build, seeds, victory and target, opponents, economy, size — after the title and BUILD of every report.
+ * 1.2.62 (Robert): Auto Test plays the open game, so the line names the city seed, the Auto (strategy) seed and the week Auto took over. */
+export function testKeyLine(w: Sim['world'], seed: number, takenOverWeek: number): string {
+  return `TEST KEY ${typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'unknown'} ${typeof __APP_COMMIT__ === 'string' ? __APP_COMMIT__ : 'unknown'} | city seed ${w.options.seed} | Auto seed ${seed} | taken over at week ${takenOverWeek} | ${victoryTarget(w)} | ${w.options.opponents} opponents | ${w.options.economy} economy | ${w.gridW}×${w.gridH}`;
 }
 
 /** 1.2.59 (Robert): the urgent lawyer/accountant search is logged and learned as its own order type. */
@@ -249,7 +241,7 @@ function learnTypeOf(input: { type: string; opts?: { recruitAs?: string } }): st
 export interface AutoTestSettings {
   /** Null runs until the city is won or lost, with no week cap. A number runs that many weeks, at most 52 (one year). */
   weeks: number | null;
-  /** Chooses the bot's actions and, when learning, which weights move. It does not rebuild the city. */
+  /** Chooses the bot's actions and, when learning, which weights move. 1.2.62: the city is always the open game's. */
   seed: number;
   /** Written on the report. The test itself runs flat out. */
   speed: number;
@@ -5973,7 +5965,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       const file = instanceFile(`auto-test-${runStamp}-weeks-${from}-${to}.txt`);
       try {
         // 1.2.53 (Robert): every actions file opens with the build and the starting conditions.
-        const text = [buildLine(), testKeyLine(sim.world, settings.seed), ...summaryBlock({ lines: block, weeks, from, to, outcome: `still running at week ${to + 1} — the outcome is in the final report` }), `Auto Test actions, weeks ${from}–${to} (seed ${settings.seed}); the final report holds the later weeks.`, ...startingConditions(sim.world, settings.seed), '', ...block].join('\n');
+        const text = [buildLine(), testKeyLine(sim.world, settings.seed, firstWeek), ...summaryBlock({ lines: block, weeks, from, to, outcome: `still running at week ${to + 1} — the outcome is in the final report` }), `Auto Test actions, weeks ${from}–${to} (Auto seed ${settings.seed}); the final report holds the later weeks.`, ...startingConditions(sim.world, settings.seed, firstWeek), '', ...block].join('\n');
         const parts = splitReport(text);
         for (let k = 0; k < parts.length; k++) await writeReportFile(parts.length === 1 ? file : file.replace(/\.txt$/, `-part${k + 1}of${parts.length}.txt`), parts[k]);
         writtenFiles.push(`weeks ${from}–${to}: ${file}`);
@@ -6046,7 +6038,12 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   if (sim.world.outcome) recordPastGame(sim.world, true);
   const previousBest = planned.previousBest;
   const beatBest = previousBest == null || score > previousBest;
-  const beat = previousBest == null
+  // 1.2.62 (Robert): Auto may take over a game mid-way. The learning score and the
+  // diary compare whole Auto Test runs from week 1, so a run taken over later is
+  // left out of them (noted) rather than compared by an invented rule.
+  const midGame = firstWeek > 1;
+  const midGameNote = `taken over at week ${firstWeek}; the diary compares runs played from week 1`;
+  const beat = midGame ? `Beat the previous best and learning score: left out (${midGameNote}).` : previousBest == null
     ? `Beat the previous best: yes (learning score ${score}, no earlier matching run).`
     : beatBest
       ? `Beat the previous best: yes (learning score ${score}, previous ${previousBest}).`
@@ -6061,6 +6058,8 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   let learnedEntry: DiaryEntry | undefined;
   if (loaded.unreadable) {
     diaryNote = 'Diary: the file could not be read, so this run was not appended.';
+  } else if (midGame) {
+    diaryNote = `Diary: not appended (${midGameNote}).`;
   } else {
     const entry: DiaryEntry = {
       at: new Date().toISOString(),
@@ -6098,8 +6097,8 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
   if (writtenFiles.length) actions.unshift(`(Earlier weeks were written during the run, ${REPORT_WEEKS_KEPT} weeks a file: ${writtenFiles.join('; ')})`);
   const plateau = plateauNote(recorded, campaign);
   const text = reportText({
-    starting: startingConditions(sim.world, settings.seed),
-    testKey: testKeyLine(sim.world, settings.seed),
+    starting: startingConditions(sim.world, settings.seed, firstWeek),
+    testKey: testKeyLine(sim.world, settings.seed, firstWeek),
     summary: summaryBlock({
       lines: [...summaryLines, ...actions.map(summaryKeep).filter((l): l is string => l != null)],
       weeks, from: firstWeek, to: Math.max(firstWeek, (weeks[weeks.length - 1]?.week ?? firstWeek + 1) - 1),
@@ -6107,7 +6106,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     }),
     settings, citySeed: sim.world.options.seed, campaign, strategy: planned.strategy,
     versusLast: planned.versusLast, planNote: planned.note, weeks, actions, notes, anomalies,
-    outcome, score: gameScore, learningScore: score, scoreNote, beat, plateau, diaryNote,
+    outcome, score: gameScore, learningScore: midGame ? undefined : score, scoreNote, beat, plateau, diaryNote,
   }) + (learnedEntry ? learnedBlock(learnedEntry) : '');
   const filename = instanceFile(`auto-test-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`);
   const last = weeks[weeks.length - 1];
