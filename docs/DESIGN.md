@@ -238,6 +238,19 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.65 decisions
+
+Auto (mayor goal, bribes, buys). All new numbers are proposed constants.
+
+1. Office fitness replaces the 1.2.51 campaign gate. When the goal is the mayoralty, Auto runs the game's vote count as a trial poll with itself standing. It projects its votes to the known election date from their growth over the last 4 weeks (`OFFICE_GROWTH_WEEKS`). The chance of winning is logistic in the margin, with a band of 20 votes (`OFFICE_VOTE_BAND`). A win is worth 52 weeks of takings (`OFFICE_WIN_WEEKS`), and at least $100,000 (`OFFICE_WIN_MIN`). Each new friendly block is valued at one vote. An extorted block is valued at a vote × the share of our blocks that vote for us. The Teamsters are valued by the votes they add. The report line is `OFFICE FIT (1.2.65 …)`.
+2. A campaign lean-on is worth the votes it gains × a vote's value, instead of a flat $600.
+3. Empty land passes the pay-rate check at the worth of the venue it is held for (`lotWorth`), not at $0. The Teamsters are set up as soon as the trial poll says they add votes, behind any front.
+4. Chief bribes go through the crew bribe order, which has no hostility refusal. They are valued at the benefit × the game's success chance. The lawyer's bribe keeps the game's refusal.
+5. The officer-opinion cliff near −90, below which every man is arrestable, is priced as men × the arrest cost × the chance per man (`CLIFF_LINE`, `CLIFF_BAND`, `CLIFF_UNITS_PER_MAN`). Mayor and chief bribes count the cliff they push back.
+6. Each order's opinion cost is its share of the whole week's crime load. `restExposure` keeps counting past mayor −100.
+7. Buys that put a manager in are given only up to spare hoods + expected joins, in value order. A refusal for want of a manager counts once per buy.
+8. The buy time check uses the named man's own free time, plus his own way to the site beyond the office leg. The freest capable man is named, with business skill breaking ties.
+
 ## v1.2.64 decisions
 
 1. **City seed box.** The New Game City seed box always starts with 2158733425 for every new game (a continued game keeps its own seed). Beside it, Default sets 2158733425 and Random (which replaces Roll) picks a random seed. Restore Defaults resets the seed to 2158733425 too. UI only: no rule changes; the Auto seed is untouched; the idle demo city still picks a random seed.

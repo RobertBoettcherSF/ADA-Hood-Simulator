@@ -77,6 +77,10 @@ export interface HeatState {
   trialLikely: boolean;
   /** 1.2.63: what a whole-gang rest would cost (men × V × REST_WEEKS_LOST); 0 or unset prices no rest exposure. */
   restCost?: number;
+  /** 1.2.65: the whole week's crime load expected (Σ arrest risk; last week's when more than planned so far). */
+  weekRisk?: number;
+  /** 1.2.65: street arrests a week with the whole gang past the officers' cliff (men × street rate × heat units a man). */
+  cliffArrestsFull?: number;
 }
 
 export interface HeatMan { id: number; name: string; wanted: number; fbiScore: number; cost: number }
@@ -220,13 +224,54 @@ export function restExposure(s: HeatState, riskPerWeek: number, dMayor = 0, dChi
   let m = s.mayor + dMayor, c = s.chief + dChief, o = s.officer + dOfficer, sum = 0;
   const top = restOpinionLine() + REST_PRICE_BAND;
   for (let k = 0; k < HEAT_WEEKS; k++) {
-    m = Math.max(-100, m - riskPerWeek * MAYOR_PER_RISK);
+    // 1.2.65 (Robert): pressure keeps counting past mayor −100 (no floor), so a crime there still costs.
+    m -= riskPerWeek * MAYOR_PER_RISK;
     c += (m - c) * CHIEF_PULL;
     o += (c - o) * 0.25;
     const n = Math.max(0, (top - o) / REST_PRICE_BAND);
     sum += n * n;
   }
   return sum / HEAT_WEEKS;
+}
+/** 1.2.65 (proposed): the officers' opinion where a man with no wanted level can be arrested (wanted − opinion × 0.5 > 45). */
+export const CLIFF_LINE = -90;
+/** 1.2.65 (proposed): opinion points above the cliff over which its price ramps in (0 at −80, full at −90). */
+export const CLIFF_BAND = 10;
+/** 1.2.65 (proposed): heat units a man with no wanted level carries past the cliff (45 ÷ 100). */
+export const CLIFF_UNITS_PER_MAN = 0.45;
+/**
+ * 1.2.65 (Robert): weeks over HEAT_WEEKS the officers' projected opinion spends
+ * past the cliff (ramped over CLIFF_BAND), where the whole gang is arrestable.
+ * Same projection as restExposure (no −100 floor on the mayor).
+ */
+export function cliffExposure(s: HeatState, riskPerWeek: number, dMayor = 0, dChief = 0, dOfficer = 0): number {
+  let m = s.mayor + dMayor, c = s.chief + dChief, o = s.officer + dOfficer, weeks = 0;
+  for (let k = 0; k < HEAT_WEEKS; k++) {
+    m -= riskPerWeek * MAYOR_PER_RISK;
+    c += (m - c) * CHIEF_PULL;
+    o += (c - o) * 0.25;
+    weeks += clamp01((CLIFF_LINE + CLIFF_BAND - o) / CLIFF_BAND);
+  }
+  return weeks;
+}
+/** 1.2.65 (Robert): the cliff's expected cost — men × arrest cost (A) × the chance (street arrests a week past it) × weeks past it. */
+export function cliffCost(s: HeatState, riskPerWeek: number, dMayor = 0, dChief = 0, dOfficer = 0): number {
+  return (s.cliffArrestsFull ?? 0) * s.A * cliffExposure(s, riskPerWeek, dMayor, dChief, dOfficer);
+}
+/** 1.2.65: what a lift saves on the cliff. */
+export function cliffRelief(s: HeatState, riskPerWeek: number, dMayor = 0, dChief = 0, dOfficer = 0): number {
+  return Math.max(0, cliffCost(s, riskPerWeek) - cliffCost(s, riskPerWeek, dMayor, dChief, dOfficer));
+}
+/**
+ * 1.2.65 (Robert): the opinion cost of a whole week's crime load (Σ arrest
+ * risk): the police cost of the mayor's fall, the whole-gang rest exposure and
+ * the cliff, against no crime at all. Each order pays its share.
+ */
+export function weekOpinionCost(s: HeatState, weekRisk: number): number {
+  if (weekRisk <= 0) return 0;
+  const police = Math.max(0, policeCost(s, chiefAvg(s, -MAYOR_PER_RISK * weekRisk, 0)) - policeCost(s, chiefAvg(s, 0, 0)));
+  const rest = s.restCost ? Math.max(0, s.restCost * (restExposure(s, weekRisk) - restExposure(s, 0))) : 0;
+  return police + rest + Math.max(0, cliffCost(s, weekRisk) - cliffCost(s, 0));
 }
 /** 1.2.59 (Robert): the gang-wide rest a lift prevents — restCost (men × V × REST_WEEKS_LOST) × the fall in exposure (1.2.63: restExposure, rising as the line nears). */
 export function restRelief(s: HeatState, riskPerWeek: number, restCost: number, dMayor = 0, dChief = 0, dOfficer = 0): number {
@@ -277,10 +322,13 @@ export function heatCost(o: HeatOrder, s: HeatState, crew?: HeatMan[]): HeatCost
   if (crimes > 0) {
     // Mayor and chief: the chief's path toward the mayor over the horizon.
     const dMayor = -MAYOR_PER_RISK * risk * crimes;
-    per.opinion = Math.max(0, policeCost(s, chiefAvg(s, dMayor, 0)) - policeCost(s, chiefAvg(s, 0, 0)));
-    // 1.2.63 (Robert): plus the order's share of a whole-gang rest — the opinion
-    // it costs × restCost × the marginal exposure, at the crime load planned so far.
-    if (s.restCost) per.opinion += Math.max(0, s.restCost * (restExposure(s, s.crimeScore / 10, dMayor) - restExposure(s, s.crimeScore / 10)));
+    // 1.2.65 (Robert): the order pays its share (its risk ÷ the week's) of the
+    // whole week's crime load — police, whole-gang rest and the cliff — not
+    // only its own marginal step. The week's load is what is planned so far
+    // with this order, or last week's when that was more.
+    const own = risk * crimes;
+    const week = Math.max(s.weekRisk ?? 0, s.crimeScore / 10 + own);
+    per.opinion = week > 0 ? weekOpinionCost(s, week) * own / week : 0;
     // The crackdown declaration: our score past the line (6, or the busiest rival).
     const line = Math.max(CRACKDOWN_LINE, s.rivalScore);
     const before = clamp01((s.crimeScore - line + 1) / 2), after = clamp01((s.crimeScore + risk * 10 * crimes - line + 1) / 2);
