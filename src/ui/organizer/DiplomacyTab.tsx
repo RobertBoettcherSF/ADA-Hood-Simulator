@@ -3,7 +3,8 @@ import { act, useGame } from '../../app/store';
 import { buySnitchInfo, setDiplomacy, snitchPrice } from '../../sim/api';
 import { GANG_COLORS } from '../../sim/constants';
 import { DIPLOMACY_ORDER, ROLE_LABELS, type DiplomacyLevel, type ID } from '../../sim/types';
-import { gangAssets, gangManpower, money, powerRating, territoryCount } from '../../sim/world';
+import { buildingName, money, powerRating, territoryCount } from '../../sim/world';
+import { buildingMapIntel } from '../../sim/mapIntel';
 import { crestUrl } from '../art';
 import { Empty, Hint, Icon, Panel, Pill } from '../common';
 
@@ -27,6 +28,7 @@ export function DiplomacyTab() {
   const sim = useGame((s) => s.sim)!;
   const notify = useGame((s) => s.notify);
   const centreOnPerson = useGame((s) => s.centreOnPerson);
+  const selectBuilding = useGame((s) => s.selectBuilding);
   useGame((s) => s.version);
   const [snitchTargets, setSnitchTargets] = useState<ID[]>([]);
   const [viewGang, setViewGang] = useState<ID | null>(null);
@@ -44,6 +46,11 @@ export function DiplomacyTab() {
       ? gang.knownPeople
           .map((id) => w.people[id])
           .filter((p) => p && p.gangId === viewed.id && p.status !== 'dead')
+      : [];
+  // 1.2.69: only the rival businesses our own map has identified — no exact headcount or assets here (the Graphs show the gang's manpower).
+  const knownBizOfViewed =
+    viewed != null
+      ? Object.values(w.buildings).filter((b) => b.state !== 'destroyed' && b.cls !== 'empty' && buildingMapIntel(b, gang.id).ownerGangId === viewed.id)
       : [];
 
   return (
@@ -116,14 +123,6 @@ export function DiplomacyTab() {
             <b>{territoryCount(w, viewed.id)} blocks</b>
           </div>
           <div className="kv">
-            <span>Manpower</span>
-            <b>{gangManpower(w, viewed)}</b>
-          </div>
-          <div className="kv">
-            <span>Estimated assets</span>
-            <b>{money(gangAssets(w, viewed))}</b>
-          </div>
-          <div className="kv">
             <span>Temperament</span>
             <b>{viewed.personality === 'passive' ? 'Passive' : viewed.personality === 'aggressive' ? 'Aggressive' : 'Normal'}</b>
           </div>
@@ -141,6 +140,21 @@ export function DiplomacyTab() {
                   >
                     <span className="name tiny">{p.name}</span>
                     <span className="muted tiny">{ROLE_LABELS[p.role]}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <b className="tiny">Businesses you have identified ({knownBizOfViewed.length})</b>
+            {knownBizOfViewed.length === 0 ? (
+              <Empty>None. Explore their streets to find their premises.</Empty>
+            ) : (
+              <div className="scroll-list" style={{ maxHeight: 160 }}>
+                {knownBizOfViewed.map((b) => (
+                  <button key={b.id} className="list-row" onClick={() => selectBuilding(b.id)}>
+                    <span className="name tiny">{buildingName(w, b.id)}</span>
+                    {buildingMapIntel(b, gang.id).isHQ && <span className="muted tiny">HQ</span>}
                   </button>
                 ))}
               </div>

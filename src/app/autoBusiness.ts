@@ -35,6 +35,8 @@ export interface DeskMemory {
   lastHqStrike: number;
   /** 1.2.68: "teamId:buildingId" → the week a buy or set-up by that crew failed for want of time. */
   timeFails?: Map<string, number>;
+  /** 1.2.69: buildingId → time failures (any crew) and the last week. */
+  siteTimeFails?: Map<number, { n: number; last: number }>;
 }
 
 const memories = new WeakMap<WorldState, DeskMemory>();
@@ -60,6 +62,7 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
     const label = `${p.type === 'buyPremises' ? 'buy' : 'set up'} ${b?.typeId ?? p.buildingId} (building ${p.buildingId})`;
     if (ok) {
       m.fails.delete(p.buildingId);
+      m.siteTimeFails?.delete(p.buildingId);
       m.ratio = Math.max(1.2, Math.round(m.ratio * 0.95 * 100) / 100);
       out.push(`NOTE business: ${label} done (estimate ${hm(p.estimate)} of ${hm(p.free)} free; minutes factor now ×${m.ratio})`);
       continue;
@@ -68,7 +71,11 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
     m.fails.set(p.buildingId, n);
     m.ratio = Math.min(5, Math.round(m.ratio * 1.15 * 100) / 100);
     const why = done?.failReason ?? (done ? 'nothing done' : 'never finished in the week');
-    if (/time/i.test(why)) (m.timeFails ??= new Map()).set(`${p.teamId}:${p.buildingId}`, w.week);
+    if (/time/i.test(why)) {
+      (m.timeFails ??= new Map()).set(`${p.teamId}:${p.buildingId}`, w.week);
+      const s = (m.siteTimeFails ??= new Map()).get(p.buildingId);
+      m.siteTimeFails.set(p.buildingId, { n: (s?.n ?? 0) + 1, last: w.week });
+    }
     out.push(`NOTE business: ${label} failed (${why}); failure ${n}, minutes factor now ×${m.ratio}`);
   }
   m.pending = [];
@@ -80,6 +87,15 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
 export function buyRetryBanned(m: DeskMemory, w: WorldState, teamId: number, buildingId: number, weeks: number): boolean {
   const at = m.timeFails?.get(`${teamId}:${buildingId}`);
   return at != null && w.week - at < weeks;
+}
+
+/** 1.2.69 (Robert, point 15): a site that failed twice for want of time (any crews) waits `weeks` for every crew; then it starts over. */
+export function siteTimeBanned(m: DeskMemory, w: WorldState, buildingId: number, weeks: number): boolean {
+  const s = m.siteTimeFails?.get(buildingId);
+  if (!s || s.n < 2) return false;
+  if (w.week - s.last < weeks) return true;
+  m.siteTimeFails!.delete(buildingId);
+  return false;
 }
 
 export function moveRefused(m: DeskMemory, personId: number, teamId: number): boolean {

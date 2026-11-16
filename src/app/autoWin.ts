@@ -230,19 +230,13 @@ export function kindScales(hist: readonly { logit: number; kinds: Record<string,
   return out;
 }
 
-// 1.2.68 (Robert's plan) — all proposed.
-/** Point 2: a new crew when free cash covers this many weeks of its wages and orders went ungiven for want of men. */
-export const IDLE_CASH_WEEKS = 4;
-/** Point 2: crews past this many are opened only on CREW FIT. */
-export const CREW_FIT_FROM = 8;
+// 1.2.68 (Robert's plan) — all proposed. (1.2.69: CREW FIT's IDLE_CASH_WEEKS / CREW_FIT_FROM dropped; KILL_RETRY_WEEKS replaced by "until seen again".)
 /** Point 3: weeks the first still and speakeasy trade unvalued before the chain is judged on takings. */
 export const GOODS_TRIAL_WEEKS = 8;
 /** Point 3: speakeasies per still at most. */
 export const GOODS_TRIAL_BARS = 2;
 /** Point 4: a rival gang at or under this many men is finished off. */
 export const FINISH_MEN = 4;
-/** Point 5: weeks a refused kill target is left alone. */
-export const KILL_RETRY_WEEKS = 2;
 /** Point 7: the kills an HQ strike is expected to make at most. */
 export const HQ_STRIKE_KILLS = 3;
 /** Point 9: our kills a week assumed on the weakest gang before we have any. */
@@ -255,3 +249,27 @@ export const DEATH_RISK_WEEKS = 4;
 export const BUY_RETRY_WEEKS = 2;
 /** Point 13: a chief bribe is worth at most this many weeks of the arrest costs it prevents. */
 export const CHIEF_BRIBE_WEEKS = 8;
+
+// 1.2.69 (Robert) — all proposed.
+/** Point 11: the weakest gang changes only when another has this many fewer street men. */
+export const WEAKEST_SWITCH_MEN = 3;
+/** Point 2: ENDGAME when every rival holds at most 1/this of our blocks … */
+export const ENDGAME_BLOCK_RATIO = 3;
+/** … and the cash over the reserve covers this many weeks of wages + upkeep. */
+export const ENDGAME_CASH_WEEKS = 26;
+/** Point 3: attack crews wanted in ENDGAME per rival left, and at most. */
+export const ENDGAME_ATTACK_PER_RIVAL = 2;
+export const ENDGAME_ATTACK_MAX = 6;
+/** Point 6: the boss is hit after this many weeks with every known heir targeted. */
+export const FINISH_BOSS_WEEKS = 4;
+/** Point 13: prior chance an HQ strike draws an FBI warrant. */
+export const HQ_WARRANT_PRIOR = 0.8;
+/** Point 14: the goods trial (front, lot, set-up) is given outright up to this. */
+export const GOODS_TRIAL_MAX_COST = 15000;
+/** Point 15: a site that failed twice for time waits this many weeks for every crew. */
+export const BUY_TIME_FAIL_WAIT = 8;
+/** Point 16: prior chance a bribed chief is still ours a week later; stop after this many lost within CHIEF_LOST_WEEKS, for CHIEF_STOP_WEEKS. */
+export const CHIEF_HOLD_PRIOR = 0.5;
+export const CHIEF_LOST_STOP = 2;
+export const CHIEF_LOST_WEEKS = 2;
+export const CHIEF_STOP_WEEKS = 8;

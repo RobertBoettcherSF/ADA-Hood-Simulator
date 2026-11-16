@@ -238,6 +238,29 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.69 decisions
+
+Auto knows only what a player can know, and when far ahead it commits to wiping out the last gangs. All new numbers are proposed constants (`src/app/autoWin.ts`).
+
+1. Player knowledge: the Diplomacy "What You Know" panel no longer shows a rival's exact Manpower or Estimated assets; it lists the people and the businesses you have identified. The exact manpower stays on the 8-week Graphs chart. Auto's win model, weakest gang, FINISH, ENDGAME and HQ strike value read rival strength only from that chart (`src/app/autoIntel.ts`): street men = chart Manpower − one manager per known rival business; recruits a week = the chart's change + our kills of the gang.
+2. ENDGAME: every rival holds at most 1/`ENDGAME_BLOCK_RATIO` (3) of our blocks and our cash over the reserve covers `ENDGAME_CASH_WEEKS` (26) weeks of wages + upkeep. The goal is then fixed on eliminate; an ENDGAME line gives each gang's chart men, recruits, known men, known businesses and boss status.
+3. ENDGAME crews: the collect crews earning least become attack crews until there are `ENDGAME_ATTACK_PER_RIVAL` (2) per rival left, at most `ENDGAME_ATTACK_MAX` (6); a switch only when its kills (the rivals' recruits a week shared over the attack crews, at least `ELIM_KILLS_PER_WEEK`) × a rival man top the takings it gives up.
+4. ENDGAME arming from cash over the reserve: free pool hoods fill the attack crews first; the store holds the best street and inside gun for every attack-crew man and a charge per attack crew; every attack crew gets a car.
+5. ENDGAME denial: each known rival business is struck (torch, or bomb when the crew has explosives), the nearest 2 × attack crews a week, valued at its manager (an heir, one rival man) + the gang's recruits a week ÷ its known businesses × a rival man.
+6. FINISH: known lieutenants first, then hoods, then identified managers of known businesses; the boss only when no known heir is left or after `FINISH_BOSS_WEEKS` (4) with every known heir targeted. A target the game refused (jailed, kidnapped) is set aside until he is reported seen again (replaces the 2-week retry). While the boss is out of reach every crew but Business may take the kills. In ENDGAME FINISH covers every rival left, the weakest first.
+7. In ENDGAME no man is let go to the street: an FBI hitman and a wanted hood lie low in the pool; a man worth less than his pay joins the Expendables crew or stays in the pool.
+8. HQ scouting: no search for a gang whose HQ our map shows in ruins (an HQ is never rebuilt and map knowledge is permanent, so re-searching explored buildings finds nothing); when the usual places are exhausted, any unexplored building outside our blocks, nearest the gang's last sightings. In ENDGAME scouting is worth street men × a rival man.
+9. Each FINISH kill is valued and learned at one rival man; the gang's share of the win is credited once, when it is gone (GANG GONE line), not to the kills' learning.
+10. Win chance (eliminate): our kills a week less the rivals' recruits must remove their street men + known heirs + bosses within the horizon; a boss out of reach pushes it back `FINISH_BOSS_WEEKS`.
+11. The weakest gang changes only when another has `WEAKEST_SWITCH_MEN` (3) fewer street men.
+12. A crew whose lieutenant has an FBI warrant gives its men to the pool at once and takes nobody until the warrant ends.
+13. HQ strike: its value less the FBI warrant risk — crew men × (L + A × the lie-low weeks) × P(warrant), learned from strike outcomes with prior `HQ_WARRANT_PRIOR` (0.8); proposed only to a crew with its men's whole week free; a strike that never started does not start the wait.
+14. Goods trial: the trial's front, lot and set-up are given outright (no cash pass, whatever the spare cash) up to `GOODS_TRIAL_MAX_COST` ($15,000); its centre lot is kept from "racket first".
+15. A site that failed twice for want of time waits `BUY_TIME_FAIL_WAIT` (8) weeks for every crew; a buy's man-time is priced at the buying crew's own work rate ($ per man-minute), V a man-week only for a crew without one.
+16. Chief bribe: its value × the learned chance he is still ours a week later (prior `CHIEF_HOLD_PRIOR`, 0.5); after `CHIEF_LOST_STOP` (2) bribes lost within `CHIEF_LOST_WEEKS` (2), no chief bribe for `CHIEF_STOP_WEEKS` (8).
+17. CREW FIT is dropped (crews open as before 1.2.68); a CREWS FULL line reports orders not given for want of men while all 12 crews are full.
+18. Report text: KIND LEARN's week count is capped at 8; "rival men"; the HQ ATTACK line shows the expected kills × a rival man.
+
 ## v1.2.68 decisions
 
 Twelve lieutenants, and Auto's crews, goods, elimination, votes and bribes. All new numbers are proposed constants (`src/app/autoWin.ts`).
