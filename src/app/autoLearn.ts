@@ -17,6 +17,10 @@ export const LEARN_DECAY = 0.9;
 /** proposed: the learned ratio is kept within these bounds. */
 export const LEARN_MIN = 0.25;
 export const LEARN_MAX = 4;
+/** 1.2.67 (proposed): a value ratio below LEARN_MIN this many weeks running is a value bias… */
+export const VALUE_BIAS_WEEKS = 8;
+/** 1.2.67 (proposed): …and its floor drops to this. */
+export const VALUE_BIAS_MIN = 0.05;
 /** proposed: a hold-back within this share of the order's worth (or COIN_BAND_DOLLARS) is settled by a weighted coin. */
 export const COIN_BAND_SHARE = 0.15;
 export const COIN_BAND_DOLLARS = 100;
@@ -28,7 +32,7 @@ const EXPLORE_SALT = 0x5eed;
 
 export interface LearnExpect { orderId: number; type: string; week: number; value: number; heat: number }
 interface Sums { exp: number; act: number; n: number }
-export interface LearnMemory { pending: LearnExpect[]; value: Record<string, Sums>; heat: Record<string, Sums>; settledWeek: number }
+export interface LearnMemory { pending: LearnExpect[]; value: Record<string, Sums>; heat: Record<string, Sums>; settledWeek: number; /** 1.2.67: weeks running each type's value ratio sat below LEARN_MIN. */ biasWeeks?: Record<string, number> }
 
 const memories = new WeakMap<WorldState, LearnMemory>();
 export function learnMemory(w: WorldState): LearnMemory {
@@ -52,13 +56,18 @@ const add = (book: Record<string, Sums>, type: string, exp: number, act: number)
   s.exp += exp; s.act += act; s.n += 1;
 };
 
-function ratioOf(s: Sums | undefined): number {
+function rawRatio(s: Sums | undefined): number {
   if (!s || s.n <= 0) return 1;
   const mean = s.exp / s.n;
   if (mean <= 0) return 1;
-  return Math.max(LEARN_MIN, Math.min(LEARN_MAX, (s.act + EXEC_PRIOR * mean) / (s.exp + EXEC_PRIOR * mean)));
+  return (s.act + EXEC_PRIOR * mean) / (s.exp + EXEC_PRIOR * mean);
 }
-export const valueRatio = (m: LearnMemory, type: string) => ratioOf(m.value[type]);
+function ratioOf(s: Sums | undefined, min = LEARN_MIN): number {
+  return Math.max(min, Math.min(LEARN_MAX, rawRatio(s)));
+}
+/** 1.2.67 (Robert, point 16): a type whose value sat below LEARN_MIN for VALUE_BIAS_WEEKS has a value bias; its floor drops to VALUE_BIAS_MIN. */
+export const valueBias = (m: LearnMemory, type: string) => (m.biasWeeks?.[type] ?? 0) >= VALUE_BIAS_WEEKS;
+export const valueRatio = (m: LearnMemory, type: string) => ratioOf(m.value[type], valueBias(m, type) ? VALUE_BIAS_MIN : LEARN_MIN);
 export const heatRatio = (m: LearnMemory, type: string) => ratioOf(m.heat[type]);
 
 /**
@@ -79,11 +88,13 @@ export function settleLearn(m: LearnMemory, w: WorldState, outcomes: ReadonlyMap
     add(m.heat, e.type, e.heat, o.lossCost);
   }
   m.pending = m.pending.filter((x) => x.week >= w.week);
+  m.biasWeeks ??= {};
+  for (const [t, v] of Object.entries(m.value)) m.biasWeeks[t] = rawRatio(v) < LEARN_MIN ? (m.biasWeeks[t] ?? 0) + 1 : 0;
   const types = [...new Set([...Object.keys(m.value), ...Object.keys(m.heat)])].filter((t) => (m.value[t]?.n ?? 0) >= 0.05).sort();
   if (!types.length) return null;
   const part = (t: string) => {
     const v = m.value[t], h = m.heat[t];
-    return `${t} value exp $${Math.round(v?.exp ?? 0)} act $${Math.round(v?.act ?? 0)} ×${valueRatio(m, t).toFixed(2)}; heat exp $${Math.round(h?.exp ?? 0)} act $${Math.round(h?.act ?? 0)} ×${heatRatio(m, t).toFixed(2)} (${(v?.n ?? 0).toFixed(1)} orders)`;
+    return `${t} value exp $${Math.round(v?.exp ?? 0)} act $${Math.round(v?.act ?? 0)} ×${valueRatio(m, t).toFixed(2)}${valueBias(m, t) ? ` VALUE BIAS (under ×${LEARN_MIN} for ${m.biasWeeks?.[t]} wk; floor ×${VALUE_BIAS_MIN}, 1.2.67)` : ''}; heat exp $${Math.round(h?.exp ?? 0)} act $${Math.round(h?.act ?? 0)} ×${heatRatio(m, t).toFixed(2)} (${(v?.n ?? 0).toFixed(1)} orders)`;
   };
   return `LEARN (1.2.56, decay ×${LEARN_DECAY}, clamp ${LEARN_MIN}–${LEARN_MAX}, prior ${EXEC_PRIOR}, proposed): ${matched} order(s) settled last week; ${types.map(part).join('; ')}`;
 }

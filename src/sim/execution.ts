@@ -33,7 +33,8 @@ import type { MessageCategory } from './types';
 import { hoodPayDemand, newId } from './citygen';
 import { noteBribe, payCash, receiveOrderCash } from './finances';
 import { resetBusinessInvestigation } from './businessState';
-import { isExportTerminal, nearestExportTerminal, recoverExportGoods } from './exportGoods';
+import { raidableGoods } from './goodsStorage';
+import { exportLoadValue, exportedThisWeek, isExportTerminal, nearestExportTerminal, recoverExportGoods, sellExport } from './exportGoods';
 import { clearDestination, setDestination, stepPerson } from './movement';
 import { trafficContext } from './traffic';
 import { allocateWeapons, attackProfile, type Loadout } from './weapons';
@@ -1287,7 +1288,7 @@ function resolveTarget(
       if (cargo) {
         const terminal = w.buildings[cargo.terminalId];
         if (!isExportTerminal(terminal)) return finishOrder(w, order, 'The export terminal has closed.');
-        const gross = Math.round((cargo.goods.liquor * 26 + cargo.goods.stolen * 34 + cargo.goods.counterfeit * 900) * cargo.rate);
+        const gross = Math.round(sellExport(w, cargo.goods) * cargo.rate);
         for(const v of cargoVehicles(w,order.id))delete v.cargo;
         delete order.exportDelivery;
         receiveOrderCash(w, gang, order, 'illegal', gross);
@@ -1312,7 +1313,7 @@ function resolveTarget(
       const liquor = building.stock.liquor;
       const stolen = building.stock.stolen;
       const counterfeit = building.stock.counterfeit;
-      const gross = Math.round((liquor * 26 + stolen * 34 + counterfeit * 900) * rate);
+      const gross = exportLoadValue({ liquor, stolen, counterfeit }, exportedThisWeek(w)) * rate;
       if (gross <= 0) {
         // Back for the rest, and somebody had emptied it meanwhile: what was sold stands.
         if (order.targetPaid) { say('Nothing was left to export.'); delete order.exportPending; break; }
@@ -1580,7 +1581,7 @@ function resolveTarget(
         const warehouse=w.buildings[order.raidDelivery.warehouseId];
         for(const v of cargoVehicles(w,order.id))if(warehouse)unloadCargo(w,v,warehouse);
         if(cargoVehicles(w,order.id).length){order.state='travelling';return;}
-        delete order.raidDelivery;say('The raided goods reached the warehouse.');break;
+        delete order.raidDelivery;say('The raided goods reached our store.');break;
       }
       if (!building) return;
       if (building.state === 'destroyed') return finishOrder(w, order, 'The site is gone.');
@@ -1604,10 +1605,13 @@ function resolveTarget(
         order.targetPaid = true;
 
         // With a truck the goods go too.
-        if (orderVehicles(w,actors).some(v=>v.kind==='truck') && t?.stores?.length) {
-          const kind = rng.pick(t.stores);
+        // 1.2.67: only goods the site really holds can be taken, except the
+        // stolen goods of a luxury shop or the museum (their own wares).
+        const kinds = raidableGoods(building);
+        if (orderVehicles(w,actors).some(v=>v.kind==='truck') && kinds.length) {
+          const kind = rng.pick(kinds);
           const desired = rng.int(10, 40);
-          const tracked=building.typeId==='warehouse'||building.cls==='illegal'||building.stock[kind]>0;
+          const tracked=building.stock[kind]>0;
           const amount = Math.min(desired,tracked?building.stock[kind]:desired,
             orderVehicles(w,actors).filter(v=>v.kind==='truck'&&!v.cargo).length*VEHICLES.truck.cargo);
           const goods={...emptyGoods(),[kind]:amount};

@@ -1,5 +1,5 @@
 import { VEHICLES } from './constants';
-import { warehouseRoom } from './goodsStorage';
+import { goodsRetailer, goodsRoom } from './goodsStorage';
 import { addMessage } from './events';
 import { clearDestination, setDestination } from './movement';
 import { roadPosition } from './vehicleNavigation';
@@ -16,12 +16,20 @@ export function cargoActivity(w:WorldState,p:Person):string|null {
   return c.purpose==='raid'?'Delivering raid goods':'Export delivery';
 }
 export function cargoRoom(b: Building, kind: GoodsKind): number {
-  return warehouseRoom(b, kind);
+  return goodsRoom(b, kind);
 }
+/** A store a truck may unload at: a warehouse, or one of our shops that sells that kind. */
+function cargoStoreKind(b: Building): boolean {
+  return b.typeId === 'warehouse' || GOODS.some(k => goodsRetailer(b, k));
+}
+/** 1.2.67: carried goods go to our nearest shop that can sell them (a fence,
+ * a speakeasy, a shop passing counterfeit); only what none has room for goes
+ * to the nearest warehouse. */
 export function cargoWarehouse(w: WorldState, gangId: ID, from: Vec2, goods: Record<GoodsKind,number>): Building | undefined {
-  return allBuildings(w).filter(b => b.ownerGangId === gangId && b.typeId === 'warehouse' &&
-    b.state === 'trading' && GOODS.some(k => goods[k] > 0 && cargoRoom(b,k) > 0))
-    .sort((a,b)=>dist(from,buildingDoor(w,a))-dist(from,buildingDoor(w,b)))[0];
+  const sites = allBuildings(w).filter(b => b.ownerGangId === gangId && b.state === 'trading' && cargoStoreKind(b) &&
+    GOODS.some(k => goods[k] > 0 && cargoRoom(b,k) > 0));
+  const near = (a: Building, b: Building) => dist(from,buildingDoor(w,a))-dist(from,buildingDoor(w,b)) || a.id-b.id;
+  return sites.filter(b => b.typeId !== 'warehouse').sort(near)[0] ?? sites.filter(b => b.typeId === 'warehouse').sort(near)[0];
 }
 function report(w:WorldState,v:FleetVehicle,message:string):void {
   if(w.gangs[v.gangId]?.isPlayer)addMessage(w,'waiting',message,v.pos,v.driverId);
@@ -67,7 +75,7 @@ export function routeCargoReturn(w:WorldState,v:FleetVehicle):boolean {
 /** Deposit only beside the warehouse, with the remaining load still on the car. */
 export function unloadCargo(w:WorldState,v:FleetVehicle,warehouse:Building):number {
   const c=v.cargo;
-  if(!c||warehouse.ownerGangId!==v.gangId||warehouse.typeId!=='warehouse'||warehouse.state!=='trading'||
+  if(!c||warehouse.ownerGangId!==v.gangId||!cargoStoreKind(warehouse)||warehouse.state!=='trading'||
     dist(v.pos,roadPosition(w,buildingDoor(w,warehouse)))>3)return 0;
   let amount=0;
   for(const kind of GOODS){const n=Math.min(c.goods[kind],cargoRoom(warehouse,kind));warehouse.stock[kind]+=n;c.goods[kind]-=n;amount+=n;}

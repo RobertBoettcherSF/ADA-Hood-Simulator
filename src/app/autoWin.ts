@@ -19,6 +19,14 @@ export const WIN_MIN = 100_000;
 export const GOAL_SWITCH_WEEKS = 4;
 /** 1.2.66 (proposed): how far the learned share of the win-chance gain moves a kind weight (±25%). */
 export const KIND_LEARN_RATE = 0.25;
+/** 1.2.67 (proposed): weeks of win-margin history the kind scales are learned over. */
+export const KIND_LEARN_WEEKS = 8;
+/** 1.2.67 (proposed): the most a kind scale moves in a week. */
+export const KIND_LEARN_STEP = 0.05;
+/** 1.2.67 (proposed): the share of crew slots kept filled before a low-worth site takes a manager. */
+export const CREW_FILL_MIN = 0.6;
+/** 1.2.67 (proposed): empty recruit weeks before the recruiting radius widens. */
+export const RECRUIT_WIDEN_WEEKS = 4;
 /** 1.2.66 (proposed): weeks of history a growth rate is read over. */
 export const WIN_GROWTH_WEEKS = 4;
 /** 1.2.66 (proposed): an ending that cannot be reached at the present pace counts this many weeks away. */
@@ -57,6 +65,10 @@ export const POWER_BAND = 20;
 export const OFFICE_VOTE_BAND = 20;
 /** 1.2.66 (proposed): a block whose voter average is within this of the kept line (64) counts as at risk. */
 export const KEPT_RISK_MARGIN = 10;
+/** 1.2.67 (proposed): HOLD needs votes in hand this many over the real win line (votesToWin). */
+export const HOLD_VOTE_MARGIN = 10;
+/** 1.2.67 (proposed): businesses in blocks not ours put to the cash pass for votes each week. */
+export const VOTE_BUYS_PER_WEEK = 6;
 /** 1.2.66 (proposed): an expansion share once the vote projection already reaches the target. */
 export const OFFICE_HOLD_EXPANSION = 0.6;
 /** The game's kept line and lost line for a block's voters. */
@@ -70,12 +82,24 @@ export const RIVAL_BLOCK_VOTE_SHARE = 0.5;
 export const RIVAL_POLL_WATCH = 0.05;
 
 // Stock rackets
-/** The game's export prices a unit (execution.ts export). */
-export const GOODS_PRICE = { liquor: 26, stolen: 34, counterfeit: 900 } as const;
 /** 1.2.66 (proposed): a still's or press's output rate with an average manager (the game: 0.5 + business × 0.14). */
 export const STOCK_RATE = 0.85;
-/** 1.2.66 (proposed): the share of the output sold with no outlet of ours yet (no warehouse, no speakeasy for liquor). */
-export const STOCK_NO_OUTLET = 0.25;
+/** 1.2.67 (proposed): weeks of our sites' takings a racket type's worth is learned from… */
+export const RACKET_LEARN_WEEKS = 4;
+/** 1.2.67 (proposed): …once at least this many site-weeks are known. */
+export const RACKET_LEARN_MIN = 3;
+/** 1.2.67 (proposed): before any history, a racket takes its catalogue profit × this (an average manager and block). */
+export const RACKET_MANAGED_RATE = 1;
+/** 1.2.67 (proposed): learned speakeasy takings are read back to full supply over at least this share. */
+export const RACKET_SUPPLY_FLOOR = 0.25;
+/** 1.2.67 (proposed): weeks a lot whose racket the FBI closed waits before a racket is set up on it again. */
+export const RAID_REBUILD_WEEKS = 8;
+/** 1.2.67 (proposed): weeks a warehouse's export takings must cover its price. */
+export const WAREHOUSE_PAYBACK_WEEKS = 12;
+/** 1.2.67 (proposed): cases a raid with a truck is expected to carry off (the game: 10–40). */
+export const RAID_GOODS_CASES = 25;
+/** 1.2.67 (proposed): a warehouse is exported from once it holds this many cases (weekly small loads fetch the best brackets). */
+export const EXPORT_MIN_CASES = 8;
 
 export const winValue = (takingsWeek: number) => Math.max(WIN_MIN, Math.round(Math.max(0, takingsWeek) * WIN_WEEKS));
 export const logistic = (margin: number, band: number) => 1 / (1 + Math.exp(-margin / Math.max(1e-9, band)));
@@ -98,6 +122,17 @@ export function weeksToElection(w: WorldState): number {
   return w.election.active ? w.election.weeksLeft : Math.max(1, MAYOR_ELECTION_CYCLE - (term?.weeks ?? 0)) + ELECTION_WEEKS;
 }
 
+/** The game closes nominations when fewer than this many election weeks are left (politics.ts officeEntryCheck). */
+export const ENTRY_CLOSE_WEEKS = 2;
+/** 1.2.67 (proposed): the last blocks to stand are pushed for this many weeks before nominations close. */
+export const STAND_LEAD_WEEKS = 4;
+/** 1.2.67 (proposed): the least chance a missing block's stand value counts at. */
+export const STAND_MIN_P = 0.05;
+/** Weeks until nominations close for the next (or present) election. */
+export function weeksToEntryClose(w: WorldState): number {
+  return Math.max(0, weeksToElection(w) - ENTRY_CLOSE_WEEKS);
+}
+
 /** Weeks to the first election at which `short` votes are made up at `growth` a week. */
 export function weeksToOffice(w: WorldState, short: number, growth: number): number {
   const E = weeksToElection(w);
@@ -113,9 +148,38 @@ export interface TrialPoll {
   ours: number;
   /** The votes to beat: the bigger civic share or any other standing gang. */
   beat: number;
+  /** 1.2.67: the fewest votes that win under the game's count (shares rounded down, the
+   * remainder to the sitting mayor's column, ties lost) — votesToWin. */
+  need: number;
   civic: [number, number];
   /** The blocks that vote for this gang. */
   kept: Set<number>;
+}
+
+/** The game's shares from vote scores: each rounded down, the remainder to the first column. */
+export function voteShares(scores: readonly number[]): number[] {
+  const total = scores.reduce((a, b) => a + b, 0);
+  if (total <= 0) return scores.map(() => 0);
+  const p = scores.map((s) => Math.trunc(100 * s / total));
+  p[0] += 100 - p.reduce((a, b) => a + b, 0);
+  return p;
+}
+
+/**
+ * 1.2.67 (Robert, point 1): the fewest votes column `at` needs to win — its
+ * rounded-down share above every other share, the remainder counted to the
+ * first (the sitting mayor's) column and a tie lost (the first listed wins).
+ * With 250/250 civic votes this is about 270, not 251.
+ */
+export function votesToWin(scores: readonly number[], at: number): number {
+  const others = scores.map((s, i) => (i === at ? 0 : s));
+  const top = Math.max(0, ...others);
+  const total = others.reduce((a, b) => a + b, 0);
+  for (let x = top + 1; x <= top + total + 1; x++) {
+    const p = voteShares(others.map((s, i) => (i === at ? x : s)));
+    if (p.every((v, i) => i === at || v < p[at])) return x;
+  }
+  return top + total + 1;
 }
 
 /** The game's vote count as it would stand now with this gang standing (and the Teamsters its own when asked). */
@@ -131,6 +195,7 @@ export function trialPoll(w: WorldState, gangId: number, teamsters = false, also
   return {
     ours: scores[at] ?? 0,
     beat: Math.max(0, ...scores.filter((_, i) => i !== at)),
+    need: votesToWin(scores, at),
     civic: [scores[0] ?? 0, scores[1] ?? 0],
     kept: new Set(r.support[slot] ?? []),
   };

@@ -238,6 +238,32 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.67 decisions
+
+Auto's values and the goods rules. All new numbers are proposed constants (`src/app/autoWin.ts`, `src/app/autoLearn.ts`, `src/sim/exportGoods.ts`, `src/sim/systems/economy.ts`).
+
+1. Mayor: the trial poll's line is the real one: `votesToWin` (shares rounded down, the remainder to the mayor's column, a tie lost; about 270 with 250/250 civic votes).
+2. HOLD needs the votes in hand at least `HOLD_VOTE_MARGIN` (10) over the line. When only the projection reaches it, expansion is scaled by 1 − P.
+3. The Teamsters' lot is reserved while their votes are wanted (`NOTE` line).
+4. Stills, presses and speakeasies are valued by the speakeasy uplift or export margin they bring (`GOODS FIT`).
+5. A producer is shut down only when it has no outlet. An illegal site is shut when it does not pay for its manager; a legal one when it makes no profit.
+6. A speakeasy is valued at the saturated takings × liquor supply. A lot raided by the FBI is not rebuilt for `RAID_REBUILD_WEEKS` (8).
+7. A racket's value subtracts its FBI risk (the game's racket rule, the front's cover, the manager's skill). Card games, dice games and grifters are never investigated.
+8. Counterfeit presses are valued and bought like the other producers.
+9. A warehouse is bought when 12 weeks of exports pay for it. Stock is exported each week from `EXPORT_MIN_CASES` (8) up to 64 cases.
+10. Chief bribes (outbid, crew and strategy proposals) carry the bribe model's chief benefit as their value. The crew heat check compares against that × the chance.
+11. Auto stands for office at least `STAND_LEAD_WEEKS` (4) before entries close (`STAND FIT`).
+12. KIND LEARN uses the last `KIND_LEARN_WEEKS` (8) and moves each scale at most `KIND_LEARN_STEP` (5%) a week.
+13. Idle cash buys votes: the cheapest business for sale in each block not ours, ranked by votes per dollar (`VOTE BUYS`).
+14. Below `CREW_FILL_MIN` (60%) of crew slots filled, a site worth less than a hire does not take a manager. After `RECRUIT_WIDEN_WEEKS` (4) empty recruit weeks the recruiting radius widens (`RECRUIT WIDEN`).
+15. At-risk kept blocks get campaign lean-ons, valued by the keep chance gained. Smash-ups and torching in our own blocks are vetoed while the office is the goal.
+16. `LEARN`: a value ratio below 0.25 for `VALUE_BIAS_WEEKS` (8) is marked `VALUE BIAS` and its floor drops to `VALUE_BIAS_MIN` (0.05).
+17. Rule A: exports are priced per case by the week's bracket (8 cases each at 90%, 85% … 50%, then 5%) of a base price: liquor $100, stolen goods $200, counterfeit $1,000.
+18. Rule B: a speakeasy with no liquor earns nothing (profit × supply).
+19. Rule C: a raid takes only goods actually in stock, plus stolen goods from the luxury list (pawnbroker, jewellers, furrier, museum). Stolen goods are fenced only at the pawnbroker, jewellers and furrier.
+20. Rule D: raided goods go to our nearest fence with room first, then the warehouse.
+21. Rule E: in town a counterfeit case is worth $1,000 (2 passed a week per shop) and a stolen case $200 (12 fenced a week). Auto ranks raids by the goods they bring.
+
 ## v1.2.66 decisions
 
 Auto plays each ending by one win model (`src/app/autoWin.ts`). All new numbers are proposed constants there.

@@ -551,7 +551,7 @@
           }
         ],
         [
-          "personTakings",
+          "exportWeek",
           {
             "optional": true,
             "shape": {
@@ -564,11 +564,24 @@
           }
         ],
         [
+          "personTakings",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "ref": "T110"
+                }
+              ]
+            }
+          }
+        ],
+        [
           "auditResults",
           {
             "optional": false,
             "shape": {
-              "ref": "T111"
+              "ref": "T112"
             }
           }
         ],
@@ -837,6 +850,28 @@
                 },
                 {
                   "literal": "territory"
+                }
+              ]
+            }
+          }
+        ],
+        [
+          "victory",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "literal": "any"
+                },
+                {
+                  "literal": "office"
+                },
+                {
+                  "literal": "straight"
+                },
+                {
+                  "literal": "eliminate"
                 }
               ]
             }
@@ -8259,12 +8294,34 @@
       ]
     },
     "T109": {
-      "object": [],
-      "values": {
-        "ref": "T110"
-      }
+      "object": [
+        [
+          "week",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ],
+        [
+          "cases",
+          {
+            "optional": false,
+            "shape": {
+              "type": "number"
+            }
+          }
+        ]
+      ]
     },
     "T110": {
+      "object": [],
+      "values": {
+        "ref": "T111"
+      }
+    },
+    "T111": {
       "object": [
         [
           "week",
@@ -8295,7 +8352,7 @@
         ]
       ]
     },
-    "T111": {
+    "T112": {
       "object": [],
       "values": {
         "union": [
@@ -8303,12 +8360,12 @@
             "literal": null
           },
           {
-            "ref": "T112"
+            "ref": "T113"
           }
         ]
       }
     },
-    "T112": {
+    "T113": {
       "object": [
         [
           "personId",

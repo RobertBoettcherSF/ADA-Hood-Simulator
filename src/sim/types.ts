@@ -1048,6 +1048,8 @@ export interface WorldState {
   vehicleFleet?: Record<string, FleetVehicle>;
   /** Automatic business haulage; employees, not the boss's allocated hood cars. */
   goodsDeliveries?: Record<ID, GoodsDelivery>;
+  /** 1.2.67: cases every gang exported in that week (the export price falls with it). */
+  exportWeek?: { week: number; cases: number };
   /** Actual gross and handed-over money for audits; never inferred from loyalty later. */
   personTakings?: Record<ID, { week: number; gross: number; declared: number }>;
   /** Results of the last audit, per gang. */

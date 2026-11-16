@@ -18,6 +18,14 @@ import { disbandTeam } from '../execution';
 import { allBuildings, gangMembers, ownedBuildings, teamsOf } from '../world';
 import { standardRules } from '../rules';
 
+/** Cases of liquor a speakeasy pours in a week; below this it takes less, dry it takes nothing (1.2.67). */
+export const SPEAKEASY_WEEKLY_CASES = 40;
+/** 1.2.67: passing counterfeit and fencing stolen goods in town pays above export (export bases $1000 and $200 at 90% at best). */
+export const COUNTERFEIT_CASE_IN_TOWN = 1000;
+export const STOLEN_CASE_IN_TOWN = 200;
+export const COUNTERFEIT_PASSED_WEEKLY = 2;
+export const STOLEN_FENCED_WEEKLY = 12;
+
 export function businessProfit(w: WorldState, b: Building, rng: Rng): number {
   const t = BUILDING_BY_ID[b.typeId];
   if (!t) return 0;
@@ -34,8 +42,9 @@ export function businessProfit(w: WorldState, b: Building, rng: Rng): number {
 
   // A speakeasy is only worth having if there is liquor behind the bar.
   if (t.id === 'speakeasy') {
-    const supply = Math.min(1, b.stock.liquor / 40);
-    profit *= 0.25 + supply * 0.75;
+    // 1.2.67: a dry bar takes nothing — no liquor, no takings.
+    const supply = Math.min(1, b.stock.liquor / SPEAKEASY_WEEKLY_CASES);
+    profit *= supply;
   }
 
   if (b.ownerGangId != null && b.managerId != null && profit > 0) {
@@ -93,22 +102,22 @@ export function weeklyEconomy(w: WorldState, rng: Rng): void {
 
     // Speakeasies drink their way through the stock.
     if (b.typeId === 'speakeasy' && b.state === 'trading') {
-      b.stock.liquor = Math.max(0, b.stock.liquor - 40);
+      b.stock.liquor = Math.max(0, b.stock.liquor - SPEAKEASY_WEEKLY_CASES);
     }
     // Counterfeit money is passed off as change; stolen goods are fenced.
     const t = BUILDING_BY_ID[b.typeId];
     if (t && b.cls !== 'illegal' && b.state === 'trading') {
       if (b.stock.counterfeit > 0 && goodsRetailer(b,'counterfeit')) {
-        const passed = Math.min(b.stock.counterfeit, 2);
+        const passed = Math.min(b.stock.counterfeit, COUNTERFEIT_PASSED_WEEKLY);
         b.stock.counterfeit -= passed;
-        profit += passed * 620;
-        laundered += passed * 620;
+        profit += passed * COUNTERFEIT_CASE_IN_TOWN;
+        laundered += passed * COUNTERFEIT_CASE_IN_TOWN;
       }
       if (b.stock.stolen > 0 && goodsRetailer(b,'stolen')) {
-        const sold = Math.min(b.stock.stolen, 12);
+        const sold = Math.min(b.stock.stolen, STOLEN_FENCED_WEEKLY);
         b.stock.stolen -= sold;
-        profit += sold * 40;
-        laundered += sold * 40;
+        profit += sold * STOLEN_CASE_IN_TOWN;
+        laundered += sold * STOLEN_CASE_IN_TOWN;
       }
     }
 
