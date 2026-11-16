@@ -13,7 +13,7 @@ export const SLOW_GAIN = 2;
 /** 1.2.59 (Robert): the timeline is sampled every this many weeks. */
 export const SUMMARY_EVERY = 10;
 
-/** The report lines the summary needs, kept across the 60-week files (long lines cut to what is read). */
+/** The report lines the summary needs, kept across the yearly (52-week) files (long lines cut to what is read). */
 export function summaryKeep(line: string): string | null {
   if (line.startsWith('CASH FIT R ')) { const m = /idle penalty \$\d+\/wk on \$\d+ idle/.exec(line); return m ? `CASH FIT R ${m[0]}` : null; }
   return /^(-- week |NOTE men: |FITNESS week |FAIL orders — no crew|LOST |HEAT |ORDER EXEC |LEARN \(|LEARN coin|BUYS week )/.test(line) ? line : null;

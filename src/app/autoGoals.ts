@@ -6,6 +6,7 @@
  * when another win has clearly come closer.
  */
 import { GO_STRAIGHT_ASSETS } from '../sim/constants';
+import { GOAL_SWITCH_WEEKS, NEVER_WEEKS } from './autoWin';
 import { availableSpecialist } from '../sim/specialists';
 import { electionBlocksRequired } from '../sim/systems/politics';
 import type { Gang, WorldState } from '../sim/types';
@@ -94,7 +95,9 @@ export const GOAL_STALL_DROP = 2;
 /** Weeks a dropped goal stays off the list. */
 export const GOAL_DROP_WEEKS = 12;
 
-export function chooseGoal(w: WorldState, gang: Gang, current?: VictoryGoal, stalled = false, excluded: readonly VictoryGoal[] = []): { goal: VictoryGoal; scores: Record<VictoryGoal, number> } {
+export function chooseGoal(w: WorldState, gang: Gang, current?: VictoryGoal, stalled = false, excluded: readonly VictoryGoal[] = [],
+  /** 1.2.66 (Robert): the estimated weeks to each ending (autoWin); with them Any picks the fewest. */
+  weeks?: Partial<Record<VictoryGoal, number>>): { goal: VictoryGoal; scores: Record<VictoryGoal, number> } {
   const scores = goalScores(w, gang);
   if (current && stalled) scores[current] = Math.max(0, Math.round((scores[current] - GOAL_STALL_PENALTY) * 100) / 100);
   const goals = goalsFor(w);
@@ -102,6 +105,14 @@ export function chooseGoal(w: WorldState, gang: Gang, current?: VictoryGoal, sta
   if (goals.length === 1) return { goal: goals[0], scores };
   const open = goals.filter((g) => !excluded.includes(g));
   if (current && (excluded.includes(current) || !goals.includes(current))) current = undefined;
+  if (weeks) {
+    // 1.2.66 (Robert): the ending reached in the fewest weeks; a switch only
+    // when another is at least GOAL_SWITCH_WEEKS closer than the current one.
+    const wk = (g: VictoryGoal) => weeks[g] ?? NEVER_WEEKS;
+    const pick = [...(open.length ? open : goals)].sort((a, b) => wk(a) - wk(b) || goals.indexOf(a) - goals.indexOf(b))[0];
+    if (current && wk(current) - wk(pick) < GOAL_SWITCH_WEEKS) return { goal: current, scores };
+    return { goal: pick, scores };
+  }
   const best = [...(open.length ? open : goals)].sort((a, b) => scores[b] - scores[a] || goals.indexOf(a) - goals.indexOf(b))[0];
   if (current && scores[best] - scores[current] < GOAL_SWITCH_MARGIN) return { goal: current, scores };
   return { goal: best, scores };

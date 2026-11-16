@@ -64,8 +64,19 @@ export function inputFor<T>(p: Proposal<T>, team: T): Omit<IssueOrderInput, 'tea
   return typeof p.input === 'function' ? p.input(team) : p.input;
 }
 
+/**
+ * 1.2.66 (Robert): the KIND_WEIGHTS are priors; each is scaled by the learned
+ * share of the win-margin gain its kind of work carried (autoWin kindScales).
+ * Set once a week before the decision loop; 1 when nothing is learned yet.
+ */
+let kindScale: Partial<Record<OrderKind, number>> = {};
+export function setKindScale(scale: Partial<Record<OrderKind, number>>): void { kindScale = { ...scale }; }
+export function kindWeight(goal: VictoryGoal, kind: OrderKind): number {
+  return Math.round(KIND_WEIGHTS[goal][kind] * (kindScale[kind] ?? 1) * 100) / 100;
+}
+
 export function scoreOf<T>(goal: VictoryGoal, p: Proposal<T>): number {
-  return Math.round(p.value * KIND_WEIGHTS[goal][p.kind]);
+  return Math.round(p.value * kindWeight(goal, p.kind));
 }
 
 /** Least free minutes a crew needs before it is offered anything. */
@@ -95,7 +106,7 @@ export function decideWeek<T>(
       ? p.teams.map((t) => crews.find((c) => c.team === t)).filter((c): c is CrewSlot<T> => !!c && allowed(c))
       : crews.filter(allowed).sort((a, b) => Number(b.role === p.role && p.role != null) - Number(a.role === p.role && p.role != null) || b.free() - a.free());
     const open = slots.filter((c) => c.free() >= (p.minFree ?? MIN_FREE_MINUTES));
-    const weight = KIND_WEIGHTS[goal][p.kind];
+    const weight = kindWeight(goal, p.kind);
     const why = `score ${score} = value ${Math.round(p.value)} × ${goal} weight ${weight} for ${p.kind}${chance ? ` × chance ${c.toFixed(2)} carried out` : ''}${h > 0 ? ` − heat $${Math.round(h)}` : ''}${p.why ? ` — ${p.why}` : ''}`;
     // 1.2.55 (Robert): heat priced above the order's worth — not given (no lie-low rule).
     if (h > 0 && score <= 0 && !p.first && !(explore && explore(p, score + h, h))) {

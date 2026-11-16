@@ -238,6 +238,23 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.66 decisions
+
+Auto plays each ending by one win model (`src/app/autoWin.ts`). All new numbers are proposed constants there.
+
+1. Any picks the ending reached in the fewest weeks at the present pace (`GOAL FIT` line). Straight: assets short after spending 80% of the cash at $20k a week, the rest at the assets' growth, plus the lawyer's hire, 3 weeks a case and half a week a racket. Office: the first election at which the vote growth makes up the votes short. Eliminate: rival men ÷ the rate they fall, or an alliance with the last rival at 4 weeks a stance level. A switch needs another ending at least 4 weeks closer (`GOAL_SWITCH_WEEKS`).
+2. Every ending has a win value of 52 weeks of takings, at least $100,000 (`WIN_WEEKS`, `WIN_MIN`). Its chance is logistic in the margin at the ending's date (or over 26 weeks), and one more unit toward it is worth the win × the chance it adds (`WIN FIT` line). Buys carry this win value in the cash pass too.
+3. Going straight: a buy is worth the assets it adds × a $ of assets' value. An arrest's cost includes the case it opens (`STRAIGHT FIT`). The lawyer's search is worth the weeks his hire would hold the ending back. Rackets are shut exactly when the assets left after shutting them still reach $250,000. The game's go-straight call follows as soon as it is allowed.
+4. Mayor: a new block is worth a vote × the chance its voters keep it (voter average against 64; a buy adds our manager). A soup kitchen and a clean-up are worth the votes a 10-point drop keeps. Once the projection reaches the target, no more blocks are chased (`HOLD`, expansion 0.6). The `KEPT FIT` line shows kept, at-risk, reluctant and lost blocks.
+5. The Teamsters' front, lot and set-up carry their votes and may use the reserve.
+6. A still or press is valued by its expected stock sales (output × 0.85 × export price, a quarter of it with no outlet of ours), not $0.
+7. Last gang standing: a rival man killed is worth WIN FIT's value of one. First shots are priced only on the weakest rival. With one rival left, an alliance is priced by its chance of being reached (`ELIMINATE FIT`).
+8. Territory, wealth and power use the same chance against the best rival's projection. A block's race value replaces `NEW_BLOCK_GOAL_VALUE`.
+9. `RIVAL POLL`, in every mode: a rival that could win the mayoralty (a loss for us) is watched from 5%. Orders on its kept blocks carry half a vote each.
+10. `KIND_WEIGHTS` are priors, scaled by each kind's learned share of the win-margin gain, at most ±25% (`KIND_LEARN_RATE`).
+11. No "GOAL dropped" when only one goal is open.
+12. The Auto report is written in yearly files (every 52 weeks; was 60).
+
 ## v1.2.65 decisions
 
 Auto (mayor goal, bribes, buys). All new numbers are proposed constants.
