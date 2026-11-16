@@ -75,6 +75,8 @@ export interface HeatState {
   plannedExtort: number;
   /** 1.2.56: an open case, a man in custody or the FBI total near its line — evidence matters within the horizon. */
   trialLikely: boolean;
+  /** 1.2.63: what a whole-gang rest would cost (men × V × REST_WEEKS_LOST); 0 or unset prices no rest exposure. */
+  restCost?: number;
 }
 
 export interface HeatMan { id: number; name: string; wanted: number; fbiScore: number; cost: number }
@@ -140,6 +142,18 @@ export function streetRisk(wanted: number, officer: number): number {
   return clamp01((wanted - WANTED_DECAY_WORKING - (line - WANTED_BAND)) / WANTED_BAND);
 }
 
+/** 1.2.63: the game's street line — a man whose wanted level is past it is arrested on sight (with his crew). */
+export function streetLine(officer: number): number {
+  return STREET_LINE + officer * 0.5;
+}
+/**
+ * 1.2.63 (Robert): the chance an order's wanted gain takes a man over the street
+ * line — 0 for a man with no wanted level (he cannot be arrested on the street
+ * whatever the police think of us), the heat model's risk otherwise.
+ */
+export function overLineChance(wanted: number, officer: number): number {
+  return wanted > 0 ? streetRisk(wanted, officer) : 0;
+}
 /**
  * 1.2.59 (Robert): the officers' opinion at which even a man with no wanted
  * level reaches the rest line (streetRisk(0, op) = REST_RISK) — below it the
@@ -193,10 +207,31 @@ export function restWeeksUnder(s: HeatState, riskPerWeek: number, dMayor = 0, dC
 export function restNearnessAhead(s: HeatState, riskPerWeek: number, dMayor = 0, dChief = 0, dOfficer = 0): number {
   return restWeeksUnder(s, riskPerWeek, dMayor, dChief, dOfficer) / HEAT_WEEKS;
 }
-/** 1.2.59 (Robert): the gang-wide rest a lift prevents — restCost (men × V × REST_WEEKS_LOST) × the fall in nearness (1.2.60: expected weeks under the line, uncapped). */
+/** 1.2.63 (proposed): opinion points above the rest line where the rest exposure starts (0 there, 1 at the line). */
+export const REST_PRICE_BAND = 100;
+/**
+ * 1.2.63 (Robert): the exposure to a whole-gang rest over HEAT_WEEKS — the
+ * average of N² a week, N = how far the officers' projected opinion has come
+ * down REST_PRICE_BAND toward the rest line (0 at the top, 1 at the line, more
+ * below it). An opinion point therefore costs restCost × 2N ÷ REST_PRICE_BAND:
+ * little far from the line, rising as we approach it. Same projection as officerLow.
+ */
+export function restExposure(s: HeatState, riskPerWeek: number, dMayor = 0, dChief = 0, dOfficer = 0): number {
+  let m = s.mayor + dMayor, c = s.chief + dChief, o = s.officer + dOfficer, sum = 0;
+  const top = restOpinionLine() + REST_PRICE_BAND;
+  for (let k = 0; k < HEAT_WEEKS; k++) {
+    m = Math.max(-100, m - riskPerWeek * MAYOR_PER_RISK);
+    c += (m - c) * CHIEF_PULL;
+    o += (c - o) * 0.25;
+    const n = Math.max(0, (top - o) / REST_PRICE_BAND);
+    sum += n * n;
+  }
+  return sum / HEAT_WEEKS;
+}
+/** 1.2.59 (Robert): the gang-wide rest a lift prevents — restCost (men × V × REST_WEEKS_LOST) × the fall in exposure (1.2.63: restExposure, rising as the line nears). */
 export function restRelief(s: HeatState, riskPerWeek: number, restCost: number, dMayor = 0, dChief = 0, dOfficer = 0): number {
-  const before = restNearnessAhead(s, riskPerWeek);
-  const after = restNearnessAhead(s, riskPerWeek, dMayor, dChief, dOfficer);
+  const before = restExposure(s, riskPerWeek);
+  const after = restExposure(s, riskPerWeek, dMayor, dChief, dOfficer);
   return Math.max(0, restCost * (before - after));
 }
 
@@ -243,6 +278,9 @@ export function heatCost(o: HeatOrder, s: HeatState, crew?: HeatMan[]): HeatCost
     // Mayor and chief: the chief's path toward the mayor over the horizon.
     const dMayor = -MAYOR_PER_RISK * risk * crimes;
     per.opinion = Math.max(0, policeCost(s, chiefAvg(s, dMayor, 0)) - policeCost(s, chiefAvg(s, 0, 0)));
+    // 1.2.63 (Robert): plus the order's share of a whole-gang rest — the opinion
+    // it costs × restCost × the marginal exposure, at the crime load planned so far.
+    if (s.restCost) per.opinion += Math.max(0, s.restCost * (restExposure(s, s.crimeScore / 10, dMayor) - restExposure(s, s.crimeScore / 10)));
     // The crackdown declaration: our score past the line (6, or the busiest rival).
     const line = Math.max(CRACKDOWN_LINE, s.rivalScore);
     const before = clamp01((s.crimeScore - line + 1) / 2), after = clamp01((s.crimeScore + risk * 10 * crimes - line + 1) / 2);
@@ -254,10 +292,13 @@ export function heatCost(o: HeatOrder, s: HeatState, crew?: HeatMan[]): HeatCost
   }
   if (crew?.length) {
     // Wanted: the crew's most wanted man is taken as the one who does it.
+    // 1.2.63 (Robert): the expected arrest cost — the chance the order's wanted
+    // gain takes him over the street line × the crew (a street arrest takes the
+    // whole crew) × A. A man with no wanted level starts at no risk.
     if (crimes > 0) {
       const perp = [...crew].sort((a, b) => b.wanted - a.wanted)[0];
       const d = sev * 1.6 * crimes;
-      per.wanted = (streetRisk(perp.wanted + d, s.officer) - streetRisk(perp.wanted, s.officer)) * perp.cost;
+      per.wanted = Math.max(0, overLineChance(perp.wanted + d, s.officer) - overLineChance(perp.wanted, s.officer)) * crew.length * s.A;
     }
     // A man's FBI score: a heavy crime adds to every man of the crew.
     const each = o.heavyEach ?? ((CRIME_ROW_SUSPICION[o.type] ?? 0) > HEAVY_CRIME_SUSPICION ? CRIME_ROW_SUSPICION[o.type] : 0);

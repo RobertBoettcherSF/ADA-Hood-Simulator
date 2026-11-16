@@ -58,7 +58,7 @@ export const ORIGINAL_AI_PROFILES: readonly (readonly number[])[] = [
 ];
 
 const STANCES: DiplomacyLevel[] = ['alliance', 'peace', 'ceasefire', 'aggression', 'war'];
-const stanceIndex = (d: DiplomacyLevel | undefined) => Math.max(0, STANCES.indexOf(d ?? 'peace'));
+export const stanceIndex = (d: DiplomacyLevel | undefined) => Math.max(0, STANCES.indexOf(d ?? 'peace'));
 /**
  * When hostility is not rising, the stance decays towards (hostility + anchor)/2.
  * The original reads the anchor from the rival's stance toward itself
@@ -67,7 +67,7 @@ const stanceIndex = (d: DiplomacyLevel | undefined) => Math.max(0, STANCES.index
  * plays it: a quiet week cannot hold War, and Aggression only from 239 up.
  */
 const ANCHOR_AI_RIVAL = 139, ANCHOR_PLAYER_RIVAL = 172;
-const PEACE_PRESSURE = [
+export const PEACE_PRESSURE = [
   [0, 16, 32, 64, 96], [-8, 0, 16, 32, 64], [-16, -8, 0, 16, 32], [-32, -16, -8, 0, 8], [-64, -32, -16, -8, 0],
 ];
 /** A computer gang's starting hostility toward the other computer gangs (Peace). */

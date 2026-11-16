@@ -13,8 +13,8 @@ export const EXEC_WEEKS = 8;
 /** Pseudo-tries that pull a thin record (one crew, one site) toward the wider one (proposed). */
 export const EXEC_PRIOR = 2;
 
-export type ExecReason = 'no time' | 'nobody free' | 'crew at rest' | 'lying low' | 'on defence' | 'refused by the game' | 'no crew took it' | 'held back' | 'guard' | 'shop refused';
-export type ExecEnd = 'carried out' | 'cancelled' | 'not carried out';
+export type ExecReason = 'no time' | 'nobody free' | 'men lost mid-order' | 'no recruits found' | 'crew at rest' | 'lying low' | 'on defence' | 'refused by the game' | 'no crew took it' | 'held back' | 'guard' | 'shop refused';
+export type ExecEnd = 'carried out' | 'partly done' | 'cancelled' | 'not carried out';
 
 export interface ExecTry {
   week: number;
@@ -45,6 +45,10 @@ export function execMemory(w: WorldState): ExecMemory {
 export function execReason(error: string): ExecReason {
   // 1.2.56 (Robert): the FBI guard and a shop's own answer have their own reasons.
   if (/FBI guard/i.test(error)) return 'guard';
+  // 1.2.63 (Robert): running out of the week is no time; 'nobody' is split three ways.
+  if (/ran out of week/i.test(error)) return 'no time';
+  if (/nobody was left to carry out/i.test(error)) return 'men lost mid-order';
+  if (/nobody worth hiring|nobody new was willing/i.test(error)) return 'no recruits found';
   if (/refused your protection|already pays somebody|no longer available to extort/i.test(error)) return 'shop refused';
   if (/lying low|lies low|off heavy/i.test(error)) return 'lying low';
   if (/defence|rival-held|rival block/i.test(error)) return 'on defence';
@@ -70,6 +74,8 @@ function endOf(w: WorldState, id: number): { end: ExecEnd; reason?: ExecReason }
   const o: Order | undefined = w.lastWeekOrders.find((x) => x.id === id);
   if (o) {
     if (o.state === 'done' && o.completedTargets > 0 && !o.failReason) return { end: 'carried out' };
+    // 1.2.63 (Robert): a route that finished some of its stops is partly done.
+    if (o.state === 'done' && o.completedTargets > 0) return { end: 'partly done', reason: execReason(o.failReason ?? '') };
     return { end: 'not carried out', reason: execReason(o.failReason ?? o.results.join(' ') ?? '') };
   }
   // Still running (a repeat order) counts as not carried out this week; gone without a result was cancelled.
@@ -99,7 +105,7 @@ export function settleExec(m: ExecMemory, w: WorldState, cancelledIds: ReadonlyS
   const reasons = new Map<string, number>();
   for (const t of last) if (t.end !== 'carried out' && t.reason) { const k = `${t.end === 'not given' ? 'not given' : t.end}: ${t.reason}`; reasons.set(k, (reasons.get(k) ?? 0) + 1); }
   const top = [...reasons].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => `${k} ×${n}`).join(', ');
-  return `ORDER EXEC week ${w.week - 1}: ${last.length} put forward, ${given.length} given — ${count('carried out')} carried out, ${count('cancelled')} cancelled, ${count('not carried out')} not carried out; ${count('not given')} not given`
+  return `ORDER EXEC week ${w.week - 1}: ${last.length} put forward, ${given.length} given — ${count('carried out')} carried out, ${count('partly done')} partly done, ${count('cancelled')} cancelled, ${count('not carried out')} not carried out; ${count('not given')} not given`
     + `; $${Math.round(done)} carried out of $${Math.round(approved)} approved${top ? `; top reasons: ${top}` : ''}`;
 }
 
@@ -112,7 +118,8 @@ export function settleExec(m: ExecMemory, w: WorldState, cancelledIds: ReadonlyS
  */
 export function execChance(m: ExecMemory, type: string, teamId: number | null, siteId: number | null): number {
   const settled = m.tries.filter((t) => t.type === type && t.end && t.end !== 'not given');
-  const rate = (list: ExecTry[], prior: number, n0: number) => (list.filter((t) => t.end === 'carried out').length + prior * n0) / (list.length + n0);
+  // 1.2.63: a partly done order counts half.
+  const rate = (list: ExecTry[], prior: number, n0: number) => (list.filter((t) => t.end === 'carried out').length + 0.5 * list.filter((t) => t.end === 'partly done').length + prior * n0) / (list.length + n0);
   let p = rate(settled, 0.5, 2);
   if (teamId != null) p = rate(settled.filter((t) => t.teamId === teamId), p, EXEC_PRIOR);
   if (siteId != null) p = rate(settled.filter((t) => t.siteId === siteId), p, EXEC_PRIOR);
@@ -122,7 +129,8 @@ export function execChance(m: ExecMemory, type: string, teamId: number | null, s
 /** 1.2.56: carried out / failed counts of the given orders of a type (for the Beta draw). */
 export function execCounts(m: ExecMemory, type: string): { done: number; failed: number } {
   const settled = m.tries.filter((t) => t.type === type && t.end && t.end !== 'not given');
-  const done = settled.filter((t) => t.end === 'carried out').length;
+  // 1.2.63: a partly done order counts half.
+  const done = settled.filter((t) => t.end === 'carried out').length + 0.5 * settled.filter((t) => t.end === 'partly done').length;
   return { done, failed: settled.length - done };
 }
 

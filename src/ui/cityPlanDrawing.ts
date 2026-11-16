@@ -277,10 +277,8 @@ export function drawPlanLot(ctx: CanvasRenderingContext2D, w: WorldState, b: Bui
   if (rw <= 0 || rh <= 0) return;
   if (b.state === 'destroyed') drawRubble(ctx, b.id, rx, ry, rw, rh);
   else drawRoof(ctx, b, cls, rx, ry, rw, rh);
-  if (b.state === 'damaged') {
-    ctx.fillStyle = 'rgba(20,14,10,.45)'; ctx.beginPath();
-    ctx.ellipse(rx + rw * .6, ry + rh * .45, rw * .32, rh * .28, .4, 0, Math.PI * 2); ctx.fill();
-  }
+  // 1.2.63 (Robert): a damaged site gets a solid grey wash over its whole roof.
+  if (b.state === 'damaged') { ctx.fillStyle = '#8a8a8a'; ctx.fillRect(rx, ry, rw, rh); }
   if (heatMap) { ctx.fillStyle = 'rgba(20,22,24,.25)'; ctx.fillRect(rx, ry, rw, rh); }
   if (owner) {
     const hex = GANG_COLORS[owner.color].hex;

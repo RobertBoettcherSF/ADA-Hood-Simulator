@@ -31,7 +31,7 @@ export function summaryBlock(opts: { lines: readonly string[]; weeks: readonly S
   const rival = new Map<string, number>(), fbi = new Map<string, number>(), other = new Map<string, number>();
   let policeStreet = 0, policeScene = 0, sacked = 0, reArrests = 0;
   const peak = { fbi: [0, 0], fbiScore: [0, 0], wanted: [0, 0], chief: [Infinity, 0], mayor: [Infinity, 0], idle: [0, 0], free: [-Infinity, 0] };
-  const exec = { put: 0, given: 0, done: 0, notDone: 0, notGiven: 0, carried: 0, approved: 0 };
+  const exec = { put: 0, given: 0, done: 0, partly: 0, notDone: 0, notGiven: 0, carried: 0, approved: 0 };
   const reasons = new Map<string, number>();
   let learnLast = '';
   const coins = { doIt: 0, hold: 0, tryIt: 0, notTried: 0 };
@@ -74,8 +74,8 @@ export function summaryBlock(opts: { lines: readonly string[]; weeks: readonly S
     }
     if (line.startsWith('CASH FIT R ')) { const m = /on \$(\d+) idle/.exec(line); if (m && Number(m[1]) > peak.idle[0]) peak.idle = [Number(m[1]), week]; continue; }
     if (line.startsWith('ORDER EXEC ')) {
-      const m = /: (\d+) put forward, (\d+) given — (\d+) carried out, \d+ cancelled, (\d+) not carried out; (\d+) not given; \$(\d+) carried out of \$(\d+) approved/.exec(line);
-      if (m) { exec.put += +m[1]; exec.given += +m[2]; exec.done += +m[3]; exec.notDone += +m[4]; exec.notGiven += +m[5]; exec.carried += +m[6]; exec.approved += +m[7]; }
+      const m = /: (\d+) put forward, (\d+) given — (\d+) carried out,(?: (\d+) partly done,)? \d+ cancelled, (\d+) not carried out; (\d+) not given; \$(\d+) carried out of \$(\d+) approved/.exec(line);
+      if (m) { exec.put += +m[1]; exec.given += +m[2]; exec.done += +m[3]; exec.partly += +(m[4] ?? 0); exec.notDone += +m[5]; exec.notGiven += +m[6]; exec.carried += +m[7]; exec.approved += +m[8]; }
       const r = /top reasons: (.*)$/.exec(line);
       if (r) for (const x of r[1].matchAll(/([^,]+?) ×(\d+)/g)) bump(reasons, x[1].trim(), Number(x[2]));
       continue;
@@ -113,7 +113,7 @@ export function summaryBlock(opts: { lines: readonly string[]; weeks: readonly S
   const pk = (p: number[], label: string) => (Number.isFinite(p[0]) ? `${label} ${p[0]} (w${p[1]})` : `${label} –`);
   out.push(`SUMMARY peaks: ${pk(peak.fbi, 'FBI total')}; ${pk(peak.fbiScore, 'top FBI score')}; ${pk(peak.wanted, 'top wanted')}; lowest ${pk(peak.chief, 'chief')}; lowest ${pk(peak.mayor, 'mayor')}`);
   out.push(`SUMMARY idle cash: peak cash over the reserve ${Number.isFinite(peak.free[0]) ? `${money(peak.free[0])} (w${peak.free[1]})` : '–'}; peak idle in the cash pass ${money(peak.idle[0])} (w${peak.idle[1]})`);
-  out.push(`SUMMARY ORDER EXEC: ${exec.put} put forward, ${exec.given} given — ${exec.done} carried out, ${exec.notDone} not carried out; ${exec.notGiven} not given; ${money(exec.carried)} carried out of ${money(exec.approved)} approved; top reasons: ${reasons.size ? list(reasons, 3) : 'none'}`);
+  out.push(`SUMMARY ORDER EXEC: ${exec.put} put forward, ${exec.given} given — ${exec.done} carried out, ${exec.partly} partly done, ${exec.notDone} not carried out; ${exec.notGiven} not given; ${money(exec.carried)} carried out of ${money(exec.approved)} approved; top reasons: ${reasons.size ? list(reasons, 3) : 'none'}`);
   const factors = [...learnLast.matchAll(/(\w+) value exp \$[\d.e+]+ act \$[\d.e+]+ ×([\d.]+); heat exp \$[\d.e+]+ act \$[\d.e+]+ ×([\d.]+)/g)].map((m) => `${m[1]} ×${m[2]}/heat ×${m[3]}`);
   out.push(`SUMMARY LEARN: ${factors.length ? factors.join(', ') : 'no factors yet'}; coin flips ${coins.doIt + coins.hold} (${coins.doIt} do it, ${coins.hold} hold); trials ${coins.tryIt + coins.notTried} (${coins.tryIt} tried)`);
   out.push(`SUMMARY buys: ${buys.done + buys.failed} judged — ${buys.done} done, ${buys.failed} failed${buyWhy.size ? ` (${list(buyWhy)})` : ''}`);

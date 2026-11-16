@@ -238,6 +238,17 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.63 decisions
+
+1. **Stance by fitness, per rival.** Each week Auto prices peace, ceasefire, aggression and war against each rival as the expected weekly loss: (their kills of ours + incidents our own first shots start) × a man's value, less what fighting gains (only when the goal is eliminate, territory or power). Their kills are cut by how soon our stance cools theirs (the game's quiet-week drift over 8 weeks); peace is counted undefended (+50%) since our men never fire; ceasefire starts half the first shots. The lowest loss is picked; ceasefire is offered to an aggression or war gang when it wins. Replaces the 1.2.49 rule. Report line STANCE FIT. Numbers proposed.
+2. **No gang-wide rest.** Orders are ranked by value minus the expected arrest cost: the chance the order's wanted gain takes the man over the street line × the crew × a man's arrest cost. Work with no crime nearly always goes. Only a man's own wanted level past the street line rests or sacks him (and a lieutenant's rests his crew).
+3. **Opinion is priced as it nears the rest line.** Each opinion point costs the whole-gang rest cost × how near the rest line we are (squared over 100 points above it, proposed), so crime slows early and bribes rank earlier.
+4. **Empty lots held for a venue.** Land in our blocks keeps being bought, held for an illegal venue (centre lots) or a legal one; worth = the new block (territory goal) + the venue's profit × 12 weeks, discounted 0.9 a week for the expected wait for a free hood (spare hoods against lots waiting, then recent joins; at most 26 weeks; proposed). Every buy or set-up names its man: one per man a week, within his free time. Report line LOTS.
+5. **Managers move only for a better hood.** A manager leaves a business only when a more suitable hood replaces him there; no business is left unmanned. The 1.2.60 recall and the 1.2.42 dry-recruit recall are gone.
+6. **Plan for the men expected left.** A crew's free man-time is planned after its expected losses (its average men lost a week over the last 4 weeks, proposed). Report line PLAN MEN.
+7. **Order report.** "Ran out of week" counts as no time; a route that finished some stops is partly done (counted half in the learned chance); "nobody free" splits into men lost mid-order, no recruits found and nobody free.
+8. **City plan.** A damaged site shows a solid grey wash over its whole roof instead of the dark patch; destroyed sites keep their rubble. Display only.
+
 ## v1.2.62 decisions
 
 1. **Auto Test plays the open game.** It never makes a new city. Start hands the game now open (new or continued) to Auto from its current week; Auto plays it under the same rules and saves as a player game until victory, loss or Stop. Stop gives the desk back to the player in the same game. Victory and every setting are the open game's New Game choices; Auto Test changes none.
