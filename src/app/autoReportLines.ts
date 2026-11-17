@@ -5,6 +5,7 @@
  * and officials lines show what the game knows, not what Auto knows.
  */
 import { hireLines, type HireLine } from '../sim/hireLog';
+import { memberLosses } from '../sim/memberLosses';
 import { gangManpower, territoryCount } from '../sim/world';
 import type { Order, Person, WorldState } from '../sim/types';
 
@@ -59,4 +60,30 @@ export function buyTimingLine(w: WorldState, gangId: number, week: number, roleO
 export function rivalLine(w: WorldState, gangId: number, week: number): string {
   const rivals = Object.values(w.gangs).filter((g) => g.id !== gangId && !g.eliminated);
   return `REPORT-ONLY RIVALS wk ${week} (Auto never reads this): ${rivals.length ? rivals.map((g) => `${g.name} men ${gangManpower(w, g)}, crews ${g.teamIds.length}, pool ${g.poolIds.length}, cash $${Math.round(g.cash).toLocaleString('en-US')}, blocks ${territoryCount(w, g.id)}`).join('; ') : 'none left'}`;
+}
+
+/** 1.2.76 (Robert, point 8): OFFICERS — the police officers' opinion of us (all, and those on nobody's payroll), who pays or bought them. */
+export function officersLine(w: WorldState, gangId: number, week: number): string {
+  const ps = (w.policeIds ?? []).map((id) => w.people[id]).filter((p): p is Person => !!p && p.status !== 'dead');
+  if (!ps.length) return `REPORT-ONLY OFFICERS wk ${week}: none`;
+  const ops = ps.map((p) => op(p, gangId));
+  const free = ps.filter((p) => p.employedBy == null && p.bribedBy == null).map((p) => op(p, gangId));
+  const avg = (xs: number[]) => (xs.length ? Math.round(xs.reduce((n, x) => n + x, 0) / xs.length) : 0);
+  const payers = new Map<string, number>();
+  for (const p of ps) {
+    const by = p.employedBy ?? p.bribedBy;
+    if (by != null) { const k = w.gangs[by]?.name ?? `gang ${by}`; payers.set(k, (payers.get(k) ?? 0) + 1); }
+  }
+  return `REPORT-ONLY OFFICERS wk ${week}: ${ps.length}, opinion of us ${Math.min(...ops)}..${Math.max(...ops)} (avg ${avg(ops)}); unpaid ${free.length}, avg ${avg(free)}${payers.size ? `; paid or bought: ${[...payers].map(([k, n]) => `${k} ${n}`).join(', ')}` : '; none paid or bought'}`;
+}
+
+/** 1.2.76 (Robert, point 8): ARRESTS BY CAUSE — our men arrested or convicted in the week: police street, police scene, FBI, courts. */
+export function arrestsByCauseLine(w: WorldState, gangId: number, week: number): string {
+  const ls = memberLosses(w, gangId, week).filter((l) => l.week === week);
+  const street = ls.filter((l) => l.by === 'the police' && /arrested in the street/.test(l.cause)).length;
+  const scene = ls.filter((l) => l.by === 'the police' && /at the scene/.test(l.cause)).length;
+  const otherPolice = ls.filter((l) => l.by === 'the police' && /arrest/.test(l.cause) && !/arrested in the street|at the scene/.test(l.cause)).length;
+  const fbi = ls.filter((l) => l.by === 'the FBI').length;
+  const courts = ls.filter((l) => l.by === 'the courts').length;
+  return `REPORT-ONLY ARRESTS BY CAUSE wk ${week}: police street ${street}, police scene ${scene}${otherPolice ? `, police other ${otherPolice}` : ''}, FBI ${fbi}, convicted ${courts}`;
 }

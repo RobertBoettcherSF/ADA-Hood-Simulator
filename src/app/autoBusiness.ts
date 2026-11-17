@@ -88,9 +88,11 @@ export function runOutChance(m: DeskMemory, type: string): number {
   return ((cur?.out ?? 0) + RUN_OUT_PRIOR * RUN_OUT_PRIOR_N) / ((cur?.n ?? 0) + RUN_OUT_PRIOR_N);
 }
 
-/** 1.2.75 (Robert, point 3): a fail reason that means the order ran out (week, men or start), not that it was done slowly. */
+/** 1.2.75 (Robert, point 3): a fail reason that means the order ran out (week or start), not that it was done slowly.
+ * 1.2.76 (Robert, point 6): "Nobody was left" is a loss (men arrested or killed), not a run-out. */
 export function isRunOut(why: string): boolean {
-  return /not enough time in the week|ran out of week|searched all week|never finished in the week|nobody was left|never started|no time/i.test(why);
+  if (/nobody was left/i.test(why)) return false;
+  return /not enough time in the week|ran out of week|searched all week|never finished in the week|never started|no time/i.test(why);
 }
 
 const memories = new WeakMap<WorldState, DeskMemory>();
@@ -117,7 +119,7 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
     const key = `buy:${p.crewKey ?? 'any'}`;
     // 1.2.74 (Robert, point 12): the minutes it really took ÷ the game's estimate join the crew
     // type's running average. 1.2.75 (Robert, point 3): finished orders only — one that ran out
-    // (out of week, nobody left, never started) does not move the correction; it feeds the type's
+    // (out of week, never started; 1.2.76: nobody left is a loss, not a run-out) does not move the correction; it feeds the type's
     // run-out chance instead, which the execution chance uses.
     const why = done?.failReason ?? (done ? 'nothing done' : 'never finished in the week');
     const used = done && done.startedMinute != null && done.finishedMinute != null ? done.finishedMinute - done.startedMinute : null;

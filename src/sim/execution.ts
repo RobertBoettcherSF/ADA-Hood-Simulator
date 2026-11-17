@@ -461,18 +461,24 @@ export function orderEndPos(w: WorldState, order: Order): Vec2 | null {
 }
 
 /**
- * 1.2.75 (Robert, point 13): where a crew's order sets out from. After an earlier order in the
- * crew's queue (standing orders aside), from that order's last target; for the week's first order,
+ * 1.2.75 (Robert, point 13): where a crew's order sets out from. 1.2.76: after an earlier order
+ * only when the orders ahead of it take every man (see below); otherwise,
  * from the gang's office nearest `first` (the order's first target). Falls back to the office
  * nearest the lieutenant when the first target is unknown.
  */
 export function crewStartFor(w: WorldState, team: Team, first: Vec2 | null, orderId?: ID): Vec2 | null {
   const at = orderId != null ? team.orderIds.indexOf(orderId) : -1;
-  const before = at >= 0 ? team.orderIds.slice(0, at) : team.orderIds.filter((id) => id !== orderId);
-  for (let i = before.length - 1; i >= 0; i--) {
-    const o = w.orders[before[i]];
-    if (!o || o.state === 'cancelled' || ORDERS[o.type].wholeWeek) continue;
-    const end = orderEndPos(w, o);
+  const before = (at >= 0 ? team.orderIds.slice(0, at) : team.orderIds.filter((id) => id !== orderId))
+    .map((id) => w.orders[id])
+    .filter((o): o is Order => !!o && o.state !== 'cancelled' && !ORDERS[o.type].wholeWeek);
+  // 1.2.76 (Robert, point 3): the crew's men work side by side — an order chains from an earlier
+  // one only when the queued orders ahead of it take up every man (lieutenant + members, less
+  // those on standing orders); the k-th order then follows the one `men` places before it.
+  const standing = team.orderIds.map((id) => w.orders[id]).filter((o) => o && o.state !== 'cancelled' && ORDERS[o.type].wholeWeek)
+    .reduce((n, o) => n + Math.max(1, o!.opts.manpower ?? 1), 0);
+  const men = Math.max(1, 1 + team.memberIds.length - standing);
+  if (before.length >= men) {
+    const end = orderEndPos(w, before[before.length - men]);
     if (end) return end;
   }
   const lt = w.people[team.lieutenantId];

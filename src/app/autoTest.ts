@@ -10,7 +10,7 @@ import { exportLoadValue, exportedThisWeek, isExportTerminal } from '../sim/expo
 import { goodsRetailer, raidableGoods } from '../sim/goodsStorage';
 import { illegalSaturationFactor } from '../sim/originalTables';
 import { resetSystemTimings, systemTimings } from '../sim/simTimings';
-import { buyTimingLine, hireReportLines, officialsLine, rivalLine } from './autoReportLines';
+import { arrestsByCauseLine, buyTimingLine, hireReportLines, officersLine, officialsLine, rivalLine } from './autoReportLines';
 import type { HireLine } from '../sim/hireLog';
 import { buyRetryBanned, siteTimeBanned, deskMemory, isRunOut, noteRunOut, noteTimeRatio, runOutChance, timeFactor, HQ_STRIKE_GAP, knownRivalHQs, moveRefused, noteRefusedMove, reviewBuys } from './autoBusiness';
 import { execChance, execCounts, execMemory, lastGivenWeek, noteGivenTry, noteNotGiven, settleExec } from './autoExec';
@@ -751,6 +751,10 @@ const v140 = new WeakMap<Sim['world'], {
   refusers: Map<number, number>;
   /** 1.2.56: the crew switched from Business to Protection (1.2.55), and weeks running with no shop unvisited. */
   bizSwitchedTeam?: number;
+  /** 1.2.76: week CREW SWITCH last took the Business crew to Protection. */
+  bizSwitchWeek?: number;
+  /** 1.2.76: buys held for a crew's time in the week (crews and count). */
+  buyTimeHeld?: { week: number; teams: number[]; n: number };
   allVisitedWeeks?: number;
   /** 1.2.56: blocks held at each of the last weeks (growth stall eases the heat). */
   blockHist?: number[];
@@ -819,6 +823,8 @@ const v140 = new WeakMap<Sim['world'], {
   mayorOursLast?: number;
   /** 1.2.75 (Robert, point 6): rival gang id → the last week every hit on its boss was held for want of time. */
   bossTimeOut?: Map<number, number>;
+  /** 1.2.76: weeks in a row the chief has waited for the mayor. */
+  chiefWaited?: number;
   /** 1.2.71 (Robert, point 8): rival men a kill or kidnap "could not find", with the week (aside until seen again). */
   notFound?: Map<number, number>;
   /** 1.2.71 (Robert, points 5, 10): our bomb orders with the site and its worth as given, for BOMB RESULT and learning. */
@@ -891,13 +897,15 @@ const POLICE_VALUE_WEEKS = 8;
 const CHIEF_BRIBE_STEP = 34;
 /** 1.2.75 (Robert, point 7), proposed: weeks of opinion history the slope is read over. */
 const OPINION_SLOPE_WEEKS = 4;
-/** 1.2.75 (Robert, point 8), proposed: weeks an arrested man of ours is away, before we have seen any, and its weight (stints). */
-const JAIL_WEEKS_PRIOR = 6;
+/** 1.2.75 (Robert, point 8; 1.2.76 point 7: 3), proposed: weeks an arrested man of ours is away, before we have seen any, and its weight (stints). */
+const JAIL_WEEKS_PRIOR = 3; // 1.2.76 (Robert, point 7), proposed: was 6
 const JAIL_WEEKS_PRIOR_N = 3;
-/** 1.2.75 (Robert, point 7), proposed: weeks ahead the hostile-line arrests a bribe holds off are counted. */
+/** 1.2.75 (Robert, point 7), proposed: weeks ahead the arrests a bribe holds off are counted (1.2.76: on the officers' projected opinion). */
 const OPINION_HORIZON_WEEKS = 8;
-/** 1.2.75 (Robert, point 7), proposed: weeks the chief's own +34 holds before it fades toward the mayor (35%/wk). */
-const CHIEF_HOLD_WEEKS = 3;
+/** 1.2.76 (Robert, point 2), proposed: most weeks in a row the chief waits while the mayor is bought first. */
+const MAYOR_FIRST_MAX_WEEKS = 2;
+/** 1.2.76 (Robert, point 5), proposed: weeks after CREW SWITCH took the Business crew away before a new one is founded. */
+const BIZ_REFOUND_WEEKS = 8;
 /** 1.2.53 (proposed): the share of the police arrests away from a crime scene each paid officer prevents. */
 const PATROL_ARREST_CUT = 0.04;
 /** 1.2.54 (Robert): weeks an officer must be worth less than his retainer before he is dismissed. */
@@ -2282,7 +2290,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     // 1.2.45 (Robert): no Business crew — the best pool hood with 3★+ business
     // founds it before the existing crews are filled (recruiting looks for one otherwise).
-    if (!heldRoles().includes('business')) {
+    // 1.2.76 (Robert, point 5): after CREW SWITCH took the Business crew to Protection, no new Business
+    // crew for BIZ_REFOUND_WEEKS (proposed); after that only when last week's buys were held for a crew's
+    // time (not for cash) and the cash is above the reserve.
+    const sinceBizSwitch = mem.bizSwitchWeek != null ? w.week - mem.bizSwitchWeek : Infinity;
+    const heldLast = mem.buyTimeHeld && mem.buyTimeHeld.week === w.week - 1 ? mem.buyTimeHeld.n : 0;
+    const refoundOk = mem.bizSwitchWeek == null || (sinceBizSwitch >= BIZ_REFOUND_WEEKS && heldLast > 0 && gang.cash > cashReserve);
+    if (!heldRoles().includes('business') && !refoundOk) {
+      actions.push(`NOTE no Business crew founded (1.2.76): ${sinceBizSwitch < BIZ_REFOUND_WEEKS ? `CREW SWITCH took it to Protection ${sinceBizSwitch} wk ago (wait ${BIZ_REFOUND_WEEKS} wk, proposed)` : heldLast === 0 ? 'no buy was held for a crew\'s time last week' : `cash $${Math.round(gang.cash)} at or below the $${cashReserve} reserve`} — any crew buys`);
+    }
+    if (!heldRoles().includes('business') && refoundOk) {
       const lead = pickLead('business', () => poolHoods().filter((p) => p.skills.business >= 3));
       // 1.2.75 (Robert, point 2): with all MAX_TEAMS lieutenant places taken, the Business crew replaces
       // the weakest Protection crew (fewest men, then the weaker lieutenant) when there are two or more;
@@ -2534,11 +2551,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // it switches to Protection (any crew may buy now), whether or not every crew is full.
     const biz = crewsOf().find((t) => now.get(t.id) === 'business');
     let bizSwitched = false;
-    if (pw && pw.notVisited > 0 && biz && sinceSwitch >= PROTECTION_SWITCH_WEEKS) {
+    // 1.2.76 (Robert, point 5): not when the crew sat idle because its buys were held for its time last week.
+    const bizTimeHeld = !!biz && !!mem.buyTimeHeld && mem.buyTimeHeld.week === w.week - 1 && mem.buyTimeHeld.teams.includes(biz.id);
+    if (pw && pw.notVisited > 0 && biz && sinceSwitch >= PROTECTION_SWITCH_WEEKS && bizTimeHeld) {
+      actions.push(`NOTE no CREW SWITCH (1.2.76): ${w.people[biz.lieutenantId]?.name ?? biz.name}'s Business crew was idle because its buys were held for its time last week`);
+    }
+    if (pw && pw.notVisited > 0 && biz && sinceSwitch >= PROTECTION_SWITCH_WEEKS && !bizTimeHeld) {
       const used = w.lastWeekOrders.filter((o) => o.teamId === biz.id).reduce((n, o) => n + o.estimatedMinutes * Math.max(1, o.opts.manpower ?? 1), 0);
       const capacity = (biz.memberIds.length + 1) * MINUTES_PER_WEEK;
       if (used < BIZ_UNDERUSED_SHARE * capacity) {
-        keptRoles.set(biz.id, 'collect'); mem.protectionSwitchWeek = w.week; bizSwitched = true; mem.bizSwitchedTeam = biz.id;
+        keptRoles.set(biz.id, 'collect'); mem.protectionSwitchWeek = w.week; bizSwitched = true; mem.bizSwitchedTeam = biz.id; mem.bizSwitchWeek = w.week;
         actions.push(`CREW SWITCH ${w.people[biz.lieutenantId]?.name ?? biz.name}'s crew from Business to Protection — $${Math.round(pw.notVisited)} of protection went unvisited last week and it used ${Math.round(used / Math.max(1, capacity) * 100)}% of its man-minutes (under ${Math.round(BIZ_UNDERUSED_SHARE * 100)}%, proposed); any crew buys now`);
         menMoves.push(`crew ${biz.name} Business → Protection`);
       }
@@ -4560,7 +4582,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // learned correction and its freest man's free time, after the buys already planned this week
       // (one buy per man: the k-th planned buy falls to the k-th freest man; the corrected minutes
       // are booked on the crew). One hold line per crew a week.
-      const takers = bizCrew && ready.includes(bizCrew) ? [bizCrew] : [...ready];
+      // 1.2.76 (Robert, point 4): when the Business crew cannot fit the buy, the best other ready crew may take it.
+      const takers = [...ready];
       const fitOf = (team: Team) => {
         const key = `buy:${roles.get(team.id) ?? 'any'}`;
         const factor = timeFactor(desk, key);
@@ -4569,7 +4592,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         const free = Math.max(0, Math.min(freeFor(team, k + 1), crewFreeMinutes(w, team) - (buyPlanned.get(team.id)?.min ?? 0)));
         return { team, key, factor, est, min: est * factor, free };
       };
-      const fits = takers.map(fitOf).sort((a, b) => (a.min <= BUY_FREE_SHARE * a.free ? 0 : 1) - (b.min <= BUY_FREE_SHARE * b.free ? 0 : 1) || a.min / Math.max(1, a.free) - b.min / Math.max(1, b.free));
+      const fits = takers.map(fitOf).sort((a, b) => (a.min <= BUY_FREE_SHARE * a.free ? 0 : 1) - (b.min <= BUY_FREE_SHARE * b.free ? 0 : 1) || (a.team === bizCrew ? 0 : 1) - (b.team === bizCrew ? 0 : 1) || a.min / Math.max(1, a.free) - b.min / Math.max(1, b.free));
       const pick = fits[0];
       const buyer = pick.team;
       const buyKey = pick.key;
@@ -4589,6 +4612,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // 1.2.54 (Robert): the cash pass weighs the buy by its chance of being carried out (order completion).
       const give = () => { approvedBy.set(orderLabel, price); propose({
         label: orderLabel, kind: 'business', role: 'business', input, first,
+        // 1.2.76 (Robert, point 4): only the crews it fits, the picked one first (the Business crew when it fits).
+        teams: fits.filter((f) => f.min <= BUY_FREE_SHARE * f.free).map((f) => f.team),
         value: Math.max(50, worth(site)) + winWorth, why: `${blockIsOurs(site.blockId) ? 'block already ours' : `a new block${blockGoal ? ` (+ goal value $${blockGoal})` : ''}`}${straightWorth ? `; + assets $${assetsAdded} × $${win!.per.toFixed(3)} = $${straightWorth} (1.2.66)` : ''}${extraWorth ? `; + $${extraWorth}${more.why ? ` ${more.why}` : ''} (1.2.66)` : ''}`,
         onGiven: (team) => {
           const orderId = team.orderIds[team.orderIds.length - 1];
@@ -5028,11 +5053,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // week's risk, the larger).
   const chiefArrestsPW = Math.max(policeArrestsPW, ourRiskLast);
   // 1.2.75 (Robert, point 7): the mayor and the chief are priced on where their opinion of us is
-  // heading — the 4-week slope (OPINION_SLOPE_WEEKS, proposed; our own bribes taken out) — and the
-  // arrests expected once the police are at the hostile line (−20: presence 1.4, the street-arrest
-  // heat line moved by the officers' opinion there), not on last week's crime. A bribe's +34 buys
-  // the weeks it keeps him above the line within OPINION_HORIZON_WEEKS (proposed); the chief's own
-  // +34 fades toward the mayor in about CHIEF_HOLD_WEEKS (proposed), the mayor's stays.
+  // heading — the 4-week slope (OPINION_SLOPE_WEEKS, proposed; our own bribes taken out).
+  // 1.2.76: the arrests are counted on the officers' projected path (below), not at the −20 line.
   const mayorOp = mayorNow ? mayorNow.opinion[gang.id] ?? 0 : 0;
   const offHist = mem.officialOps ??= [];
   if (!offHist.length || offHist[offHist.length - 1].week !== w.week) offHist.push({ week: w.week, chief: chiefOp, mayor: mayorOp, chiefId: chiefNow?.id ?? -1, mayorId: mayorNow?.id ?? -1, chiefOurs: chiefNow?.bribedBy === gang.id, mayorOurs: mayorNow?.bribedBy === gang.id });
@@ -5047,20 +5069,36 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   };
   const chiefSlope = chiefNow ? slopeOf('chief', chiefNow.id) : 0;
   const mayorSlope = mayorNow ? slopeOf('mayor', mayorNow.id) : 0;
-  const HOSTILE_LINE = -20;
+  // 1.2.76 (Robert, point 1): a bribe is priced on the officers' projected opinion, not on the
+  // −20 line. Over OPINION_HORIZON_WEEKS (proposed) the mayor moves at his own slope (our bribes
+  // taken out), the chief follows him 35% a week and the unpaid officers follow the chief 25% a
+  // week (the weekly opinion rules); each week's street arrests are the street rate × our heat
+  // units at that officer opinion (wanted − opinion × 0.5 over the line, so the cliff near −90
+  // counts by itself) × the chief's presence, plus scene arrests. A bribe is worth A × the
+  // arrests it takes off that path: the chief's lift fades toward the mayor, the mayor's stays.
   const unitsAt = (op: number) => gangMembers(w, gang).filter((p) => p.status === 'active' && p.role !== 'boss' && p.buildingId == null)
     .reduce((n, p) => { const heat = p.wanted - op * 0.5; return n + (heat > STREET_ARREST_HEAT ? heat / 100 : 0); }, 0);
-  const hostileArrestsPW = streetRate * unitsAt(HOSTILE_LINE) * 1.4 + sceneArrestsPW;
-  const weeksTo = (op: number, slope: number) => op <= HOSTILE_LINE ? 0 : slope >= 0 ? Infinity : (op - HOSTILE_LINE) / -slope;
-  const hostileWeeks = (t: number) => Math.max(0, OPINION_HORIZON_WEEKS - Math.min(OPINION_HORIZON_WEEKS, t));
-  const slopeValue = (op: number, slope: number, lift: number, holdWeeks: number) => {
-    const before = weeksTo(op, slope);
-    const after = Math.min(weeksTo(op + lift, slope), before + holdWeeks);
-    return scale.A * hostileArrestsPW * Math.max(0, hostileWeeks(before) - hostileWeeks(after));
+  const arrestsAt = (officer: number, chief: number) => streetRate * unitsAt(officer) * chiefPresence(chief) + sceneArrestsPW;
+  const projectArrests = (dMayor: number, dChief: number) => {
+    let m = Math.max(-100, Math.min(100, mayorOp + dMayor)), c = Math.max(-100, Math.min(100, chiefOp + dChief)), o = unpaidOpinion, sum = 0;
+    const path: number[] = [];
+    for (let k = 0; k < OPINION_HORIZON_WEEKS; k++) {
+      m = Math.max(-100, Math.min(100, m + mayorSlope));
+      c += (m - c) * 0.35;
+      o += (c - o) * 0.25;
+      path.push(o);
+      sum += arrestsAt(o, c);
+    }
+    return { sum, path };
   };
-  const chiefSlopeValue = slopeValue(chiefOp, Math.min(chiefSlope, mayorSlope < 0 ? mayorSlope : chiefSlope), chiefAfter - chiefOp, CHIEF_HOLD_WEEKS);
-  const mayorSlopeValue = slopeValue(mayorOp, mayorSlope, CHIEF_BRIBE_STEP, Infinity);
-  actions.push(`OFFICIALS SLOPE (1.2.75, ${OPINION_SLOPE_WEEKS} wk, proposed): chief ${Math.round(chiefOp)} (${chiefSlope >= 0 ? '+' : ''}${chiefSlope.toFixed(1)}/wk), mayor ${Math.round(mayorOp)} (${mayorSlope >= 0 ? '+' : ''}${mayorSlope.toFixed(1)}/wk); at the hostile line ${HOSTILE_LINE} about ${hostileArrestsPW.toFixed(2)} arrests a week × A $${scale.A}; over ${OPINION_HORIZON_WEEKS} wk a chief bribe saves $${Math.round(chiefSlopeValue)}, a mayor bribe $${Math.round(mayorSlopeValue)}`);
+  const baseProj = projectArrests(0, 0);
+  const chiefProj = projectArrests(0, chiefAfter - chiefOp);
+  const mayorProj = projectArrests(CHIEF_BRIBE_STEP, 0);
+  const hostileArrestsPW = baseProj.sum / OPINION_HORIZON_WEEKS;
+  const chiefSlopeValue = scale.A * Math.max(0, baseProj.sum - chiefProj.sum);
+  const mayorSlopeValue = scale.A * Math.max(0, baseProj.sum - mayorProj.sum);
+  const lowOf = (path: number[]) => Math.round(Math.min(unpaidOpinion, ...path));
+  actions.push(`OFFICIALS PATH (1.2.76, ${OPINION_HORIZON_WEEKS} wk, proposed): officers ${Math.round(unpaidOpinion)}, chief ${Math.round(chiefOp)} (${chiefSlope >= 0 ? '+' : ''}${chiefSlope.toFixed(1)}/wk), mayor ${Math.round(mayorOp)} (${mayorSlope >= 0 ? '+' : ''}${mayorSlope.toFixed(1)}/wk); officers' low ${lowOf(baseProj.path)} with no bribe, ${lowOf(chiefProj.path)} with the chief's +${Math.round(chiefAfter - chiefOp)}, ${lowOf(mayorProj.path)} with the mayor's +${CHIEF_BRIBE_STEP}; arrests over the horizon ${baseProj.sum.toFixed(1)} → ${chiefProj.sum.toFixed(1)} (chief) / ${mayorProj.sum.toFixed(1)} (mayor) × A $${scale.A}: a chief bribe saves $${Math.round(chiefSlopeValue)}, a mayor bribe $${Math.round(mayorSlopeValue)}`);
   const chiefRaw = chiefSlopeValue;
   // 1.2.69 (Robert, point 16): × the learned chance a bought chief is still
   // ours a week later (prior CHIEF_HOLD_PRIOR, proposed); after CHIEF_LOST_STOP
@@ -5082,8 +5120,17 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const chiefHoldP = (ch.held + CHIEF_HOLD_PRIOR * 2) / (ch.n + 2);
   const chiefStopped = w.week < ch.stopUntil;
   // 1.2.75 (Robert, point 7): mayor first — while the mayor can be bought, the chief (who follows him) waits.
-  const mayorBuyNow = !!lawyer && !!mayorNow && mayorNow.bribedBy !== gang.id && isBribableOfficial(mayorNow) && !refusesBribe(mayorNow, gang.id) && bribePrice(w, mayorNow, gang.id) <= gang.cash - bribesDue && mayorSlopeValue + presenceGain > 0;
-  if (mayorBuyNow) actions.push(`NOTE police chief waits (1.2.75): the mayor is bought first — the chief follows him 35%/wk`);
+  // 1.2.76 (Robert, point 2): mayor first only when his bribe passes the cash pass (benefit ÷ price at
+  // least λ at the cash left after it), and the chief waits at most MAYOR_FIRST_MAX_WEEKS (proposed) in a row.
+  const mayorPrice = mayorNow && isBribableOfficial(mayorNow) ? bribePrice(w, mayorNow, gang.id) : 0;
+  const mayorBenefitNow = mayorSlopeValue + presenceGain;
+  const mayorLambda = holdValue(gang.cash - bribesDue - mayorPrice, cashReserve, avgPay, scale);
+  const mayorPasses = mayorPrice > 0 && mayorBenefitNow / mayorPrice >= Math.max(BRIBE_MIN_RATIO, mayorLambda);
+  const mayorBuyable = !!lawyer && !!mayorNow && mayorNow.bribedBy !== gang.id && isBribableOfficial(mayorNow) && !refusesBribe(mayorNow, gang.id) && mayorPrice <= gang.cash - bribesDue;
+  const mayorBuyNow = mayorBuyable && mayorPasses && (mem.chiefWaited ?? 0) < MAYOR_FIRST_MAX_WEEKS;
+  mem.chiefWaited = mayorBuyable && mayorPasses ? (mem.chiefWaited ?? 0) + (mayorBuyNow ? 1 : 0) : 0;
+  if (mayorBuyNow) actions.push(`NOTE police chief waits (1.2.76): the mayor is bought first (benefit $${Math.round(mayorBenefitNow)} ÷ $${mayorPrice} = ${(mayorBenefitNow / mayorPrice).toFixed(2)} ≥ λ ${mayorLambda.toFixed(2)}) — the chief follows him 35%/wk; wait ${mem.chiefWaited} of ${MAYOR_FIRST_MAX_WEEKS}`);
+  else if (mayorBuyable && mayorBenefitNow > 0) actions.push(`NOTE the chief does not wait for the mayor (1.2.76): ${!mayorPasses ? `mayor benefit $${Math.round(mayorBenefitNow)} ÷ $${mayorPrice} = ${(mayorBenefitNow / Math.max(1, mayorPrice)).toFixed(2)} under λ ${mayorLambda.toFixed(2)}` : `already waited ${MAYOR_FIRST_MAX_WEEKS} wk`}`);
   const chiefBenefit = chiefStopped || mayorBuyNow ? 0 : chiefRaw * chiefHoldP;
   actions.push(`CHIEF FIT (1.2.69): benefit × chance still ours a week later ${chiefHoldP.toFixed(2)} (held ${ch.held} of ${ch.n}, prior ${CHIEF_HOLD_PRIOR}, proposed)${chiefStopped ? ` — chief bribes stopped until week ${ch.stopUntil}` : ''}`);
   // 1.2.68 (point 13): the result of a chief bribe — opinion and arrests a week then and now, for CHIEF_BRIBE_WEEKS.
@@ -5093,9 +5140,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     actions.push(`CHIEF BRIBE RESULT (1.2.68): paid wk ${cb.week}; chief's opinion ${Math.round(cb.op)} → ${Math.round(chiefOp)}; arrests/wk ${cb.arrests.toFixed(2)} → ${chiefArrestsPW.toFixed(2)}${chiefNow?.bribedBy === gang.id ? '' : ' (no longer ours)'}`);
     if (w.week - cb.week >= CHIEF_BRIBE_WEEKS) mem.chiefBribe = undefined;
   }
-  const chiefWhy = `opinion ${Math.round(chiefOp)} → ${Math.round(chiefAfter)}${chiefBribes > 1 ? ` in ${chiefBribes} bribes` : ''} at ${chiefSlope.toFixed(1)}/wk, fading 35%/wk toward the mayor (${Math.round(heatState.mayor)}); the hostile-line arrests it holds off over ${OPINION_HORIZON_WEEKS} wk $${Math.round(chiefSlopeValue)} (${hostileArrestsPW.toFixed(2)} arrests a week there, A $${scale.A}, 1.2.75)`;
-  const mayorBenefit = mayorSlopeValue + presenceGain;
-  const mayorWhy = `+${CHIEF_BRIBE_STEP} that stays (the chief follows 35%/wk): opinion ${Math.round(mayorOp)} at ${mayorSlope.toFixed(1)}/wk, the hostile-line arrests it holds off over ${OPINION_HORIZON_WEEKS} wk $${Math.round(mayorSlopeValue)} (1.2.75)${presenceGain > 0 ? ` + presence × 0.6 $${Math.round(presenceGain)}` : mayorOurs ? ' (already ours: no presence gain)' : ' (presence already 0.6)'}`;
+  const chiefWhy = `opinion ${Math.round(chiefOp)} → ${Math.round(chiefAfter)}${chiefBribes > 1 ? ` in ${chiefBribes} bribes` : ''}, fading 35%/wk toward the mayor (${Math.round(mayorOp)}); the arrests it takes off the officers' projected path over ${OPINION_HORIZON_WEEKS} wk $${Math.round(chiefSlopeValue)} (${hostileArrestsPW.toFixed(2)} arrests a week with no bribe, A $${scale.A}, 1.2.76)`;
+  const mayorBenefit = mayorBenefitNow;
+  const mayorWhy = `+${CHIEF_BRIBE_STEP} that stays (the chief follows 35%/wk): opinion ${Math.round(mayorOp)} at ${mayorSlope.toFixed(1)}/wk, the arrests it takes off the officers' projected path over ${OPINION_HORIZON_WEEKS} wk $${Math.round(mayorSlopeValue)} (1.2.76)${presenceGain > 0 ? ` + presence × 0.6 $${Math.round(presenceGain)}` : mayorOurs ? ' (already ours: no presence gain)' : ' (presence already 0.6)'}`;
   const priceOf = (o: Person | undefined) => (o && isBribableOfficial(o) ? bribePrice(w, o, gang.id) : 0);
   const chiefFit = scoreBribe('chief', chiefBenefit, priceOf(chiefNow) * chiefBribes, chiefWhy);
   const mayorFit = scoreBribe('mayor', mayorBenefit, priceOf(mayorNow), mayorWhy);
@@ -7266,6 +7313,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
   }
 
+  // 1.2.76 (Robert, point 5): this week's buys held for a crew's time, read by next week's crew checks.
+  mem.buyTimeHeld = { week: w.week, teams: [...buyHolds.keys()], n: [...buyHolds.values()].reduce((n, h) => n + h.n, 0) };
   // ---- 1.2.52 (Robert): the one cash pass — every discretionary spend put
   // forward this week, best return per $ first, taken while its return is at
   // least λ at the cash left after it. The wage bill stays a hard floor (the
@@ -7957,6 +8006,9 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     actions.push(rivalKillsLine(sim.world, sim.playerGang.id, weekBefore));
     // 1.2.75 (Robert, point 10): report-only lines (Auto's desk never reads them).
     actions.push(officialsLine(sim.world, sim.playerGang.id, weekBefore));
+    // 1.2.76 (Robert, point 8): the officers and the week's arrests by cause (report-only).
+    actions.push(officersLine(sim.world, sim.playerGang.id, weekBefore));
+    actions.push(arrestsByCauseLine(sim.world, sim.playerGang.id, weekBefore));
     actions.push(...hireReportLines(sim.world, weekBefore - 1, hireShown));
     { const line = buyTimingLine(sim.world, sim.playerGang.id, weekBefore, (teamId) => crewRoleMemory.get(sim.world)?.get(teamId) ?? 'disbanded crew'); if (line) actions.push(line); }
     actions.push(rivalLine(sim.world, sim.playerGang.id, weekBefore));

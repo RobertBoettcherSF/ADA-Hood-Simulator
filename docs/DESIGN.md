@@ -238,6 +238,24 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## Direction: unified action value
+
+Robert's decision (2026-11-17): from 1.2.77 on, each version moves Auto toward one unified fitness function — an action's value toward the chosen victory minus its costs, in one currency, per crew hour. It will later become a shared module used by Auto and by all rival gangs. Not implemented yet; 1.2.76 does not change how actions are scored beyond the points below.
+
+## v1.2.76 decisions
+
+The mayor and the chief are priced on the officers' real projected opinion, the time estimate no longer chains orders that different men carry, buys may fall back to other crews, and the Business crew no longer flips back and forth. New numbers are proposed.
+
+1. Bribes for the mayor and the police chief are priced on the officers' projected opinion over `OPINION_HORIZON_WEEKS` 8 (proposed): the mayor moves at his own slope (our bribes taken out), the chief follows him 35% a week and the unpaid officers follow the chief 25% a week (the weekly opinion rules). Each projected week's street arrests are the learned street rate × our heat units at that officer opinion (wanted − opinion × 0.5 above the street-arrest line, so the cliff near −90 counts by itself) × the chief's presence, plus scene arrests. A bribe is worth A × the arrests it takes off that path: the chief's lift fades toward the mayor, the mayor's +34 stays. Replaces 1.2.75's "arrests at the −20 line". Report line OFFICIALS PATH.
+2. Mayor first only when the mayor's bribe passes the cash pass (benefit ÷ price at least λ at the cash left after it, and at least 1); the chief then waits at most `MAYOR_FIRST_MAX_WEEKS` 2 (proposed) in a row.
+3. Game fix — the time estimate: an order chains from the end of an earlier queued order only when the orders ahead of it take every man of the crew (lieutenant and members, less those on standing orders); the k-th order then follows the order that many places before it. Otherwise it is measured from the gang's office nearest its first target. Applies to every gang.
+4. A buy or set-up the Business crew cannot fit may go to the best other ready crew it fits (the Business crew first when it fits); it is held only when no ready crew fits.
+5. Business crew loop: CREW SWITCH (Business to Protection for an idle Business crew) does not fire when the crew was idle because its buys were held for its time last week. After a CREW SWITCH no new Business crew is founded for `BIZ_REFOUND_WEEKS` 8 (proposed); after that only when last week's buys were held for a crew's time (not for cash) and the cash is above the reserve. This applies to every way a Business crew is founded (from the pool and, with all lieutenant places taken, by replacing the weakest Protection crew).
+6. "Nobody was left to carry out the order" is a loss (the men were arrested or killed), not a run-out: it no longer feeds the run-out chance of buys, set-ups or hits.
+7. Arrest price floor: `JAIL_WEEKS_PRIOR` 3 (proposed, was 6), still worth `JAIL_WEEKS_PRIOR_N` 3 stints.
+8. Report-only lines, never read by Auto: REPORT-ONLY OFFICERS (the officers' opinion of us — range and average, the unpaid ones' average — and who pays or bought them) and REPORT-ONLY ARRESTS BY CAUSE (our men arrested in the week: police street, police scene, FBI, convicted).
+9. The build is labelled 1.2.76.
+
 ## v1.2.75 decisions
 
 Hits and buys are judged against the crew that will really carry them, the time estimate follows the real trip, Auto builds offices where its blocks have none, and the mayor and chief are priced on where their opinion is heading. New numbers are proposed constants (`src/app/autoTest.ts`, `src/app/autoBusiness.ts`).
