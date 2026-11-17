@@ -16,7 +16,7 @@ export const SUMMARY_EVERY = 10;
 /** The report lines the summary needs, kept across the yearly (52-week) files (long lines cut to what is read). */
 export function summaryKeep(line: string): string | null {
   if (line.startsWith('CASH FIT R ')) { const m = /idle penalty \$\d+\/wk on \$\d+ idle/.exec(line); return m ? `CASH FIT R ${m[0]}` : null; }
-  return /^(-- week |NOTE men: |FITNESS week |FAIL orders — no crew|LOST |HEAT |ORDER EXEC |LEARN \(|LEARN coin|BUYS week )/.test(line) ? line : null;
+  return /^(-- week |NOTE men: |FITNESS week |FAIL orders — no crew|LOST |HEAT |ORDER EXEC |LEARN \(|LEARN coin|ROLL \(|BUYS week )/.test(line) ? line : null;
 }
 
 const money = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
@@ -81,7 +81,7 @@ export function summaryBlock(opts: { lines: readonly string[]; weeks: readonly S
       continue;
     }
     if (line.startsWith('LEARN (')) { learnLast = line; continue; }
-    if (line.startsWith('LEARN coin')) {
+    if (line.startsWith('LEARN coin') || line.startsWith('ROLL (')) {
       if (/→ do it/.test(line)) coins.doIt++; else if (/→ hold/.test(line)) coins.hold++;
       else if (/→ try it/.test(line)) coins.tryIt++; else if (/→ not this week/.test(line)) coins.notTried++;
       continue;
@@ -115,7 +115,7 @@ export function summaryBlock(opts: { lines: readonly string[]; weeks: readonly S
   out.push(`SUMMARY idle cash: peak cash over the reserve ${Number.isFinite(peak.free[0]) ? `${money(peak.free[0])} (w${peak.free[1]})` : '–'}; peak idle in the cash pass ${money(peak.idle[0])} (w${peak.idle[1]})`);
   out.push(`SUMMARY ORDER EXEC: ${exec.put} put forward, ${exec.given} given — ${exec.done} carried out, ${exec.partly} partly done, ${exec.notDone} not carried out; ${exec.notGiven} not given; ${money(exec.carried)} carried out of ${money(exec.approved)} approved; top reasons: ${reasons.size ? list(reasons, 3) : 'none'}`);
   const factors = [...learnLast.matchAll(/(\w+) value exp \$[\d.e+]+ act \$[\d.e+]+ ×([\d.]+); heat exp \$[\d.e+]+ act \$[\d.e+]+ ×([\d.]+)/g)].map((m) => `${m[1]} ×${m[2]}/heat ×${m[3]}`);
-  out.push(`SUMMARY LEARN: ${factors.length ? factors.join(', ') : 'no factors yet'}; coin flips ${coins.doIt + coins.hold} (${coins.doIt} do it, ${coins.hold} hold); trials ${coins.tryIt + coins.notTried} (${coins.tryIt} tried)`);
+  out.push(`SUMMARY LEARN: ${factors.length ? factors.join(', ') : 'no factors yet'}; d20 rolls ${coins.doIt + coins.hold} (${coins.doIt} do it, ${coins.hold} hold); trials ${coins.tryIt + coins.notTried} (${coins.tryIt} tried)`);
   out.push(`SUMMARY buys: ${buys.done + buys.failed} judged — ${buys.done} done, ${buys.failed} failed${buyWhy.size ? ` (${list(buyWhy)})` : ''}`);
   return out;
 }

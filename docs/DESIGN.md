@@ -238,6 +238,24 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.71 decisions
+
+Auto's hits and bombs actually run: orders ask only for the men a crew really has free, bombs no longer queue behind hits, close calls are a weighted d20, and the last rivals stop hiring the men we let go. All new numbers are proposed constants (`src/app/autoWin.ts`, `src/app/autoLearn.ts`).
+
+1. ROLL: an order whose heat + expected losses is at or above its worth is given when a d20 is at most round(10 × worth ÷ (heat + expected losses)), the target clamped to `D20_MIN`..`D20_MAX` (1..19). The roll, target and result are on the order's line. Replaces the 1.2.56 coin and its band.
+2. A crew's free men leave out the men held or assigned on its queued orders (the game staffs an order without a man named on another queued order). An order asks for at most those men; with fewer free than wanted it goes with the 1–2 that are.
+3. Outside ENDGAME each pool spare justifies at most one wanted sack a week, and no man is sacked on a swap the crew guard would refuse (its lieutenant has an FBI warrant).
+4. TYPE RISK: every order type is priced at its own loss rate — our men killed on that type's orders ÷ the men sent over the loss window, with the window's rate over all non-hit orders as its prior (`HIT_HAZARD_PRIOR_MEN` weight) — × L × the men sent. Kills and kidnaps keep HIT RISK.
+5. Learning while eliminating: a kidnap is credited one rival man when the prisoner is killed (dead, or our prisoner in ENDGAME, who is never released); a bomb is credited the business's worth as given when the site is destroyed. Kills, kidnaps and bombs never take the VALUE BIAS floor.
+6. At most one kill or kidnap per target a week, across all proposals.
+7. The boss gets a kill order. A kidnap only for a man who survived one of our kill orders, and a kill again after one failed kidnap.
+8. A target our hit "could not find" is set aside until he is reported seen again. He is not counted as in custody (the finishing week does not wait for him).
+9. Finishing-week hits go only to crews with a car and a gun (held or in the store): the attack crews first, then the others (never Business).
+10. Bombs: at most one per crew a week, with one named explosives man; never to a crew already holding a kill or kidnap, and ranked ahead of the hits so a crew's bomb runs first. ENDGAME DENY bombs every rival's known businesses, finishing week or not. BOMB RESULT next week: each bomb's site gone or still standing, as our map shows it. The gang holds at most `EXPLOSIVES_PER_ATTACK_CREW` (2) charges per attack crew (store and crews, at least 2); EQUIP and ENDGAME ARM buy only up to it.
+11. The eliminate win chance reads our kill rate over `KILL_RATE_WEEKS` (8) weeks; the other growth rates keep `WIN_GROWTH_WEEKS` (4).
+12. No sack in ENDGAME: a sacked man goes back to the street, where the last rivals hire him as an heir. A wanted man lies low in the pool until no rival gang is left.
+13. While a finishing week waits for a gang's men in custody, its boss and known men still get the normal hits (also in a week another gang is being finished).
+
 ## v1.2.70 decisions
 
 Auto finishes gangs instead of circling them: the boss is hit as soon as he is known, a gang that fits in one week of our kills is hit by every attack crew that week, and kills are priced at what they really cost us. All new numbers are proposed constants (`src/app/autoWin.ts`).

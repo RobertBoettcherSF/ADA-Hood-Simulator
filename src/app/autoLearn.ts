@@ -21,9 +21,9 @@ export const LEARN_MAX = 4;
 export const VALUE_BIAS_WEEKS = 8;
 /** 1.2.67 (proposed): …and its floor drops to this. */
 export const VALUE_BIAS_MIN = 0.05;
-/** proposed: a hold-back within this share of the order's worth (or COIN_BAND_DOLLARS) is settled by a weighted coin. */
-export const COIN_BAND_SHARE = 0.15;
-export const COIN_BAND_DOLLARS = 100;
+/** 1.2.71 (Robert, point 1), proposed: the weighted d20's target — round(10 × worth ÷ (heat + expected losses)) — is clamped to these. */
+export const D20_MIN = 1;
+export const D20_MAX = 19;
 /** proposed: an order type not given for TRIAL_WEEKS weeks is tried anyway with this chance. */
 export const TRIAL_CHANCE = 0.1;
 export const TRIAL_WEEKS = 4;

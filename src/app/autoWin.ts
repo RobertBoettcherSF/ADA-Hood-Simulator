@@ -109,8 +109,8 @@ export const logistic = (margin: number, band: number) => 1 / (1 + Math.exp(-mar
 export const perUnit = (win: number, P: number, short: number, band: number) =>
   win * Math.max(P * (1 - P) / band, short > 0 ? 1 / (2 * (short + band)) : 0);
 /** Growth a week over the last WIN_GROWTH_WEEKS entries (newest last). */
-export const growthOf = (hist: readonly number[]) => {
-  const h = hist.slice(-(WIN_GROWTH_WEEKS + 1));
+export const growthOf = (hist: readonly number[], weeks = WIN_GROWTH_WEEKS) => {
+  const h = hist.slice(-(weeks + 1));
   return h.length > 1 ? (h[h.length - 1] - h[0]) / (h.length - 1) : 0;
 };
 
@@ -287,3 +287,8 @@ export const CHIEF_HOLD_PRIOR = 0.5;
 export const CHIEF_LOST_STOP = 2;
 export const CHIEF_LOST_WEEKS = 2;
 export const CHIEF_STOP_WEEKS = 8;
+// ---- 1.2.71 (Robert), all proposed.
+/** Point 10: explosives the gang holds (store + crews) at most per attack crew (at least 2); EQUIP and ENDGAME ARM buy only up to it. */
+export const EXPLOSIVES_PER_ATTACK_CREW = 2;
+/** Point 11: the eliminate win chance reads our kill rate over this many weeks (the other growth rates keep WIN_GROWTH_WEEKS). */
+export const KILL_RATE_WEEKS = 8;
