@@ -238,6 +238,17 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.73 decisions
+
+Free men now go somewhere a recruiter can find them, the under-2-men offer goes to the men nearest the gang, and Auto prices a sack from what a player can see. New numbers are proposed constants (`src/sim/recruitPool.ts`, `src/app/autoTest.ts`).
+
+1. "Under 2 men" is the whole gang: crew lieutenants, crew men, the pool and the managers; the boss is not counted, so a gang with only its boss is still under 2. `gangManpower` already counts exactly these (crews, pool, managers; dead excluded, men in custody included), so the under-2-men offer and the collapse check keep using it — no new helper. Correction to v1.2.72 point 9: that count was never crew-only. The Graphs chart's Manpower is the same figure, so the count is player-knowable.
+2. Weekly top-up: before creating a new person at a hiring place, the top-up moves the nearest idle gangless person of the right type (standing at no building — a sacked or released man) there, at most `HIRE_PLACE_MOVES_PER_WEEK` (1, proposed) per place per week. Any gang, and the player, can then recruit him with a normal recruit order. Same for compact cities.
+3. The under-2-men offer lists the 2 free hoods nearest the gang's office (its boss when it has no office), not the two lowest-numbered. The player's gang gets it too.
+4. Auto's sack price: the chance a sacked man joins a rival = min(1, share × rate ÷ `SACK_TREND_FULL` (2 recruits a week, proposed)). Share is 1 when a hood hiring place is within `SACK_NEAR_DIST` (3 blocks, proposed) of him, else `SACK_FAR_SHARE` (0.5, proposed). Rate is the recruits a week (8-week Graphs chart, plus our kills) of each rival with a known business or office within `SACK_NEAR_DIST` of that place, plus `FREE_RECRUITS` for a rival whose chart Manpower is under 2 and whose known office is near him. Replaces the fixed 0.3 and the 1 while a rival is tiny (`SACK_JOIN_P`, `TINY_RIVAL_MEN` removed). The finishing-week plan adds `FREE_RECRUITS` only when the target's chart Manpower is under 2.
+5. The debug report gets a "Top-ups and free hires" section: a TOP-UP line for each move to a hiring place, a FREE HIRE offer line for each man the under-2-men offer lists and a FREE HIRE line when a gang takes one on. Session only, not saved; Auto never reads it.
+6. KILL RESULT is labelled 1.2.73.
+
 ## v1.2.72 decisions
 
 Auto stops spending its hit crews on hits that cannot finish, prices arrests, and keeps (or, as a last resort, kills) the able men it would have sacked into rival gangs. All new numbers are proposed constants (`src/app/autoTest.ts`, `src/app/autoLearn.ts`).

@@ -2,6 +2,7 @@ import { victoryAllowed } from './victory';
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
 import { isGangOffice } from './officeDefence';
 import { noteMemberLoss } from './memberLosses';
+import { noteFreeHire } from './hireLog';
 import { CLEANUP_COST_PER_SITE, huntStops, streetsClearable, whereaboutsUnknown } from './execution';
 export { huntStops, whereaboutsUnknown };
 import { LEFT_GANG, NO_ORIGINAL_CHANNEL, opinionSet } from './attitudes';
@@ -661,6 +662,7 @@ export function hireRecruit(
   p.pay = p.payDemand;
   if (standardRules(w)) originalStartingWage(p, gangId);
   unlistRecruit(w, personId);
+  noteFreeHire(w, gang, p);
 
   p.inVehicle = false;
   const office = nearestOffice(w, gangId, p.pos);

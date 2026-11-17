@@ -4,6 +4,7 @@ import { devJournalWeeks, splitReport } from './devJournal';
 import { peekStopTraces } from '../sim/devTrace';
 import { planRoute } from './routing';
 import { weeklyHoodSupply } from '../sim/recruitPool';
+import { BLOCK_SIZE, STREET_WIDTH } from '../sim/constants';
 import { COUNTERFEIT_CASE_IN_TOWN, COUNTERFEIT_PASSED_WEEKLY, desertionLoyalty, halfPayLoyalty, SPEAKEASY_WEEKLY_CASES, STOLEN_CASE_IN_TOWN, weeklyWageLoyalty } from '../sim/systems/economy';
 import { exportLoadValue, exportedThisWeek, isExportTerminal } from '../sim/exportGoods';
 import { goodsRetailer, raidableGoods } from '../sim/goodsStorage';
@@ -75,7 +76,7 @@ import { buildingValue, CLEANUP_COST_PER_SITE, COLLECT_REFUSAL_HOSTILITY, extort
 import { originalElectionCity, originalElectionPoll, originalElectionSlot } from '../sim/originalElection';
 import { originalBlockVoterAverage, originalBlockVoterCount } from '../sim/originalElectionVotes';
 import type { Sim } from '../sim/sim';
-import { buildingDoor, CENTRE_LOT, dist, gangAssets, gangManpower, gangMembers, gangWealth, powerRating, protectedBuildings, territoryBlocks, territoryCount } from '../sim/world';
+import { buildingDoor, CENTRE_LOT, dist, gangAssets, gangManpower, gangMembers, gangWealth, placeName, powerRating, protectedBuildings, territoryBlocks, territoryCount } from '../sim/world';
 import { buildingList, peopleList } from '../sim/entityLists';
 import { MAX_TEAM_SIZE, MAX_TEAMS, MINUTES_PER_WEEK } from '../sim/constants';
 import { plannedTravelSpeed } from '../sim/transport';
@@ -568,10 +569,12 @@ const HIT_WEEK_SHARE = 0.75;
 const KILL_SACK_GAP = 4;
 /** 1.2.72 (Robert, point 6), proposed: weeks the lieutenants' 6% higher pay demand after a kill is priced over. */
 const KILL_PAY_WEEKS = 26;
-/** 1.2.72 (Robert, points 6, 9), proposed: the chance a sacked man ends up in a rival gang (1.2.71 run: at least 14 of 46 sacked names seen later in rival gangs). */
-const SACK_JOIN_P = 0.3;
-/** 1.2.72 (Robert, points 6, 9), proposed: a rival at this many chart street men or fewer is taking free men off the street (the sacked man joins at 1). */
-const TINY_RIVAL_MEN = 2;
+/** 1.2.73 (Robert, point 4), proposed: "near" for a sack — a hiring place this close to the man, a rival's known business or office this close to the place (3 blocks). */
+const SACK_NEAR_DIST = 3 * (BLOCK_SIZE + STREET_WIDTH);
+/** 1.2.73 (Robert, point 4), proposed: the share of the chance kept when no hiring place is near him (the weekly top-up still moves him to one). */
+const SACK_FAR_SHARE = 0.5;
+/** 1.2.73 (Robert, point 4), proposed: recruits a week (Graphs chart) by the rivals near that place at which a sacked man surely joins one. */
+const SACK_TREND_FULL = 2;
 /** 1.2.72 (Robert, point 6), proposed: an able sacked man is worth this many rival men (a likely heir). */
 const HEIR_WEIGHT = 2;
 /** 1.2.72 (Robert, point 4), proposed: officers' average opinion under which smash-ups, torches and intimidation are held and a crew led by a lying-low lieutenant stays inside (street line 45 + opinion × 0.5 ≤ 20 wanted). */
@@ -1644,19 +1647,51 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const median = lts.length % 2 ? lts[(lts.length - 1) / 2] : (lts[lts.length / 2 - 1] + lts[lts.length / 2]) / 2;
     return p.skills.organization + p.skills.intelligence >= median;
   };
+  /**
+   * 1.2.73 (Robert, point 4): the chance a sacked man joins a rival, from what a player can see.
+   * The weekly top-up moves an idle free man to a hiring place, so: the hood hiring place nearest
+   * him (× SACK_FAR_SHARE when none is within SACK_NEAR_DIST); the rivals recruiting there — a
+   * known business or office of theirs within SACK_NEAR_DIST of it — at their recruits a week on
+   * the 8-week Graphs chart; plus FREE_RECRUITS for a rival whose chart Manpower is under 2 and
+   * whose known office is near him (the under-2-men offer goes to the men nearest the office).
+   * Chance = min(1, share × that rate ÷ SACK_TREND_FULL). Replaces 1.2.72's fixed 0.3 / 1.
+   */
+  const sackJoinChance = (p: Person): { p: number; why: string } => {
+    const places = buildingList(w).filter((b) => b.state !== 'destroyed' && weeklyHoodSupply(w, b) > 0);
+    const at = (b: Building) => w.lots[b.lotId].center;
+    const place = places.sort((a, b) => dist(at(a), p.pos) - dist(at(b), p.pos) || a.id - b.id)[0];
+    const placeD = place ? dist(at(place), p.pos) : Infinity;
+    const share = placeD <= SACK_NEAR_DIST ? 1 : SACK_FAR_SHARE;
+    const hqs = knownRivalHQs(w, gang);
+    let rate = 0;
+    const who: string[] = [];
+    for (const g of rivalsAlive) {
+      const intel = intelOf.get(g.id);
+      if (!intel) continue;
+      const sites = [...intel.knownBiz, ...hqs.filter((b) => buildingMapIntel(b, gang.id).ownerGangId === g.id)];
+      const near = !!place && sites.some((b) => dist(at(b), at(place)) <= SACK_NEAR_DIST);
+      const office = hqs.find((b) => buildingMapIntel(b, gang.id).ownerGangId === g.id);
+      const tiny = intel.entries > 0 && intel.chartMen < 2 && !!office && dist(at(office), p.pos) <= SACK_NEAR_DIST;
+      const r = (near ? intel.recruitsPW : 0) + (tiny ? FREE_RECRUITS : 0);
+      if (r > 0) { rate += r; who.push(`${g.name} ${r.toFixed(1)}/wk${tiny ? ' incl. under-2 offer' : ''}`); }
+    }
+    const pj = Math.min(1, share * rate / SACK_TREND_FULL);
+    const placeTxt = place ? `${placeName(w, place)} ${Math.round(placeD)} m${share < 1 ? ` (far, × ${SACK_FAR_SHARE})` : ''}` : 'no hiring place';
+    return { p: pj, why: `${placeTxt}; rivals recruiting near it: ${who.length ? who.join(', ') : 'none'} ÷ ${SACK_TREND_FULL}/wk` };
+  };
   /** Returns 'kept' (the caller keeps him), 'killed', or 'sack' (the caller sacks him as before). */
   const killNotSack = (p: Person, why: string, keep: (() => boolean) | null): 'kept' | 'killed' | 'sack' => {
     if (goal !== 'eliminate' || !ableMan(p)) return 'sack';
     if (keep && keep()) { actions.push(`KILL NOT SACK (1.2.72): ${p.name} (${p.role}, org+int ${p.skills.organization + p.skills.intelligence}) — ${why}; an able man is kept, not sacked`); return 'kept'; }
-    const tiny = rivalsAlive.some((g) => streetOf(g) <= TINY_RIVAL_MEN);
-    const pJoin = tiny ? 1 : SACK_JOIN_P;
+    const join = sackJoinChance(p);
+    const pJoin = join.p;
     const per = Math.round(win?.per ?? scale.L);
     const sackPrice = Math.round(pJoin * per * HEIR_WEIGHT);
     const ltPay = crewsOf().map((t) => w.people[t.lieutenantId]).filter((x): x is Person => !!x && x.status === 'active').reduce((n, x) => n + x.payDemand, 0);
     const killPrice = Math.round(ltPay * 0.06 * KILL_PAY_WEEKS);
     const last = mem.killSackWeek ?? -Infinity;
     const gapOk = w.week - last >= KILL_SACK_GAP;
-    const prices = `sack $${sackPrice} (${tiny ? `a rival at ${TINY_RIVAL_MEN} or fewer chart men → 1` : `${SACK_JOIN_P}`} × a rival man $${per} × ${HEIR_WEIGHT}) vs kill $${killPrice} (lieutenants' pay $${ltPay} × 6% × ${KILL_PAY_WEEKS} wk; −6 loyalty each)`;
+    const prices = `sack $${sackPrice} (${pJoin.toFixed(2)} [${join.why}] × a rival man $${per} × ${HEIR_WEIGHT}) vs kill $${killPrice} (lieutenants' pay $${ltPay} × 6% × ${KILL_PAY_WEEKS} wk; −6 loyalty each)`;
     if (sackPrice > killPrice && gapOk) {
       const r = killMember(w, gang.id, p.id);
       if (r.ok) { mem.killSackWeek = w.week; actions.push(`KILL NOT SACK (1.2.72): ${p.name} (${p.role}) — ${why}; ${prices} → killed (${r.message ?? ''})`); return 'killed'; }
@@ -2963,7 +2998,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       lines.push(`${o.type} ${t?.name ?? `#${o.targetPersonId}`}${t?.gangId != null ? ` (${w.gangs[t.gangId]?.name ?? '?'}, ${t.role})` : ''} by ${w.teams[o.teamId]?.name ?? o.teamId} — ${o.state}${said ? `: "${said}"` : ''}${o.startedMinute != null && o.finishedMinute != null ? `, ${hm(o.finishedMinute - o.startedMinute)}` : ''}; ${men} sent, ${died} lost`);
     }
     for (const [id, at] of [...hard]) { const p = w.people[id]; if (!p || p.status === 'dead' || p.gangId == null || w.week - at > BAD_TARGET_RETRY_WEEKS * 2) hard.delete(id); }
-    if (lines.length) actions.push(`KILL RESULT (1.2.72): ${lines.join('; ')}`);
+    if (lines.length) actions.push(`KILL RESULT (1.2.73): ${lines.join('; ')}`);
     const hist = mem.hitRisk = [...(mem.hitRisk ?? []).filter((x) => x.week < w.week && x.week >= w.week - LOSS_WINDOW_WEEKS), ...(sent ? [{ week: w.week, sent, lost }] : [])];
     const S = hist.reduce((n, x) => n + x.sent, 0), L = hist.reduce((n, x) => n + x.lost, 0);
     hitHazard = (L + HIT_HAZARD_PRIOR * HIT_HAZARD_PRIOR_MEN) / (S + HIT_HAZARD_PRIOR_MEN);
@@ -6695,15 +6730,18 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const boss = w.people[weak.bossId];
       const bossOut = !!boss && isOut(boss.id);
       const bossKnown = !!boss && gang.knownPeople.includes(boss.id) && !bossOut && !gang.prisonerIds.includes(boss.id);
-      const possible = intel.chartMen + 1 + FREE_RECRUITS;
+      // 1.2.73 (Robert, point 4): the under-2-men offer only comes while the gang's whole count is under 2 —
+      // the chart's Manpower is that count (crew men, lieutenants, pool, managers; not the boss).
+      const free = intel.chartMen < 2 ? FREE_RECRUITS : 0;
+      const possible = intel.chartMen + 1 + free;
       const fits = possible <= capacity;
-      return { weak, intel, custody, known, managers, heirs, boss, bossOut, bossKnown, possible, fits, finishing: fits && !custody.length && hitters.length > 0 };
+      return { weak, intel, custody, known, managers, heirs, boss, bossOut, bossKnown, possible, free, fits, finishing: fits && !custody.length && hitters.length > 0 };
     });
     const finishing = plans.find((x) => x.finishing);
     // 1.2.71 (Robert, point 13): while a gang that fits waits for its men in custody, its boss and known men still get the normal hits.
     const waiting = plans.filter((x) => x.fits && x.custody.length);
-    for (const x of waiting) actions.push(`FINISHING WEEK (1.2.70): ${x.weak.name} fits (${x.possible} possible heirs incl. ${FREE_RECRUITS} free recruits ≤ ${capacity} kills) — waits for ${x.custody.length} in custody (${x.custody.map((p) => p.name).join(', ')}); meanwhile ${(x.bossKnown ? 1 : 0) + x.heirs.length} normal hit(s) on its boss and known men (1.2.71)`);
-    if (finishing) actions.push(`FINISHING WEEK (1.2.70): ${finishing.weak.name} — ${finishing.possible} possible heirs (chart ${finishing.intel.chartMen} + boss + ${FREE_RECRUITS} free recruits) within ${capacity} kills this week (${hitters.map((t) => `${t.name} ${killCap(t)}`).join(', ')}); every attack crew on it`);
+    for (const x of waiting) actions.push(`FINISHING WEEK (1.2.70): ${x.weak.name} fits (${x.possible} possible heirs incl. ${x.free} free recruits ≤ ${capacity} kills) — waits for ${x.custody.length} in custody (${x.custody.map((p) => p.name).join(', ')}); meanwhile ${(x.bossKnown ? 1 : 0) + x.heirs.length} normal hit(s) on its boss and known men (1.2.71)`);
+    if (finishing) actions.push(`FINISHING WEEK (1.2.70): ${finishing.weak.name} — ${finishing.possible} possible heirs (chart ${finishing.intel.chartMen} + boss + ${finishing.free} free recruits${finishing.free ? ', chart under 2' : ''}) within ${capacity} kills this week (${hitters.map((t) => `${t.name} ${killCap(t)}`).join(', ')}); every attack crew on it`);
     // 1.2.71 (Robert, point 9): finishing-week hits go only to crews with a car and a gun (held or in the store) —
     // the attack crews first, then the other crews (never Business).
     const carOf = (t: Team) => Object.values(t.vehicles).some((n) => (n ?? 0) > 0);

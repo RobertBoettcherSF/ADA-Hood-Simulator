@@ -19,19 +19,55 @@
  * 1, Employment Exchange 2, F.B.I. Headquarters 3, … (originalEconomics.ts).
  *
  * Only sites whose cell passes 0x609CF0 are served; we read that as a standing,
- * trading building. The original first moves an idle person of the right type
- * from elsewhere before creating one; our free people always stand at a site,
- * so the top-up only creates. Compact cities keep their per-block pool.
+ * trading building. 1.2.73 (Robert, point 2): before creating anyone the
+ * top-up moves an idle gangless person of the right type from elsewhere in the
+ * city (a sacked or released man standing in the street) to the site, at most
+ * HIRE_PLACE_MOVES_PER_WEEK a site a week, so any gang — and the player — can
+ * find him there and recruit him with a normal recruit order. Compact cities
+ * keep their per-block pool and the same move.
  */
 import { clothingBankRecruits } from './systems/charityEffects';
 import { createPerson, hoodPayDemand } from './citygen';
 import { BUILDING_BY_ID } from './data/buildings';
 import { heritageOfSurname, type Heritage } from './heritage';
 import type { Rng } from './rng';
-import type { Building, PersonRole, WorldState } from './types';
+import type { Building, Person, PersonRole, WorldState } from './types';
 import { peopleList, buildingList } from './entityLists';
 import { isBusinessHood } from './hoodGeneration';
 import { standardRules } from './rules';
+import { dist, placeName } from './world';
+import { noteHireLine } from './hireLog';
+
+/** 1.2.73 (Robert, point 2, proposed): idle people moved to each hiring place a week. */
+export const HIRE_PLACE_MOVES_PER_WEEK = 1;
+
+/** Gangless, free and standing nowhere — e.g. a man just sacked or released. */
+function idleFree(p: Person, role: PersonRole): boolean {
+  return p.gangId == null && p.status === 'active' && p.role === role && p.buildingId == null && p.employedBy == null
+    && p.capturedBy == null && p.orderId == null && !p.fbiAssignment;
+}
+
+/** Move the nearest idle person of the role to the site; true if one moved. */
+function moveIdleTo(w: WorldState, b: Building, role: PersonRole, idle: Person[]): boolean {
+  const at = w.lots[b.lotId]?.center;
+  if (!at) return false;
+  let best = -1;
+  for (let i = 0; i < idle.length; i++) {
+    if (idle[i].role !== role) continue;
+    if (best < 0 || dist(idle[i].pos, at) < dist(idle[best].pos, at)) best = i;
+  }
+  if (best < 0) return false;
+  const p = idle.splice(best, 1)[0];
+  const from = Math.round(dist(p.pos, at));
+  p.buildingId = b.id;
+  p.pos = { ...at };
+  p.dest = null;
+  p.path = [];
+  p.inVehicle = false;
+  noteHireLine(w, `TOP-UP: ${p.name} (#${p.id}, ${role}) moved ${from} m to ${placeName(w, b)} #${b.id}`);
+  return true;
+}
+
 
 /** Each top-up round brings at least one business hood unless one is already free. */
 function needsBusinessHood(w: WorldState): boolean {
@@ -92,12 +128,15 @@ export function replenishOriginalRecruits(w: WorldState, rng: Rng): number {
   }
   let added = 0;
   let wantBusiness = needsBusinessHood(w);
+  const idle = peopleList(w).filter((p) => idleFree(p, p.role));
   for (const b of buildingList(w)) {
     const quota = recruitQuota(b);
     if (!quota || !serving(b)) continue;
     // 1.2.50: a running clothing bank nearby draws more hoods.
     const count = quota.count + (quota.role === 'hood' ? clothingBankRecruits(w, b) : 0);
-    for (let n = present.get(`${b.id}:${quota.role}`) ?? 0; n < count; n++, added++) {
+    let n = present.get(`${b.id}:${quota.role}`) ?? 0;
+    for (let moves = 0; n < count && moves < HIRE_PLACE_MOVES_PER_WEEK && moveIdleTo(w, b, quota.role, idle); moves++) n++;
+    for (; n < count; n++, added++) {
       const p = createPerson(w, rng, quota.role, w.lots[b.lotId].center, {
         quality: 1.1, businessType: quota.role === 'hood' && wantBusiness, buildingId: b.id, prefer: preferHeritage(w) });
       if (quota.role === 'hood') wantBusiness = false;
@@ -118,12 +157,15 @@ function replenishStreetRecruits(w: WorldState, rng: Rng): number {
   const prefer = preferHeritage(w);
   let added = 0;
   let wantBusiness = needsBusinessHood(w);
+  const idle = peopleList(w).filter((p) => idleFree(p, p.role));
   for (const b of buildingList(w)) {
     if (b.state === 'destroyed') continue;
     const role = BUILDING_BY_ID[b.typeId]?.recruit;
     if (!role) continue;
     const want = role === 'hood' ? STREET_HOODS + clothingBankRecruits(w, b) : STREET_SPECIALISTS;
-    for (let n = present.get(`${b.id}:${role}`) ?? 0; n < want; n++, added++) {
+    let n = present.get(`${b.id}:${role}`) ?? 0;
+    for (let moves = 0; n < want && moves < HIRE_PLACE_MOVES_PER_WEEK && moveIdleTo(w, b, role, idle); moves++) n++;
+    for (; n < want; n++, added++) {
       const p = createPerson(w, rng, role, w.lots[b.lotId].center, {
         quality: 1.1, businessType: role === 'hood' && wantBusiness, buildingId: b.id, prefer });
       if (role === 'hood') wantBusiness = false;

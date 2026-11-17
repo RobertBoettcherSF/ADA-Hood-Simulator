@@ -1,5 +1,6 @@
 import { victoryAllowed } from './victory';
-import { isGangOffice } from './officeDefence';
+import { gangOffice, isGangOffice } from './officeDefence';
+import { noteFreeOffer, noteHireLine } from './hireLog';
 import {settleBurningEscapes, tickBuildingEmergencies} from './systems/buildingEmergency';
 import { driveFrom, earlySteps, finishMovementTick, repairVehicleRoutes } from './movement';
 import { boardingCount, reconcileTransport, resetWeekTransport, restoreLegacyTransport } from './transport';
@@ -52,7 +53,7 @@ import type { GameOptions, Gang, ID, WorldState } from './types';
 
 /** Ambient walking slices per minute (ambientSlices). */
 const AMBIENT_SLICES = 6;
-import { gangAssets, gangWealth, gangLoyalty, gangManpower, money, ownedBuildings, placeName, powerRating, teamsOf, territoryCount } from './world';
+import { dist, gangAssets, gangWealth, gangLoyalty, gangManpower, money, ownedBuildings, placeName, powerRating, teamsOf, territoryCount } from './world';
 import { peopleList, buildingList } from './entityLists';
 import { syncCrewTime } from './crewTime';
 import { trackLifetime } from './memProbe';
@@ -609,8 +610,16 @@ export class Sim {
       }
 
       // Word gets around when a boss is hiring.
+      // 1.2.73 (Robert, point 1): "under 2 men" is the whole gang — crew
+      // lieutenants, crew men, the pool and the managers (gangManpower counts
+      // all four; the boss is not counted). The Graphs chart's Manpower is the
+      // same figure.
       const men = gangManpower(w, gang);
       if (men < 2 && gang.cash > 300 && gang.recruitIds.length < 2) {
+        // 1.2.73 (Robert, point 3): the men nearest the gang's office hear of
+        // it first (was: the two lowest-ID). The player gets it too.
+        const office = gangOffice(w, gang.id);
+        const at = office ? w.lots[office.lotId]?.center : w.people[gang.bossId]?.pos;
         const willing = peopleList(w).filter(
           (p) =>
             p.gangId == null &&
@@ -618,8 +627,11 @@ export class Sim {
             p.role === 'hood' &&
             !gang.recruitIds.includes(p.id),
         );
+        if (at) willing.sort((a, b) => dist(a.pos, at) - dist(b.pos, at) || a.id - b.id);
         for (let i = 0; i < Math.min(2, willing.length); i++) {
           gang.recruitIds.push(willing[i].id);
+          noteFreeOffer(w, gang.id, willing[i].id);
+          noteHireLine(w, `FREE HIRE offer: ${gang.name} (${men} men) — ${willing[i].name} (#${willing[i].id}) ${at ? `${Math.round(dist(willing[i].pos, at))} m from its ${office ? 'office' : 'boss'}` : ''}`.trimEnd());
         }
         if (willing.length && gang.isPlayer) {
           w.weekLog.push('Word is out that you are hiring. Men have come forward.');
@@ -718,6 +730,8 @@ export class Sim {
     }
 
     // A gang with nothing left is finished whether its boss lives or not.
+    // 1.2.73 (Robert, point 1): the same whole-gang count as the under-2-men
+    // offer — pool men and managers keep a gang alive.
     for (const gang of Object.values(w.gangs)) {
       if (gang.eliminated || gang.isPlayer) continue;
       const men = gangManpower(w, gang);

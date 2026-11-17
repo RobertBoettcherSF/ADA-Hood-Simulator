@@ -3,6 +3,7 @@ import { startingConditions } from './startingConditions';
 import { instanceFile } from './instance';
 import { ERA_2032_ENABLED, ACTIVE_ERA } from './era';
 import { formatMemberLoss, memberLosses } from '../sim/memberLosses';
+import { hireLines } from '../sim/hireLog';
 import { activeWorldStore, downloadText } from './worldFolder';
 import { recentActions } from './actionLog';
 import { slowestAssets } from './assetTiming';
@@ -260,6 +261,12 @@ export function buildDebugReport(world: WorldState | null, version: string, comm
     const lost = lossGang ? memberLosses(world, lossGang.id) : [];
     if (!lost.length) lines.push('(none recorded)');
     for (const l of lost) lines.push(`Week ${l.week}: ${formatMemberLoss(l)}`);
+    lines.push('');
+    // 1.2.73 (Robert, point 5): moves to hiring places and under-2-men hires.
+    lines.push('Top-ups and free hires (this session)');
+    const hires = hireLines(world);
+    if (!hires.length) lines.push('(none recorded)');
+    for (const h of hires) lines.push(`Week ${h.week}: ${h.text}`);
     lines.push('');
     lines.push('Recent week log');
     const log = world.weekLog;
