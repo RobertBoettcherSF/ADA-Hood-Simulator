@@ -19,8 +19,12 @@ export interface RivalIntel {
   chartAssets: number;
   /** Rival businesses our map shows (not the HQ, not destroyed). */
   knownBiz: Building[];
-  /** Street men: chart Manpower − one manager per known business. */
+  /** Street men: chart Manpower − the managers (1.2.70, point 6). */
   street: number;
+  /** 1.2.70 (Robert, point 6): managers = min(known businesses, chart Manpower − known men). */
+  managers: number;
+  /** 1.2.70 (Robert, point 14): the chart's entries; under 2 there is nothing to compare. */
+  entries: number;
   /** Recruits a week: the chart's weekly change + our kills of the gang, over the chart's weeks. */
   recruitsPW: number;
   /** Lieutenants and hoods of the gang we have identified. */
@@ -34,7 +38,6 @@ export function rivalIntel(w: WorldState, us: Gang, g: Gang): RivalIntel {
   const last = pts.at(-1);
   const chartMen = last?.manpower ?? 0;
   const knownBiz = Object.values(w.buildings).filter((b) => { if (b.state === 'destroyed' || b.typeId === 'office' || b.cls === 'empty') return false; const i = buildingMapIntel(b, us.id); return i.ownerGangId === g.id && !i.isHQ; });
-  const street = Math.max(0, chartMen - knownBiz.length);
   let recruitsPW = 0;
   if (pts.length >= 2) {
     const first = pts[0];
@@ -42,5 +45,9 @@ export function rivalIntel(w: WorldState, us: Gang, g: Gang): RivalIntel {
     recruitsPW = Math.max(0, (chartMen - first.manpower + ourKills) / (last!.week - first.week || 1));
   }
   const knownMen = us.knownPeople.map((id) => w.people[id]).filter((p): p is Person => !!p && p.gangId === g.id && p.status !== 'dead' && (p.role === 'hood' || p.role === 'lieutenant'));
-  return { gang: g, chartMen, chartPower: last?.power ?? 0, chartAssets: last?.assets ?? 0, knownBiz, street, recruitsPW, knownMen };
+  // 1.2.70 (Robert, point 6): a business need not have a manager — managers are
+  // at most the known businesses and at most the chart's men we cannot name.
+  const managers = Math.min(knownBiz.length, Math.max(0, chartMen - knownMen.length));
+  const street = Math.max(0, chartMen - managers);
+  return { gang: g, chartMen, chartPower: last?.power ?? 0, chartAssets: last?.assets ?? 0, knownBiz, street, managers, entries: pts.length, recruitsPW, knownMen };
 }

@@ -44,6 +44,8 @@ export interface Proposal<T> {
   prepare?: (team: T) => void;
   /** 1.2.46: goes ahead of every proposal without it (a racket set-up before the surplus buys). */
   first?: boolean;
+  /** 1.2.70 (Robert, point 7): among proposals alike in `first`, a higher tier goes ahead (the finishing week's boss and heirs). */
+  tier?: number;
 }
 
 export interface CrewSlot<T> {
@@ -95,7 +97,7 @@ export function decideWeek<T>(
   explore?: (p: Proposal<T>, worth: number, heat: number) => boolean,
 ): { given: Decision[]; skipped: Decision[] } {
   const given: Decision[] = [], skipped: Decision[] = [];
-  const ranked = proposals.map((p, i) => { const c = chance ? chance(p) : 1; const h = heat ? heat(p) : 0; return { p, i, c, h, score: Math.round(scoreOf(goal, p) * c - h) }; }).sort((a, b) => Number(!!b.p.first) - Number(!!a.p.first) || b.score - a.score || a.i - b.i);
+  const ranked = proposals.map((p, i) => { const c = chance ? chance(p) : 1; const h = heat ? heat(p) : 0; return { p, i, c, h, score: Math.round(scoreOf(goal, p) * c - h) }; }).sort((a, b) => Number(!!b.p.first) - Number(!!a.p.first) || (b.p.tier ?? 0) - (a.p.tier ?? 0) || b.score - a.score || a.i - b.i);
   for (const { p, c, h, score } of ranked) {
     // 1.2.25 (Robert's rule): the business crew takes business work only.
     // 1.2.54 (Robert): any crew may buy — the business crew is offered it

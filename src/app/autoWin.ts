@@ -260,8 +260,22 @@ export const ENDGAME_CASH_WEEKS = 26;
 /** Point 3: attack crews wanted in ENDGAME per rival left, and at most. */
 export const ENDGAME_ATTACK_PER_RIVAL = 2;
 export const ENDGAME_ATTACK_MAX = 6;
-/** Point 6: the boss is hit after this many weeks with every known heir targeted. */
-export const FINISH_BOSS_WEEKS = 4;
+// ---- 1.2.70 (Robert), all proposed.
+/** Point 1: a man the game refused as a target is tried again after this many weeks (a boss at once once his HQ is known). */
+export const BAD_TARGET_RETRY_WEEKS = 4;
+/** Point 3: the free street hoods a gang under 2 men gets each week — counted as possible heirs. */
+export const FREE_RECRUITS = 2;
+/** Point 7: free men a kill or kidnap order takes from a crew's week (at most free ÷ this a crew a week). */
+export const KILL_MEN_EACH = 3;
+/** Point 13: the win chance is the mean of the last this-many weeks. */
+export const WIN_SMOOTH_WEEKS = 4;
+/** Point 13: the rival-man value moves at most this share a week. */
+export const WIN_PER_STEP = 0.25;
+/** Point 14: chart entries a rival needs before weakest gang or win estimates. */
+export const CHART_MIN_ENTRIES = 2;
+/** Point 16: prior share of our men lost per man sent on a kill or kidnap, and its weight in men sent. */
+export const HIT_HAZARD_PRIOR = 0.15;
+export const HIT_HAZARD_PRIOR_MEN = 10;
 /** Point 13: prior chance an HQ strike draws an FBI warrant. */
 export const HQ_WARRANT_PRIOR = 0.8;
 /** Point 14: the goods trial (front, lot, set-up) is given outright up to this. */

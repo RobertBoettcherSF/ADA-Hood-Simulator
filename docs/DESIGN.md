@@ -238,6 +238,29 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.70 decisions
+
+Auto finishes gangs instead of circling them: the boss is hit as soon as he is known, a gang that fits in one week of our kills is hit by every attack crew that week, and kills are priced at what they really cost us. All new numbers are proposed constants (`src/app/autoWin.ts`).
+
+1. A man the game refused as a target is tried again after `BAD_TARGET_RETRY_WEEKS` (4), or when reported seen; a boss at once while our map shows his gang's HQ.
+2. The boss is no longer hit last: `FINISH_BOSS_WEEKS` is gone and a known boss is the first target. The eliminate estimate and win chance use `BAD_TARGET_RETRY_WEEKS` as the delay for a boss out of reach.
+3. FINISHING WEEK: when a gang's possible heirs (its chart men + the boss + the `FREE_RECRUITS` (2) it gets each week) fit within one week of our kills (the sum of every attack crew's kill cap), only that gang's hits are proposed that week, to every crew but Business, ahead of other orders. While any known man of it is in custody (refused as a target, jailed or kidnapped) it waits.
+4. ENDGAME prisoners of a rival gang are killed, never released (lawyers and accountants keep the d4). A hard target — the boss, or a man who survived one of our kill orders — gets a kidnap order instead of a kill.
+5. No lawyer or accountant is hit in ENDGAME (the order is refused at give, and the retaliation list leaves them out).
+6. Managers = min(known businesses, chart Manpower − known men); street men = chart Manpower − managers (a business need not have a manager).
+7. Each crew takes at most its free men ÷ `KILL_MEN_EACH` (3) kills and kidnaps a week (at least one). The finishing week's hits rank first (a proposal tier). Kills and kidnaps are timed by the minutes last week's ones really took (start to finish), not the game's estimate.
+8. An order never asks for more men than the crew has free (active, free for orders, not resting).
+9. ENDGAME: a crew whose lieutenant has an FBI warrant gets a new lieutenant at once (its best free man; the men move back; the old lieutenant lies low in the pool). A wanted hood with a comparable spare is sacked when keeping him (his risk a week × `LIE_LOW_WEEKS`, + an arrest A while a warrant is out) costs more than losing a man (L); else he lies low.
+10. One guard on every move into a crew: no man joins a crew whose lieutenant has an FBI warrant (the wanted swap, the fills, the rebuild and the other moves). The second emptying after the moves is gone.
+11. ENDGAME: a snitch is asked each week about the gang being finished while it recruits (the rolled snitch steps aside).
+12. ENDGAME DENY bombs known rival businesses, never torches them, as many as the charges held; ENDGAME ARM keeps 2 charges per attack crew (at least 2).
+13. The eliminate win chance is the mean of the last `WIN_SMOOTH_WEEKS` (4) weeks, and a rival man's worth moves at most `WIN_PER_STEP` (25%) a week.
+14. No weakest gang, eliminate weeks or eliminate win chance until every rival's chart has `CHART_MIN_ENTRIES` (2) entries.
+15. KILL RESULT: each of last week's kill and kidnap orders with its outcome, the game's own result line, its minutes and the men sent and lost.
+16. HIT RISK: our men killed on our own kill and kidnap orders ÷ the men sent, over the loss window (prior `HIT_HAZARD_PRIOR` 15% over `HIT_HAZARD_PRIOR_MEN` 10 men), × L × the men sent, is the expected loss on every kill and kidnap; the order is held back when it costs more than it is worth.
+17. CREWS FULL is checked after the week's fills and moves. A ruined HQ counts from the HQs our map has shown (the game unmarks a destroyed HQ).
+18. No HQ strike in ENDGAME.
+
 ## v1.2.69 decisions
 
 Auto knows only what a player can know, and when far ahead it commits to wiping out the last gangs. All new numbers are proposed constants (`src/app/autoWin.ts`).
