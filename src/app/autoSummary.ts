@@ -56,6 +56,8 @@ export function summaryBlock(opts: { lines: readonly string[]; weeks: readonly S
       if (!m) continue;
       const [, cause, by] = m;
       if (cause.startsWith('sacked')) sacked++;
+      // 1.2.72 (point 6): our own Kill instead of a sack.
+      else if (cause.startsWith('executed on the orders of')) bump(other, 'killed instead of sacked');
       else if (by === 'the police') { if (/scene/.test(cause)) policeScene++; else policeStreet++; }
       else if (by === 'the FBI') bump(fbi, /raid/.test(cause) ? 'raid' : /with his lieutenant/.test(cause) ? 'with his lieutenant' : /warrant/.test(cause) ? 'warrant' : cause.split(' (')[0]);
       else if (/gunned down|killed|shot|bomb|died/.test(cause)) bump(rival, by);

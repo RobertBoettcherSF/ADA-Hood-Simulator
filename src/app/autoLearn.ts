@@ -24,6 +24,8 @@ export const VALUE_BIAS_MIN = 0.05;
 /** 1.2.71 (Robert, point 1), proposed: the weighted d20's target — round(10 × worth ÷ (heat + expected losses)) — is clamped to these. */
 export const D20_MIN = 1;
 export const D20_MAX = 19;
+/** 1.2.72 (Robert, point 1), proposed: the d20 is rolled only for a close call — a raw target of at least this (worth at least half the cost); below it the order is held without a roll. */
+export const D20_CLOSE = 5;
 /** proposed: an order type not given for TRIAL_WEEKS weeks is tried anyway with this chance. */
 export const TRIAL_CHANCE = 0.1;
 export const TRIAL_WEEKS = 4;

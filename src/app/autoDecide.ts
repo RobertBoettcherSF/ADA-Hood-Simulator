@@ -46,6 +46,8 @@ export interface Proposal<T> {
   first?: boolean;
   /** 1.2.70 (Robert, point 7): among proposals alike in `first`, a higher tier goes ahead (the finishing week's boss and heirs). */
   tier?: number;
+  /** 1.2.72 (Robert, point 8): the order type a sized-at-give proposal (input is a function) learns under — the type of the order it builds. */
+  orderType?: string;
 }
 
 export interface CrewSlot<T> {

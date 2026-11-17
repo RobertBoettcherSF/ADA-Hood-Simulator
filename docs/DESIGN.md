@@ -238,6 +238,21 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.72 decisions
+
+Auto stops spending its hit crews on hits that cannot finish, prices arrests, and keeps (or, as a last resort, kills) the able men it would have sacked into rival gangs. All new numbers are proposed constants (`src/app/autoTest.ts`, `src/app/autoLearn.ts`).
+
+1. ROLL: the d20 is rolled only for a close call — a raw target round(10 × worth ÷ (heat + expected losses)) of at least `D20_CLOSE` (5, worth at least half the cost). Below it the order is held without a roll (noted on the order's line, no ROLL line).
+2. TYPE RISK counts the arrests charged to an order beside the deaths: an order type is priced at (killed ÷ sent × L + arrested ÷ sent × A) × the men sent. The prior is a fixed `TYPE_RISK_PRIOR` (2%) over `TYPE_RISK_PRIOR_MEN` (20) men, priced at L.
+3. An order that never started sent nobody: HIT RISK, KILL RESULT and TYPE RISK count only the men actually sent.
+4. While the officers' average opinion is under `OFFICER_HOLD_OPINION` (−50; the street line at 20 wanted or less), no smash-up, torch or intimidation is given, and a crew whose lieutenant is lying low gets no order (he waits inside the office; lying-low hoods already wait in the pool, inside).
+5. A man released after an arrest, or still lying low, is never sacked (wanted, surplus or wage path); he lies low in the pool.
+6. Kill instead of sack, while the goal is eliminate: an able man (organisation + intelligence at least our lieutenants' median) who would be sacked is kept when he can be — lying low in the pool (wanted, FBI-agent killer) or in the Expendables or the pool (surplus). When he cannot be kept (the wage shortfall), the sack price — the chance he ends up in a rival gang (1 while a rival shows `TINY_RIVAL_MEN` (2) chart men or fewer, else `SACK_JOIN_P` (0.3)) × a rival man's worth × `HEIR_WEIGHT` (2) — is set against the price of the player's own Kill on a member (every lieutenant asks 6% more: their pay demands × 6% × `KILL_PAY_WEEKS` (26)); the dearer one is avoided, at most one such kill per `KILL_SACK_GAP` (4) weeks. A KILL NOT SACK line gives both prices. A sacked man is never hunted afterwards. No wage-shortfall sack and no lawyer or accountant let go in ENDGAME. Lawyers and accountants are never heirs, so they are not killed.
+7. A hit that ran out of week (or searched all week) stays out of the time ledger — its minutes are the week's end, not the hit — and its target is set aside `HIT_OUT_OF_WEEK_ASIDE` (2) weeks. A kill or kidnap is given only when the game's own estimate for that crew and that man (the order preview; the ledger when there is none) is at most `HIT_WEEK_SHARE` (0.75) of a week.
+8. Proposals sized when given (finishing-week, boss, waiting, retaliation and chief hits) learn under the type of the order they build (`orderType`), not their crew role's type.
+9. How sacked men reach rival gangs: a gangless hood never moves (no idle walk; the weekly top-up only creates new people at hiring places), so no hiring-place recruit order finds him. The only path is the "word gets around" rule for a gang under 2 men: it takes the two lowest-numbered free hoods anywhere, and our sacked men are among the oldest. The rule counts only crew lieutenants and crew men (not the pool, managers or the boss), so a gang with men on the chart can still qualify. Left as the game's rule; priced into point 6.
+10. KILL RESULT is labelled 1.2.72.
+
 ## v1.2.71 decisions
 
 Auto's hits and bombs actually run: orders ask only for the men a crew really has free, bombs no longer queue behind hits, close calls are a weighted d20, and the last rivals stop hiring the men we let go. All new numbers are proposed constants (`src/app/autoWin.ts`, `src/app/autoLearn.ts`).
