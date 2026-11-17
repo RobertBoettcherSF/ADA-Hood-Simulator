@@ -4,13 +4,13 @@ import { devJournalWeeks, splitReport } from './devJournal';
 import { peekStopTraces } from '../sim/devTrace';
 import { planRoute } from './routing';
 import { weeklyHoodSupply } from '../sim/recruitPool';
-import { BLOCK_SIZE, STREET_WIDTH } from '../sim/constants';
+import { BLOCK_SIZE, ORDERS, STREET_WIDTH } from '../sim/constants';
 import { COUNTERFEIT_CASE_IN_TOWN, COUNTERFEIT_PASSED_WEEKLY, desertionLoyalty, halfPayLoyalty, SPEAKEASY_WEEKLY_CASES, STOLEN_CASE_IN_TOWN, weeklyWageLoyalty } from '../sim/systems/economy';
 import { exportLoadValue, exportedThisWeek, isExportTerminal } from '../sim/exportGoods';
 import { goodsRetailer, raidableGoods } from '../sim/goodsStorage';
 import { illegalSaturationFactor } from '../sim/originalTables';
 import { resetSystemTimings, systemTimings } from '../sim/simTimings';
-import { buyRetryBanned, siteTimeBanned, deskMemory, HQ_STRIKE_GAP, knownRivalHQs, moveRefused, noteRefusedMove, reviewBuys } from './autoBusiness';
+import { buyRetryBanned, siteTimeBanned, deskMemory, noteTimeRatio, timeFactor, HQ_STRIKE_GAP, knownRivalHQs, moveRefused, noteRefusedMove, reviewBuys } from './autoBusiness';
 import { execChance, execCounts, execMemory, lastGivenWeek, noteGivenTry, noteNotGiven, settleExec } from './autoExec';
 import { betaDraw, D20_CLOSE, D20_MAX, D20_MIN, exploreRng, heatRatio, learnMemory, noteExpect, settleLearn, TRIAL_CHANCE, TRIAL_WEEKS, valueRatio } from './autoLearn';
 import { CLIFF_BAND, CLIFF_LINE, CLIFF_UNITS_PER_MAN, cliffExposure, cliffRelief, crimeRisk, fbiGuard, fbiProject, FBI_BAND, HEAT_WEEKS, heatCost, officeAdds, heatLine, legalCredit, officerLow, opinionRelief, REST_WEEKS_LOST, restExposure, REST_PRICE_BAND, restOpinionLine, restRelief, streetLine, streetRisk, warrantRisk, weekOpinionCost, type HeatCost, type HeatMan, type HeatMeasure, type HeatState } from './autoHeat';
@@ -132,6 +132,12 @@ export function lostLines(w: Sim['world'], gangId: number, before: Map<number, s
   return out;
 }
 
+/** 1.2.74 (Robert, point 1): the repeat label of a loss, from its tally key. */
+function againCause(key: string): string {
+  const k = key.split(' by ')[0];
+  return k === 'killed' ? 'killed' : k === 'sacked' ? 'sacked' : k === 'arrested' || k === 'jailed' ? 'arrested' : k;
+}
+
 /** 1.2.48 (Robert): rival men our gang killed since `sinceWeek`, by their gang. */
 export function rivalKillsLine(w: Sim['world'], gangId: number, sinceWeek: number): string {
   const ours = w.gangs[gangId]?.name;
@@ -224,6 +230,11 @@ import { standardRules } from '../sim/rules';
 import { effectiveHostility } from '../sim/attitudes';
 
 /** 1.2.53 (Robert): the BUILD line at the top of every Auto Test file — version and commit. */
+/** 1.2.74 (Robert, point 5): the build version alone, for the SUMMARY header. */
+export function buildVersion(): string {
+  return typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'unknown';
+}
+
 export function buildLine(): string {
   return `BUILD ${typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'unknown'} ${typeof __APP_COMMIT__ === 'string' ? __APP_COMMIT__ : 'unknown'}`;
 }
@@ -577,10 +588,23 @@ const SACK_FAR_SHARE = 0.5;
 const SACK_TREND_FULL = 2;
 /** 1.2.72 (Robert, point 6), proposed: an able sacked man is worth this many rival men (a likely heir). */
 const HEIR_WEIGHT = 2;
+/** 1.2.74 (Robert, point 2), proposed: weeks a warrant or wanted sack's reason stands (no recruit order where he stands). */
+const SACK_REASON_WEEKS = 26;
+/** 1.2.74 (Robert, point 2), proposed: the same for a pay, upkeep or surplus sack. */
+const SACK_SHORT_REASON_WEEKS = 8;
+/** 1.2.74 (Robert, point 8), proposed: the kill-exchange window, the ratio against us that pulls the hit crews back, and the fewest of ours lost before it applies. */
+const HIT_PULLBACK_WEEKS = 4;
+const HIT_PULLBACK_RATIO = 2;
+const HIT_PULLBACK_MIN = 4;
+/** 1.2.74 (Robert, point 11), proposed: in ENDGAME, a rival boss out of reach this many weeks, or surviving this many of our hits, opens his known HQ to attack. */
+const HQ_BOSS_OUT_WEEKS = 4;
+const HQ_BOSS_HITS = 3;
+/** 1.2.74 (Robert, point 12), proposed: a buy is given only when its corrected minutes fit this share of the buying man's free time. */
+const BUY_FREE_SHARE = 0.75;
 /** 1.2.72 (Robert, point 4), proposed: officers' average opinion under which smash-ups, torches and intimidation are held and a crew led by a lying-low lieutenant stays inside (street line 45 + opinion × 0.5 ≤ 20 wanted). */
 const OFFICER_HOLD_OPINION = -50;
-/** 1.2.72 (Robert, point 4): the street crimes held while the officers are that low. */
-const STREET_HEAVY_TYPES = new Set(['smashUp', 'torch', 'intimidate']);
+/** 1.2.72 (Robert, point 4): the street crimes held while the officers are that low. 1.2.74 (point 4): intimidation no longer held. */
+const STREET_HEAVY_TYPES = new Set(['smashUp', 'torch']);
 /** …puts us on defence for this many weeks. */
 const LOSS_DEFENCE_WEEKS = 4;
 /** 1.2.43 (Robert): after this many empty recruit weeks the runs move to new blocks… */
@@ -595,6 +619,10 @@ const UPKEEP_SHORT_WEEKS = 2;
 const STALL_WEEKS = 6;
 /** 1.2.56 (proposed): weeks a refuser is left alone after the last step. */
 const REFUSER_DROP_WEEKS = 12;
+/** 1.2.74 (Robert, point 4), proposed: a refuser no step reached in this many weeks leaves the list. */
+const REFUSER_STALE_WEEKS = 8;
+/** 1.2.74 (Robert, point 4), proposed: the most refusers kept on the list. */
+const REFUSER_MAX = 40;
 /** 1.2.56 (proposed): a man lying low after an arrest or a warrant — his arrest weighs this many A in the heat. */
 const LOW_ARREST_WEIGHT = 2;
 /** 1.2.56 (proposed): weeks running with no shop unvisited before the switched crew goes back to Business. */
@@ -769,6 +797,10 @@ const v140 = new WeakMap<Sim['world'], {
   outOfReach?: Map<number, number>;
   /** 1.2.72 (Robert, point 6): the week of our last kill instead of a sack. */
   killSackWeek?: number;
+  /** 1.2.74 (Robert, point 2): men we sacked, why, and until when the reason stands. */
+  sackedFor?: Map<number, { week: number; reason: string; until: number }>;
+  /** 1.2.74 (Robert, point 11): per rival gang in ENDGAME, its boss's hits survived and weeks out of reach. */
+  bossChase?: Map<number, { bossId: number; hits: number; out: number; last: number }>;
   /** 1.2.71 (Robert, point 8): rival men a kill or kidnap "could not find", with the week (aside until seen again). */
   notFound?: Map<number, number>;
   /** 1.2.71 (Robert, points 5, 10): our bomb orders with the site and its worth as given, for BOMB RESULT and learning. */
@@ -1640,12 +1672,13 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
    * proposed). A sacked man is never hunted afterwards. Lawyers and accountants are never
    * heirs, so they are only guarded in ENDGAME (by the callers).
    */
-  const ableMan = (p: Person) => {
-    if (p.role !== 'hood' && p.role !== 'lieutenant') return false;
+  const ableInfo = (p: Person): { able: boolean; score: number; median: number | null } => {
+    const score = p.skills.organization + p.skills.intelligence;
+    if (p.role !== 'hood' && p.role !== 'lieutenant') return { able: false, score, median: null };
     const lts = crewsOf().map((t) => w.people[t.lieutenantId]).filter((x): x is Person => !!x && x.status !== 'dead').map((x) => x.skills.organization + x.skills.intelligence).sort((a, b) => a - b);
-    if (!lts.length) return false;
+    if (!lts.length) return { able: false, score, median: null };
     const median = lts.length % 2 ? lts[(lts.length - 1) / 2] : (lts[lts.length / 2 - 1] + lts[lts.length / 2]) / 2;
-    return p.skills.organization + p.skills.intelligence >= median;
+    return { able: score >= median, score, median };
   };
   /**
    * 1.2.73 (Robert, point 4): the chance a sacked man joins a rival, from what a player can see.
@@ -1679,10 +1712,28 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const placeTxt = place ? `${placeName(w, place)} ${Math.round(placeD)} m${share < 1 ? ` (far, × ${SACK_FAR_SHARE})` : ''}` : 'no hiring place';
     return { p: pj, why: `${placeTxt}; rivals recruiting near it: ${who.length ? who.join(', ') : 'none'} ÷ ${SACK_TREND_FULL}/wk` };
   };
+  /**
+   * 1.2.74 (Robert, point 2): every sack is remembered with its reason; while the reason stands
+   * (SACK_REASON_WEEKS for a warrant or wanted man, SACK_SHORT_REASON_WEEKS for pay or upkeep,
+   * proposed) Auto sends no recruit order to a hiring place where he stands.
+   */
+  const sackFor = (id: number, reason: 'warrant' | 'wanted' | 'pay', weeks = reason === 'pay' ? SACK_SHORT_REASON_WEEKS : SACK_REASON_WEEKS) => {
+    const r = sackPerson(w, gang.id, id);
+    if (r.ok) (mem.sackedFor ??= new Map()).set(id, { week: w.week, reason, until: w.week + weeks });
+    return r;
+  };
   /** Returns 'kept' (the caller keeps him), 'killed', or 'sack' (the caller sacks him as before). */
   const killNotSack = (p: Person, why: string, keep: (() => boolean) | null): 'kept' | 'killed' | 'sack' => {
-    if (goal !== 'eliminate' || !ableMan(p)) return 'sack';
-    if (keep && keep()) { actions.push(`KILL NOT SACK (1.2.72): ${p.name} (${p.role}, org+int ${p.skills.organization + p.skills.intelligence}) — ${why}; an able man is kept, not sacked`); return 'kept'; }
+    if (goal !== 'eliminate') return 'sack';
+    const ab = ableInfo(p);
+    // 1.2.74 (Robert, point 9): in eliminate every sack logs its line — the able check and the sack price.
+    if (!ab.able) {
+      const j = sackJoinChance(p);
+      const perN = Math.round(win?.per ?? scale.L);
+      actions.push(`KILL NOT SACK (1.2.74): ${p.name} (${p.role}) — ${why}; not able (org+int ${ab.score.toFixed(1)} < median ${ab.median != null ? ab.median.toFixed(1) : 'none — no lieutenants'}${p.role !== 'hood' && p.role !== 'lieutenant' ? `, a ${p.role} is never an heir` : ''}); sack price $${Math.round(j.p * perN)} (${j.p.toFixed(2)} [${j.why}] × a rival man $${perN}) → sacked`);
+      return 'sack';
+    }
+    if (keep && keep()) { actions.push(`KILL NOT SACK (1.2.74): ${p.name} (${p.role}, org+int ${p.skills.organization + p.skills.intelligence}) — ${why}; an able man is kept, not sacked`); return 'kept'; }
     const join = sackJoinChance(p);
     const pJoin = join.p;
     const per = Math.round(win?.per ?? scale.L);
@@ -1694,9 +1745,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const prices = `sack $${sackPrice} (${pJoin.toFixed(2)} [${join.why}] × a rival man $${per} × ${HEIR_WEIGHT}) vs kill $${killPrice} (lieutenants' pay $${ltPay} × 6% × ${KILL_PAY_WEEKS} wk; −6 loyalty each)`;
     if (sackPrice > killPrice && gapOk) {
       const r = killMember(w, gang.id, p.id);
-      if (r.ok) { mem.killSackWeek = w.week; actions.push(`KILL NOT SACK (1.2.72): ${p.name} (${p.role}) — ${why}; ${prices} → killed (${r.message ?? ''})`); return 'killed'; }
+      if (r.ok) { mem.killSackWeek = w.week; actions.push(`KILL NOT SACK (1.2.74): ${p.name} (${p.role}) — ${why}; ${prices} → killed (${r.message ?? ''})`); return 'killed'; }
     }
-    actions.push(`KILL NOT SACK (1.2.72): ${p.name} (${p.role}) — ${why}; ${prices} → sacked${sackPrice > killPrice && !gapOk ? ` (one kill per ${KILL_SACK_GAP} wk; last week ${last})` : ''}`);
+    actions.push(`KILL NOT SACK (1.2.74): ${p.name} (${p.role}) — ${why}; ${prices} → sacked${sackPrice > killPrice && !gapOk ? ` (one kill per ${KILL_SACK_GAP} wk; last week ${last})` : ''}`);
     return 'sack';
   };
   let bill = wageBill + upkeepLast;
@@ -1722,7 +1773,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const how = killNotSack(p, `wage shortfall (pay $${pay})`, null);
       if (how === 'killed') { bill -= pay; sacked.push(`${p.name} (killed, 1.2.72)`); continue; }
       if (how === 'kept') continue;
-      const r = sackPerson(w, gang.id, p.id);
+      const r = sackFor(p.id, 'pay');
       if (r.ok) { bill -= pay; sacked.push(`${p.name} ($${pay}, ${value.toFixed(3)}★ per $${defender ? ', a defender' : ''})`); }
     }
     sackedForWages = sacked.length;
@@ -1744,7 +1795,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // 1.2.72 (Robert, point 6): no lawyer or accountant is let go in ENDGAME.
     if (pick && endgame) actions.push(`NOTE the ${pick.role} ${pick.p.name} kept — upkeep above the cash, but no one is let go in ENDGAME (1.2.72)`);
     else if (pick) {
-      const r = sackPerson(w, gang.id, pick.p.id);
+      killNotSack(pick.p, `upkeep above the cash (${pick.role})`, null);
+      const r = sackFor(pick.p.id, 'pay');
       logResult(actions, `let the ${pick.role} ${pick.p.name} go ($${pick.p.pay}/wk) — upkeep $${upkeepLast} above the cash $${Math.round(gang.cash)} ${mem.upkeepShortWeeks} weeks running (${UPKEEP_SHORT_WEEKS}, proposed)`, r.ok, r.ok ? '' : r.error);
       if (r.ok) mem.upkeepShortWeeks = 0;
     }
@@ -1873,7 +1925,15 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   /** 1.2.63 (Robert): a man's own wanted level is past the street line (a man with none never is). */
   /** 1.2.72 (Robert, point 4): the officers are below the street-arrest hold line. */
   const officersLow = unpaidPolice.length > 0 && officerOpinion < OFFICER_HOLD_OPINION;
-  if (officersLow) actions.push(`NOTE officers (1.2.72): opinion ${Math.round(officerOpinion)} under ${OFFICER_HOLD_OPINION} (proposed) — smash-ups, torches and intimidation held; crews of lying-low lieutenants stay inside`);
+  // 1.2.74 (Robert, point 8): while the kill exchange over HIT_PULLBACK_WEEKS runs more than
+  // HIT_PULLBACK_RATIO : 1 against us (at least HIT_PULLBACK_MIN of ours lost), the hit crews pull back.
+  const pbLosses = memberLosses(w, undefined, w.week - HIT_PULLBACK_WEEKS);
+  const pbRivals = new Set(Object.values(w.gangs).filter((g) => g.id !== gang.id).map((g) => g.name));
+  const pbLost = pbLosses.filter((l) => l.gangId === gang.id && l.by != null && pbRivals.has(l.by) && !/sacked/.test(l.cause)).length;
+  const pbTook = pbLosses.filter((l) => l.gangId !== gang.id && l.by === gang.name && !/sacked|executed/.test(l.cause)).length;
+  const hitPullBack = goal === 'eliminate' && pbLost >= HIT_PULLBACK_MIN && pbLost > HIT_PULLBACK_RATIO * Math.max(1, pbTook);
+  if (hitPullBack) actions.push(`NOTE pull back (1.2.74): ${pbLost} of ours killed for ${pbTook} of theirs in ${HIT_PULLBACK_WEEKS} wk — over ${HIT_PULLBACK_RATIO}:1, no kill or kidnap this week (proposed)`);
+  if (officersLow) actions.push(`NOTE officers (1.2.72): opinion ${Math.round(officerOpinion)} under ${OFFICER_HOLD_OPINION} (proposed) — smash-ups and torches held (intimidation allowed, 1.2.74); a lying-low lieutenant stays inside while his crew works without him`);
   const overLine = (id: number) => { const p = w.people[id]; return !!p && p.wanted > 0 && p.wanted >= streetLine(officerOpinion); };
   const restingMen = resting.get(w) ?? new Set<number>();
   resting.set(w, restingMen);
@@ -1897,7 +1957,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }) !== 'sack') {
       if ((p.status as string) === 'dead') { hitmen.delete(id); restingMen.delete(id); }
     } else if (p.wanted >= SACK_WANTED) {
-      const result = sackPerson(w, gang.id, id);
+      const result = sackFor(id, 'warrant', 9999);
       logResult(actions, `sack ${p.name} — killed an FBI agent and is too wanted to hide (wanted ${Math.round(p.wanted)})`, result.ok, result.ok ? result.message ?? '' : result.error);
       if (result.ok) { hitmen.delete(id); restingMen.delete(id); }
     }
@@ -1958,7 +2018,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       else if (swap && guardRefuses) actions.push(`NOTE WANTED ${p.name} — not sacked (1.2.71): ${swap.name} could not take his place (${w.people[crew!.lieutenantId]?.name ?? 'the lieutenant'} has an FBI warrant) — lies low in the pool`);
       if (swap && sackIt) {
         sackSpares.add(swap.id);
-        const result = sackPerson(w, gang.id, p.id);
+        const result = sackFor(p.id, p.fbiWarrant ? 'warrant' : 'wanted');
         const moved = result.ok && crew ? moveToTeam(w, gang.id, swap.id, crew.id) : undefined;
         logResult(actions, `WANTED sack ${p.name} (${cause}; ${stars(p).toFixed(1)}★, risk $${mine.risk}/wk) — ${swap.name} (${stars(swap).toFixed(1)}★) ${crew ? `takes his place in ${crew.name}` : 'is a comparable spare'}`, result.ok, result.ok ? (moved && !moved.ok ? `swap refused: ${moved.error}` : result.message ?? '') : result.error);
         if (result.ok) { menMoves.push(`sacked wanted ${p.name} → ${swap.name}`); wanted.lowUntil.delete(p.id); continue; }
@@ -2358,7 +2418,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           return true;
         });
         if (how !== 'sack') continue;
-        const result = sackPerson(w, gang.id, p.id);
+        const result = sackFor(p.id, 'pay');
         logResult(actions, `let ${p.name} go — worth less than his pay (${manLine(p, v)}${spare ? ` + spare worth $${spare}/wk` : ''}${fullNote})`, result.ok, result.ok ? result.message ?? '' : result.error);
         if (result.ok) { sacked++; menMoves.push(`sacked ${p.name} (net $${v.net})`); }
       }
@@ -2972,6 +3032,28 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const hard = mem.hardTargets ??= new Map<number, number>();
     const lines: string[] = [];
     let sent = 0, lost = 0;
+    // 1.2.74 (Robert, point 10): both sides by name — our men with their crew and lieutenant (or
+    // 'a disbanded crew'), the target with role, crew and gang as far as we have identified them.
+    const knownIds = new Set(gang.knownPeople);
+    const crewOf = (teamId: number | undefined) => {
+      const tm = teamId != null ? w.teams[teamId] : undefined;
+      if (!tm) return 'a disbanded crew';
+      const lt = w.people[tm.lieutenantId];
+      return lt && !tm.name.includes(lt.name.split(' ')[0]) ? `${lt.name.split(' ')[0]}'s ${tm.name}` : tm.name;
+    };
+    const killSide = (teamId: number, ids: number[]) => `${ids.length ? ids.map((id) => w.people[id]?.name ?? `#${id}`).join(', ') : 'nobody'}, ${crewOf(teamId)},`;
+    const killTarget = (id: number | undefined) => {
+      const t = id != null ? w.people[id] : undefined;
+      if (!t) return 'unknown';
+      if (t.gangId == null) return `${t.name} (no gang)`;
+      const g = w.gangs[t.gangId];
+      if (!knownIds.has(t.id)) return `${t.name} (${g?.name ?? 'unknown'} unknown role, crew unknown)`;
+      const role = g?.bossId === t.id ? 'boss' : t.role;
+      const tm = Object.values(w.teams).find((x) => x.gangId === t.gangId && (x.lieutenantId === t.id || x.memberIds.includes(t.id)));
+      const lt = tm ? w.people[tm.lieutenantId] : undefined;
+      const crew = role === 'boss' ? '' : tm && lt && lt.id === t.id ? ', leads a crew' : lt && knownIds.has(lt.id) ? `, ${lt.name.split(' ')[0]}'s crew` : ', crew unknown';
+      return `${t.name} (${g?.name ?? 'unknown'} ${role}${crew})`;
+    };
     for (const o of w.lastWeekOrders) {
       if (o.gangId !== gang.id || (o.type !== 'kill' && o.type !== 'kidnap')) continue;
       const t = o.targetPersonId != null ? w.people[o.targetPersonId] : undefined;
@@ -2985,20 +3067,28 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // target is set aside HIT_OUT_OF_WEEK_ASIDE weeks (proposed).
       const ranOut = /not enough time in the week|Searched all week|Ran out of week/i.test(said0);
       if (ranOut && t && t.status !== 'dead') (mem.outOfReach ??= new Map()).set(t.id, w.week);
+      // 1.2.74 (Robert, point 13): actual ÷ estimate feeds the hit correction (a hit that ran out of week counts what it used, a lower bound; not-found and never-started teach nothing).
+      if (o.estimatedMinutes > 0 && o.startedMinute != null && o.finishedMinute != null && o.finishedMinute > o.startedMinute && !/could not be found|never started/i.test(said0)) noteTimeRatio(desk, `hit:${o.type}`, (o.finishedMinute - o.startedMinute) / o.estimatedMinutes);
       if (!ranOut && o.startedMinute != null && o.finishedMinute != null && o.finishedMinute > o.startedMinute) {
         const team = w.teams[o.teamId];
         noteLedger(timeLedger, ledgerKey(o.type, !!team && Object.values(team.vehicles).some((n) => n > 0)), o.finishedMinute - o.startedMinute);
       }
       const said = o.failReason ?? o.results.at(-1) ?? '';
       if (t && o.type === 'kill' && t.status !== 'dead' && /survived/i.test(said)) hard.set(t.id, w.week);
+      // 1.2.74 (Robert, point 11): a hit on a rival boss that did not end him counts toward the HQ attack.
+      if (t && t.status !== 'dead' && t.gangId != null && w.gangs[t.gangId]?.bossId === t.id) {
+        const bc = mem.bossChase ??= new Map();
+        const c = bc.get(t.gangId);
+        if (c && c.bossId === t.id) c.hits++; else bc.set(t.gangId, { bossId: t.id, hits: 1, out: 0, last: -1 });
+      }
       // 1.2.71 (Robert, point 7): after one failed kidnap he is a kill target again.
       if (t && o.type === 'kidnap' && o.state === 'failed') hard.delete(t.id);
       // 1.2.71 (Robert, point 8): a target that could not be found is set aside until he is reported seen again.
       if (t && t.status !== 'dead' && /could not be found/i.test(said)) (mem.notFound ??= new Map()).set(t.id, w.week);
-      lines.push(`${o.type} ${t?.name ?? `#${o.targetPersonId}`}${t?.gangId != null ? ` (${w.gangs[t.gangId]?.name ?? '?'}, ${t.role})` : ''} by ${w.teams[o.teamId]?.name ?? o.teamId} — ${o.state}${said ? `: "${said}"` : ''}${o.startedMinute != null && o.finishedMinute != null ? `, ${hm(o.finishedMinute - o.startedMinute)}` : ''}; ${men} sent, ${died} lost`);
+      lines.push(`${killSide(o.teamId, o.sentIds ?? [])} ${o.type} on ${killTarget(o.targetPersonId ?? undefined)} — ${o.state}${said ? `: "${said}"` : ''}${o.startedMinute != null && o.finishedMinute != null ? `, ${hm(o.finishedMinute - o.startedMinute)}` : ''}${ranOut ? ', ran out of week' : ''}; ${men} sent, ${died} lost`);
     }
     for (const [id, at] of [...hard]) { const p = w.people[id]; if (!p || p.status === 'dead' || p.gangId == null || w.week - at > BAD_TARGET_RETRY_WEEKS * 2) hard.delete(id); }
-    if (lines.length) actions.push(`KILL RESULT (1.2.73): ${lines.join('; ')}`);
+    if (lines.length) actions.push(`KILL RESULT (1.2.74): ${lines.join('; ')}`);
     const hist = mem.hitRisk = [...(mem.hitRisk ?? []).filter((x) => x.week < w.week && x.week >= w.week - LOSS_WINDOW_WEEKS), ...(sent ? [{ week: w.week, sent, lost }] : [])];
     const S = hist.reduce((n, x) => n + x.sent, 0), L = hist.reduce((n, x) => n + x.lost, 0);
     hitHazard = (L + HIT_HAZARD_PRIOR * HIT_HAZARD_PRIOR_MEN) / (S + HIT_HAZARD_PRIOR_MEN);
@@ -3202,10 +3292,23 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         noteWait(`NOTE not given — the officers' opinion ${Math.round(officerOpinion)} is under ${OFFICER_HOLD_OPINION}: no ${input.type} while they arrest on sight (1.2.72, proposed)`, label);
         return { ok: false, error: `held back — officers below the street-arrest line` };
       }
+      // 1.2.74 (Robert, point 3): his crew works without him — the game sends a lieutenant on a job only
+      // when his crew men are too few (or on a dangerous one he is fit to lead), so a non-violent order
+      // his men can staff alone goes ahead; only an order that would need him is held.
       if (lyingLow(team.lieutenantId)) {
-        noteWait(`NOTE not given to ${name}'s crew — ${name} is lying low and the officers' opinion ${Math.round(officerOpinion)} is under ${OFFICER_HOLD_OPINION}: he stays inside (1.2.72)`, label);
-        return { ok: false, error: `held back — the lieutenant is lying low; try elsewhere` };
+        const men = team.memberIds.filter((id) => { const m = w.people[id]; return !!m && m.status === 'active' && !lyingLow(id); }).length;
+        const def = ORDERS[input.type];
+        const dangerous = !!def && (def.group === 'minor' || def.group === 'violent');
+        if (dangerous || men < Math.max(1, input.opts?.manpower ?? 1)) {
+          noteWait(`NOTE not given to ${name}'s crew — ${name} is lying low and the officers' opinion ${Math.round(officerOpinion)} is under ${OFFICER_HOLD_OPINION}: ${dangerous ? 'a dangerous job could take him' : `his ${men} free men are too few`} (1.2.74)`, label);
+          return { ok: false, error: `held back — the lieutenant is lying low; try elsewhere` };
+        }
+        noteWait(`NOTE ${name}'s crew works without him — ${name} lies low inside, ${men} men go (1.2.74)`, label);
       }
+    }
+    if (HIT_TYPES.has(input.type) && hitPullBack) {
+      noteWait(`NOTE not given — the kill exchange is over ${HIT_PULLBACK_RATIO}:1 against us (${pbLost} for ${pbTook} in ${HIT_PULLBACK_WEEKS} wk): the hit crews pull back (1.2.74, proposed)`, label);
+      return { ok: false, error: 'held back — losing the kill exchange' };
     }
     if (HIT_TYPES.has(input.type)) {
       const target = input.personId != null ? w.people[input.personId] : undefined;
@@ -3233,9 +3336,12 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // preview a player sees; the ledger when there is none) is at most HIT_WEEK_SHARE of a week.
       {
         const car = Object.values(team.vehicles).some((n) => n > 0);
-        const est = previewOrder(w, gang.id, { ...input, teamId: team.id })?.estimatedMinutes ?? timeLedger[ledgerKey(input.type, car)];
+        const pv = previewOrder(w, gang.id, { ...input, teamId: team.id })?.estimatedMinutes;
+        // 1.2.74 (Robert, point 13): the game's estimate × the learned actual ÷ estimate for this hit type.
+        const hf = timeFactor(desk, `hit:${input.type}`);
+        const est = pv != null ? pv * hf : timeLedger[ledgerKey(input.type, car)];
         if (est != null && est > HIT_WEEK_SHARE * MINUTES_PER_WEEK) {
-          noteWait(`NOTE not given to ${name}'s crew — a ${input.type} takes about ${hm(est)}, over ${HIT_WEEK_SHARE} of a week (1.2.72, proposed)`, label);
+          noteWait(`NOTE not given to ${name}'s crew — a ${input.type} takes about ${hm(est)}${pv != null ? ` (estimate ${hm(pv)} × ${hf})` : ''}, over ${HIT_WEEK_SHARE} of a week (1.2.72; 1.2.74 correction, proposed)`, label);
           return { ok: false, error: `held back — a ${input.type} would not finish this week` };
         }
       }
@@ -3823,7 +3929,18 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // 1.2.68 (point 9): on the weakest, our kill rate starts from ELIM_KILLS_PER_WEEK (proposed) until we have killed some of its men.
       const took = goal === 'eliminate' && g === weakest && killsByUs(g) === 0 ? ELIM_KILLS_PER_WEEK : killsByUs(g) / THREAT_WEEKS;
       const leader = leaderTo.has(g.id);
-      const allyOpen = goal === 'eliminate' && liveOthers.length === 1 && !!win;
+      // 1.2.74 (Robert, point 7): an alliance is open while several rivals remain (it keeps a second
+      // front quiet), or with one rival left when a firm alliance of the last two ends the game — but
+      // never with a gang that treats us as the leader (it does not cool toward us). Last gang
+      // standing only, with one rival left: no alliance — war.
+      const lastOneLgs = goal === 'eliminate' && liveOthers.length === 1 && w.options.victory === 'eliminate';
+      if (lastOneLgs) {
+        stanceLines.push(`${g.name} (theirs ${theirs}, kills of ours ${kr.toFixed(2)}/wk, ours ${took.toFixed(2)}/wk${leader ? ', treats us as the leader' : ''}): the last rival in last gang standing — no alliance, war (1.2.74)`);
+        if ((gang.offered[g.id] ?? 'peace') !== 'war' && setDiplomacy(w, gang.id, g.id, 'war').ok) set.push(`${g.name} war (last rival, 1.2.74)`);
+        continue;
+      }
+      const allyOpen = !leader && (liveOthers.length > 1 || (goal === 'eliminate' && liveOthers.length === 1 && !!win));
+      if (leader && (liveOthers.length > 1 || goal === 'eliminate')) stanceLines.push(`${g.name}: no alliance — it treats us as the leader and will not cool toward us (1.2.74)`);
       const choices: DiplomacyLevel[] = (allyOpen ? ['alliance', ...STANCE_CHOICES] as DiplomacyLevel[] : [...STANCE_CHOICES] as DiplomacyLevel[]).filter((c) => !(ratioBad && g !== weakest && stanceIndex(c) > 2));
       const priced = choices.map((want) => {
         const sIdx = stanceIndex(want);
@@ -3841,7 +3958,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         const undefended = sIdx <= 1 && tIdx >= 3 ? 1 + STANCE_PEACE_UNDEFENDED : 1;
         let gain = fightGoal ? fs * scale.L : 0;
         if (goal === 'eliminate' && win) gain = g === weakest ? fs * Math.max(scale.L, win.per) : 0;
-        if (want === 'alliance' && win) {
+        if (want === 'alliance' && win && liveOthers.length === 1) {
           const cool0 = -PEACE_PRESSURE[tIdx][0];
           const T = tIdx > 0 ? (cool0 > 0 ? tIdx * STANCE_LEVEL_POINTS / cool0 : Infinity) : 0;
           const pAlly = T <= STANCE_HORIZON_WEEKS ? 1 : STANCE_HORIZON_WEEKS / T;
@@ -4312,7 +4429,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const fbiCredit = input.type === 'buyPremises' && site.cls !== 'illegal' && profit > 0 ? legalCredit(heatState ?? heatInputs(), profit) : 0;
       // 1.2.68 (Robert, point 10): its man-time (the game's estimate, travel included, × the learned factor) at V a man-week counts in its cost.
       const buyer = bizCrew && ready.includes(bizCrew) ? bizCrew : ready[0];
-      const buyMin = (previewOrder(w, gang.id, { ...input, teamId: buyer.id })?.estimatedMinutes ?? 0) * desk.ratio;
+      // 1.2.74 (Robert, point 12): the estimate × this crew type's learned correction; given only
+      // when that fits BUY_FREE_SHARE (proposed) of the buying man's free time; a Business crew first.
+      const buyKey = `buy:${roles.get(buyer.id) ?? 'any'}`;
+      const buyFactor = timeFactor(desk, buyKey);
+      const buyMin = (previewOrder(w, gang.id, { ...input, teamId: buyer.id })?.estimatedMinutes ?? 0) * buyFactor;
+      if (buyMin > BUY_FREE_SHARE * freeFor(buyer)) {
+        actions.push(`NOTE ${orderLabel}: not given — about ${hm(buyMin)} (estimate × ${buyFactor}, ${buyKey}) is over ${BUY_FREE_SHARE} of ${buyer.name}'s ${hm(freeFor(buyer))} free (1.2.74, proposed)`);
+        offered.delete(site.id); chosen.pop(); spent -= cost(site);
+        continue;
+      }
       // 1.2.69 (Robert, point 15): at the buying crew's own work rate ($ per man-minute, as in the held-back check), V a man-week only for a crew with no rate.
       const buyType = ROLE_ORDER_TYPE[roles.get(buyer.id) ?? 'collect'];
       const buyRateOwn = buyType ? Math.max(0, efficiency(orderBook, buyType) ?? 0) : 0;
@@ -4325,7 +4451,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         onGiven: (team) => {
           const orderId = team.orderIds[team.orderIds.length - 1];
           const order = w.orders[orderId];
-          desk.pending.push({ orderId, buildingId: site.id, teamId: team.id, type: input.type, estimate: order?.estimatedMinutes ?? 0, free: Math.round(freeFor(team)), week: w.week });
+          desk.pending.push({ orderId, buildingId: site.id, teamId: team.id, type: input.type, estimate: order?.estimatedMinutes ?? 0, free: Math.round(freeFor(team)), week: w.week, crewKey: roles.get(team.id) ?? 'any' });
           const line = `NOTE business: ${label} ${site.typeId} (building ${site.id}) to ${team.name} — about ${order ? hm(order.estimatedMinutes) : '?'} by the game's estimate, ${hm(freeFor(team))} left for the freest man, ${hm(crewFreeMinutes(w, team))} man-time for the crew after it`;
           actions.push(line); noteDevDesk(line);
         },
@@ -5018,7 +5144,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     let freeMin = buyer ? plannedFree(buyer) : 0;
     const ranked = [...cheapest.values()].map((b) => ({ b, votes: newBlockVotes(b.blockId, true) / Math.max(1, officeFit.perVote), price: buildingValue(w, b) }))
       .filter((x) => x.votes > 0).sort((x, y) => y.votes / y.price - x.votes / x.price || x.b.id - y.b.id).slice(0, VOTE_BUYS_PER_WEEK * 3)
-      .map((x) => { const pv = buyer ? previewOrder(w, gang.id, { type: 'buyPremises', buildingIds: [x.b.id], teamId: buyer.id, opts: { manpower: 1 } }) : null; const min = (pv?.estimatedMinutes ?? 0) * desk.ratio; return { ...x, min, cost: x.price + min * scale.V / MINUTES_PER_WEEK }; })
+      .map((x) => { const pv = buyer ? previewOrder(w, gang.id, { type: 'buyPremises', buildingIds: [x.b.id], teamId: buyer.id, opts: { manpower: 1 } }) : null; const min = (pv?.estimatedMinutes ?? 0) * timeFactor(desk, `buy:${buyer ? roles.get(buyer.id) ?? 'any' : 'any'}`); return { ...x, min, cost: x.price + min * scale.V / MINUTES_PER_WEEK }; })
       .sort((x, y) => y.votes / y.cost - x.votes / x.cost || x.b.id - y.b.id)
       .filter((x) => { if (!buyer || x.min > freeMin) return false; freeMin -= x.min; return true; }).slice(0, VOTE_BUYS_PER_WEEK);
     const got = ranked.length ? planBuy('votes: buy', ranked.map((x) => x.b), undefined, undefined, (b) => buildingValue(w, b), Infinity, false, { noFloor: true, why: 'votes per $ (1.2.67)' }) : [];
@@ -5038,13 +5164,22 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // is never recruited for.
       const crewRoom = gang.teamIds.length === 0 || crewsOf().some((team) => roles.get(team.id) !== 'expendables' && team.memberIds.length < MAX_TEAM_SIZE - 1);
       const floor = goal === 'territory' ? CREW_CAPACITY : Math.max(18, Math.round(10 + weight.hiring * 12), Math.min(60, Math.round(territoryCount(w, gang.id) * 2)));
-      if (hoodSites.length) {
+      // 1.2.74 (Robert, point 2): no recruit order where a man we sacked stands while the reason stands
+      // (we know our own former men by sight).
+      const shunned = new Map<number, string>();
+      for (const [id, sk] of mem.sackedFor ?? []) {
+        const p = w.people[id];
+        if (!p || p.status === 'dead' || w.week >= sk.until) { mem.sackedFor!.delete(id); continue; }
+        if (p.gangId == null && p.buildingId != null && hoodSites.some((b) => b.id === p.buildingId)) shunned.set(p.buildingId, `${p.name} (sacked w${sk.week}, ${sk.reason}, until w${sk.until >= 9000 ? '—' : sk.until})`);
+      }
+      if (shunned.size) actions.push(`NOTE recruit (1.2.74): ${shunned.size} hiring place(s) skipped — a man we sacked stands there while the reason stands: ${[...shunned].map(([b, t]) => `#${b} ${t}`).join('; ')}`);
+      if (hoodSites.some((b) => !shunned.has(b.id))) {
         // 1.2.45 (Robert): the venues with the biggest weekly top-up first
         // (docks and the labour exchange before gyms and pool halls); no cap on
         // venues — each recruit order takes as many as fit its man's week. One
         // man per crew (one in all with every crew full); below
         // RECRUIT_EVERY_MAN men, every free man gets a recruit order.
-        const sites = [...hoodSites].sort((a, b) => weeklyHoodSupply(w, b) - weeklyHoodSupply(w, a));
+        const sites = [...hoodSites].filter((b) => !shunned.has(b.id)).sort((a, b) => weeklyHoodSupply(w, b) - weeklyHoodSupply(w, a));
         if (recruitMemory.yieldedIds.includes(sites[0].id)) actions.push('NOTE recruit: last week\'s productive venues first');
         else if (recruitMemory.hintIds.includes(sites[0].id)) actions.push('NOTE recruit following last week\'s tip');
         const everyMan = men < RECRUIT_EVERY_MAN;
@@ -5890,7 +6025,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const proposeHqStrike = (target: Building, value: number, why: string, key: ActionKey) => {
     const owner = w.gangs[target.ownerGangId!];
     // 1.2.70 (Robert, point 18): no HQ strike in ENDGAME — a bombed HQ does not end a gang; the crews hunt its heirs.
-    if (endgame) { actions.push(`HQ ATTACK not made on ${owner?.name ?? 'a rival'}'s HQ: ENDGAME — the crews hunt its boss and heirs (1.2.70)`); return; }
+    if (endgame && !endgameHq.has(target.ownerGangId!)) { actions.push(`HQ ATTACK not made on ${owner?.name ?? 'a rival'}'s HQ: ENDGAME — the crews hunt its boss and heirs (1.2.70; 1.2.74: until he is out of reach ${HQ_BOSS_OUT_WEEKS} wk or survives ${HQ_BOSS_HITS} hits)`); return; }
     if (noHitOn(target.ownerGangId)) { const line = `HQ ATTACK not made on ${owner?.name ?? 'a rival'}'s HQ: going straight and they are at war with us`; actions.push(line); noteDevDesk(line); return; }
     const cashBefore = gang.cash;
     let targetPersonId: number | undefined;
@@ -6119,7 +6254,22 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const rivalHQs = knownRivalHQs(w, gang).sort((a, b) => hqPriority(w.gangs[b.ownerGangId!]) - hqPriority(w.gangs[a.ownerGangId!]));
   // 1.2.49 (Robert): an HQ is struck only when its gang is the highest threat or at war/aggression with us (every HQ strike path).
   const hqStrikeOk = (gangId: number | null | undefined) => gangId != null && (gangId === topThreat?.id || ['war', 'aggression'].includes(gang.known[gangId] ?? 'peace'));
-  const hqTarget = rivalHQs.find((b) => hqStrikeOk(b.ownerGangId));
+  // 1.2.74 (Robert, point 11): in ENDGAME a rival whose boss has been out of reach HQ_BOSS_OUT_WEEKS
+  // weeks or survived HQ_BOSS_HITS of our hits (both proposed) may have its known HQ attacked.
+  const endgameHq = new Set<number>();
+  if (endgame) {
+    const bc = mem.bossChase ??= new Map();
+    for (const g of liveRivals) {
+      const boss = w.people[g.bossId];
+      if (!boss || boss.status === 'dead') { bc.delete(g.id); continue; }
+      let c = bc.get(g.id);
+      if (!c || c.bossId !== boss.id) { c = { bossId: boss.id, hits: 0, out: 0, last: -1 }; bc.set(g.id, c); }
+      if (c.last !== w.week && (refusedOut(boss.id) || notFoundOut(boss.id) || outOfReachOut(boss.id) || boss.status === 'jailed' || boss.status === 'kidnapped')) { c.out++; c.last = w.week; }
+      if (c.out >= HQ_BOSS_OUT_WEEKS || c.hits >= HQ_BOSS_HITS) endgameHq.add(g.id);
+      if ((c.out || c.hits) && rivalHQs.some((b) => b.ownerGangId === g.id)) actions.push(`NOTE ENDGAME HQ (1.2.74): ${g.name}'s boss ${boss.name} out of reach ${c.out} wk, survived ${c.hits} hit(s) — HQ attack ${endgameHq.has(g.id) ? 'allowed' : `not yet (${HQ_BOSS_OUT_WEEKS} wk or ${HQ_BOSS_HITS} hits, proposed)`}`);
+    }
+  }
+  const hqTarget = rivalHQs.find((b) => hqStrikeOk(b.ownerGangId) && (!endgame || endgameHq.has(b.ownerGangId!)));
   if (hqTarget) { const line = `NOTE HQ: ${w.gangs[hqTarget.ownerGangId!].name}'s HQ known (building ${hqTarget.id}, block ${hqTarget.blockId})${rivalHQs.length > 1 ? `; ${rivalHQs.length} rival HQs known` : ''}`; actions.push(line); noteDevDesk(line); }
   else if (rivalHQs.length) actions.push(`NOTE HQ: ${rivalHQs.length} rival HQ(s) known (${rivalHQs.map((b) => w.gangs[b.ownerGangId!]?.name).join(', ')}) — none struck: not the highest threat and not at war or aggression with us`);
   // Scouting for the priority rival's HQ: its known premises' blocks first.
@@ -6418,7 +6568,13 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // 1.2.56 (Robert): a dropped refuser stays off the list (and off extortion) for REFUSER_DROP_WEEKS.
       const drop = (mem.refuserDrop ??= new Map<number, number>());
       for (const [id, until] of [...drop]) { if (until <= w.week) drop.delete(id); else { mem.refusers.delete(id); mem.refuser.delete(id); } }
-      if (mem.refusers.size) actions.push(`REFUSERS ${mem.refusers.size} on the list (kept until they pay or we buy)`);
+      // 1.2.74 (Robert, point 4): the list no longer grows without end — a refuser no step has reached
+      // for REFUSER_STALE_WEEKS is dropped (REFUSER_DROP_WEEKS off extortion), and past REFUSER_MAX the oldest go first.
+      let staleN = 0, capN = 0;
+      for (const [id, since] of [...mem.refusers]) if (w.week - since >= REFUSER_STALE_WEEKS && (mem.refuser.get(id) ?? 0) === 0) { drop.set(id, w.week + REFUSER_DROP_WEEKS); mem.refusers.delete(id); mem.refuser.delete(id); staleN++; }
+      if (mem.refusers.size > REFUSER_MAX) for (const [id] of [...mem.refusers].sort((a, b) => a[1] - b[1] || a[0] - b[0]).slice(0, mem.refusers.size - REFUSER_MAX)) { drop.set(id, w.week + REFUSER_DROP_WEEKS); mem.refusers.delete(id); mem.refuser.delete(id); capN++; }
+      if (staleN || capN) actions.push(`NOTE refusers (1.2.74): ${staleN} dropped after ${REFUSER_STALE_WEEKS} wk with no step taken, ${capN} over the cap of ${REFUSER_MAX} (oldest first) — off extortion ${REFUSER_DROP_WEEKS} wk (proposed)`);
+      if (mem.refusers.size) actions.push(`REFUSERS ${mem.refusers.size} on the list (kept until they pay, we buy, or ${REFUSER_STALE_WEEKS} wk pass with no step)`);
       const refusedNow = [...mem.refusers.keys()]
         .map((id) => w.buildings[id]).filter((b): b is Building => !!b && b.state === 'trading' && b.protection?.gangId !== gang.id && b.ownerGangId !== gang.id);
       for (const site of refusedNow) {
@@ -6632,7 +6788,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // Rare and low-ranked: the FBI director, struck at his headquarters.
       strikeFbi: !!hitCrew && w.week >= 8 && w.people[w.fbiHeadId]?.status === 'active',
       // 1.2.22: a rival HQ our scouts found, struck at most every few weeks.
-      strikeHQ: !endgame && !!armed && !!hqTarget && !noHitOn(hqTarget.ownerGangId) && w.week >= 8 && w.week - desk.lastHqStrike >= HQ_STRIKE_GAP,
+      strikeHQ: (!endgame || (!!hqTarget && endgameHq.has(hqTarget.ownerGangId!))) && !!armed && !!hqTarget && !noHitOn(hqTarget.ownerGangId) && w.week >= 8 && w.week - desk.lastHqStrike >= HQ_STRIKE_GAP,
     } as Record<ActionKey, boolean>)[key]);
     const rolls = (gang.cash > reserve + 15000 ? 2 : 1) + (policy.violence === 'high' ? 1 : 0);
     const tried = new Set<ActionKey>();
@@ -7549,9 +7705,10 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     for (const line of lostLines(sim.world, sim.playerGang.id, rosterBefore, weekBefore)) {
       // 1.2.51 (Robert): each man counts once in the tally; a man lost again
       // (released, then re-arrested) is marked and not counted twice.
-      if (lostOnce.has(line.personId)) { actions.push(`${line.text} (re-arrest — already counted)`); continue; }
+      // 1.2.74 (Robert, point 1): every loss event counts; a man lost before is labelled by this loss's cause.
+      const again = lostOnce.has(line.personId);
       lostOnce.add(line.personId);
-      actions.push(line.text);
+      actions.push(again ? `${line.text} (again: ${againCause(line.key)})` : line.text);
       lostTally.set(line.key, (lostTally.get(line.key) ?? 0) + 1);
     }
     actions.push(rivalKillsLine(sim.world, sim.playerGang.id, weekBefore));
@@ -7593,7 +7750,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
       const file = instanceFile(`auto-test-${runStamp}-weeks-${from}-${to}.txt`);
       try {
         // 1.2.53 (Robert): every actions file opens with the build and the starting conditions.
-        const text = [buildLine(), testKeyLine(sim.world, settings.seed, firstWeek), ...summaryBlock({ lines: block, weeks, from, to, outcome: `still running at week ${to + 1} — the outcome is in the final report` }), `Auto Test actions, weeks ${from}–${to} (Auto seed ${settings.seed}); the final report holds the later weeks.`, ...startingConditions(sim.world, settings.seed, firstWeek), '', ...block].join('\n');
+        const text = [buildLine(), testKeyLine(sim.world, settings.seed, firstWeek), ...summaryBlock({ build: buildVersion(), lines: block, weeks, from, to, outcome: `still running at week ${to + 1} — the outcome is in the final report` }), `Auto Test actions, weeks ${from}–${to} (Auto seed ${settings.seed}); the final report holds the later weeks.`, ...startingConditions(sim.world, settings.seed, firstWeek), '', ...block].join('\n');
         const parts = splitReport(text);
         for (let k = 0; k < parts.length; k++) await writeReportFile(parts.length === 1 ? file : file.replace(/\.txt$/, `-part${k + 1}of${parts.length}.txt`), parts[k]);
         writtenFiles.push(`weeks ${from}–${to}: ${file}`);
@@ -7659,7 +7816,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
 
   const won = sim.world.outcome ? sim.world.outcome.won : null;
   const outcome = sim.world.outcome ? `${sim.world.outcome.won ? 'won' : 'lost'}: ${sim.world.outcome.reason}` : 'still playing';
-  const score = scoreRun(weeks[weeks.length - 1], won);
+  const score = scoreRun(weeks[weeks.length - 1], won, won ? sim.world.week : undefined);
   // The score the player sees on the win or loss screen; while the game runs, the same sum without a win bonus or loss penalty.
   const gameScore = gameScoreNow(sim.world);
   const scoreNote = sim.world.outcome ? '' : '(game still running: no win bonus or loss penalty yet)';
@@ -7728,6 +7885,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     starting: startingConditions(sim.world, settings.seed, firstWeek),
     testKey: testKeyLine(sim.world, settings.seed, firstWeek),
     summary: summaryBlock({
+      build: buildVersion(),
       lines: [...summaryLines, ...actions.map(summaryKeep).filter((l): l is string => l != null)],
       weeks, from: firstWeek, to: Math.max(firstWeek, (weeks[weeks.length - 1]?.week ?? firstWeek + 1) - 1),
       outcome: `${outcome} after week ${Math.max(firstWeek, (weeks[weeks.length - 1]?.week ?? firstWeek + 1) - 1)}, score ${gameScore}`,

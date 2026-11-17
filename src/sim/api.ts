@@ -495,6 +495,7 @@ export function sackPerson(w: WorldState, gangId: ID, personId: ID): ApiResult {
   if (!gang || !p) return fail('No such person.');
   noteMemberLoss(w, p, 'sacked', gang.name);
   defect(w, gang, personId);
+  p.sackedWeek = w.week;
   // defect() already applied the original's leaving-the-gang hostility.
   opinionSet(p, gangId, Math.min(-40, (p.opinion[gangId] ?? 0) - 40), NO_ORIGINAL_CHANNEL);
   return ok(`${p.name} is back on the street.`);

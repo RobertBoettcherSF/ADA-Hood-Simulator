@@ -206,6 +206,8 @@ export interface Person {
   /** Set for kidnapped prisoners: how much they will still divulge. */
   interrogationValue: number;
   capturedBy: ID | null;
+  /** 1.2.74 (Robert, point 2): the week a gang last sacked him (the top-up leaves him be for a while). */
+  sackedWeek?: number;
   /** Live order given directly on the street during the working week. */
   streetOrder: {
     type: 'kill' | 'assault' | 'tail' | 'goTo';

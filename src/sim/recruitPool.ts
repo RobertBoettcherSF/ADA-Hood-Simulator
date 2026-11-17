@@ -40,9 +40,12 @@ import { noteHireLine } from './hireLog';
 
 /** 1.2.73 (Robert, point 2, proposed): idle people moved to each hiring place a week. */
 export const HIRE_PLACE_MOVES_PER_WEEK = 1;
+/** 1.2.74 (Robert, point 2, proposed): weeks after a sack before the top-up moves the man to a hiring place. */
+export const SACK_TOPUP_WAIT_WEEKS = 8;
 
 /** Gangless, free and standing nowhere — e.g. a man just sacked or released. */
-function idleFree(p: Person, role: PersonRole): boolean {
+function idleFree(w: WorldState, p: Person, role: PersonRole): boolean {
+  if (p.sackedWeek != null && w.week - p.sackedWeek < SACK_TOPUP_WAIT_WEEKS) return false;
   return p.gangId == null && p.status === 'active' && p.role === role && p.buildingId == null && p.employedBy == null
     && p.capturedBy == null && p.orderId == null && !p.fbiAssignment;
 }
@@ -128,7 +131,7 @@ export function replenishOriginalRecruits(w: WorldState, rng: Rng): number {
   }
   let added = 0;
   let wantBusiness = needsBusinessHood(w);
-  const idle = peopleList(w).filter((p) => idleFree(p, p.role));
+  const idle = peopleList(w).filter((p) => idleFree(w, p, p.role));
   for (const b of buildingList(w)) {
     const quota = recruitQuota(b);
     if (!quota || !serving(b)) continue;
@@ -157,7 +160,7 @@ function replenishStreetRecruits(w: WorldState, rng: Rng): number {
   const prefer = preferHeritage(w);
   let added = 0;
   let wantBusiness = needsBusinessHood(w);
-  const idle = peopleList(w).filter((p) => idleFree(p, p.role));
+  const idle = peopleList(w).filter((p) => idleFree(w, p, p.role));
   for (const b of buildingList(w)) {
     if (b.state === 'destroyed') continue;
     const role = BUILDING_BY_ID[b.typeId]?.recruit;

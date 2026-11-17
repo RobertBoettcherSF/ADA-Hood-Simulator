@@ -65,6 +65,7 @@ export function shapePerson(o: Person): Person {
     diedWeek: o.diedWeek,
     interrogationValue: o.interrogationValue,
     capturedBy: o.capturedBy,
+    sackedWeek: o.sackedWeek,
     underFireUntil: o.underFireUntil,
     underFireBy: o.underFireBy,
     beatenUntil: o.beatenUntil,

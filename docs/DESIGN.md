@@ -238,6 +238,25 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 10. **Names.** The muscle crew is called the attack crew in every Auto Test and journal line.
 11. **Report header.** The Auto Test report's first line carries the version.
 
+## v1.2.74 decisions
+
+Auto counts every loss, stops rehiring the men it let go, keeps crews working around a lying-low lieutenant, pulls its hit crews back from a losing exchange, and gives buys and hits only when they can finish. New numbers are proposed constants (`src/app/autoTest.ts`, `src/app/autoBusiness.ts`, `src/app/strategy.ts`, `src/sim/recruitPool.ts`).
+
+1. Every loss event is counted. A man lost a second time is labelled by what happened again ("again: sacked", "again: killed", "again: arrested") instead of every repeat being a re-arrest left out of the count. The summary counts the repeats in the totals and lists them separately; older reports keep their old reading.
+2. No rehiring: a sacked man keeps the reason on Auto's books for `SACK_REASON_WEEKS` (26) when it was a warrant or wanted level, `SACK_SHORT_REASON_WEEKS` (8) when it was pay or surplus. No recruit order goes to a hiring place where such a man stands (a "NOTE recruit" line names him and the place). The game records the week a man was sacked; the weekly top-up does not move him to a hiring place for `SACK_TOPUP_WAIT_WEEKS` (8).
+3. A lieutenant lying low no longer keeps his whole crew in: the crew's other men take a safe order (collects and the like) without him; a dangerous order, or one needing more men than the crew has without him, is held. Replaces v1.2.72 point 4's crew rule.
+4. Under the officers' line only smash-ups and torches are held; intimidation is allowed again. The refuser list no longer grows without end: a refuser no step has reached for `REFUSER_STALE_WEEKS` (8) leaves it, at most `REFUSER_MAX` (40) are kept (oldest go first), and a dropped one stays off extortion for `REFUSER_DROP_WEEKS` (12).
+5. The SUMMARY header shows the build version (it used to show a fixed format label).
+6. Auto's learning score (diary only) adds `WIN_SPEED_BONUS` (3000) × `WIN_SPEED_DECAY` (0.98) ^ the win week, so a sooner win scores more. The game's own score is unchanged.
+7. Alliances: open while several rivals remain, and with one rival left when a firm alliance of the last two ends the game — never with a gang that treats us as the leader (it does not cool toward us). With only win-by-elimination on and one rival left, Auto offers no alliance and goes to war.
+8. While our men killed by rivals over `HIT_PULLBACK_WEEKS` (4) run more than `HIT_PULLBACK_RATIO` (2) to 1 against the rival men we killed (and at least `HIT_PULLBACK_MIN` (4) of ours), no kill or kidnap is given (playing to eliminate).
+9. Playing to eliminate, every sack writes a KILL NOT SACK line, including a man who is not able ("not able (org+int X < median Y)") and the sack price.
+10. KILL RESULT shows both sides: our men by name with their crew and lieutenant (or "a disbanded crew"), and the target with his role, his crew's lieutenant and his gang as far as we have identified them ("unknown" otherwise), and whether the hit ran out of week.
+11. ENDGAME HQ attack: a rival whose boss has been out of reach (set aside, not found, ran out of week, or in custody) for `HQ_BOSS_OUT_WEEKS` (4) ENDGAME weeks, or survived `HQ_BOSS_HITS` (3) of our hits, may have its known HQ attacked; other ENDGAME HQ attacks stay off.
+12. Buys that can finish: the game's estimate × a correction learned per crew role (running average of actual ÷ estimate, prior `TIME_RATIO_PRIOR` (1.5) worth `TIME_RATIO_PRIOR_N` (2) orders, over at most `TIME_RATIO_WINDOW` (12) orders). A buy that ran out of time counts the minutes it used; "nobody was left" and never-started ones teach nothing. Replaces the global ×1.15 / ×0.95 factor. A buy is given only when its corrected minutes fit `BUY_FREE_SHARE` (0.75) of the buying man's free time; the Business crew buys first when it is free.
+13. Hits: the same learned actual ÷ estimate correction, kept per hit type, multiplies the estimate checked against `HIT_WEEK_SHARE`.
+14. KILL RESULT is labelled 1.2.74.
+
 ## v1.2.73 decisions
 
 Free men now go somewhere a recruiter can find them, the under-2-men offer goes to the men nearest the gang, and Auto prices a sack from what a player can see. New numbers are proposed constants (`src/sim/recruitPool.ts`, `src/app/autoTest.ts`).

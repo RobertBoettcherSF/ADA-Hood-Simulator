@@ -22,7 +22,7 @@ export const MOVE_REFUSED_WEEKS = 4;
 /** Weeks between rival-HQ strikes. */
 export const HQ_STRIKE_GAP = 4;
 
-export interface PendingBuy { orderId: number; buildingId: number; teamId: number; type: string; estimate: number; free: number; week: number }
+export interface PendingBuy { orderId: number; buildingId: number; teamId: number; type: string; estimate: number; free: number; week: number; /** 1.2.74: the crew's role, the key its minutes correction is learned under. */ crewKey?: string }
 
 export interface DeskMemory {
   /** Failures per target building (for the log). */
@@ -37,6 +37,31 @@ export interface DeskMemory {
   timeFails?: Map<string, number>;
   /** 1.2.69: buildingId → time failures (any crew) and the last week. */
   siteTimeFails?: Map<number, { n: number; last: number }>;
+  /** 1.2.74 (Robert, points 12-13): running average of actual ÷ the game's estimate, by key ("buy:<crew role>", "hit:kill"). */
+  timeRatios?: Map<string, { sum: number; n: number }>;
+}
+
+/** 1.2.74 (Robert, point 12), proposed: the correction a key starts from, and the weight (orders) of that prior. */
+export const TIME_RATIO_PRIOR = 1.5;
+export const TIME_RATIO_PRIOR_N = 2;
+/** 1.2.74, proposed: the running average keeps at most this many orders' worth of weight (older ones fade). */
+export const TIME_RATIO_WINDOW = 12;
+
+/** 1.2.74 (Robert, points 12-13): one finished order's actual ÷ estimate joins its key's running average. */
+export function noteTimeRatio(m: DeskMemory, key: string, ratio: number): void {
+  if (!Number.isFinite(ratio) || ratio <= 0) return;
+  const r = Math.min(10, ratio);
+  const map = m.timeRatios ??= new Map();
+  const cur = map.get(key) ?? { sum: 0, n: 0 };
+  if (cur.n >= TIME_RATIO_WINDOW) { cur.sum *= (TIME_RATIO_WINDOW - 1) / cur.n; cur.n = TIME_RATIO_WINDOW - 1; }
+  cur.sum += r; cur.n += 1;
+  map.set(key, cur);
+}
+
+/** 1.2.74: the learned correction for a key (the prior until orders of that kind have finished). */
+export function timeFactor(m: DeskMemory, key: string): number {
+  const cur = m.timeRatios?.get(key);
+  return Math.round(((cur?.sum ?? 0) + TIME_RATIO_PRIOR * TIME_RATIO_PRIOR_N) / ((cur?.n ?? 0) + TIME_RATIO_PRIOR_N) * 100) / 100;
 }
 
 const memories = new WeakMap<WorldState, DeskMemory>();
@@ -60,23 +85,29 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
       (p.type === 'buyPremises' && b?.ownerGangId === gang.id) ||
       (p.type === 'setUpBusiness' && b?.ownerGangId === gang.id && b.cls !== 'empty');
     const label = `${p.type === 'buyPremises' ? 'buy' : 'set up'} ${b?.typeId ?? p.buildingId} (building ${p.buildingId})`;
+    const key = `buy:${p.crewKey ?? 'any'}`;
+    // 1.2.74 (Robert, point 12): the minutes it really took ÷ the game's estimate join the crew
+    // type's running average (replaces the ×0.95 / ×1.15 global factor). An order that ran out of
+    // time counts what it used (a lower bound); "nobody was left" and never-started ones teach nothing.
+    const why = done?.failReason ?? (done ? 'nothing done' : 'never finished in the week');
+    const used = done && done.startedMinute != null && done.finishedMinute != null ? done.finishedMinute - done.startedMinute : null;
+    const learns = used != null && used > 0 && p.estimate > 0 && !/nobody|never started/i.test(why) && (ok || /time/i.test(why));
+    if (learns) noteTimeRatio(m, key, used! / p.estimate);
+    m.ratio = timeFactor(m, key);
     if (ok) {
       m.fails.delete(p.buildingId);
       m.siteTimeFails?.delete(p.buildingId);
-      m.ratio = Math.max(1.2, Math.round(m.ratio * 0.95 * 100) / 100);
-      out.push(`NOTE business: ${label} done (estimate ${hm(p.estimate)} of ${hm(p.free)} free; minutes factor now ×${m.ratio})`);
+      out.push(`NOTE business: ${label} done (estimate ${hm(p.estimate)}${used != null ? `, took ${hm(used)}` : ''} of ${hm(p.free)} free; ${key} correction now ×${m.ratio}, 1.2.74)`);
       continue;
     }
     const n = (m.fails.get(p.buildingId) ?? 0) + 1;
     m.fails.set(p.buildingId, n);
-    m.ratio = Math.min(5, Math.round(m.ratio * 1.15 * 100) / 100);
-    const why = done?.failReason ?? (done ? 'nothing done' : 'never finished in the week');
     if (/time/i.test(why)) {
       (m.timeFails ??= new Map()).set(`${p.teamId}:${p.buildingId}`, w.week);
       const s = (m.siteTimeFails ??= new Map()).get(p.buildingId);
       m.siteTimeFails.set(p.buildingId, { n: (s?.n ?? 0) + 1, last: w.week });
     }
-    out.push(`NOTE business: ${label} failed (${why}); failure ${n}, minutes factor now ×${m.ratio}`);
+    out.push(`NOTE business: ${label} failed (${why}); failure ${n}, ${key} correction ${learns ? 'now' : 'unchanged'} ×${m.ratio} (1.2.74)`);
   }
   m.pending = [];
   for (const [key, week] of m.refusedMoves) if (w.week - week >= MOVE_REFUSED_WEEKS) m.refusedMoves.delete(key);

@@ -3689,6 +3689,19 @@
           }
         ],
         [
+          "sackedWeek",
+          {
+            "optional": true,
+            "shape": {
+              "union": [
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        ],
+        [
           "streetOrder",
           {
             "optional": false,

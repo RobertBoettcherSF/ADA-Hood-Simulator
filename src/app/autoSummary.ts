@@ -23,13 +23,14 @@ const money = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`;
 const bump = (m: Map<string, number>, k: string, n = 1) => m.set(k, (m.get(k) ?? 0) + n);
 const list = (m: Map<string, number>, n = Infinity) => [...m].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, n).map(([k, v]) => `${k} ×${v}`).join(', ');
 
-export function summaryBlock(opts: { lines: readonly string[]; weeks: readonly SummaryWeek[]; from: number; to: number; outcome: string }): string[] {
+export function summaryBlock(opts: { build?: string; lines: readonly string[]; weeks: readonly SummaryWeek[]; from: number; to: number; outcome: string }): string[] {
   const { lines, weeks } = opts;
   let week = opts.from;
   const managers = new Map<number, number>(), reserve = new Map<number, number>();
   const noCrew: number[] = [];
   const rival = new Map<string, number>(), fbi = new Map<string, number>(), other = new Map<string, number>();
   let policeStreet = 0, policeScene = 0, sacked = 0, reArrests = 0;
+  const again = new Map<string, number>();
   const peak = { fbi: [0, 0], fbiScore: [0, 0], wanted: [0, 0], chief: [Infinity, 0], mayor: [Infinity, 0], idle: [0, 0], free: [-Infinity, 0] };
   const exec = { put: 0, given: 0, done: 0, partly: 0, notDone: 0, notGiven: 0, carried: 0, approved: 0 };
   const reasons = new Map<string, number>();
@@ -51,7 +52,11 @@ export function summaryBlock(opts: { lines: readonly string[]; weeks: readonly S
     }
     if (line.startsWith('FAIL orders — no crew')) { if (!noCrew.includes(week)) noCrew.push(week); continue; }
     if (line.startsWith('LOST ')) {
+      // Reports before 1.2.74 marked a man's later losses and left them out of the count.
       if (/\(re-arrest — already counted\)/.test(line)) { reArrests++; continue; }
+      // 1.2.74 (Robert, point 1): every loss event counts; repeats are also listed by cause.
+      const ag = /\(again: ([^)]+)\)$/.exec(line);
+      if (ag) bump(again, ag[1]);
       const m = /^LOST .*? — (.*?) \[([^\]]+)\]/.exec(line);
       if (!m) continue;
       const [, cause, by] = m;
@@ -96,7 +101,8 @@ export function summaryBlock(opts: { lines: readonly string[]; weeks: readonly S
     }
   }
   const inRange = weeks.filter((x) => x.week >= opts.from && x.week <= opts.to + 1);
-  const out: string[] = [`SUMMARY (1.2.59) weeks ${opts.from}–${opts.to}: ${opts.outcome}`];
+  // 1.2.74 (Robert, point 5): the header names the build the file came from.
+  const out: string[] = [`SUMMARY ${opts.build ? `${opts.build} ` : ''}weeks ${opts.from}–${opts.to}: ${opts.outcome}`];
   // Timeline every SUMMARY_EVERY weeks, plus the last.
   const sample = inRange.filter((x, i) => x.week % SUMMARY_EVERY === 0 || i === inRange.length - 1);
   const near = (m: Map<number, number>, wk: number) => { let best: number | undefined; for (const [k, v] of m) if (k <= wk) best = v; return best; };
@@ -111,7 +117,7 @@ export function summaryBlock(opts: { lines: readonly string[]; weeks: readonly S
   out.push(`SUMMARY slow stretches (${SLOW_WEEKS}+ weeks under ${SLOW_GAIN} blocks gained a week): ${slow.length ? slow.join('; ') : 'none'}; no-crew weeks: ${noCrew.length ? noCrew.join(', ') : 'none'}`);
   const rivalN = [...rival.values()].reduce((a, b) => a + b, 0), fbiN = [...fbi.values()].reduce((a, b) => a + b, 0);
   out.push(`SUMMARY losses: rival kills ${rivalN}${rival.size ? ` (${list(rival)})` : ''}; police ${policeStreet + policeScene} (street ${policeStreet}, at the scene ${policeScene}); FBI ${fbiN}${fbi.size ? ` (${list(fbi)})` : ''}${other.size ? `; other ${list(other)}` : ''}`);
-  out.push(`SUMMARY not counted as losses: sacked ${sacked}; re-arrests ${reArrests}`);
+  out.push(`SUMMARY not counted as losses: sacked ${sacked}${reArrests ? `; re-arrests ${reArrests} (older report)` : ''}; men lost again (counted above): ${again.size ? list(again) : 'none'}`);
   const pk = (p: number[], label: string) => (Number.isFinite(p[0]) ? `${label} ${p[0]} (w${p[1]})` : `${label} –`);
   out.push(`SUMMARY peaks: ${pk(peak.fbi, 'FBI total')}; ${pk(peak.fbiScore, 'top FBI score')}; ${pk(peak.wanted, 'top wanted')}; lowest ${pk(peak.chief, 'chief')}; lowest ${pk(peak.mayor, 'mayor')}`);
   out.push(`SUMMARY idle cash: peak cash over the reserve ${Number.isFinite(peak.free[0]) ? `${money(peak.free[0])} (w${peak.free[1]})` : '–'}; peak idle in the cash pass ${money(peak.idle[0])} (w${peak.idle[1]})`);

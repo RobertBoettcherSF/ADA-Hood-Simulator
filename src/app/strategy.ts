@@ -146,10 +146,17 @@ export function formatStrategy(strategy: PlayStrategy): string[] {
 }
 
 /** Cash, territory, and men raise it. Heat lowers it. A win or a loss moves it a long way. */
-export function scoreRun(last: { cash: number; territory: number; men: number; heat: number } | undefined, won: boolean | null): number {
+/** 1.2.74 (Robert, point 6), proposed: the learning score's bonus for a win in week 0… */
+export const WIN_SPEED_BONUS = 3000;
+/** …kept this share of itself for every week the win took (the game's own score is unchanged). */
+export const WIN_SPEED_DECAY = 0.98;
+
+export function scoreRun(last: { cash: number; territory: number; men: number; heat: number } | undefined, won: boolean | null, winWeek?: number): number {
   const verdict = won === true ? 500 : won === false ? -500 : 0;
-  if (!last) return verdict;
-  return Math.round(last.cash / 1000 + last.territory * 25 + last.men * 8 - last.heat * 4 + verdict);
+  // 1.2.74 (Robert, point 6): a sooner win scores more in the diary (Auto's own fitness only).
+  const speed = won === true && winWeek != null ? WIN_SPEED_BONUS * Math.pow(WIN_SPEED_DECAY, Math.max(0, winWeek)) : 0;
+  if (!last) return Math.round(verdict + speed);
+  return Math.round(last.cash / 1000 + last.territory * 25 + last.men * 8 - last.heat * 4 + verdict + speed);
 }
 
 export function matchingEntries(diary: Diary, settings: CampaignSettings): DiaryEntry[] {
