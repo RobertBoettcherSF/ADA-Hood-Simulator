@@ -437,6 +437,53 @@ const huntAskMinutes = (actors: Person[]) => Math.round(90 - 60 * huntSharpness(
 /** Minutes spent asking around at one pool hall or gym. */
 const HUNT_MINUTES_PER_STOP = 60;
 
+/** 1.2.75 (Robert, point 13): the first place an order sends its men to (building, person or point). */
+export function orderFirstPos(w: WorldState, order: Order): Vec2 | null {
+  const def = ORDERS[order.type];
+  if (def.target === 'person') {
+    const p = order.targetPersonId != null ? w.people[order.targetPersonId] : null;
+    return p ? p.pos : null;
+  }
+  const b = order.targetBuildingIds.length ? w.buildings[order.targetBuildingIds[0]] : null;
+  if (b) return w.lots[b.lotId].center;
+  if (order.targetPos) return order.targetPos;
+  const blk = order.targetBlockIds?.length ? w.blocks[order.targetBlockIds[0]] : null;
+  return blk ? blk.center : null;
+}
+
+/** 1.2.75 (Robert, point 13): the last place an order leaves its men (its last stop). */
+export function orderEndPos(w: WorldState, order: Order): Vec2 | null {
+  const def = ORDERS[order.type];
+  if (def.target === 'person' || def.target === 'point') return orderFirstPos(w, order);
+  const ids = order.targetBuildingIds;
+  const b = ids.length ? w.buildings[ids[ids.length - 1]] : null;
+  return b ? w.lots[b.lotId].center : orderFirstPos(w, order);
+}
+
+/**
+ * 1.2.75 (Robert, point 13): where a crew's order sets out from. After an earlier order in the
+ * crew's queue (standing orders aside), from that order's last target; for the week's first order,
+ * from the gang's office nearest `first` (the order's first target). Falls back to the office
+ * nearest the lieutenant when the first target is unknown.
+ */
+export function crewStartFor(w: WorldState, team: Team, first: Vec2 | null, orderId?: ID): Vec2 | null {
+  const at = orderId != null ? team.orderIds.indexOf(orderId) : -1;
+  const before = at >= 0 ? team.orderIds.slice(0, at) : team.orderIds.filter((id) => id !== orderId);
+  for (let i = before.length - 1; i >= 0; i--) {
+    const o = w.orders[before[i]];
+    if (!o || o.state === 'cancelled' || ORDERS[o.type].wholeWeek) continue;
+    const end = orderEndPos(w, o);
+    if (end) return end;
+  }
+  const lt = w.people[team.lieutenantId];
+  const office = nearestOffice(w, team.gangId, first ?? lt?.pos ?? w.blocks[0].center);
+  return office ? w.lots[office.lotId].center : null;
+}
+
+export function orderStart(w: WorldState, team: Team, order: Order): Vec2 | null {
+  return crewStartFor(w, team, orderFirstPos(w, order), order.id);
+}
+
 export function estimateMinutes(w: WorldState, team: Team, order: Order): number {
   const def = ORDERS[order.type];
   // A standing order ties up its hoods for the week, not the whole crew: it
@@ -457,11 +504,12 @@ export function estimateMinutes(w: WorldState, team: Team, order: Order): number
 
   let work = def.minutesPerTarget * targets * efficiency;
 
-  // Travel: rough march from the office through the targets.
-  // 1.2.44 (Robert): from the crew's nearest office (the lieutenant's), not the office nearest block 0.
-  const office = nearestOffice(w, order.gangId, w.people[team.lieutenantId]?.pos ?? w.blocks[0].center);
+  // Travel: rough march from the start through the targets.
+  // 1.2.75 (Robert, point 13): the estimate follows the real trip. The crew's first order of the
+  // week sets out from the gang's office nearest that order's first target (as the hoods do at the
+  // start of the week); a later order from the previous queued order's last target.
   let travel = 0;
-  let cur: Vec2 | null = office ? w.lots[office.lotId].center : null;
+  let cur: Vec2 | null = orderStart(w, team, order);
   const list = def.target === 'area' ? order.targetBuildingIds : order.targetBuildingIds.slice(0, 1);
   for (const id of list) {
     const b = w.buildings[id];

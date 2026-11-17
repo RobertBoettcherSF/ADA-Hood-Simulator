@@ -116,14 +116,17 @@ export function settleExec(m: ExecMemory, w: WorldState, cancelledIds: ReadonlyS
  * 1.2.56 (Robert): only orders a crew was given count — an order held back,
  * out of time or on defence is not a failure of the order (it fed on itself).
  */
-export function execChance(m: ExecMemory, type: string, teamId: number | null, siteId: number | null): number {
-  const settled = m.tries.filter((t) => t.type === type && t.end && t.end !== 'not given');
+export function execChance(m: ExecMemory, type: string, teamId: number | null, siteId: number | null, runOut?: number): number {
+  // 1.2.75 (Robert, point 3): for buys and hits the learned run-out chance (out of week, nobody
+  // left, never started) is its own factor; those tries leave the carried-out record.
+  const ranOut = (t: ExecTry) => runOut != null && t.end === 'not carried out' && (t.reason === 'no time' || t.reason === 'men lost mid-order' || t.reason === 'nobody free');
+  const settled = m.tries.filter((t) => t.type === type && t.end && t.end !== 'not given' && !ranOut(t));
   // 1.2.63: a partly done order counts half.
   const rate = (list: ExecTry[], prior: number, n0: number) => (list.filter((t) => t.end === 'carried out').length + 0.5 * list.filter((t) => t.end === 'partly done').length + prior * n0) / (list.length + n0);
   let p = rate(settled, 0.5, 2);
   if (teamId != null) p = rate(settled.filter((t) => t.teamId === teamId), p, EXEC_PRIOR);
   if (siteId != null) p = rate(settled.filter((t) => t.siteId === siteId), p, EXEC_PRIOR);
-  return p;
+  return runOut != null ? p * (1 - Math.max(0, Math.min(1, runOut))) : p;
 }
 
 /** 1.2.56: carried out / failed counts of the given orders of a type (for the Beta draw). */

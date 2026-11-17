@@ -4,8 +4,8 @@
  * which orders the desk gives, the way a careful player would.
  *
  * - Buys and set-ups are given with a minutes estimate that has learned how
- *   far the game's own estimate falls short (an order that never completes
- *   raises it, a completed one lowers it). A target that fits the crew's
+ *   far the game's own estimate falls short (1.2.75: from finished orders
+ *   only; orders that run out feed a separate run-out chance). A target that fits the crew's
  *   free week is chosen. (1.2.54: no ban of a failed target or crew — the
  *   order-completion chance, autoExec.ts, weighs every try instead.)
  * - A crew move refused once (crew full or out of time) is not repeated for
@@ -39,10 +39,13 @@ export interface DeskMemory {
   siteTimeFails?: Map<number, { n: number; last: number }>;
   /** 1.2.74 (Robert, points 12-13): running average of actual ÷ the game's estimate, by key ("buy:<crew role>", "hit:kill"). */
   timeRatios?: Map<string, { sum: number; n: number }>;
+  /** 1.2.75 (Robert, point 3): per order type ("buyPremises", "setUpBusiness", "kill", "kidnap"), given orders that ran out (out of week, nobody left, never started) of all given. */
+  runOuts?: Map<string, { out: number; n: number }>;
 }
 
-/** 1.2.74 (Robert, point 12), proposed: the correction a key starts from, and the weight (orders) of that prior. */
-export const TIME_RATIO_PRIOR = 1.5;
+/** 1.2.74 (Robert, point 12), proposed: the correction a key starts from, and the weight (orders) of that prior.
+ *  1.2.75 (Robert, point 3), proposed: prior 1.0 (the game's estimate), learned from finished orders only. */
+export const TIME_RATIO_PRIOR = 1.0;
 export const TIME_RATIO_PRIOR_N = 2;
 /** 1.2.74, proposed: the running average keeps at most this many orders' worth of weight (older ones fade). */
 export const TIME_RATIO_WINDOW = 12;
@@ -62,6 +65,32 @@ export function noteTimeRatio(m: DeskMemory, key: string, ratio: number): void {
 export function timeFactor(m: DeskMemory, key: string): number {
   const cur = m.timeRatios?.get(key);
   return Math.round(((cur?.sum ?? 0) + TIME_RATIO_PRIOR * TIME_RATIO_PRIOR_N) / ((cur?.n ?? 0) + TIME_RATIO_PRIOR_N) * 100) / 100;
+}
+
+/** 1.2.75 (Robert, point 3), proposed: the chance an order runs out starts at 20%, weighted as 10 orders. */
+export const RUN_OUT_PRIOR = 0.2;
+export const RUN_OUT_PRIOR_N = 10;
+/** 1.2.75, proposed: the run-out record keeps at most this many orders' weight (older ones fade). */
+export const RUN_OUT_WINDOW = 30;
+
+/** 1.2.75 (Robert, point 3): an order that ran out (out of week, nobody left, never started) or not. */
+export function noteRunOut(m: DeskMemory, type: string, ranOut: boolean): void {
+  const map = m.runOuts ??= new Map();
+  const cur = map.get(type) ?? { out: 0, n: 0 };
+  if (cur.n >= RUN_OUT_WINDOW) { cur.out *= (RUN_OUT_WINDOW - 1) / cur.n; cur.n = RUN_OUT_WINDOW - 1; }
+  cur.out += ranOut ? 1 : 0; cur.n += 1;
+  map.set(type, cur);
+}
+
+/** 1.2.75 (Robert, point 3): the learned chance an order of this type runs out. */
+export function runOutChance(m: DeskMemory, type: string): number {
+  const cur = m.runOuts?.get(type);
+  return ((cur?.out ?? 0) + RUN_OUT_PRIOR * RUN_OUT_PRIOR_N) / ((cur?.n ?? 0) + RUN_OUT_PRIOR_N);
+}
+
+/** 1.2.75 (Robert, point 3): a fail reason that means the order ran out (week, men or start), not that it was done slowly. */
+export function isRunOut(why: string): boolean {
+  return /not enough time in the week|ran out of week|searched all week|never finished in the week|nobody was left|never started|no time/i.test(why);
 }
 
 const memories = new WeakMap<WorldState, DeskMemory>();
@@ -87,17 +116,20 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
     const label = `${p.type === 'buyPremises' ? 'buy' : 'set up'} ${b?.typeId ?? p.buildingId} (building ${p.buildingId})`;
     const key = `buy:${p.crewKey ?? 'any'}`;
     // 1.2.74 (Robert, point 12): the minutes it really took ÷ the game's estimate join the crew
-    // type's running average (replaces the ×0.95 / ×1.15 global factor). An order that ran out of
-    // time counts what it used (a lower bound); "nobody was left" and never-started ones teach nothing.
+    // type's running average. 1.2.75 (Robert, point 3): finished orders only — one that ran out
+    // (out of week, nobody left, never started) does not move the correction; it feeds the type's
+    // run-out chance instead, which the execution chance uses.
     const why = done?.failReason ?? (done ? 'nothing done' : 'never finished in the week');
     const used = done && done.startedMinute != null && done.finishedMinute != null ? done.finishedMinute - done.startedMinute : null;
-    const learns = used != null && used > 0 && p.estimate > 0 && !/nobody|never started/i.test(why) && (ok || /time/i.test(why));
+    const ranOut = !ok && isRunOut(why);
+    noteRunOut(m, p.type, ranOut);
+    const learns = ok && used != null && used > 0 && p.estimate > 0;
     if (learns) noteTimeRatio(m, key, used! / p.estimate);
     m.ratio = timeFactor(m, key);
     if (ok) {
       m.fails.delete(p.buildingId);
       m.siteTimeFails?.delete(p.buildingId);
-      out.push(`NOTE business: ${label} done (estimate ${hm(p.estimate)}${used != null ? `, took ${hm(used)}` : ''} of ${hm(p.free)} free; ${key} correction now ×${m.ratio}, 1.2.74)`);
+      out.push(`NOTE business: ${label} done (estimate ${hm(p.estimate)}${used != null ? `, took ${hm(used)}` : ''} of ${hm(p.free)} free; ${key} correction now ×${m.ratio}, 1.2.75)`);
       continue;
     }
     const n = (m.fails.get(p.buildingId) ?? 0) + 1;
@@ -107,7 +139,7 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
       const s = (m.siteTimeFails ??= new Map()).get(p.buildingId);
       m.siteTimeFails.set(p.buildingId, { n: (s?.n ?? 0) + 1, last: w.week });
     }
-    out.push(`NOTE business: ${label} failed (${why}); failure ${n}, ${key} correction ${learns ? 'now' : 'unchanged'} ×${m.ratio} (1.2.74)`);
+    out.push(`NOTE business: ${label} failed (${why}); failure ${n}, ${key} correction ${learns ? 'now' : 'unchanged'} ×${m.ratio}${ranOut ? `; ran out — ${p.type} run-out chance now ${Math.round(runOutChance(m, p.type) * 100)}%` : ''} (1.2.75)`);
   }
   m.pending = [];
   for (const [key, week] of m.refusedMoves) if (w.week - week >= MOVE_REFUSED_WEEKS) m.refusedMoves.delete(key);
