@@ -51,6 +51,9 @@ export function execReason(error: string): ExecReason {
   if (/nobody worth hiring|nobody new was willing/i.test(error)) return 'no recruits found';
   if (/refused your protection|already pays somebody|no longer available to extort/i.test(error)) return 'shop refused';
   if (/lying low|lies low|off heavy/i.test(error)) return 'lying low';
+  // 1.2.77 (Robert, point 14): the desk's own holds first — a "held back" whose reason names a defence
+  // loss or a rival block was counted 'on defence'; one for a week too short counts as 'no time'.
+  if (/^held back/i.test(error.trim())) return /would not finish|out of reach|week's time/i.test(error) ? 'no time' : 'held back';
   if (/defence|rival-held|rival block/i.test(error)) return 'on defence';
   if (/wanted|rest line|hurt|warrant/i.test(error)) return 'crew at rest';
   if (/no crew|nobody else buys|business crew|patrols/i.test(error)) return 'no crew took it';

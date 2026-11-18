@@ -22,7 +22,7 @@ export const MOVE_REFUSED_WEEKS = 4;
 /** Weeks between rival-HQ strikes. */
 export const HQ_STRIKE_GAP = 4;
 
-export interface PendingBuy { orderId: number; buildingId: number; teamId: number; type: string; estimate: number; free: number; week: number; /** 1.2.74: the crew's role, the key its minutes correction is learned under. */ crewKey?: string }
+export interface PendingBuy { orderId: number; buildingId: number; teamId: number; type: string; estimate: number; free: number; week: number; /** 1.2.74: the crew's role, the key its minutes correction is learned under. */ crewKey?: string; /** 1.2.77: its corrected minutes ÷ the free time it was planned into (the run-out band). */ load?: number }
 
 export interface DeskMemory {
   /** Failures per target building (for the log). */
@@ -72,20 +72,38 @@ export const RUN_OUT_PRIOR = 0.2;
 export const RUN_OUT_PRIOR_N = 10;
 /** 1.2.75, proposed: the run-out record keeps at most this many orders' weight (older ones fade). */
 export const RUN_OUT_WINDOW = 30;
+/** 1.2.77 (Robert, point 8), proposed: the run-out chance is also learned by how much of the free time the
+ *  order was planned to take — bands below 0.5, 0.5 to 0.8, and above 0.8. */
+export const RUN_OUT_LOAD_BANDS = [0.5, 0.8] as const;
+export function loadBand(load: number): string {
+  return load < RUN_OUT_LOAD_BANDS[0] ? 'low' : load < RUN_OUT_LOAD_BANDS[1] ? 'mid' : 'high';
+}
 
 /** 1.2.75 (Robert, point 3): an order that ran out (out of week, nobody left, never started) or not. */
-export function noteRunOut(m: DeskMemory, type: string, ranOut: boolean): void {
+export function noteRunOut(m: DeskMemory, type: string, ranOut: boolean, load?: number): void {
   const map = m.runOuts ??= new Map();
-  const cur = map.get(type) ?? { out: 0, n: 0 };
-  if (cur.n >= RUN_OUT_WINDOW) { cur.out *= (RUN_OUT_WINDOW - 1) / cur.n; cur.n = RUN_OUT_WINDOW - 1; }
-  cur.out += ranOut ? 1 : 0; cur.n += 1;
-  map.set(type, cur);
+  const keys = load != null && Number.isFinite(load) ? [type, `${type}@${loadBand(load)}`] : [type];
+  for (const key of keys) {
+    const cur = map.get(key) ?? { out: 0, n: 0 };
+    if (cur.n >= RUN_OUT_WINDOW) { cur.out *= (RUN_OUT_WINDOW - 1) / cur.n; cur.n = RUN_OUT_WINDOW - 1; }
+    cur.out += ranOut ? 1 : 0; cur.n += 1;
+    map.set(key, cur);
+  }
 }
 
 /** 1.2.75 (Robert, point 3): the learned chance an order of this type runs out. */
-export function runOutChance(m: DeskMemory, type: string): number {
+export function runOutChance(m: DeskMemory, type: string, load?: number): number {
   const cur = m.runOuts?.get(type);
-  return ((cur?.out ?? 0) + RUN_OUT_PRIOR * RUN_OUT_PRIOR_N) / ((cur?.n ?? 0) + RUN_OUT_PRIOR_N);
+  const typeP = ((cur?.out ?? 0) + RUN_OUT_PRIOR * RUN_OUT_PRIOR_N) / ((cur?.n ?? 0) + RUN_OUT_PRIOR_N);
+  // 1.2.77 (Robert, point 8): by the planned load's band, with the type's own chance as its prior.
+  if (load == null || !Number.isFinite(load)) return typeP;
+  const band = m.runOuts?.get(`${type}@${loadBand(load)}`);
+  return ((band?.out ?? 0) + typeP * RUN_OUT_PRIOR_N) / ((band?.n ?? 0) + RUN_OUT_PRIOR_N);
+}
+
+/** 1.2.77 (point 8): the run-out chance by band for the report. */
+export function runOutBands(m: DeskMemory, type: string): string {
+  return (['low', 'mid', 'high'] as const).map((b) => { const c = m.runOuts?.get(`${type}@${b}`); return `${b} ${c ? `${(c.out).toFixed(1)}/${c.n.toFixed(0)}` : '–'}`; }).join(', ');
 }
 
 /** 1.2.75 (Robert, point 3): a fail reason that means the order ran out (week or start), not that it was done slowly.
@@ -124,9 +142,13 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
     const why = done?.failReason ?? (done ? 'nothing done' : 'never finished in the week');
     const used = done && done.startedMinute != null && done.finishedMinute != null ? done.finishedMinute - done.startedMinute : null;
     const ranOut = !ok && isRunOut(why);
-    noteRunOut(m, p.type, ranOut);
+    noteRunOut(m, p.type, ranOut, p.load);
     const learns = ok && used != null && used > 0 && p.estimate > 0;
     if (learns) noteTimeRatio(m, key, used! / p.estimate);
+    // 1.2.77 (Robert, point 8): a buy that ran out of week is not dropped from the time correction — it
+    // took at least the free time it was given (a censored record; it can only raise the correction).
+    const censored = !ok && ranOut && /time|week/i.test(why) && p.free > 0 && p.estimate > 0;
+    if (censored) noteTimeRatio(m, key, Math.max(p.free / p.estimate, timeFactor(m, key)));
     m.ratio = timeFactor(m, key);
     if (ok) {
       m.fails.delete(p.buildingId);
@@ -141,7 +163,7 @@ export function reviewBuys(w: WorldState, gang: Gang, m: DeskMemory): string[] {
       const s = (m.siteTimeFails ??= new Map()).get(p.buildingId);
       m.siteTimeFails.set(p.buildingId, { n: (s?.n ?? 0) + 1, last: w.week });
     }
-    out.push(`NOTE business: ${label} failed (${why}); failure ${n}, ${key} correction ${learns ? 'now' : 'unchanged'} ×${m.ratio}${ranOut ? `; ran out — ${p.type} run-out chance now ${Math.round(runOutChance(m, p.type) * 100)}%` : ''} (1.2.75)`);
+    out.push(`NOTE business: ${label} failed (${why}); failure ${n}, ${key} correction ${learns ? 'now' : censored ? 'now (ran out: counted as at least its free time, 1.2.77)' : 'unchanged'} ×${m.ratio}${ranOut ? `; ran out — ${p.type} run-out chance now ${Math.round(runOutChance(m, p.type) * 100)}%` : ''} (1.2.75)`);
   }
   m.pending = [];
   for (const [key, week] of m.refusedMoves) if (w.week - week >= MOVE_REFUSED_WEEKS) m.refusedMoves.delete(key);

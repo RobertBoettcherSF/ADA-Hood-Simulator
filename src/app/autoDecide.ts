@@ -2,6 +2,7 @@ import type { ApiResult, IssueOrderInput } from '../sim/api';
 import type { CrewRole } from './autoActions';
 import type { VictoryGoal } from './autoGoals';
 import { hm } from '../sim/timeFormat';
+import { unifiedWhy, type UnifiedValue } from './autoValue';
 
 /**
  * 1.2.23: Auto Test's one weekly decision loop. Every part of the planning desk
@@ -60,6 +61,8 @@ export interface CrewSlot<T> {
   businessOnly?: boolean;
   /** 1.2.41: other work a business-only crew takes this week (protection collecting when there is no cash to buy). */
   alsoTakes?: (p: Proposal<T>) => boolean;
+  /** 1.2.77 (Robert, point 9): in war posture the attack crews take violence and defence (safety) only. */
+  violenceOnly?: boolean;
 }
 
 export interface Decision { label: string; crew?: string; score: number; line: string; /** 1.2.45: why a skipped proposal was not given (lines sharing one are merged in the report). */ reason?: string }
@@ -97,21 +100,24 @@ export function decideWeek<T>(
   heat?: (p: Proposal<T>) => number,
   /** 1.2.56 (Robert): exploration — true to give an order its heat would hold back (a weighted coin in a close call, or a trial of an order type not tried for weeks). */
   explore?: (p: Proposal<T>, worth: number, heat: number) => boolean,
+  /** 1.2.77 (Robert, point 13): the unified value per crew hour, which ranks the proposals (first and tier still go ahead). */
+  unified?: (p: Proposal<T>, chance: number, heat: number) => UnifiedValue | null,
 ): { given: Decision[]; skipped: Decision[] } {
   const given: Decision[] = [], skipped: Decision[] = [];
-  const ranked = proposals.map((p, i) => { const c = chance ? chance(p) : 1; const h = heat ? heat(p) : 0; return { p, i, c, h, score: Math.round(scoreOf(goal, p) * c - h) }; }).sort((a, b) => Number(!!b.p.first) - Number(!!a.p.first) || (b.p.tier ?? 0) - (a.p.tier ?? 0) || b.score - a.score || a.i - b.i);
-  for (const { p, c, h, score } of ranked) {
+  const ranked = proposals.map((p, i) => { const c = chance ? chance(p) : 1; const h = heat ? heat(p) : 0; const u = unified ? unified(p, c, h) : null; return { p, i, c, h, u, score: Math.round(scoreOf(goal, p) * c - h) }; })
+    .sort((a, b) => Number(!!b.p.first) - Number(!!a.p.first) || (b.p.tier ?? 0) - (a.p.tier ?? 0) || (a.u && b.u ? b.u.perHour - a.u.perHour : 0) || b.score - a.score || a.i - b.i);
+  for (const { p, c, h, u, score } of ranked) {
     // 1.2.25 (Robert's rule): the business crew takes business work only.
     // 1.2.54 (Robert): any crew may buy — the business crew is offered it
     // first (its job), another crew only when the buy pays at least its own
     // work per man-minute (checked where the order is issued).
-    const allowed = (s: CrewSlot<T>) => p.kind === 'business' || !s.businessOnly || !!s.alsoTakes?.(p);
+    const allowed = (s: CrewSlot<T>) => (p.kind === 'business' || !s.businessOnly || !!s.alsoTakes?.(p)) && (!s.violenceOnly || p.kind === 'violence' || p.kind === 'safety');
     const slots = p.teams
       ? p.teams.map((t) => crews.find((c) => c.team === t)).filter((c): c is CrewSlot<T> => !!c && allowed(c))
       : crews.filter(allowed).sort((a, b) => Number(b.role === p.role && p.role != null) - Number(a.role === p.role && p.role != null) || b.free() - a.free());
     const open = slots.filter((c) => c.free() >= (p.minFree ?? MIN_FREE_MINUTES));
     const weight = kindWeight(goal, p.kind);
-    const why = `score ${score} = value ${Math.round(p.value)} × ${goal} weight ${weight} for ${p.kind}${chance ? ` × chance ${c.toFixed(2)} carried out` : ''}${h > 0 ? ` − heat $${Math.round(h)}` : ''}${p.why ? ` — ${p.why}` : ''}`;
+    const why = `score ${score} = value ${Math.round(p.value)} × ${goal} weight ${weight} for ${p.kind}${chance ? ` × chance ${c.toFixed(2)} carried out` : ''}${h > 0 ? ` − heat $${Math.round(h)}` : ''}${u ? `; unified ${unifiedWhy(u)}` : ''}${p.why ? ` — ${p.why}` : ''}`;
     // 1.2.55 (Robert): heat priced above the order's worth — not given (no lie-low rule).
     if (h > 0 && score <= 0 && !p.first && !(explore && explore(p, score + h, h))) {
       const none = 'held back — its heat costs more than it is worth';

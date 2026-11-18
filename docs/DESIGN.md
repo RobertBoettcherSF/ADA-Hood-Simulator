@@ -240,7 +240,28 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 
 ## Direction: unified action value
 
-Robert's decision (2026-11-17): from 1.2.77 on, each version moves Auto toward one unified fitness function — an action's value toward the chosen victory minus its costs, in one currency, per crew hour. It will later become a shared module used by Auto and by all rival gangs. Not implemented yet; 1.2.76 does not change how actions are scored beyond the points below.
+Robert's decision (2026-11-17): from 1.2.77 on, each version moves Auto toward one unified fitness function — an action's value toward the chosen victory minus its costs, in one currency, per crew hour. It will later become a shared module used by Auto and by all rival gangs. Not implemented in 1.2.76; 1.2.77 takes the first step (point 13 below).
+
+## v1.2.77 decisions
+
+The first step toward the unified action value: proposals are ranked by value per crew hour, the lawyer does one job a week, the mayor is bought only while he is worth it and can be kept, and war, kills, buys and recruits are priced on time and seats. New numbers are proposed. Auto reads only what a player can know; REPORT-ONLY lines are never read by Auto.
+
+1. The lawyer does one job a week (the game runs his jobs one after another). Every lawyer spend (chief, mayor, police payroll, a surplus bribe) goes through the cash pass, best return first; once one is booked the others read "not taken: the lawyer's one job this week is …". Court-case bribes of judges and DAs still go first, outside the cash pass. Auto reads last week's job results (LAWYER RESULT) and says why the lawyer cannot buy the mayor when he cannot.
+2. `STREET_ARREST_RATE` 1.0 (proposed, was 0.2).
+3. `OPINION_HORIZON_WEEKS` 12 (proposed, was 8). The lawyer's refusal line is read on the price scale: the official's quoted price against the price at the refusal line (`bribeRefusalPrice`, a helper in sim/officials.ts, no rule change); when the price trend reaches the line within the horizon the bribe is bought now, and the chief no longer waits for the mayor.
+4. When the lawyer cannot buy the mayor, a crew may bribe him (whoever owns him), priced at the crew bribe's chance. Checked in the game: the crew bribe order accepts the mayor — the order only checks the target is not dead, jailed or kidnapped; it costs the amount given (default 300 + 260 × the crew's intelligence), succeeds on intelligence against 0.2 + the official's hostility to us, takes him from any rival and adds 35 opinion; a failure costs 10 opinion. The amount paid does not change the chance.
+5. With an election running, the weeks after it count only by the chance the mayor keeps office: 0.5 + (poll share − 50) ÷ (2 × `POLL_WIN_BAND` 15, proposed), between 0 and 1.
+6. Mayor hold and stop, like the chief's: his benefit × the learned chance a bought mayor is still ours a week later (`MAYOR_HOLD_PRIOR` 0.5, proposed, weight 2); `MAYOR_LOST_STOP` 3 mayor bribes lost within `MAYOR_LOST_WEEKS` 8 stop mayor bribes for `MAYOR_STOP_WEEKS` 4 (all proposed).
+7. The Business crew is a basic crew only when the refound gate allows it, and CREW SWITCH judges only a Business crew that worked a full week in the job.
+8. `BUY_FREE_SHARE` 1.0 (proposed, was 0.75): the time is charged in the value instead. The run-out chance is learned per crew type and per load band (planned minutes ÷ free time; `RUN_OUT_LOAD_BANDS` 0.5 and 0.8, proposed), the type's chance as prior. A buy that ran out of week still teaches the time correction (at least free time ÷ estimate). Report line RUN-OUT.
+9. War posture against a gang at war with us, or one that killed at least `WAR_KILLS_MIN` 4 of ours within `WAR_KILLS_WEEKS` 4 (both proposed): the attack and Expendables crews take violence and defence only, the HQ strike goes first, heavy losses stop retaliation only when the goal is not elimination, and crews with no order and idle pool men on the street are sent home.
+10. Every hit is held only at the full week (`HIT_WEEK_SHARE` removed). An attack or Expendables crew whose hit was held for time last week buys coupes for the men a hit sends (`KILL_CAR_SEATS` 4, proposed) plus one, priced by the minutes a car saves. A crew already leaves from the office nearest its target (game behaviour, unchanged). Report line KILL REACH.
+11. A buy that puts in a manager costs a hire plus `MANAGER_SEAT_WEEKS` 12 (proposed) weeks of a crew seat's value; a recruit is worth the work held last week for want of men, per man.
+12. With every crew full the pool is kept to `POOL_SPARE_MAX` 20 (proposed). With idle cash the HQ search runs for every live rival whose HQ is unknown. Report-only lines ENDGAME LIMIT and MANAGERS TAKEN.
+13. Unified value: each proposal's value (× its weight) less its expected losses and the cash at λ, per crew hour (the game's own time preview, at least `UNIFIED_MIN_HOURS` 1, proposed), ranks the proposals after "first" and tier. The old holds stay. Report line UNIFIED VALUE.
+14. An order the desk held back counts as "no time" when the week was too short and "held back" otherwise, no longer "on defence".
+15. Report-only lines mark our gang "(us)"; new REPORT-ONLY LAWYER JOBS (the lawyer's jobs of the week and how each ended).
+16. The build is labelled 1.2.77.
 
 ## v1.2.76 decisions
 

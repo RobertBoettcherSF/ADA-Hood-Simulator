@@ -63,9 +63,11 @@ export interface CashSpend {
   chance?: number;
   /** 1.2.59 (Robert): no fixed wage-bill veto — the cash fitness (λ at the cash left) alone decides (the mayor's bribe). */
   noFloor?: boolean;
+  /** 1.2.77 (Robert, point 1): a job for the lawyer — he does one a week, the best return taken first. */
+  lawyer?: boolean;
 }
 
-export interface CashPassResult { lines: string[]; spent: number; taken: number; takenSet: Set<CashSpend> }
+export interface CashPassResult { lines: string[]; spent: number; taken: number; takenSet: Set<CashSpend>; /** 1.2.77: the lawyer's one job this week, once booked. */ lawyerBooked: string | null }
 
 /**
  * The one spending pass: best return per dollar first; a spend is taken while
@@ -77,8 +79,9 @@ export interface CashPassResult { lines: string[]; spent: number; taken: number;
  * cost (cost × chance) is held from the cash the next spends see. The wage
  * floor is kept on the full cost of everything taken, in case all of it runs.
  */
-export function runCashPass(spends: CashSpend[], cash: number, R: number, floor: number, avgPay: number, scale: DollarScale): CashPassResult {
+export function runCashPass(spends: CashSpend[], cash: number, R: number, floor: number, avgPay: number, scale: DollarScale, lawyerBooked: string | null = null): CashPassResult {
   const lines: string[] = [];
+  let booked = lawyerBooked;
   let left = cash, worst = cash, spent = 0, taken = 0;
   const takenSet = new Set<CashSpend>();
   const eff = (s: CashSpend) => s.ret * (s.chance ?? 1);
@@ -96,9 +99,12 @@ export function runCashPass(spends: CashSpend[], cash: number, R: number, floor:
     const line = `${s.label} [${s.kind}] $${Math.round(s.cost)} at ${s.ret.toFixed(2)}/$${p < 1 ? ` × chance ${p.toFixed(2)} = ${eff(s).toFixed(2)}` : ''} vs λ ${lambda.toFixed(2)}${below > 0 && below < outlay ? ` ($${Math.round(below)} of it below R)` : ''}`;
     if (!s.noFloor && worst - s.cost < floor) { lines.push(`${line} — not taken: it would put the wage bill at risk`); continue; }
     if (eff(s) < lambda) { lines.push(`${line} — not taken (${s.why})`); continue; }
+    // 1.2.77 (Robert, point 1): one lawyer job a week — the best return (this pass runs best first) or an earlier booking.
+    if (s.lawyer && booked) { lines.push(`${line} — not taken: the lawyer's one job this week is ${booked} (1.2.77)`); continue; }
     if (!s.run()) { lines.push(`${line} — taken but refused by the game (${s.why})`); continue; }
+    if (s.lawyer) booked = s.label;
     left = after; worst -= s.cost; spent += s.cost * p; taken++; takenSet.add(s);
     lines.push(`${line} — taken (${s.why})`);
   }
-  return { lines, spent, taken, takenSet };
+  return { lines, spent, taken, takenSet, lawyerBooked: booked };
 }

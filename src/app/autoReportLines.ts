@@ -10,7 +10,9 @@ import { gangManpower, territoryCount } from '../sim/world';
 import type { Order, Person, WorldState } from '../sim/types';
 
 const op = (p: Person | undefined, gangId: number) => (p ? Math.round(p.opinion[gangId] ?? 0) : 0);
-const owner = (w: WorldState, p: Person | undefined) => (p?.bribedBy != null ? w.gangs[p.bribedBy]?.name ?? `gang ${p.bribedBy}` : 'none');
+/** 1.2.77 (Robert, point 15): our own gang is marked "(us)". */
+const gangName = (w: WorldState, id: number, us?: number) => `${w.gangs[id]?.name ?? `gang ${id}`}${id === us ? ' (us)' : ''}`;
+const owner = (w: WorldState, p: Person | undefined, us?: number) => (p?.bribedBy != null ? gangName(w, p.bribedBy, us) : 'none');
 
 /** OFFICIALS: mayor and chief (owner, opinion of us), judges and DAs (opinion range, owners). */
 export function officialsLine(w: WorldState, gangId: number, week: number): string {
@@ -20,10 +22,10 @@ export function officialsLine(w: WorldState, gangId: number, week: number): stri
     if (!ps.length) return 'none';
     const ops = ps.map((p) => op(p, gangId));
     const owners = new Map<string, number>();
-    for (const p of ps) if (p.bribedBy != null) owners.set(owner(w, p), (owners.get(owner(w, p)) ?? 0) + 1);
+    for (const p of ps) if (p.bribedBy != null) owners.set(owner(w, p, gangId), (owners.get(owner(w, p, gangId)) ?? 0) + 1);
     return `${ps.length}, opinion ${Math.min(...ops)}..${Math.max(...ops)}${owners.size ? `, bought: ${[...owners].map(([k, n]) => `${k} ${n}`).join(', ')}` : ''}`;
   };
-  return `REPORT-ONLY OFFICIALS wk ${week}: mayor ${mayor?.name ?? '?'} (owner ${owner(w, mayor)}, opinion ${op(mayor, gangId)}); chief ${chief?.name ?? '?'} (owner ${owner(w, chief)}, opinion ${op(chief, gangId)}); judges ${group(w.judgeIds ?? [])}; DAs ${group(w.daIds ?? [])}`;
+  return `REPORT-ONLY OFFICIALS wk ${week}: mayor ${mayor?.name ?? '?'} (owner ${owner(w, mayor, gangId)}, opinion ${op(mayor, gangId)}); chief ${chief?.name ?? '?'} (owner ${owner(w, chief, gangId)}, opinion ${op(chief, gangId)}); judges ${group(w.judgeIds ?? [])}; DAs ${group(w.daIds ?? [])}`;
 }
 
 /** TOP-UP and FREE HIRE lines logged since `sinceWeek`, each once (the `shown` set is the run's). */
@@ -59,7 +61,7 @@ export function buyTimingLine(w: WorldState, gangId: number, week: number, roleO
 /** RIVALS: each live rival's men, crews, pool, cash and blocks (the game's figures; Auto never reads this). */
 export function rivalLine(w: WorldState, gangId: number, week: number): string {
   const rivals = Object.values(w.gangs).filter((g) => g.id !== gangId && !g.eliminated);
-  return `REPORT-ONLY RIVALS wk ${week} (Auto never reads this): ${rivals.length ? rivals.map((g) => `${g.name} men ${gangManpower(w, g)}, crews ${g.teamIds.length}, pool ${g.poolIds.length}, cash $${Math.round(g.cash).toLocaleString('en-US')}, blocks ${territoryCount(w, g.id)}`).join('; ') : 'none left'}`;
+  return `REPORT-ONLY RIVALS wk ${week} (Auto never reads this; us: ${gangName(w, gangId)}): ${rivals.length ? rivals.map((g) => `${g.name} men ${gangManpower(w, g)}, crews ${g.teamIds.length}, pool ${g.poolIds.length}, cash $${Math.round(g.cash).toLocaleString('en-US')}, blocks ${territoryCount(w, g.id)}`).join('; ') : 'none left'}`;
 }
 
 /** 1.2.76 (Robert, point 8): OFFICERS — the police officers' opinion of us (all, and those on nobody's payroll), who pays or bought them. */
@@ -72,7 +74,7 @@ export function officersLine(w: WorldState, gangId: number, week: number): strin
   const payers = new Map<string, number>();
   for (const p of ps) {
     const by = p.employedBy ?? p.bribedBy;
-    if (by != null) { const k = w.gangs[by]?.name ?? `gang ${by}`; payers.set(k, (payers.get(k) ?? 0) + 1); }
+    if (by != null) { const k = gangName(w, by, gangId); payers.set(k, (payers.get(k) ?? 0) + 1); }
   }
   return `REPORT-ONLY OFFICERS wk ${week}: ${ps.length}, opinion of us ${Math.min(...ops)}..${Math.max(...ops)} (avg ${avg(ops)}); unpaid ${free.length}, avg ${avg(free)}${payers.size ? `; paid or bought: ${[...payers].map(([k, n]) => `${k} ${n}`).join(', ')}` : '; none paid or bought'}`;
 }
@@ -86,4 +88,12 @@ export function arrestsByCauseLine(w: WorldState, gangId: number, week: number):
   const fbi = ls.filter((l) => l.by === 'the FBI').length;
   const courts = ls.filter((l) => l.by === 'the courts').length;
   return `REPORT-ONLY ARRESTS BY CAUSE wk ${week}: police street ${street}, police scene ${scene}${otherPolice ? `, police other ${otherPolice}` : ''}, FBI ${fbi}, convicted ${courts}`;
+}
+
+/** 1.2.77 (Robert, point 15): LAWYER JOBS — the lawyer's jobs of the week and how each ended (the game's job record). */
+export function lawyerJobsLine(w: WorldState, gangId: number, week: number): string {
+  const jobs = Object.values(w.specialistJobs ?? {}).filter((j) => j.gangId === gangId && j.week === week && j.type !== 'audit');
+  if (!jobs.length) return `REPORT-ONLY LAWYER JOBS wk ${week}: none`;
+  const what = (j: (typeof jobs)[number]) => j.type === 'employPolice' ? `police payroll tour (${j.completed} hired)` : `bribe ${w.people[j.targetPersonId ?? -1]?.name ?? 'an official'} (${w.people[j.targetPersonId ?? -1]?.role ?? '?'})`;
+  return `REPORT-ONLY LAWYER JOBS wk ${week}: ${jobs.length} — ${jobs.map((j) => `${what(j)}: ${j.state}${j.result ? ` — ${j.result}` : ''}`).join('; ')}`;
 }

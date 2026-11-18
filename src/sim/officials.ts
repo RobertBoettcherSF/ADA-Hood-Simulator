@@ -41,6 +41,13 @@ export function bribePrice(w: WorldState, p: Person, gangId: ID): number {
   return Math.round((base + mult * share) / 50) * 50;
 }
 
+/** 1.2.77: the quoted price at which an official stops taking the lawyer's money (the refusal
+ * hostility on the price scale; a case price aside). A player reads it off the rising quotes. */
+export function bribeRefusalPrice(role: Person['role']): number {
+  const row = BRIBE_PRICE[role] ?? BRIBE_PRICE.police;
+  return row.base + row.mult * Math.min(1, BRIBE_REFUSAL_HOSTILITY / 255);
+}
+
 /** The manual: money works unless the official is very hostile towards you. */
 export function refusesBribe(p: Person, gangId: ID): boolean {
   return effectiveHostility(p, gangId) > BRIBE_REFUSAL_HOSTILITY;
