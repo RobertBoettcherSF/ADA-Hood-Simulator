@@ -1,5 +1,5 @@
 import { CRIME_ROW_SUSPICION, FBI_CASE_THRESHOLD, HEAVY_CRIME_SUSPICION, MEMBER_WARRANT_BAR } from '../sim/systems/fbi';
-import { ORDERS } from '../sim/constants';
+import { MINUTES_PER_WEEK, ORDERS } from '../sim/constants';
 import type { OrderType } from '../sim/types';
 
 /**
@@ -84,7 +84,7 @@ export interface HeatState {
 }
 
 export interface HeatMan { id: number; name: string; wanted: number; fbiScore: number; cost: number }
-export interface HeatOrder { type: string; sites: number; heavyEach?: number }
+export interface HeatOrder { type: string; sites: number; heavyEach?: number; /** 1.2.78: the order's minutes on the street (the game's estimate); unknown = the whole week. */ streetMinutes?: number }
 export type HeatMeasure = 'fbi' | 'warrant' | 'wanted' | 'opinion' | 'crackdown' | 'evidence';
 export interface HeatCost { total: number; perMeasure: Record<HeatMeasure, number>; guard: boolean }
 
@@ -346,7 +346,14 @@ export function heatCost(o: HeatOrder, s: HeatState, crew?: HeatMan[]): HeatCost
     if (crimes > 0) {
       const perp = [...crew].sort((a, b) => b.wanted - a.wanted)[0];
       const d = sev * 1.6 * crimes;
-      per.wanted = Math.max(0, overLineChance(perp.wanted + d, s.officer) - overLineChance(perp.wanted, s.officer)) * crew.length * s.A;
+      // 1.2.78 (Robert, point 8): a man already past the street line is not free of risk — he is priced at the
+      // street arrest chance × the order's street hours ÷ the week × A (the crossing alone priced him at $0).
+      if (perp.wanted >= streetLine(s.officer)) {
+        const share = Math.min(1, Math.max(0, o.streetMinutes ?? MINUTES_PER_WEEK) / MINUTES_PER_WEEK);
+        per.wanted = streetRisk(perp.wanted, s.officer) * share * s.A;
+      } else {
+        per.wanted = Math.max(0, overLineChance(perp.wanted + d, s.officer) - overLineChance(perp.wanted, s.officer)) * crew.length * s.A;
+      }
     }
     // A man's FBI score: a heavy crime adds to every man of the crew.
     const each = o.heavyEach ?? ((CRIME_ROW_SUSPICION[o.type] ?? 0) > HEAVY_CRIME_SUSPICION ? CRIME_ROW_SUSPICION[o.type] : 0);

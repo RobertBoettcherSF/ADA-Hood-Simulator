@@ -86,6 +86,19 @@ export function runCashPass(spends: CashSpend[], cash: number, R: number, floor:
   const takenSet = new Set<CashSpend>();
   const eff = (s: CashSpend) => s.ret * (s.chance ?? 1);
   const order = [...spends].sort((a, b) => eff(b) - eff(a) || a.cost - b.cost);
+  // 1.2.78 (Robert, point 5): the lawyer's one job goes to the lawyer spend with the highest net value —
+  // (return × chance − λ) × the expected outlay, λ at the cash left after it alone — among those the pass would approve.
+  let lawyerPick: CashSpend | null = null;
+  if (!booked) {
+    let best = 0;
+    for (const s of spends) {
+      if (!s.lawyer) continue;
+      const out = s.cost * (s.chance ?? 1);
+      if (!s.noFloor && cash - s.cost < floor) continue;
+      const net = (eff(s) - holdValue(cash - out, R, avgPay, scale)) * out;
+      if (net > best) { best = net; lawyerPick = s; }
+    }
+  }
   for (const s of order) {
     const p = s.chance ?? 1;
     const after = left - s.cost * p;
@@ -97,11 +110,12 @@ export function runCashPass(spends: CashSpend[], cash: number, R: number, floor:
       ? ((outlay - below) * holdValue(Math.max(after, R), R, avgPay, scale) + below * holdValue(Math.min(after, R - 1), R, avgPay, scale)) / outlay
       : holdValue(after, R, avgPay, scale);
     const line = `${s.label} [${s.kind}] $${Math.round(s.cost)} at ${s.ret.toFixed(2)}/$${p < 1 ? ` × chance ${p.toFixed(2)} = ${eff(s).toFixed(2)}` : ''} vs λ ${lambda.toFixed(2)}${below > 0 && below < outlay ? ` ($${Math.round(below)} of it below R)` : ''}`;
-    if (!s.noFloor && worst - s.cost < floor) { lines.push(`${line} — not taken: it would put the wage bill at risk`); continue; }
-    if (eff(s) < lambda) { lines.push(`${line} — not taken (${s.why})`); continue; }
+    if (!s.noFloor && worst - s.cost < floor) { if (s === lawyerPick) lawyerPick = null; lines.push(`${line} — not taken: it would put the wage bill at risk`); continue; }
+    if (eff(s) < lambda) { if (s === lawyerPick) lawyerPick = null; lines.push(`${line} — not taken (${s.why})`); continue; }
     // 1.2.77 (Robert, point 1): one lawyer job a week — the best return (this pass runs best first) or an earlier booking.
     if (s.lawyer && booked) { lines.push(`${line} — not taken: the lawyer's one job this week is ${booked} (1.2.77)`); continue; }
-    if (!s.run()) { lines.push(`${line} — taken but refused by the game (${s.why})`); continue; }
+    if (s.lawyer && lawyerPick && s !== lawyerPick) { lines.push(`${line} — not taken: the lawyer's one job goes to ${lawyerPick.label}, the highest net value (1.2.78)`); continue; }
+    if (!s.run()) { if (s === lawyerPick) lawyerPick = null; lines.push(`${line} — taken but refused by the game (${s.why})`); continue; }
     if (s.lawyer) booked = s.label;
     left = after; worst -= s.cost; spent += s.cost * p; taken++; takenSet.add(s);
     lines.push(`${line} — taken (${s.why})`);

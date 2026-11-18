@@ -73,6 +73,20 @@ export const valueRatio = (m: LearnMemory, type: string) => ratioOf(m.value[type
 export const heatRatio = (m: LearnMemory, type: string) => ratioOf(m.heat[type]);
 
 /**
+ * 1.2.78 (Robert, point 2): an expectation settled outside the weekly pass — land bought for a venue is
+ * settled when the venue is set up (its realised profit) or after LAND_SETTLE_WEEKS at $0.
+ */
+export function settleDirect(m: LearnMemory, type: string, exp: number, act: number): void {
+  add(m.value, type, exp, act);
+  add(m.heat, type, 0, 0);
+}
+
+/** 1.2.78 (Robert, point 13): one type's expected and actual sums (report). */
+export function learnSums(m: LearnMemory, type: string): { exp: number; act: number; n: number } | undefined {
+  return m.value[type];
+}
+
+/**
  * Monday: last week's expectations against what the orders brought
  * (outcomes: order id → value and the men it cost, from order fitness).
  * Returns the LEARN line.

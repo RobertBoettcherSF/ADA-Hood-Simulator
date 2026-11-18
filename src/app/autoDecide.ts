@@ -99,7 +99,7 @@ export function decideWeek<T>(
   /** 1.2.55 (Robert): the order's expected heat cost (autoHeat.ts), taken off its score. */
   heat?: (p: Proposal<T>) => number,
   /** 1.2.56 (Robert): exploration — true to give an order its heat would hold back (a weighted coin in a close call, or a trial of an order type not tried for weeks). */
-  explore?: (p: Proposal<T>, worth: number, heat: number) => boolean,
+  explore?: (p: Proposal<T>, worth: number, heat: number, u: UnifiedValue | null) => boolean,
   /** 1.2.77 (Robert, point 13): the unified value per crew hour, which ranks the proposals (first and tier still go ahead). */
   unified?: (p: Proposal<T>, chance: number, heat: number) => UnifiedValue | null,
 ): { given: Decision[]; skipped: Decision[] } {
@@ -119,8 +119,11 @@ export function decideWeek<T>(
     const weight = kindWeight(goal, p.kind);
     const why = `score ${score} = value ${Math.round(p.value)} × ${goal} weight ${weight} for ${p.kind}${chance ? ` × chance ${c.toFixed(2)} carried out` : ''}${h > 0 ? ` − heat $${Math.round(h)}` : ''}${u ? `; unified ${unifiedWhy(u)}` : ''}${p.why ? ` — ${p.why}` : ''}`;
     // 1.2.55 (Robert): heat priced above the order's worth — not given (no lie-low rule).
-    if (h > 0 && score <= 0 && !p.first && !(explore && explore(p, score + h, h))) {
-      const none = 'held back — its heat costs more than it is worth';
+    // 1.2.78 (Robert, point 7): the unified net decides — given above $0, held at or below $0 (no d20);
+    // the old heat-against-score hold only where no unified value could be priced.
+    const held = u ? u.net <= 0 : h > 0 && score <= 0;
+    if (held && !p.first && !(explore && explore(p, score + h, h, u))) {
+      const none = u ? `held back — its unified net $${Math.round(u.net)} is at or below $0 (1.2.78)` : 'held back — its heat costs more than it is worth';
       skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; ${none}`, reason: none });
       p.onSkipped?.();
       continue;

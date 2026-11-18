@@ -97,3 +97,20 @@ export function lawyerJobsLine(w: WorldState, gangId: number, week: number): str
   const what = (j: (typeof jobs)[number]) => j.type === 'employPolice' ? `police payroll tour (${j.completed} hired)` : `bribe ${w.people[j.targetPersonId ?? -1]?.name ?? 'an official'} (${w.people[j.targetPersonId ?? -1]?.role ?? '?'})`;
   return `REPORT-ONLY LAWYER JOBS wk ${week}: ${jobs.length} — ${jobs.map((j) => `${what(j)}: ${j.state}${j.result ? ` — ${j.result}` : ''}`).join('; ')}`;
 }
+
+/**
+ * 1.2.78 (Robert, point 12): report-only — each crew bribe of an official in the week just played:
+ * the official, the sum paid, took or refused, and who owns him after.
+ */
+export function crewBribeResultLine(w: WorldState, gangId: number, week: number): string {
+  const officials = new Set(['mayor', 'policeChief', 'judge', 'da', 'police']);
+  const bribes = w.lastWeekOrders.filter((o) => o.gangId === gangId && o.type === 'bribe' && o.targetPersonId != null && officials.has(w.people[o.targetPersonId]?.role ?? ''));
+  if (!bribes.length) return `REPORT-ONLY CREW BRIBE RESULT wk ${week}: none`;
+  const one = (o: Order) => {
+    const p = w.people[o.targetPersonId!];
+    const text = [...(o.results ?? []), o.failReason ?? ''].join(' ');
+    const end = /took the money/.test(text) ? 'took it' : /refused the money/.test(text) ? 'refused' : o.failReason ? `not done (${o.failReason})` : o.state;
+    return `${p?.name ?? 'an official'} (${p?.role ?? '?'}): paid $${Math.round(o.spent ?? 0)}, ${end}, owner after ${owner(w, p, gangId)}`;
+  };
+  return `REPORT-ONLY CREW BRIBE RESULT wk ${week}: ${bribes.map(one).join('; ')}`;
+}

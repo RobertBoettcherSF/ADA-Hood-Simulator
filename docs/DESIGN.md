@@ -242,6 +242,25 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 
 Robert's decision (2026-11-17): from 1.2.77 on, each version moves Auto toward one unified fitness function — an action's value toward the chosen victory minus its costs, in one currency, per crew hour. It will later become a shared module used by Auto and by all rival gangs. Not implemented in 1.2.76; 1.2.77 takes the first step (point 13 below).
 
+## v1.2.78 decisions
+
+The unified net now decides whether an order is given (the weighted d20 is gone), seats and land are valued on the work they carry, crew bribes pay the game's own sum, and the lawyer's one job goes to the best net value. New numbers are proposed. Auto reads only what a player can know; the report-only lines are never read back.
+
+1. Recruit value: the work held for want of men, per man per week = each held order's value ÷ `LASTING_WEEKS` ÷ the men it needs. Recruits, staff searches and buys held for want of a manager are left out. A seat is worth at most `SEAT_VALUE_MAX_V` 3 × V a week (proposed). A manager costs a hire + `MANAGER_SEAT_WEEKS` 12 × that capped seat value.
+2. Land bought for a venue is learned under its own type, `buyLand`: settled at the venue's realised weekly profit × `LASTING_WEEKS` once the venue is set up on it (the building ours, not empty, with a profit) within `LAND_SETTLE_WEEKS` 4 (proposed), else at $0. A set-up is expected at the venue's full value (profit × `LASTING_WEEKS`). `buyPremises` keeps only the real business buys. The order-completion record of a land buy stays under `buyPremises` (only the value ratio is split).
+3. "Mayor first" zeroes only the lawyer's bribe of the chief; the crews' bribes of the chief (plain, strategy, a rival-owned chief) keep their value.
+4. A crew's bribe of an official gives no amount: the game charges its own sum, 300 + 260 × his intelligence, and Auto prices it at that. The sum does not change the chance, so "outbid" is a plain crew bribe of a chief a rival owns (`CHIEF_OUTBID` removed). Bribes of jurors and witnesses keep their sums.
+5. The lawyer's one weekly job goes to the lawyer spend with the highest net value — (return × chance − λ) × the outlay, λ at the cash left after it alone — among those the cash pass would approve. The others read "not taken: the lawyer's one job goes to …". If the pick is then turned down by the pass or the game, a later lawyer spend may still take the slot.
+6. With an election running and the sitting mayor's keep chance under 0.5, the lawyer may bribe the civic challenger (a judge standing) who leads the public poll, within `CHALLENGER_BRIBE_WEEKS` 6 (proposed) of the vote. It is worth the mayor's value × the share of the horizon after the vote × (1 − the keep chance) × the mayor hold chance, and goes through the cash pass as a lawyer job.
+7. The weighted d20 hold is gone. An order is given when its unified net (value × weight × chance − heat − losses − manager − cash × λ) is above $0, ranked per crew hour, and held at or below $0; where a crew's own heat and defence loss make the order's worth ≤ $0 it is held for that crew. A held order writes a NET line in place of the ROLL line. The trial coin for an order type not given for weeks stays. `first` proposals go ahead.
+8. Wanted: a man already past the street line is priced at the street arrest chance × the order's street hours (the game's estimate; a whole-week order the week) ÷ the week × A, not $0.
+9. HQ strike: no "time used 0 / whole week free" check at proposal. The decision's `first` and `minFree` (a whole week) pick the crew. The warrant-risk value check stays.
+10. CREW SWITCH judges a Business crew only after `BIZ_JUDGE_WEEKS` 2 (proposed) full weeks in the job. While the Business crew has free time for a buy (the buy fits its free man's time, without the `BUY_FREE_SHARE` margin), the buy goes to it before any other crew.
+11. The UNIFIED VALUE line lists priority-marked proposals (urgent staff searches) by name, without their figure, apart from the ranked list.
+12. Report-only CREW BRIBE RESULT line: each crew bribe of an official in the week — official, sum paid, took or refused, owner after.
+13. Report-only LEARN SPLIT line: `buyPremises`, `buyLand` and `setUpBusiness`, expected against actual.
+14. The build is labelled 1.2.78.
+
 ## v1.2.77 decisions
 
 The first step toward the unified action value: proposals are ranked by value per crew hour, the lawyer does one job a week, the mayor is bought only while he is worth it and can be kept, and war, kills, buys and recruits are priced on time and seats. New numbers are proposed. Auto reads only what a player can know; REPORT-ONLY lines are never read by Auto.
