@@ -102,11 +102,15 @@ export function decideWeek<T>(
   explore?: (p: Proposal<T>, worth: number, heat: number, u: UnifiedValue | null) => boolean,
   /** 1.2.77 (Robert, point 13): the unified value per crew hour, which ranks the proposals (first and tier still go ahead). */
   unified?: (p: Proposal<T>, chance: number, heat: number) => UnifiedValue | null,
+  /** 1.2.81 (Robert, point 2): re-prices a proposal's unified value when its turn comes (the marginal manager cost). */
+  reprice?: (p: Proposal<T>, u: UnifiedValue) => UnifiedValue,
 ): { given: Decision[]; skipped: Decision[] } {
   const given: Decision[] = [], skipped: Decision[] = [];
   const ranked = proposals.map((p, i) => { const c = chance ? chance(p) : 1; const h = heat ? heat(p) : 0; const u = unified ? unified(p, c, h) : null; return { p, i, c, h, u, score: Math.round(scoreOf(goal, p) * c - h) }; })
     .sort((a, b) => Number(!!b.p.first) - Number(!!a.p.first) || (b.p.tier ?? 0) - (a.p.tier ?? 0) || (a.u && b.u ? b.u.perHour - a.u.perHour : 0) || b.score - a.score || a.i - b.i);
-  for (const { p, i, c, h, u, score } of ranked) {
+  for (const r0 of ranked) {
+    const { p, i, c, h, score } = r0;
+    const u = r0.u && reprice ? reprice(p, r0.u) : r0.u;
     // 1.2.25 (Robert's rule): the business crew takes business work only.
     // 1.2.54 (Robert): any crew may buy — the business crew is offered it
     // first (its job), another crew only when the buy pays at least its own
