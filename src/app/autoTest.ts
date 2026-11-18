@@ -210,7 +210,7 @@ import { contrabandDraw, CRIME_ROW_SUSPICION, EVADE_TAX_SUSPICION, FBI_CASE_THRE
 import { donationTarget } from '../sim/charity';
 import { fireRate, originalFireOdds, skillByte } from '../sim/fireRoll';
 import { availableSpecialist } from '../sim/specialists';
-import { ALLY_WEEKS_PER_LEVEL, EXPLOSIVES_PER_ATTACK_CREW, KILL_RATE_WEEKS, GOAL_SWITCH_WEEKS, KIND_LEARN_RATE, ASSET_BAND, ASSET_BUY_PER_WEEK, CASE_WEEKS, CASH_TO_ASSETS, ELIMINATE_BAND_MEN, growthOf, HOLD_VOTE_MARGIN, CREW_FILL_MIN, KIND_LEARN_STEP, KIND_LEARN_WEEKS, RACKET_LEARN_MIN, RACKET_LEARN_WEEKS, RACKET_MANAGED_RATE, RACKET_SUPPLY_FLOOR, RAID_REBUILD_WEEKS, STAND_LEAD_WEEKS, STAND_MIN_P, VOTE_BUYS_PER_WEEK, WAREHOUSE_PAYBACK_WEEKS, EXPORT_MIN_CASES, RAID_GOODS_CASES, weeksToEntryClose, ILLEGAL_CLOSE_WEEKS, keepChance, KEPT_LINE, KEPT_RISK_MARGIN, kindScales, LAWYER_HIRE_WEEKS, logistic, NEVER_WEEKS, OFFICE_HOLD_EXPANSION, OFFICE_VOTE_BAND, perUnit, POWER_BAND, RACE_WEEKS_BAND, RIVAL_BLOCK_VOTE_SHARE, RIVAL_POLL_WATCH, STOCK_RATE, trialPoll, WIN_GROWTH_WEEKS, WIN_HORIZON_WEEKS, WIN_MIN, WIN_WEEKS, winValue, weeksToElection, votesToWin, GOODS_TRIAL_WEEKS, GOODS_TRIAL_BARS, FINISH_MEN, HQ_STRIKE_KILLS, ELIM_KILLS_PER_WEEK, KILL_RATIO_MAX, DEATH_RISK_WEEKS, BUY_RETRY_WEEKS, CHIEF_BRIBE_WEEKS, weeksToOffice, type TrialPoll, WEAKEST_SWITCH_MEN, ENDGAME_BLOCK_RATIO, ENDGAME_CASH_WEEKS, ENDGAME_ATTACK_PER_RIVAL, ENDGAME_ATTACK_MAX, BAD_TARGET_RETRY_WEEKS, FREE_RECRUITS, KILL_MEN_EACH, WIN_SMOOTH_WEEKS, WIN_PER_STEP, CHART_MIN_ENTRIES, HIT_HAZARD_PRIOR, HIT_HAZARD_PRIOR_MEN, HQ_WARRANT_PRIOR, GOODS_TRIAL_MAX_COST, BUY_TIME_FAIL_WAIT, CHIEF_HOLD_PRIOR, CHIEF_LOST_STOP, CHIEF_LOST_WEEKS, CHIEF_STOP_WEEKS } from './autoWin';
+import { ALLY_WEEKS_PER_LEVEL, EXPLOSIVES_PER_ATTACK_CREW, KILL_RATE_WEEKS, GOAL_SWITCH_WEEKS, KIND_LEARN_RATE, ASSET_BAND, ASSET_BUY_PER_WEEK, CASE_WEEKS, CASH_TO_ASSETS, ELIMINATE_BAND_MEN, growthOf, HOLD_VOTE_MARGIN, CREW_FILL_MIN, KIND_LEARN_STEP, KIND_LEARN_WEEKS, RACKET_LEARN_MIN, RACKET_LEARN_WEEKS, RACKET_MANAGED_RATE, RACKET_SUPPLY_FLOOR, RAID_REBUILD_WEEKS, STAND_LEAD_WEEKS, STAND_MIN_P, VOTE_BUYS_PER_WEEK, WAREHOUSE_PAYBACK_WEEKS, EXPORT_MIN_CASES, RAID_GOODS_CASES, weeksToEntryClose, ILLEGAL_CLOSE_WEEKS, keepChance, KEPT_LINE, KEPT_RISK_MARGIN, kindScales, LAWYER_HIRE_WEEKS, logistic, NEVER_WEEKS, OFFICE_HOLD_EXPANSION, OFFICE_VOTE_BAND, perUnit, POWER_BAND, RACE_WEEKS_BAND, RIVAL_BLOCK_VOTE_SHARE, RIVAL_POLL_WATCH, STOCK_RATE, trialPoll, WIN_GROWTH_WEEKS, WIN_HORIZON_WEEKS, WIN_MIN, WIN_WEEKS, winValue, weeksToElection, votesToWin, GOODS_TRIAL_WEEKS, GOODS_TRIAL_BARS, FINISH_MEN, HQ_STRIKE_KILLS, ELIM_KILLS_PER_WEEK, KILL_RATIO_MAX, DEATH_RISK_WEEKS, BUY_RETRY_WEEKS, CHIEF_BRIBE_WEEKS, weeksToOffice, type TrialPoll, WEAKEST_SWITCH_MEN, ENDGAME_BLOCK_RATIO, ENDGAME_CASH_WEEKS, ENDGAME_ATTACK_PER_RIVAL, ENDGAME_ATTACK_MAX, BAD_TARGET_RETRY_WEEKS, FREE_RECRUITS, KILL_MEN_EACH, WIN_SMOOTH_WEEKS, WIN_PER_STEP, CHART_MIN_ENTRIES, HIT_HAZARD_PRIOR, HIT_HAZARD_PRIOR_MEN, GOODS_TRIAL_MAX_COST, BUY_TIME_FAIL_WAIT, CHIEF_HOLD_PRIOR, CHIEF_LOST_STOP, CHIEF_LOST_WEEKS, CHIEF_STOP_WEEKS } from './autoWin';
 import { rivalIntel } from './autoIntel';
 import { queueSpecialistJob } from '../sim/specialistJobs';
 import { bribePrice, bribeRefusalPrice, isBribableOfficial, refusesBribe } from '../sim/officials';
@@ -840,6 +840,10 @@ const v140 = new WeakMap<Sim['world'], {
   /** 1.2.69 (point 13): the last HQ strike order, the gap it started, and strikes / warrants drawn. */
   hqStrike?: { orderId: number; prevLast: number };
   hqWarrant?: { n: number; k: number };
+  /** 1.2.80 (Robert, point 5): strikes being watched for warrants on their crew (men sent, week given). */
+  /** 1.2.80 (Robert, point 8): intimidations held at a unified net ≤ $0 (label → weeks). */
+  netHeldSites?: Map<string, number[]>;
+  hqWatch?: { week: number; ids: number[]; hits: number[] }[];
   /** 1.2.69 (point 16): chief bribes (week given) awaiting the next week's check; held / lost counts; weeks lost; stop until. */
   chiefOursLast?: boolean;
   chiefHold?: { since?: number; chiefId?: number; held: number; n: number; lost: number[]; stopUntil: number };
@@ -943,8 +947,11 @@ const WAR_KILLS_WEEKS = 4;
 /** 1.2.77 (Robert, point 10), proposed: the seats a coupe gives a hit (all men sent ride; the game's coupe holds 4). */
 const KILL_CAR_SEATS = 4;
 /* 1.2.79 (Robert, point 2): MANAGER_SEAT_WEEKS (12) removed — replaced by MANAGER_REFILL_WEEKS. */
-/** 1.2.79 (Robert, point 2), proposed: weeks a crew seat a manager leaves stays empty when no pool hood can fill it (a recruit fills it). */
-const MANAGER_REFILL_WEEKS = 2;
+/* 1.2.80 (Robert, point 3): MANAGER_REFILL_WEEKS (2) removed — refill weeks are open seats ÷ joins a week. */
+/** 1.2.80 (Robert, point 8), proposed: weeks running an intimidation's net must be ≤ $0 at a site before it is not put forward. */
+const NET_REPEAT_WEEKS = 2;
+/** 1.2.80 (Robert, point 3), proposed: at most this many weeks of a seat's value in a manager's cost. */
+const MANAGER_REFILL_MAX = 4;
 /** 1.2.77 (Robert, point 12), proposed: with every crew full, recruiting stops once the pool holds this many men. */
 const POOL_SPARE_MAX = 20;
 /** 1.2.78 (Robert, point 1), proposed: a crew seat (the recruit and manager value) is worth at most this many V a week. */
@@ -952,7 +959,7 @@ const SEAT_VALUE_MAX_V = 3;
 /** 1.2.78 (Robert, point 2), proposed: land bought for a venue is settled at $0 when no venue is set up on it within this many weeks. */
 const LAND_SETTLE_WEEKS = 16; // 1.2.79 (Robert, point 3), proposed: was 4
 /** 1.2.79 (Robert, point 8, report-only): the decision matrix and per-order line headers (tab-separated). */
-const DM_HEADER = ['DM', 'week', 'type', 'put', 'given', 'held', 'done_prev', 'ranout_prev', 'value', 'asset', 'heat', 'losses', 'manager', 'time', 'cashL', 'net', 'approved', 'spent', 'topHold'].join('\t');
+const DM_HEADER = ['DM', 'week', 'type', 'priority', 'put', 'given', 'held', 'done_prev', 'ranout_prev', 'value', 'asset', 'heat', 'losses', 'manager', 'time', 'cashL', 'net', 'approved', 'spent', 'topHold'].join('\t');
 const ORD_HEADER = ['ORD', 'week', 'type', 'kind', 'outcome', 'crew', 'value', 'weight', 'chance', 'asset', 'heat', 'losses', 'manager', 'time', 'cash', 'lambda', 'manHours', 'net', 'perHour', 'holdReason', 'label'].join('\t');
 /** ORD lines go to the orders file only; DM lines to both the report and the orders file. */
 const isOrdLine = (l: string) => l.startsWith('ORD\t');
@@ -1173,10 +1180,19 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const wars = Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated && gang.known[g.id] === 'war').length;
     const idle = idlePool().length, defenders = officeDefendersWanted(w, gang, wars);
     const spare = Math.max(0, idle - defenders);
-    const seat = Math.min(mem.seatValue ?? scale.V, SEAT_VALUE_MAX_V * scale.V);
-    const refill = spare > 0 ? 0 : MANAGER_REFILL_WEEKS;
+    // 1.2.80 (Robert, point 3): the seat value is the crews' own net a week per man (their men's value, as in the LTW
+    // line), and the refill weeks are the open crew seats ÷ the hoods joined a week over the last LOT_JOIN_WEEKS weeks,
+    // at most MANAGER_REFILL_MAX (proposed); 0 while an idle pool hood beyond the defenders can join.
+    const crews = crewsOf();
+    const crewMen = crews.reduce((n, t) => n + 1 + t.memberIds.length, 0);
+    const crewNet = crews.reduce((n, t) => n + crewHeatOf(t).crewNet, 0);
+    const seat = crewMen > 0 ? crewNet / crewMen : 0;
+    const openSeats = crews.reduce((n, t) => n + Math.max(0, MAX_TEAM_SIZE - 1 - t.memberIds.length), 0);
+    const joinsList = mem.hoodJoins ?? [];
+    const joinsPW = joinsList.length ? joinsList.reduce((a, b) => a + b, 0) / joinsList.length : 0;
+    const refill = spare > 0 ? 0 : Math.min(MANAGER_REFILL_MAX, joinsPW > 0 ? openSeats / joinsPW : MANAGER_REFILL_MAX);
     const cost = Math.round(scale.hire + seat * refill);
-    const line = `MGR (1.2.79, report) wk ${w.week}: open seats value $${Math.round(mem.seatValue ?? 0)} (cap ${SEAT_VALUE_MAX_V} V = $${Math.round(SEAT_VALUE_MAX_V * scale.V)}); idle pool ${idle}, defenders kept ${defenders}, spare ${spare} → refill ${refill} wk (${MANAGER_REFILL_WEEKS} proposed); manager cost $${cost} = hire $${Math.round(scale.hire)} + $${Math.round(seat)} × ${refill}`;
+    const line = `MGR (1.2.80, report) wk ${w.week}: seat value $${Math.round(seat)}/man-wk (crews' net $${Math.round(crewNet)} ÷ ${crewMen} men); open seats ${openSeats}, joins ${joinsPW.toFixed(1)}/wk (${joinsList.join('/') || 'none'}); idle pool ${idle}, defenders kept ${defenders}, spare ${spare} → refill ${refill.toFixed(2)} wk (max ${MANAGER_REFILL_MAX}, proposed); manager cost $${cost} = hire $${Math.round(scale.hire)} + $${Math.round(seat)} × ${refill.toFixed(2)}`;
     mgrWeek = { cost, line };
     actions.push(line);
     return cost;
@@ -1506,7 +1522,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // never onto the recruit list, so the count is taken from the hoods who
   // joined since last week (members we did not have then). It never reset before.
   const memberIdsNow = new Set(gangMembers(w, gang).filter((p) => p.role !== 'boss').map((p) => p.id));
-  const hoodsJoined = mem.memberIds ? [...memberIdsNow].filter((id) => !mem.memberIds!.has(id) && w.people[id]?.role === 'hood').length : 0;
+  /** 1.2.80 (point 9, report-only): the hoods who joined since last week. */
+  const newHoodIds = mem.memberIds ? [...memberIdsNow].filter((id) => !mem.memberIds!.has(id) && w.people[id]?.role === 'hood') : [];
+  const hoodsJoined = newHoodIds.length;
   mem.memberIds = memberIdsNow;
   mem.hoodJoins = [...(mem.hoodJoins ?? []), hoodsJoined].slice(-LOT_JOIN_WEEKS);
   // 1.2.63 (Robert): each crew's men lost a week (no longer an active member of
@@ -1709,13 +1727,27 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const desk = deskMemory(w);
       if (/never started/.test(o.failReason ?? '')) { desk.lastHqStrike = mem.hqStrike.prevLast; actions.push(`NOTE HQ ATTACK never started — no wait before the next (1.2.69)`); }
       else {
-        const hw = mem.hqWarrant ??= { n: 0, k: 0 };
-        const drew = o.assignedIds.some((id) => !!w.people[id]?.fbiWarrant);
-        hw.n++; if (drew) hw.k++;
-        actions.push(`HQ WARRANT (1.2.69): last week's strike ${drew ? 'drew' : 'drew no'} FBI warrant — ${hw.k} of ${hw.n} strikes (prior ${HQ_WARRANT_PRIOR}, proposed)`);
+        // 1.2.80 (Robert, point 5): judged over the 2 weeks after — warrants on the men of the strike's crew.
+        const team = w.teams[o.teamId];
+        const ids = [...new Set([...(o.assignedIds ?? []), ...(team ? [team.lieutenantId, ...team.memberIds] : [])])];
+        (mem.hqWatch ??= []).push({ week: w.week - 1, ids, hits: [] });
+        actions.push(`HQ WARRANT (1.2.80): last week's strike — ${ids.length} men of its crew watched for FBI warrants for 2 weeks`);
       }
       mem.hqStrike = undefined;
     } else if (w.week > 2) mem.hqStrike = undefined;
+  }
+  // 1.2.80 (Robert, point 5): the strike crews watched — a man arrested on a warrant (our losses) or holding one.
+  if (mem.hqWatch?.length) {
+    const lost = memberLosses(w, gang.id, w.week - 1).filter((l) => /warrant/i.test(l.cause));
+    const keep: NonNullable<typeof mem.hqWatch> = [];
+    for (const x of mem.hqWatch) {
+      for (const id of x.ids) if (!x.hits.includes(id) && (lost.some((l) => l.personId === id) || !!w.people[id]?.fbiWarrant)) x.hits.push(id);
+      if (w.week - x.week < 3) { keep.push(x); continue; }
+      const hw = mem.hqWarrant ??= { n: 0, k: 0 };
+      hw.n++; if (x.hits.length) hw.k++;
+      actions.push(`HQ WARRANT (1.2.80): the week ${x.week} strike ${x.hits.length ? `drew FBI warrants on ${x.hits.length} of its crew's ${x.ids.length} men (${x.hits.map((id) => w.people[id]?.name ?? id).join(', ')})` : 'drew no FBI warrant on its crew'} in the 2 weeks after — ${hw.k} of ${hw.n} strikes`);
+    }
+    mem.hqWatch = keep;
   }
   /**
    * 1.2.66 (Robert): the win model for the goal played for. The win is worth
@@ -3224,11 +3256,23 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   let heatState: HeatState | undefined;
   /** 1.2.55: a crew's men for the heat model. 1.2.79 (Robert, point 6): the lieutenant's arrest is priced at the
    *  crew's net a week (its men's value) × LIE_LOW_WEEKS — a warranted lieutenant takes his crew's work with him. */
+  let hitValueWeek: number | undefined;
+  const attackHitValue = () => {
+    if (hitValueWeek != null) return hitValueWeek;
+    const kills = memberLosses(w, undefined, w.week - 4).filter((l) => l.gangId !== gang.id && l.by === gang.name).length;
+    const crews = Math.max(1, crewsOf().filter((t) => { const r = roles.get(t.id); return r === 'muscle' || r === 'expendables'; }).length);
+    hitValueWeek = (kills / 4 / crews) * (mem.lastWin?.per ?? 0) * valueRatio(learn, 'kill');
+    actions.push(`ATTACK CREW VALUE (1.2.80, report): ${kills} rival men killed by us in 4 wk ÷ 4 ÷ ${crews} attack crew(s) × a rival man $${Math.round(mem.lastWin?.per ?? 0)} × kill ×${valueRatio(learn, 'kill').toFixed(2)} = $${Math.round(hitValueWeek)}/wk an attack crew`);
+    return hitValueWeek;
+  };
   const crewHeatOf = (team: Team): { men: HeatMan[]; crewNet: number; ltCost: number } => {
     const job = roles.get(team.id) ?? null;
     const people = [team.lieutenantId, ...team.memberIds].map((id) => w.people[id]).filter((x): x is Person => !!x && x.status === 'active');
     const nets = new Map(people.map((x) => [x.id, Math.max(0, manValue(x, job, manCtx, MINUTES_PER_WEEK).net)]));
-    const crewNet = [...nets.values()].reduce((a, b) => a + b, 0);
+    // 1.2.80 (Robert, point 5): an attack crew's net includes its hits — the rival men our gang killed a week over
+    // the last 4 weeks ÷ the attack crews, × a rival man (the win model) × the learned kill value ratio.
+    const attack = job === 'muscle' || job === 'expendables';
+    const crewNet = [...nets.values()].reduce((a, b) => a + b, 0) + (attack ? attackHitValue() : 0);
     const base = (x: Person) => scale.A * ((wanted.lowUntil.get(x.id) ?? 0) > w.week ? LOW_ARREST_WEIGHT : 1);
     const ltCost = crewNet * LIE_LOW_WEEKS;
     const men = people.map((x) => ({ id: x.id, name: x.name, wanted: x.wanted, fbiScore: Math.max(x.crimeSuspicion ?? 0, mem.heat.get(x.id) ?? 0),
@@ -6411,7 +6455,26 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       }
       if (lots.length) {
         // 1.2.63 (Robert): land is held for a venue — worth the venue discounted by the wait for a hood.
-        const got = planBuy('land in our block:', affordable, undefined, lotWorth, (b) => buildingValue(w, b), spareCash);
+        // 1.2.80 (Robert, point 4): a centre lot is bought for a venue only when a racket type fits it now — a front
+        // of ours in its block good enough for the racket after the ones already waiting on our empty centre lots,
+        // and the cash for its set-up after the lot; it is then worth that racket. Otherwise it carries its asset
+        // value only (no venue value, not learned as buyLand).
+        const waitingCentres = buildingList(w).filter((b) => b.ownerGangId === gang.id && b.cls === 'empty' && b.state !== 'destroyed' && w.lots[b.lotId]?.index === CENTRE_LOT).length;
+        let k = 0;
+        const fitted = new Map<number, number>();
+        const assetOnly: Building[] = [];
+        for (const lot of affordable) {
+          if (w.lots[lot.lotId]?.index !== CENTRE_LOT) continue;
+          const pick = policy.illegal ? racketFor(lot.blockId, nextN + waitingCentres + k, spareCash - buildingValue(w, lot)) : undefined;
+          if (pick) { k++; fitted.set(lot.id, Math.round(Math.max(0, racketValue(pick.type.id, coverQuality(pick.type.id, pick.front.typeId)).net) * LASTING_WEEKS * Math.pow(LOT_WAIT_DISCOUNT, hoodWaitWeeks()))); }
+          else assetOnly.push(lot);
+        }
+        const forVenue = affordable.filter((b) => !assetOnly.includes(b));
+        if (affordable.some((b) => w.lots[b.lotId]?.index === CENTRE_LOT)) actions.push(`NOTE land (1.2.80): ${fitted.size} centre lot(s) with a racket that fits now (after ${waitingCentres} empty centre lot(s) of ours waiting), ${assetOnly.length} at asset value only`);
+        const got = [
+          ...planBuy('land in our block:', forVenue, undefined, (b) => fitted.get(b.id) ?? lotWorth(b), (b) => buildingValue(w, b), spareCash),
+          ...(assetOnly.length ? planBuy('land as an asset (no racket fits now, 1.2.80):', assetOnly, undefined, () => 0, (b) => buildingValue(w, b), spareCash) : []),
+        ];
         landFirst = got.length > 0;
         spareCash -= got.reduce((sum, b) => sum + buildingValue(w, b), 0);
         actions.push(`NOTE land: ${lots.length} empty lot(s) for sale in blocks where we own a business (${lots.filter((b) => w.lots[b.lotId]?.index === CENTRE_LOT).length} centre); ${got.length} put forward this week`);
@@ -7813,11 +7876,26 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     actions.push(`KIND LEARN (1.2.67, ±${KIND_LEARN_RATE * 100}% at most, ±${KIND_LEARN_STEP * 100}% a week, over ${Math.min(KIND_LEARN_WEEKS, (mem.kindHist ?? []).length)} of ${KIND_LEARN_WEEKS} wk, proposed): ${shown.length ? shown.join(', ') : 'nothing learned yet — the priors stand'}`);
   }
   /** 1.2.77 (point 13): each proposal's unified value this week, and λ at today's cash. */
-  const unifiedSeen: { label: string; u: UnifiedValue; type?: string; crew?: string }[] = [];
+  const unifiedSeen: { label: string; u: UnifiedValue; type?: string; crew?: string; p?: Proposal<Team> }[] = [];
   const unifiedLambda = holdValue(gang.cash - bribesDue, cashReserve, avgPay, scale);
+  // 1.2.80 (Robert, point 8): an intimidation whose unified net was ≤ $0 at the same site in each of the last
+  // NET_REPEAT_WEEKS (proposed) weeks is not put forward again this week (it is weighed again the week after).
+  {
+    const memo = (mem.netHeldSites ??= new Map<string, number[]>());
+    for (const [id, weeks] of [...memo]) { const kept = weeks.filter((x) => w.week - x <= NET_REPEAT_WEEKS); if (kept.length) memo.set(id, kept); else memo.delete(id); }
+    let dropped = 0;
+    for (let i = proposals.length - 1; i >= 0; i--) {
+      // keyed by the proposal's label (one site or block's intimidation; its input may be built for the crew)
+      const weeks = memo.get(proposals[i].label);
+      if (!weeks) continue;
+      let all = true; for (let d = 1; d <= NET_REPEAT_WEEKS; d++) if (!weeks.includes(w.week - d)) all = false;
+      if (all) { proposals.splice(i, 1); dropped++; }
+    }
+    if (dropped) actions.push(`NET REPEAT (1.2.80, ${NET_REPEAT_WEEKS} wk, proposed): ${dropped} intimidation(s) not put forward — net ≤ $0 at the same site each of the last ${NET_REPEAT_WEEKS} weeks`);
+  }
   const decision = decideWeek(goal, proposals, slots, (label, team, p) => {
     // 1.2.55: the order's worth (value × chance) for the crew-level heat check in give().
-    { const k = execKey(p); const c = execP(k.type, null, k.siteId, loadOf.get(p.label)); giveWorth = scoreOf(goal, p) * c; giveValue = (rawValue.get(p) ?? p.value) * c; }
+    { const k = execKey(p); const c = execP(k.type, null, k.siteId, loadOf.get(p.label)); giveWorth = scoreOf(goal, p) * c + /* 1.2.80 (Robert, point 2): the building credit, as in the unified net */ (assetBy.get(p.label) ?? 0) * c; giveValue = (rawValue.get(p) ?? p.value) * c; }
     let input = inputFor(p, team);
     const site = input.buildingIds?.[0];
     // 1.2.54 (Robert): a crew other than the Business crew takes a buy only when
@@ -7961,7 +8039,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       actions.push(`WARR (1.2.79, report) ${p.label} (${type}) by ${w.people[team.lieutenantId]?.name ?? 'crew'}'s crew: +${add} FBI score a man (bar ${MEMBER_WARRANT_BAR}); ${crewMen.length} men, top score ${Math.round(Math.max(0, ...crewMen.map((m) => m.fbiScore)))}; ${shown.length ? shown.slice(0, 6).map((x) => `${x.m.name} ${Math.round(x.m.fbiScore)}→+${(x.d * 100).toFixed(1)}% × $${Math.round(x.m.cost)}`).join(', ') : 'no man gains a warrant chance'} → warrant $${Math.round(warr)} added to heat $${Math.round(h)}`);
     }
     const u = unifiedValue({ value: p.value, weight: kindWeight(goal, p.kind), chance: c, heat: h + warr, losses, managerCost: mgr, cash: approvedBy.get(p.label) ?? 0, asset: assetBy.get(p.label) ?? 0, lambda: unifiedLambda, manHours: men * mins / 60 });
-    unifiedSeen.push({ label: p.label, u, type, crew: w.people[team.lieutenantId]?.name });
+    unifiedSeen.push({ label: p.label, u, type, crew: w.people[team.lieutenantId]?.name, p });
+    if (type === 'intimidate' && u.net <= 0) { const memo = (mem.netHeldSites ??= new Map<string, number[]>()); const list = memo.get(p.label) ?? []; if (!list.includes(w.week)) memo.set(p.label, [...list, w.week]); }
     return u;
   });
   {
@@ -8116,25 +8195,33 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // per order type), the per-order ORD lines with every term of the unified net (for the orders file) and ATIME.
   {
     const r = (n: number) => Math.round(n);
-    const givenSet = new Set(decision.given.map((d) => d.label));
-    const skipReason = new Map(decision.skipped.map((d) => [d.label, (d.reason ?? d.line).replace(/\s+/g, ' ').slice(0, 60)] as const));
-    const uBy = new Map(unifiedSeen.map((x) => [x.label, x] as const));
-    type Row = { put: number; given: number; held: number; done: number; ranOut: number; value: number; asset: number; heat: number; losses: number; manager: number; time: number; cashL: number; net: number; approved: number; spent: number; holds: Map<string, number> };
+    // 1.2.80 (Robert, point 1): keyed by the proposal (labels repeat — five recruit orders can share one), the crew
+    // actually given, priority-marked staff searches counted apart (their marker value stays out of the sums), and
+    // the hold reason in full (DM groups reasons with their figures masked).
+    const givenBy = new Map(decision.given.filter((d) => d.index != null).map((d) => [d.index!, d] as const));
+    const skipBy = new Map(decision.skipped.filter((d) => d.index != null).map((d) => [d.index!, (d.reason ?? d.line).replace(/\s+/g, ' ')] as const));
+    const uBy = new Map(unifiedSeen.filter((x) => x.p).map((x) => [x.p!, x] as const));
+    const mask = (why: string) => why.replace(/-?\$?-?[\d,.]+/g, '#').slice(0, 80);
+    type Row = { priority: number; put: number; given: number; held: number; done: number; ranOut: number; value: number; asset: number; heat: number; losses: number; manager: number; time: number; cashL: number; net: number; approved: number; spent: number; holds: Map<string, number> };
     const rows = new Map<string, Row>();
-    const row = (t: string) => { let x = rows.get(t); if (!x) rows.set(t, x = { put: 0, given: 0, held: 0, done: 0, ranOut: 0, value: 0, asset: 0, heat: 0, losses: 0, manager: 0, time: 0, cashL: 0, net: 0, approved: 0, spent: 0, holds: new Map() }); return x; };
-    for (const p of proposals) {
-      const seen = uBy.get(p.label);
+    const row = (t: string) => { let x = rows.get(t); if (!x) rows.set(t, x = { priority: 0, put: 0, given: 0, held: 0, done: 0, ranOut: 0, value: 0, asset: 0, heat: 0, losses: 0, manager: 0, time: 0, cashL: 0, net: 0, approved: 0, spent: 0, holds: new Map() }); return x; };
+    proposals.forEach((p, i) => {
+      const seen = uBy.get(p);
       const type = seen?.type ?? execKey(p).type;
       const x = row(type);
       const u = seen?.u;
-      const given = givenSet.has(p.label);
+      const gd = givenBy.get(i);
+      const given = !!gd;
+      const holdWhy = given ? '' : skipBy.get(i) ?? 'not reached';
       const approved = approvedBy.get(p.label) ?? 0;
       const time = timeCostBy.get(p.label) ?? 0;
-      x.put++; if (given) { x.given++; x.spent += approved; } else { x.held++; const why = skipReason.get(p.label) ?? 'not reached'; x.holds.set(why, (x.holds.get(why) ?? 0) + 1); }
+      const priority = !!u && u.value >= STAFF_TOP_VALUE;
+      x.put++; if (given) { x.given++; x.spent += approved; } else { x.held++; const k = mask(holdWhy); x.holds.set(k, (x.holds.get(k) ?? 0) + 1); }
       x.approved += approved; x.time += time;
-      if (u) { x.value += u.value * u.weight * u.chance; x.asset += (u.asset ?? 0) * u.chance; x.heat += u.heat; x.losses += u.losses; x.manager += u.managerCost; x.cashL += u.cash * u.lambda; x.net += u.net; }
-      actions.push(['ORD', w.week, type, p.kind, given ? 'given' : 'held', seen?.crew ?? '', u ? r(u.value) : '', u ? u.weight : '', u ? u.chance.toFixed(3) : '', u ? r(u.asset ?? 0) : '', u ? r(u.heat) : '', u ? r(u.losses) : '', u ? r(u.managerCost) : '', r(time), u ? r(u.cash) : r(approved), u ? u.lambda.toFixed(3) : '', u ? u.manHours.toFixed(1) : '', u ? r(u.net) : '', u ? r(u.perHour) : '', given ? '' : skipReason.get(p.label) ?? 'not reached', p.label.replace(/\t/g, ' ')].join('\t'));
-    }
+      if (priority) x.priority++;
+      else if (u) { x.value += u.value * u.weight * u.chance; x.asset += (u.asset ?? 0) * u.chance; x.heat += u.heat; x.losses += u.losses; x.manager += u.managerCost; x.cashL += u.cash * u.lambda; x.net += u.net; }
+      actions.push(['ORD', w.week, type, p.kind, given ? 'given' : 'held', given ? gd!.crew ?? '' : '', priority ? 'priority' : u ? r(u.value) : '', u ? u.weight : '', u ? u.chance.toFixed(3) : '', u ? r(u.asset ?? 0) : '', u ? r(u.heat) : '', u ? r(u.losses) : '', u ? r(u.managerCost) : '', r(time), u ? r(u.cash) : r(approved), u ? u.lambda.toFixed(3) : '', u ? u.manHours.toFixed(1) : '', u && !priority ? r(u.net) : '', u && !priority ? r(u.perHour) : '', holdWhy, p.label.replace(/\t/g, ' ')].join('\t'));
+    });
     for (const o of w.lastWeekOrders) {
       if (o.gangId !== gang.id) continue;
       const said = o.failReason ?? o.results.at(-1) ?? '';
@@ -8144,19 +8231,56 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (!mem.dmHeader) { mem.dmHeader = true; actions.push(DM_HEADER); }
     for (const [type, x] of [...rows].sort((a, b) => a[0].localeCompare(b[0]))) {
       const top = [...x.holds].sort((a, b) => b[1] - a[1])[0];
-      const line = ['DM', w.week, type, x.put, x.given, x.held, x.done, x.ranOut, r(x.value), r(x.asset), r(x.heat), r(x.losses), r(x.manager), r(x.time), r(x.cashL), r(x.net), r(x.approved), r(x.spent), top ? `${top[0]} ×${top[1]}` : ''].join('\t');
+      const line = ['DM', w.week, type, x.priority, x.put, x.given, x.held, x.done, x.ranOut, r(x.value), r(x.asset), r(x.heat), r(x.losses), r(x.manager), r(x.time), r(x.cashL), r(x.net), r(x.approved), r(x.spent), top ? `${top[0]} ×${top[1]}` : ''].join('\t');
       actions.push(line);
     }
+    // 1.2.80 (Robert, point 9, report-only — never read by Auto): why the men stay flat — this week's recruit orders,
+    // last week's hood runs, hoods standing at hiring places in the city, the hoods who joined and where they are now
+    // (crew seat, pool, manager seat), last week's losses by kind, open crew seats and managers taken this week.
+    {
+      const rc = rows.get('recruit');
+      const holds = rc ? [...rc.holds].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ×${n}`).join('; ') : '';
+      const runs = hoodRunsLast.length, runsDone = hoodRunsLast.filter((o) => o.state === 'done').length;
+      const runsOut = hoodRunsLast.filter((o) => isRunOut(o.failReason ?? o.results.at(-1) ?? '')).length;
+      const standing = Object.values(w.people).filter((p) => p.gangId == null && p.status === 'active' && p.role === 'hood' && p.buildingId != null && p.employedBy == null).length;
+      const crewIds = new Set(crewsOf().flatMap((t) => [t.lieutenantId, ...t.memberIds]));
+      const managerIds = new Set(buildingList(w).filter((b) => b.ownerGangId === gang.id && b.managerId != null).map((b) => b.managerId!));
+      const at = { crew: 0, pool: 0, manager: 0, gone: 0, other: 0 };
+      for (const id of newHoodIds) {
+        const p = w.people[id];
+        if (!p || p.status !== 'active' || p.gangId !== gang.id) at.gone++;
+        else if (managerIds.has(id)) at.manager++;
+        else if (crewIds.has(id)) at.crew++;
+        else if (gang.poolIds.includes(id)) at.pool++;
+        else at.other++;
+      }
+      const lostKinds = new Map<string, number>();
+      for (const l of memberLosses(w, gang.id, w.week - 1)) {
+        const k = /sacked/i.test(l.cause) ? 'sacked' : /desert|left the gang/i.test(l.cause) ? 'deserted' : /warrant/i.test(l.cause) ? 'FBI warrant' : /arrest|convicted|jailed/i.test(l.cause) ? 'arrested' : /kidnap/i.test(l.cause) ? 'kidnapped' : 'killed/other';
+        lostKinds.set(k, (lostKinds.get(k) ?? 0) + 1);
+      }
+      const openSeats = crewsOf().reduce((n, t) => n + Math.max(0, MAX_TEAM_SIZE - 1 - t.memberIds.length), 0);
+      const men = gangMembers(w, gang).filter((p) => p.role !== 'boss').length;
+      actions.push(`RECRUIT (1.2.80, report) wk ${w.week}: ${men} men (${managerIds.size} managers, ${crewIds.size} in ${crewsOf().length} crews, pool ${gang.poolIds.length}), ${openSeats} open crew seat(s); recruit orders ${rc?.put ?? 0} put forward, ${rc?.given ?? 0} given, ${rc?.held ?? 0} held${holds ? ` (${holds})` : ''}; last week's hood runs ${runs} (${runsDone} done, ${runsOut} ran out); hoods standing at hiring places ${standing}; joined last week ${newHoodIds.length} → now crew ${at.crew}, pool ${at.pool}, manager ${at.manager}, gone ${at.gone}${at.other ? `, other ${at.other}` : ''}; lost last week ${[...lostKinds].map(([k, n]) => `${k} ${n}`).join(', ') || 'none'}; managers taken this week ${managerBuysGiven}`);
+    }
     // ATIME: last week's finished orders — actual ÷ the game's estimate by the quarter of the week they started in (late-week slowdown).
+    // 1.2.80 (Robert, point 6): and by order type, raw (÷ the game's estimate) and corrected (÷ estimate × the learned correction).
     const q = [0, 1, 2, 3].map(() => ({ n: 0, ratio: 0, out: 0 }));
+    const byType = new Map<string, { n: number; raw: number; cor: number; corN: number; out: number }>();
     for (const o of w.lastWeekOrders) {
       if (o.gangId !== gang.id || o.startedMinute == null || ORDERS[o.type]?.wholeWeek) continue;
       const b = q[Math.min(3, Math.max(0, Math.floor(o.startedMinute / (MINUTES_PER_WEEK / 4))))];
+      const t = byType.get(o.type) ?? { n: 0, raw: 0, cor: 0, corN: 0, out: 0 }; byType.set(o.type, t);
       const said = o.failReason ?? o.results.at(-1) ?? '';
-      if (isRunOut(said)) { b.out++; continue; }
-      if (o.finishedMinute != null && o.estimatedMinutes > 0 && o.finishedMinute > o.startedMinute) { b.n++; b.ratio += (o.finishedMinute - o.startedMinute) / o.estimatedMinutes; }
+      if (isRunOut(said)) { b.out++; t.out++; continue; }
+      if (o.finishedMinute != null && o.estimatedMinutes > 0 && o.finishedMinute > o.startedMinute) {
+        const ratio = (o.finishedMinute - o.startedMinute) / o.estimatedMinutes;
+        b.n++; b.ratio += ratio; t.n++; t.raw += ratio;
+        const key = HIT_TYPES.has(o.type) ? `hit:${o.type}` : (o.type === 'buyPremises' || o.type === 'setUpBusiness') ? `buy:${crewRoleMemory.get(w)?.get(o.teamId) ?? 'any'}` : undefined;
+        if (key) { t.cor += ratio / Math.max(0.01, timeFactor(desk, key)); t.corN++; }
+      }
     }
-    actions.push(`ATIME (1.2.79, report) wk ${w.week - 1} actual ÷ estimate by start quarter: ${q.map((b, i) => `Q${i + 1} ${b.n ? (b.ratio / b.n).toFixed(2) : '-'} (n ${b.n}, ran out ${b.out})`).join('; ')}`);
+    actions.push(`ATIME (1.2.79, report) wk ${w.week - 1} actual ÷ estimate by start quarter: ${q.map((b, i) => `Q${i + 1} ${b.n ? (b.ratio / b.n).toFixed(2) : '-'} (n ${b.n}, ran out ${b.out})`).join('; ')} | by type (1.2.80, raw / corrected): ${[...byType].sort((a, b) => b[1].n - a[1].n).map(([k, t]) => `${k} ${t.n ? (t.raw / t.n).toFixed(2) : '-'} / ${t.corN ? (t.cor / t.corN).toFixed(2) : 'no correction'} (n ${t.n}, ran out ${t.out})`).join('; ') || 'none'}`);
   }
   for (const d of decision.given) actions.push(d.line);
   // 1.2.45 (Robert): NOT GIVEN lines sharing a reason are merged into one line with a count and the first few names.

@@ -65,7 +65,7 @@ export interface CrewSlot<T> {
   violenceOnly?: boolean;
 }
 
-export interface Decision { label: string; crew?: string; score: number; line: string; /** 1.2.45: why a skipped proposal was not given (lines sharing one are merged in the report). */ reason?: string }
+export interface Decision { label: string; /** 1.2.80 (report-only): the proposal's index in the week's list (labels can repeat). */ index?: number; crew?: string; score: number; line: string; /** 1.2.45: why a skipped proposal was not given (lines sharing one are merged in the report). */ reason?: string }
 
 export function inputFor<T>(p: Proposal<T>, team: T): Omit<IssueOrderInput, 'teamId'> {
   return typeof p.input === 'function' ? p.input(team) : p.input;
@@ -106,7 +106,7 @@ export function decideWeek<T>(
   const given: Decision[] = [], skipped: Decision[] = [];
   const ranked = proposals.map((p, i) => { const c = chance ? chance(p) : 1; const h = heat ? heat(p) : 0; const u = unified ? unified(p, c, h) : null; return { p, i, c, h, u, score: Math.round(scoreOf(goal, p) * c - h) }; })
     .sort((a, b) => Number(!!b.p.first) - Number(!!a.p.first) || (b.p.tier ?? 0) - (a.p.tier ?? 0) || (a.u && b.u ? b.u.perHour - a.u.perHour : 0) || b.score - a.score || a.i - b.i);
-  for (const { p, c, h, u, score } of ranked) {
+  for (const { p, i, c, h, u, score } of ranked) {
     // 1.2.25 (Robert's rule): the business crew takes business work only.
     // 1.2.54 (Robert): any crew may buy — the business crew is offered it
     // first (its job), another crew only when the buy pays at least its own
@@ -124,13 +124,13 @@ export function decideWeek<T>(
     const held = u ? u.net <= 0 : h > 0 && score <= 0;
     if (held && !p.first && !(explore && explore(p, score + h, h, u))) {
       const none = u ? `held back — its unified net $${Math.round(u.net)} is at or below $0 (1.2.78)` : 'held back — its heat costs more than it is worth';
-      skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; ${none}`, reason: none });
+      skipped.push({ label: p.label, index: i, score, line: `NOT GIVEN ${p.label}: ${why}; ${none}`, reason: none });
       p.onSkipped?.();
       continue;
     }
     if (!open.length) {
       const none = `no crew with time${p.teams ? ' among those fit for it' : ''}`;
-      skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; ${none}`, reason: none });
+      skipped.push({ label: p.label, index: i, score, line: `NOT GIVEN ${p.label}: ${why}; ${none}`, reason: none });
       p.onSkipped?.();
       continue;
     }
@@ -140,7 +140,7 @@ export function decideWeek<T>(
       p.prepare?.(slot.team);
       const result = issue(p.label, slot.team, p);
       if (result.ok) {
-        given.push({ label: p.label, crew: slot.name, score, line: `WON ${p.label} → ${slot.name}: ${why}; ${hm(free)} free before it` });
+        given.push({ label: p.label, index: i, crew: slot.name, score, line: `WON ${p.label} → ${slot.name}: ${why}; ${hm(free)} free before it` });
         p.onGiven?.(slot.team, result);
         done = true;
         break;
@@ -149,7 +149,7 @@ export function decideWeek<T>(
       // Only a lack of time is worth trying on another crew.
       if (!/time|busy|Every crew|elsewhere/i.test(result.error)) break;
     }
-    if (!done) { skipped.push({ label: p.label, score, line: `NOT GIVEN ${p.label}: ${why}; ${lastError}`, reason: lastError }); p.onSkipped?.(); }
+    if (!done) { skipped.push({ label: p.label, index: i, score, line: `NOT GIVEN ${p.label}: ${why}; ${lastError}`, reason: lastError }); p.onSkipped?.(); }
   }
   return { given, skipped };
 }
