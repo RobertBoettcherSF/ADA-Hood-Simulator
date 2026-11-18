@@ -126,7 +126,9 @@ export function decideWeek<T>(
     // 1.2.78 (Robert, point 7): the unified net decides — given above $0, held at or below $0 (no d20);
     // the old heat-against-score hold only where no unified value could be priced.
     const held = u ? u.net <= 0 : h > 0 && score <= 0;
-    if (held && !p.first && !(explore && explore(p, score + h, h, u))) {
+    // 1.2.82 (Robert, point 4): an order that goes first is held too when its unified net is at or below $0
+    // (the old heat-over-score case keeps its first exemption).
+    if (held && (!p.first || !!u) && !(explore && explore(p, score + h, h, u))) {
       const none = u ? `held back — its unified net $${Math.round(u.net)} is at or below $0 (1.2.78)` : 'held back — its heat costs more than it is worth';
       skipped.push({ label: p.label, index: i, score, line: `NOT GIVEN ${p.label}: ${why}; ${none}`, reason: none });
       p.onSkipped?.();

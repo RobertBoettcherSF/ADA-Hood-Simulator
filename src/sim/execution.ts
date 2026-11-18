@@ -407,6 +407,28 @@ function targetPos(w: WorldState, order: Order): Vec2 | null {
   return buildingDoor(w, b);
 }
 
+/** 1.2.82 (report-only): counts where a kill's or bomb's minutes go — no effect on the order. */
+function traceHit(w: WorldState, order: Order, actors: Person[], minutes: number): void {
+  const t = order.hitTrace ??= { travel: 0, exec: 0, wait: 0, reroutes: 0, car: false, nearest: -1, insideId: null, street: false, lastDist: -1, lastState: '' };
+  if (order.state === 'travelling') t.travel += minutes;
+  else if (order.state === 'executing') t.exec += minutes;
+  else if (order.state === 'waiting') t.wait += minutes;
+  t.lastState = order.state;
+  if (actors.some((a) => a.inVehicle)) t.car = true;
+  let at: Vec2 | null = null;
+  if (order.type === 'kill') {
+    const p = order.targetPersonId != null ? w.people[order.targetPersonId] : null;
+    if (p) { at = p.pos; t.insideId = p.buildingId ?? null; t.street = p.buildingId == null; }
+  } else {
+    const b = w.buildings[order.targetBuildingIds[order.cursor] ?? order.targetBuildingIds[0]];
+    if (b) { at = buildingDoor(w, b); t.insideId = b.id; t.street = false; }
+  }
+  if (!at) return;
+  const d = Math.min(...actors.map((a) => dist(a.pos, at!)));
+  t.lastDist = Math.round(d * 10) / 10;
+  if (t.nearest < 0 || d < t.nearest) t.nearest = Math.round(d * 10) / 10;
+}
+
 /** While hunting, the crew heads for the next place to ask at. */
 function huntPos(w: WorldState, order: Order): Vec2 | null {
   if (order.huntTip) return order.huntTip;
@@ -601,6 +623,7 @@ function assignOrder(w: WorldState, team: Team, order: Order, atWeekStart = fals
   }
   order.reportedCrewSize = chosen.length;
   order.workedMinutes = 0;
+  delete order.hitTrace;
   for (const p of chosen) p.orderId = order.id;
   order.state = 'travelling';
   order.cursor = 0;
@@ -700,6 +723,7 @@ export function tickOrders(w: WorldState, rng: Rng, minutes: number, loadout: Lo
         report(w, order.gangId, 'waiting', message, actors[0].pos, actors[0].id);
       }
       order.reportedCrewSize = actors.length;
+      if (order.type === 'kill' || order.type === 'bomb') traceHit(w, order, actors, minutes);
 
       const def = ORDERS[order.type];
       if(order.exportDelivery)refreshExportCargo(w,order);
@@ -762,7 +786,7 @@ export function tickOrders(w: WorldState, rng: Rng, minutes: number, loadout: Lo
         for (const a of actors) {
           // Chasing a person means re-routing as they move.
           const boarding=a.vehicleKey&&w.vehicleFleet?.[a.vehicleKey]?.boarding;
-          if (!boarding && def.target === 'person' && (!a.dest || dist(a.dest, tp) > 12)) setDestination(w, a, tp);
+          if (!boarding && def.target === 'person' && (!a.dest || dist(a.dest, tp) > 12)) { setDestination(w, a, tp); if (order.hitTrace) order.hitTrace.reroutes++; }
           else if (!boarding && !a.dest && dist(a.pos, tp) > 6) setDestination(w, a, tp);
           if (stepPerson(a, minutes, trafficContext(w)) || !boarding && !a.inVehicle && dist(a.pos, tp) <= 6) arrived++;
         }

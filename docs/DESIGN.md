@@ -242,6 +242,18 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 
 Robert's decision (2026-11-17): from 1.2.77 on, each version moves Auto toward one unified fitness function — an action's value toward the chosen victory minus its costs, in one currency, per crew hour. It will later become a shared module used by Auto and by all rival gangs. Not implemented in 1.2.76; 1.2.77 takes the first step (point 13 below).
 
+## v1.2.82 decisions
+
+Robert's Go (2026-11-18) after the city seed 1 run (w1–161): 21 kills on one boss sitting in his HQ never reached him (20 ran out at 40h, 1 never started) and 14 strikes on that HQ never finished; the cause is not in the logs. New constants are proposed.
+
+1. Report-only HIT TRACE (never read by Auto): the game counts, on each kill and bomb order, minutes travelling / executing / waiting, re-routes while chasing, car or foot, the nearest any man came to the target and the last distance, and whether the target was inside a building (which) or on the street. One HIT TRACE line per order; every KILL RESULT and HIT "ran out of week" names a cause. Counters only, no change to how an order runs. Moves: the KILL RESULT / HIT ran-out lines.
+2. `HIT_RUNOUT_MAX` 2 (proposed): after 2 hits of one type on a man that started at the week's start (within `HIT_WHOLE_WEEK_START` 60 min, proposed) and ran to its end, he is set aside for that type until our own sightings place him in another block than where he was last seen (or his HQ's block for a boss). A hit that reaches him clears the count. Memo keyed by order type + target. Moves: DM row `kill` column `given` on such a target (21 → at most 2), and the boss counts as out of reach for the ENDGAME HQ rule. Check: rule (run-outs and sightings are what the player sees), code (`runOutAside`, `mem.hitRunOuts`), fitness (a hit that cannot arrive is worth nothing).
+3. The HQ strike adds the men inside: the boss when our last sighting of him was in the HQ's block, and other known men of the gang last seen there (at most `HQ_INSIDE_MAX` 3, proposed), each × a rival man × `HQ_INSIDE_DEATH` 0.5 (proposed, a bomb's death chance for those inside); the strike's chance is applied once, by the decision (value × chance). Those men are not counted again in the expected kills. Moves: DM row `bomb` column `value` and the HQ INSIDE line. Check: rule (our sightings), code (the strike value), fitness (the strike's real chance to end the gang).
+4. An order that goes first is held at a unified net ≤ $0 like any other (the old heat-over-score case keeps its exemption). Moves: DM row `bomb` (w150: given at net −$1,504) → held.
+5. `ENDGAME_LIE_LOW_WEEKS` 8 (proposed): in the endgame a released or warranted man lies low 8 weeks, no longer until the end. Moves: "lying low until week Infinity" notes → 0; "lying low and the officers' opinion … under −50" holds shorter.
+6. The ENDGAME HQ line splits the hits on the boss into "ran out N, reached M" (report-only; the HQ rule still counts all hits).
+7. Everything else from 1.2.81 stays as is.
+
 ## v1.2.81 decisions
 
 Robert's Go (2026-11-18) after the 1.2.80 logs: the seat value behind the manager cost had taken in the attack crews' hit value at gang scale (about $883k a week a crew at w46), the manager cost then held 685 buys in w40–52, and recruiting stopped with seats open because its gate valued a man 20× lower than the manager cost did. New constants are proposed.

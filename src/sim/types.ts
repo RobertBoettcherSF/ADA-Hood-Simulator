@@ -608,6 +608,10 @@ export interface Order {
   raidDelivery?: { warehouseId: ID };
   /** Unloaded part of the stock accepted for this Export; later deposits wait for another order. */
   exportPending?: {warehouseId: ID; goods: Record<GoodsKind,number>};
+  /** 1.2.82 (report-only, never read by the gangs): where a kill's or bomb's week went — minutes by state,
+   *  re-routes while chasing, whether a car was used, the nearest any man came to the target, and where the
+   *  target was (inside which building, or on the street) at the last tick. */
+  hitTrace?: { travel: number; exec: number; wait: number; reroutes: number; car: boolean; nearest: number; insideId: ID | null; street: boolean; lastDist: number; lastState: string };
   /** Hunting: the target's whereabouts are unknown, so the crew asks around at these places first. */
   hunting?: boolean;
   huntStopIds?: ID[];

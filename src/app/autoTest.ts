@@ -815,7 +815,7 @@ const v140 = new WeakMap<Sim['world'], {
   /** 1.2.74 (Robert, point 2): men we sacked, why, and until when the reason stands. */
   sackedFor?: Map<number, { week: number; reason: string; until: number }>;
   /** 1.2.74 (Robert, point 11): per rival gang in ENDGAME, its boss's hits survived and weeks out of reach. */
-  bossChase?: Map<number, { bossId: number; hits: number; out: number; last: number }>;
+  bossChase?: Map<number, { bossId: number; hits: number; out: number; last: number; ranOut?: number }>;
   /** 1.2.75 (Robert, point 7): the chief's and mayor's opinion of us, the last weeks. */
   officialOps?: { week: number; chief: number; mayor: number; chiefId: number; mayorId: number; chiefOurs: boolean; mayorOurs: boolean }[];
   /** 1.2.75 (Robert, point 8): our men away under arrest (id → week taken), and the finished stints. */
@@ -845,6 +845,8 @@ const v140 = new WeakMap<Sim['world'], {
   netHeldSites?: Map<string, number[]>;
   /** 1.2.81 (Robert, point 1): rival men killed by our kill/kidnap orders, by the crew that carried them out (week of the order). */
   crewKills?: { teamId: number; week: number }[];
+  /** 1.2.82 (Robert, point 2): hits that ran out of a whole free week, by order type + target (count, last week, block he was last seen in). */
+  hitRunOuts?: Map<string, { n: number; week: number; block: number | null }>;
   hqWatch?: { week: number; ids: number[]; hits: number[] }[];
   /** 1.2.69 (point 16): chief bribes (week given) awaiting the next week's check; held / lost counts; weeks lost; stop until. */
   chiefOursLast?: boolean;
@@ -960,6 +962,15 @@ const POOL_SPARE_MAX = 20;
 const SEAT_VALUE_MAX_V = 3;
 /** 1.2.81 (Robert, point 1), proposed: an attack crew's own hits are worth at most this many V a week (lieutenant price only). */
 const ATTACK_VALUE_MAX_V = 10;
+/** 1.2.82 (Robert, point 2), proposed: hits on one man that ran out of a whole free week before he is set aside until seen elsewhere. */
+const HIT_RUNOUT_MAX = 2;
+/** 1.2.82 (point 2), proposed: a hit counts as having the whole week when it started within this many minutes of the week's start. */
+const HIT_WHOLE_WEEK_START = 60;
+/** 1.2.82 (Robert, point 3), proposed: a bomb's death chance for each man inside (the game's 50%), and how many inside it reaches. */
+const HQ_INSIDE_DEATH = 0.5;
+const HQ_INSIDE_MAX = 3;
+/** 1.2.82 (Robert, point 5), proposed: in the endgame a man lies low this many weeks (was until the end). */
+const ENDGAME_LIE_LOW_WEEKS = 8;
 /** 1.2.78 (Robert, point 2), proposed: land bought for a venue is settled at $0 when no venue is set up on it within this many weeks. */
 const LAND_SETTLE_WEEKS = 16; // 1.2.79 (Robert, point 3), proposed: was 4
 /** 1.2.79 (Robert, point 8, report-only): the decision matrix and per-order line headers (tab-separated). */
@@ -1320,7 +1331,21 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (w.week - at >= HIT_OUT_OF_WEEK_ASIDE || w.people[id]?.status === 'dead') { mem.outOfReach!.delete(id); return false; }
     return true;
   };
-  const isOut = (id: number) => notFoundOut(id) || outOfReachOut(id) || refusedOut(id);
+  /** 1.2.82: our last sighting's block of a man (our own sighting messages), merged blocks counted as one. */
+  const lastSeenBlock = (id: number): number | null => { const list = mem.threatSeen ?? []; for (let i = list.length - 1; i >= 0; i--) if (list[i].personId === id) return list[i].block; return null; };
+  const sameBlock = (a: number | null, b: number | null) => a != null && b != null && (w.blocks[a]?.layout?.mergedInto ?? a) === (w.blocks[b]?.layout?.mergedInto ?? b);
+  /** 1.2.82 (Robert, point 2): after HIT_RUNOUT_MAX (proposed) hits of one type on a man ran out of a whole free week,
+   *  he is aside for that type until we see him in another block than where he was then. */
+  const runOutAside = (type: string, id: number) => {
+    const key = `${type}:${id}`;
+    const r = mem.hitRunOuts?.get(key);
+    if (!r || r.n < HIT_RUNOUT_MAX) return false;
+    if (w.people[id]?.status === 'dead') { mem.hitRunOuts!.delete(key); return false; }
+    const movedTo = (mem.threatSeen ?? []).find((x) => x.personId === id && x.week > r.week && !sameBlock(x.block, r.block));
+    if (movedTo) { mem.hitRunOuts!.delete(key); actions.push(`NOTE ${w.people[id]?.name ?? id} seen in block ${movedTo.block} (week ${movedTo.week}), not block ${r.block ?? '?'} — ${type} hits on him again (1.2.82)`); return false; }
+    return true;
+  };
+  const isOut = (id: number) => notFoundOut(id) || outOfReachOut(id) || refusedOut(id) || runOutAside('kill', id) || runOutAside('kidnap', id);
   // 1.2.79 (Robert, point 7): men known jailed — the week's news ("… was convicted of …"), matched to the rival
   // men we know by name; cleared by "… was released from prison." or a new sighting.
   {
@@ -2222,7 +2247,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   /** 1.2.71 (Robert, point 3): pool spares already used for a wanted sack this week. */
   const sackSpares = new Set<number>();
   // 1.2.71 (Robert, point 12): out of ENDGAME, a man lying low "until no rival is left" lies low LIE_LOW_WEEKS from now.
-  if (!endgame) for (const [id, until] of [...wanted.lowUntil]) if (until === Infinity) wanted.lowUntil.set(id, w.week + LIE_LOW_WEEKS);
+  for (const [id, until] of [...wanted.lowUntil]) if (until === Infinity) wanted.lowUntil.set(id, w.week + (endgame ? ENDGAME_LIE_LOW_WEEKS : LIE_LOW_WEEKS));
   for (const p of gangMembers(w, gang)) {
     if (p.status !== 'active' || p.role === 'boss') continue;
     const arrests = wanted.arrests.get(p.id) ?? 0;
@@ -2272,7 +2297,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     }
     // A man at the rest line only rests (back once his heat falls); a released or wanted man lies low LIE_LOW_WEEKS
     // (1.2.71, point 12: in ENDGAME until no rival gang is left).
-    if (released || p.fbiWarrant) wanted.lowUntil.set(p.id, endgame ? Infinity : w.week + LIE_LOW_WEEKS);
+    // 1.2.82 (Robert, point 5): in the endgame ENDGAME_LIE_LOW_WEEKS (proposed), no longer until the end.
+    if (released || p.fbiWarrant) wanted.lowUntil.set(p.id, w.week + (endgame ? ENDGAME_LIE_LOW_WEEKS : LIE_LOW_WEEKS));
     const crew = crewsOf().find((t) => t.memberIds.includes(p.id));
     if (crew) { const r = moveToPool(w, gang.id, p.id); if (!r.ok) actions.push(`NOTE ${p.name} could not be moved to the pool: ${r.error}`); }
     if (gang.poolIds.includes(p.id)) restingMen.add(p.id);
@@ -3414,6 +3440,27 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const rec = orderId != null ? given.get(orderId) : undefined;
       return rec ? `${rec.target} [as given]` : hitTargetDesc(id);
     };
+    // 1.2.82 (Robert, point 1, report-only — never read by Auto): where each kill's and bomb's week went (the game's
+    // own counters on the order), and a cause for every one that ran out of week.
+    const traceOf = (o: (typeof w.lastWeekOrders)[number]) => {
+      const t = o.hitTrace;
+      if (!t) return { text: 'no trace (never started)', cause: 'never started' };
+      const h = (m: number) => hm(Math.round(m));
+      const where = t.insideId != null ? (o.type === 'bomb' ? `target building #${t.insideId}` : `target inside building #${t.insideId}${w.buildings[t.insideId]?.isHQ ? ' (an HQ)' : ''}`) : t.street ? 'target on the street' : 'target not placed';
+      const cause = t.exec > 0 ? `reached the target (${h(t.exec)} at work) but the work did not finish`
+        : t.travel <= 0 && t.wait > 0 ? `waited ${h(t.wait)} and never set out`
+        : t.nearest >= 0 && t.nearest <= 12 ? `came within ${t.nearest} of the target but never counted as arrived (${t.reroutes} re-route(s))`
+        : `travelled ${h(t.travel)} and never got near (nearest ${t.nearest < 0 ? '?' : t.nearest}, last ${t.lastDist < 0 ? '?' : t.lastDist}; ${t.reroutes} re-route(s))`;
+      return { text: `travel ${h(t.travel)}, executing ${h(t.exec)}, waiting ${h(t.wait)}; re-routes ${t.reroutes}; ${t.car ? 'by car' : 'on foot'}; nearest ${t.nearest < 0 ? '?' : t.nearest}, last ${t.lastDist < 0 ? '?' : t.lastDist}; ${where}; last state ${t.lastState || '?'}`, cause };
+    };
+    for (const o of w.lastWeekOrders) {
+      if (o.gangId !== gang.id || (o.type !== 'kill' && o.type !== 'bomb')) continue;
+      const said = o.failReason ?? o.results.at(-1) ?? '';
+      const out = /not enough time in the week|Searched all week|Ran out of week/i.test(said) || isRunOut(said);
+      const tr = traceOf(o);
+      const tgt = o.type === 'kill' ? (o.targetPersonId != null ? w.people[o.targetPersonId]?.name : undefined) : (o.targetBuildingIds[0] != null ? `building #${o.targetBuildingIds[0]}` : undefined);
+      actions.push(`HIT TRACE (${buildVersion()}, report) ${o.type} on ${tgt ?? '?'} by ${w.teams[o.teamId]?.name ?? 'crew'}: ${o.state}${out ? ', ran out of week' : ''}; ${tr.text}${out ? ` → cause: ${tr.cause}` : ''}`);
+    }
     for (const o of w.lastWeekOrders) {
       if (o.gangId !== gang.id || (o.type !== 'kill' && o.type !== 'kidnap')) continue;
       const t = o.targetPersonId != null ? w.people[o.targetPersonId] : undefined;
@@ -3427,6 +3474,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       // target is set aside HIT_OUT_OF_WEEK_ASIDE weeks (proposed).
       const ranOut = /not enough time in the week|Searched all week|Ran out of week/i.test(said0);
       if (ranOut && t && t.status !== 'dead') (mem.outOfReach ??= new Map()).set(t.id, w.week);
+      // 1.2.82 (Robert, point 2): a hit that started at the week's start and ran to its end counts toward HIT_RUNOUT_MAX;
+      // one that reached him (finished without running out) clears the count.
+      if (t && t.status !== 'dead') {
+        const key = `${o.type}:${t.id}`;
+        const wholeWeek = ranOut && o.startedMinute != null && o.startedMinute <= HIT_WHOLE_WEEK_START && (o.finishedMinute ?? MINUTES_PER_WEEK) >= MINUTES_PER_WEEK - 1;
+        const tg = t.gangId != null ? w.gangs[t.gangId] : undefined;
+        const hq = tg && tg.bossId === t.id ? knownRivalHQs(w, gang).find((b) => b.ownerGangId === tg.id) : undefined;
+        if (wholeWeek) { const r = (mem.hitRunOuts ??= new Map()).get(key); (mem.hitRunOuts ??= new Map()).set(key, { n: (r?.n ?? 0) + 1, week: w.week, block: lastSeenBlock(t.id) ?? hq?.blockId ?? null }); }
+        else if (!ranOut && o.startedMinute != null && !/could not be found/i.test(said0)) mem.hitRunOuts?.delete(key);
+      }
       // 1.2.74 (Robert, point 13): actual ÷ estimate feeds the hit correction. 1.2.75 (Robert, point 3):
       // finished hits only (done, or the target survived the attempt); one that ran out (out of week,
       // nobody left, never started) feeds the hit run-out chance instead; not-found teaches neither.
@@ -3439,19 +3496,19 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       }
       const said = o.failReason ?? o.results.at(-1) ?? '';
       // 1.2.79 (Robert, point 5, report): a boss hit's actual minutes against the game's estimate.
-      if (t && t.gangId != null && (w.gangs[t.gangId]?.bossId === t.id || /boss/i.test(given.get(o.id)?.target ?? ''))) actions.push(`HIT (1.2.79, report) actual: ${o.type} on ${t.name} — game estimate ${hm(o.estimatedMinutes)}, actual ${o.startedMinute != null && o.finishedMinute != null ? hm(o.finishedMinute - o.startedMinute) : 'never started'}${ranOut ? ' (ran out of week)' : ''}; ${o.state}`);
+      if (t && t.gangId != null && (w.gangs[t.gangId]?.bossId === t.id || /boss/i.test(given.get(o.id)?.target ?? ''))) actions.push(`HIT (1.2.79, report) actual: ${o.type} on ${t.name} — game estimate ${hm(o.estimatedMinutes)}, actual ${o.startedMinute != null && o.finishedMinute != null ? hm(o.finishedMinute - o.startedMinute) : 'never started'}${ranOut ? ` (ran out of week — ${traceOf(o).cause})` : ''}; ${o.state}`);
       if (t && o.type === 'kill' && t.status !== 'dead' && /survived/i.test(said)) hard.set(t.id, w.week);
       // 1.2.74 (Robert, point 11): a hit on a rival boss that did not end him counts toward the HQ attack.
       if (t && t.status !== 'dead' && t.gangId != null && w.gangs[t.gangId]?.bossId === t.id) {
         const bc = mem.bossChase ??= new Map();
         const c = bc.get(t.gangId);
-        if (c && c.bossId === t.id) c.hits++; else bc.set(t.gangId, { bossId: t.id, hits: 1, out: 0, last: -1 });
+        if (c && c.bossId === t.id) { c.hits++; if (hitRanOut) c.ranOut = (c.ranOut ?? 0) + 1; } else bc.set(t.gangId, { bossId: t.id, hits: 1, out: 0, last: -1, ranOut: hitRanOut ? 1 : 0 });
       }
       // 1.2.71 (Robert, point 7): after one failed kidnap he is a kill target again.
       if (t && o.type === 'kidnap' && o.state === 'failed') hard.delete(t.id);
       // 1.2.71 (Robert, point 8): a target that could not be found is set aside until he is reported seen again.
       if (t && t.status !== 'dead' && /could not be found/i.test(said)) (mem.notFound ??= new Map()).set(t.id, w.week);
-      lines.push(`${killSide(o.teamId, o.sentIds ?? [], o.id)} ${o.type} on ${killTarget(o.targetPersonId ?? undefined, o.id)} — ${o.state}${said ? `: "${said}"` : ''}${o.startedMinute != null && o.finishedMinute != null ? `, ${hm(o.finishedMinute - o.startedMinute)}` : ''}${ranOut ? ', ran out of week' : ''}; game estimate ${o.estimatedMinutes > 0 ? hm(o.estimatedMinutes) : '?'}${given.get(o.id)?.corrected ? ` (× correction ${hm(given.get(o.id)!.corrected!)})` : ''}; ${men} sent, ${died} lost`);
+      lines.push(`${killSide(o.teamId, o.sentIds ?? [], o.id)} ${o.type} on ${killTarget(o.targetPersonId ?? undefined, o.id)} — ${o.state}${said ? `: "${said}"` : ''}${o.startedMinute != null && o.finishedMinute != null ? `, ${hm(o.finishedMinute - o.startedMinute)}` : ''}${ranOut ? `, ran out of week (${traceOf(o).cause})` : ''}; game estimate ${o.estimatedMinutes > 0 ? hm(o.estimatedMinutes) : '?'}${given.get(o.id)?.corrected ? ` (× correction ${hm(given.get(o.id)!.corrected!)})` : ''}; ${men} sent, ${died} lost`);
     }
     for (const [id, at] of [...hard]) { const p = w.people[id]; if (!p || p.status === 'dead' || p.gangId == null || w.week - at > BAD_TARGET_RETRY_WEEKS * 2) hard.delete(id); }
     if (lines.length) actions.push(`KILL RESULT (1.2.75): ${lines.join('; ')}`);
@@ -3697,6 +3754,11 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         return { ok: false, error: `held back — ${target.name} could not be found; aside until seen again` };
       }
       // 1.2.72 (Robert, point 7): a man our last hit ran out of week on is aside a while…
+      if (target && runOutAside(input.type, target.id)) {
+        const r = mem.hitRunOuts?.get(`${input.type}:${target.id}`);
+        noteWait(`NOTE not given — ${r?.n ?? HIT_RUNOUT_MAX} ${input.type} hit(s) on ${target.name} ran out of a whole free week; aside until he is seen outside block ${r?.block ?? '?'} (1.2.82, HIT_RUNOUT_MAX ${HIT_RUNOUT_MAX} proposed)`, label);
+        return { ok: false, error: `held back — ${target.name}: our hits ran out of the whole week ${r?.n ?? HIT_RUNOUT_MAX} times; aside until seen elsewhere` };
+      }
       if (target && outOfReachOut(target.id)) {
         noteWait(`NOTE not given — our last hit on ${target.name} ran out of week; aside ${HIT_OUT_OF_WEEK_ASIDE} wk (1.2.72, proposed)`, label);
         return { ok: false, error: `held back — ${target.name} was out of reach last time; aside` };
@@ -6753,10 +6815,21 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const blockWorth = raceBlockValue || NEW_BLOCK_GOAL_VALUE * KIND_WEIGHTS[goal].territory;
       // 1.2.66 (Robert, point 7): playing to be the last gang standing, the strike also takes 1/(men+1) of the gang's men off the board.
       // 1.2.68 (Robert, point 7): the men it is expected to kill × a rival man (no second ÷ the gang's size).
-      const menWorth = goal === 'eliminate' && win ? win.per * Math.min(men, HQ_STRIKE_KILLS) : 0;
-      const freed = Math.round(held * blockWorth / Math.max(0.1, KIND_WEIGHTS[goal].violence) / (men + 1) + menWorth);
+      // 1.2.82 (Robert, point 3): the boss when our last sighting of him was in his HQ's block, and the other men of
+      // the gang last seen there, are inside when it goes up — each × a rival man × HQ_INSIDE_DEATH (a bomb's
+      // death chance for those inside); the strike's own chance is applied once, by the decision (value × chance).
+      const inside = goal === 'eliminate' && win && owner.id !== gang.id
+        ? [owner.bossId, ...gang.knownPeople.filter((id) => id !== owner.bossId && w.people[id]?.gangId === owner.id)]
+          .filter((id) => w.people[id]?.status !== 'dead' && sameBlock(lastSeenBlock(id), target.blockId)).slice(0, HQ_INSIDE_MAX)
+        : [];
+      const bossInside = inside.includes(owner.bossId);
+      const othersInside = inside.length - (bossInside ? 1 : 0);
+      const insideWorth = win ? Math.round(win.per * HQ_INSIDE_DEATH * inside.length) : 0;
+      const menWorth = goal === 'eliminate' && win ? win.per * Math.min(Math.max(0, men - othersInside), HQ_STRIKE_KILLS) : 0;
+      const freed = Math.round(held * blockWorth / Math.max(0.1, KIND_WEIGHTS[goal].violence) / (men + 1) + menWorth + insideWorth);
       // 1.2.69 (point 18): the line shows the expected kills × a rival man.
-      if (freed > value) { why = `${why}; frees ${held} block(s) of ${owner.name} ($${freed} at 1/${men + 1} of the gang${menWorth ? `, incl. ${Math.min(men, HQ_STRIKE_KILLS)} expected kill(s) × a rival man $${Math.round(win!.per)} = $${Math.round(menWorth)}` : ''})`; value = freed; }
+      if (inside.length) actions.push(`HQ INSIDE (${buildVersion()}) ${owner.name}'s HQ (building ${target.id}, block ${target.blockId}): ${bossInside ? 'the boss' : 'not the boss'}${othersInside ? ` + ${othersInside} known man/men` : ''} last seen in its block → ${inside.length} × a rival man $${Math.round(win!.per)} × ${HQ_INSIDE_DEATH} (proposed) = $${insideWorth} added; × the strike's chance in the decision`);
+      if (freed > value) { why = `${why}; frees ${held} block(s) of ${owner.name} ($${freed} at 1/${men + 1} of the gang${menWorth ? `, incl. ${Math.min(Math.max(0, men - othersInside), HQ_STRIKE_KILLS)} expected kill(s) × a rival man $${Math.round(win!.per)} = $${Math.round(menWorth)}` : ''}${insideWorth ? `, incl. ${inside.length} inside × $${Math.round(win!.per)} × ${HQ_INSIDE_DEATH} = $${insideWorth}` : ''})`; value = freed; }
     }
     // 1.2.69 (Robert, point 13) flat FBI warrant risk (prior HQ_WARRANT_PRIOR) dropped in 1.2.79 (Robert, point 4):
     // each man's added warrant chance (+CRIME_ROW_SUSPICION a site) is priced into the strike's heat in the unified net (WARR line).
@@ -7010,9 +7083,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       if (!boss || boss.status === 'dead') { bc.delete(g.id); continue; }
       let c = bc.get(g.id);
       if (!c || c.bossId !== boss.id) { c = { bossId: boss.id, hits: 0, out: 0, last: -1 }; bc.set(g.id, c); }
-      if (c.last !== w.week && (refusedOut(boss.id) || notFoundOut(boss.id) || outOfReachOut(boss.id) || boss.status === 'jailed' || boss.status === 'kidnapped' || /* 1.2.75 point 6 */ mem.bossTimeOut?.get(g.id) === w.week - 1)) { c.out++; c.last = w.week; }
+      if (c.last !== w.week && (refusedOut(boss.id) || notFoundOut(boss.id) || outOfReachOut(boss.id) || runOutAside('kill', boss.id) || boss.status === 'jailed' || boss.status === 'kidnapped' || /* 1.2.75 point 6 */ mem.bossTimeOut?.get(g.id) === w.week - 1)) { c.out++; c.last = w.week; }
       if (c.out >= HQ_BOSS_OUT_WEEKS || c.hits >= HQ_BOSS_HITS) endgameHq.add(g.id);
-      if ((c.out || c.hits) && rivalHQs.some((b) => b.ownerGangId === g.id)) actions.push(`NOTE ENDGAME HQ (1.2.74): ${g.name}'s boss ${boss.name} out of reach ${c.out} wk, survived ${c.hits} hit(s) — HQ attack ${endgameHq.has(g.id) ? 'allowed' : `not yet (${HQ_BOSS_OUT_WEEKS} wk or ${HQ_BOSS_HITS} hits, proposed)`}`);
+      if ((c.out || c.hits) && rivalHQs.some((b) => b.ownerGangId === g.id)) actions.push(`NOTE ENDGAME HQ (1.2.74): ${g.name}'s boss ${boss.name} out of reach ${c.out} wk, ${c.hits} hit(s): ran out ${c.ranOut ?? 0}, reached ${c.hits - (c.ranOut ?? 0)} (${buildVersion()}, report) — HQ attack ${endgameHq.has(g.id) ? 'allowed' : `not yet (${HQ_BOSS_OUT_WEEKS} wk or ${HQ_BOSS_HITS} hits, proposed)`}`);
     }
   }
   const hqTarget = rivalHQs.find((b) => hqStrikeOk(b.ownerGangId) && (!endgame || endgameHq.has(b.ownerGangId!)));
