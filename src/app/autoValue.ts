@@ -31,18 +31,21 @@ export interface UnifiedParts {
   lambda: number;
   /** Men sent × the game's estimated hours (a standing order: its men × the week). */
   manHours: number;
+  /** 1.2.79 (Robert, point 1): the building a buy or set-up leaves us owning — its price × ASSET_RETURN,
+   *  credited as the cash pass credits it (the site stays ours), × the chance it is carried out. */
+  asset?: number;
 }
 
 export interface UnifiedValue extends UnifiedParts { net: number; perHour: number }
 
 export function unifiedValue(u: UnifiedParts): UnifiedValue {
-  const net = u.value * u.weight * u.chance - u.heat - u.losses - u.managerCost - u.cash * u.lambda;
+  const net = u.value * u.weight * u.chance + (u.asset ?? 0) * u.chance - u.heat - u.losses - u.managerCost - u.cash * u.lambda;
   return { ...u, net, perHour: net / Math.max(UNIFIED_MIN_HOURS, u.manHours) };
 }
 
 /** One proposal's value for the log. */
 export function unifiedWhy(u: UnifiedValue): string {
-  const parts = [`$${Math.round(u.value)} × ${u.weight} × ${u.chance.toFixed(2)}`];
+  const parts = [`$${Math.round(u.value)} × ${u.weight} × ${u.chance.toFixed(2)}${u.asset ? ` + building $${Math.round(u.asset)} × ${u.chance.toFixed(2)}` : ''}`];
   if (u.heat > 0) parts.push(`heat $${Math.round(u.heat)}`);
   if (u.losses > 0) parts.push(`losses $${Math.round(u.losses)}`);
   if (u.managerCost > 0) parts.push(`manager $${Math.round(u.managerCost)}`);
