@@ -36,7 +36,12 @@ export interface UnifiedParts {
   asset?: number;
 }
 
-export interface UnifiedValue extends UnifiedParts { net: number; perHour: number }
+export interface UnifiedValue extends UnifiedParts {
+  net: number; perHour: number;
+  /** 1.2.86 (Robert, point 5): the rank per crew hour when it differs from perHour (an income-only buy with the
+   *  cash to finish close: its takings and building at λ, as its cash); the hold still reads net. */
+  rankPerHour?: number;
+}
 
 export function unifiedValue(u: UnifiedParts): UnifiedValue {
   const net = u.value * u.weight * u.chance + (u.asset ?? 0) * u.chance - u.heat - u.losses - u.managerCost - u.cash * u.lambda;

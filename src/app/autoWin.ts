@@ -255,7 +255,7 @@ export const CHIEF_BRIBE_WEEKS = 8;
 export const WEAKEST_SWITCH_MEN = 3;
 /** Point 2: ENDGAME when every rival holds at most 1/this of our blocks … */
 export const ENDGAME_BLOCK_RATIO = 3;
-/** … and the cash over the reserve covers this many weeks of wages + upkeep. */
+/** … and (1.2.86) the cash to finish is held (FINISH CASH); this many weeks is its horizon only while WIN TIME has no estimate (was: the cash over the reserve covers this many weeks of wages + upkeep). */
 export const ENDGAME_CASH_WEEKS = 26;
 /** Point 3: attack crews wanted in ENDGAME per rival left, and at most. */
 export const ENDGAME_ATTACK_PER_RIVAL = 2;
@@ -292,3 +292,24 @@ export const CHIEF_STOP_WEEKS = 8;
 export const EXPLOSIVES_PER_ATTACK_CREW = 2;
 /** Point 11: the eliminate win chance reads our kill rate over this many weeks (the other growth rates keep WIN_GROWTH_WEEKS). */
 export const KILL_RATE_WEEKS = 8;
+
+// ---- 1.2.86 (Robert), all proposed.
+/**
+ * Point 1: a growth rate a week with its spread — the mean weekly step over the
+ * last `weeks` entries (as growthOf) and the standard error of that mean (the
+ * weekly steps' standard deviation ÷ √steps); 0 with under two steps.
+ */
+export const rateSpread = (hist: readonly number[], weeks = WIN_GROWTH_WEEKS) => {
+  const h = hist.slice(-(weeks + 1));
+  const steps = h.slice(1).map((x, i) => x - h[i]);
+  if (!steps.length) return { mean: 0, se: 0, n: 0 };
+  const mean = steps.reduce((n, x) => n + x, 0) / steps.length;
+  const sd = steps.length > 1 ? Math.sqrt(steps.reduce((n, x) => n + (x - mean) ** 2, 0) / (steps.length - 1)) : 0;
+  return { mean, se: steps.length > 1 ? sd / Math.sqrt(steps.length) : 0, n: steps.length };
+};
+/** Points 4–6: cash at this share of the finish need counts as close (crews and spends shift toward the win). */
+export const FINISH_CLOSE_SHARE = 0.8;
+/** Point 6: new rival men a snitch is assumed to name at an ask, before our own record (weighted as one ask). */
+export const SNITCH_YIELD_PRIOR = 1;
+/** Point 6: an owned police chief below this opinion of us is bribed again (the line the chief's bribes are priced to). */
+export const CHIEF_REBRIBE_OPINION = -20;

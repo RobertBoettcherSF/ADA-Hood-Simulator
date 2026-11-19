@@ -109,7 +109,8 @@ export function decideWeek<T>(
 ): { given: Decision[]; skipped: Decision[] } {
   const given: Decision[] = [], skipped: Decision[] = [];
   const ranked = proposals.map((p, i) => { const c = chance ? chance(p) : 1; const h = heat ? heat(p) : 0; const u = unified ? unified(p, c, h) : null; return { p, i, c, h, u, score: Math.round(scoreOf(goal, p) * c - h) }; })
-    .sort((a, b) => Number(!!b.p.first) - Number(!!a.p.first) || (b.p.tier ?? 0) - (a.p.tier ?? 0) || (a.u && b.u ? b.u.perHour - a.u.perHour : 0) || b.score - a.score || a.i - b.i);
+    // 1.2.86 (Robert, point 5): ranked by rankPerHour where set (income-only buys at λ with the cash to finish close).
+    .sort((a, b) => Number(!!b.p.first) - Number(!!a.p.first) || (b.p.tier ?? 0) - (a.p.tier ?? 0) || (a.u && b.u ? (b.u.rankPerHour ?? b.u.perHour) - (a.u.rankPerHour ?? a.u.perHour) : 0) || b.score - a.score || a.i - b.i);
   for (const r0 of ranked) {
     const { p, i, c, h, score } = r0;
     const u = r0.u && reprice ? reprice(p, r0.u) : r0.u;
