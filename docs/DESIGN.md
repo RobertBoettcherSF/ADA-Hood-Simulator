@@ -242,6 +242,17 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 
 Robert's decision (2026-11-17): from 1.2.77 on, each version moves Auto toward one unified fitness function — an action's value toward the chosen victory minus its costs, in one currency, per crew hour. It will later become a shared module used by Auto and by all rival gangs. Not implemented in 1.2.76; 1.2.77 takes the first step (point 13 below).
 
+## v1.2.83 decisions
+
+Robert's Go (2026-11-19) after city seed 1932 / Auto seed 1932 stalled on its last rival w111–186: the rival's new boss (a man whose kill hits had run out of a whole week twice by w99) stayed aside under the 1.2.82 run-out rule for 76 weeks — no sighting of him in another block ever came — while the ENDGAME line called it "refused as a target". New constants are proposed. Auto reads only player-knowable data.
+
+1. A run-out aside (`HIT_RUNOUT_MAX`) also ends on the week's news "X has taken over Y." for a man we know by name, or `RUNOUT_ASIDE_WEEKS` 6 (proposed) weeks after his last whole-week run-out; his count is then `HIT_RUNOUT_MAX` − 1, so one more whole-week run-out sets him aside again. A NOTE names which. Moves: the ENDGAME line's boss from out of reach to known within 6 weeks (seed 1932: by about w117 instead of never); DM row `kill` gets boss targets again.
+2. The ENDGAME line names the real out-of-reach reason (report-only): not found (week), ran out of week (week, aside 2 wk), refused as a target (week), or kill/kidnap hits ran out ×N (last week, until when). Moves: ENDGAME line text only.
+3. A person hit given to a crew with no car free for it (its cars ≤ the hits it was already given this week — a busy car leaves the men on foot) is judged on the game's order estimate for that crew on foot (× the learned hit correction; the on-foot time ledger when there is no estimate); over the week → held, and the hit is offered to the KILL REACH car buy like any hit held for time. ENDGAME ARM keeps buying one car per attack crew from the cash over the reserve (it already did since 1.2.69) and now reports each attack crew's cars. Moves: HIT TRACE "on foot … travelled 40h … never got near" → fewer; DM row `kill` failed "not enough time in the week" → fewer; ARM line shows cars per crew.
+4. Report-only KERB measurement: HIT TRACE on a kill by car while the target is inside a building adds the car's distance to its own destination, to the target, and its destination's distance to the target (last and largest; the chase re-routes while that gap is over 12). No behaviour fix: the code does not show that the re-routes stop the car, so this only measures it.
+5. A kill is learned (the eliminate kill value, and an attack crew's own kills for its hit value) only when the dead man is in our own kills list — the losses the game puts down to our gang — not when another gang or the street got him first while our crew was on the way.
+6. The ENDGAME crew count (2 per rival, at most 6) is unchanged: at seed 1932 the 6 kills a week of capacity covered the 3–4 possible heirs every finishing week.
+
 ## v1.2.82 decisions
 
 Robert's Go (2026-11-18) after the city seed 1 run (w1–161): 21 kills on one boss sitting in his HQ never reached him (20 ran out at 40h, 1 never started) and 14 strikes on that HQ never finished; the cause is not in the logs. New constants are proposed.

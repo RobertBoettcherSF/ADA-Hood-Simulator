@@ -418,7 +418,16 @@ function traceHit(w: WorldState, order: Order, actors: Person[], minutes: number
   let at: Vec2 | null = null;
   if (order.type === 'kill') {
     const p = order.targetPersonId != null ? w.people[order.targetPersonId] : null;
-    if (p) { at = p.pos; t.insideId = p.buildingId ?? null; t.street = p.buildingId == null; }
+    if (p) {
+      at = p.pos; t.insideId = p.buildingId ?? null; t.street = p.buildingId == null;
+      // 1.2.83 (report): a car chasing a man inside a building — where the car is headed against where he is.
+      const car = p.buildingId != null ? actors.find((a) => a.inVehicle && a.dest) : undefined;
+      if (car && car.dest) {
+        const r1 = (x: number) => Math.round(x * 10) / 10;
+        const k = t.kerb ??= { n: 0, toDest: 0, toTarget: 0, gap: 0, maxGap: 0 };
+        k.n += minutes; k.toDest = r1(dist(car.pos, car.dest)); k.toTarget = r1(dist(car.pos, p.pos)); k.gap = r1(dist(car.dest, p.pos)); k.maxGap = Math.max(k.maxGap, k.gap);
+      }
+    }
   } else {
     const b = w.buildings[order.targetBuildingIds[order.cursor] ?? order.targetBuildingIds[0]];
     if (b) { at = buildingDoor(w, b); t.insideId = b.id; t.street = false; }

@@ -847,6 +847,8 @@ const v140 = new WeakMap<Sim['world'], {
   crewKills?: { teamId: number; week: number }[];
   /** 1.2.82 (Robert, point 2): hits that ran out of a whole free week, by order type + target (count, last week, block he was last seen in). */
   hitRunOuts?: Map<string, { n: number; week: number; block: number | null }>;
+  /** 1.2.83 (Robert, point 1): week the news said a known man "has taken over" a gang. */
+  tookOver?: Map<number, number>;
   hqWatch?: { week: number; ids: number[]; hits: number[] }[];
   /** 1.2.69 (point 16): chief bribes (week given) awaiting the next week's check; held / lost counts; weeks lost; stop until. */
   chiefOursLast?: boolean;
@@ -966,6 +968,8 @@ const ATTACK_VALUE_MAX_V = 10;
 const HIT_RUNOUT_MAX = 2;
 /** 1.2.82 (point 2), proposed: a hit counts as having the whole week when it started within this many minutes of the week's start. */
 const HIT_WHOLE_WEEK_START = 60;
+/** 1.2.83 (Robert, point 1), proposed: a run-out aside ends after this many weeks from the last run-out (his count then HIT_RUNOUT_MAX − 1). */
+const RUNOUT_ASIDE_WEEKS = 6;
 /** 1.2.82 (Robert, point 3), proposed: a bomb's death chance for each man inside (the game's 50%), and how many inside it reaches. */
 const HQ_INSIDE_DEATH = 0.5;
 const HQ_INSIDE_MAX = 3;
@@ -1306,6 +1310,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // 1.2.66 (Robert): what each ending is measured by, every week, for the
   // growth rates the weeks-to-win estimates and the win chances read.
   const rivalsAlive = Object.values(w.gangs).filter((g) => g.id !== gang.id && !g.eliminated);
+  /** 1.2.83 (Robert, point 5): rival men in our own kills list (the losses the game puts down to our gang) over the last 2 weeks. */
+  const ourKillIds = new Set(memberLosses(w, undefined, w.week - 2).filter((l) => l.gangId !== gang.id && l.by === gang.name).map((l) => l.personId));
+  const killedByUs = (id: number) => ourKillIds.has(id);
   /** 1.2.69 (Robert, point 6): a man the game refused as a target (jailed, kidnapped) is set aside until he is reported seen again. */
   // 1.2.70 (Robert, point 1): tried again after BAD_TARGET_RETRY_WEEKS (proposed), and a boss
   // at once while our map shows his gang's HQ (where he stands).
@@ -1336,6 +1343,15 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   const sameBlock = (a: number | null, b: number | null) => a != null && b != null && (w.blocks[a]?.layout?.mergedInto ?? a) === (w.blocks[b]?.layout?.mergedInto ?? b);
   /** 1.2.82 (Robert, point 2): after HIT_RUNOUT_MAX (proposed) hits of one type on a man ran out of a whole free week,
    *  he is aside for that type until we see him in another block than where he was then. */
+  // 1.2.83 (Robert, point 1): the week's news "X has taken over Y." for a man we know by name (player-knowable).
+  {
+    const byName = new Map<string, number>();
+    for (const id of gang.knownPeople) { const p = w.people[id]; if (p && p.gangId != null && p.gangId !== gang.id) byName.set(p.name, id); }
+    for (const line of w.weekLog ?? []) {
+      const m = /^(.+) has taken over (.+)\.$/.exec(line);
+      if (m && byName.has(m[1])) (mem.tookOver ??= new Map()).set(byName.get(m[1])!, w.week);
+    }
+  }
   const runOutAside = (type: string, id: number) => {
     const key = `${type}:${id}`;
     const r = mem.hitRunOuts?.get(key);
@@ -1343,9 +1359,26 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     if (w.people[id]?.status === 'dead') { mem.hitRunOuts!.delete(key); return false; }
     const movedTo = (mem.threatSeen ?? []).find((x) => x.personId === id && x.week > r.week && !sameBlock(x.block, r.block));
     if (movedTo) { mem.hitRunOuts!.delete(key); actions.push(`NOTE ${w.people[id]?.name ?? id} seen in block ${movedTo.block} (week ${movedTo.week}), not block ${r.block ?? '?'} — ${type} hits on him again (1.2.82)`); return false; }
+    // 1.2.83 (Robert, point 1): also ends on the "has taken over" news for him, or after RUNOUT_ASIDE_WEEKS (proposed);
+    // his count is then HIT_RUNOUT_MAX − 1, so one more whole-week run-out sets him aside again.
+    const took = mem.tookOver?.get(id);
+    const why = took != null && took >= r.week ? `the news says he has taken over his gang (week ${took})` : w.week - r.week >= RUNOUT_ASIDE_WEEKS ? `${w.week - r.week} weeks since the last run-out (week ${r.week}, ${RUNOUT_ASIDE_WEEKS} proposed)` : '';
+    if (why) {
+      mem.hitRunOuts!.set(key, { n: HIT_RUNOUT_MAX - 1, week: w.week, block: r.block });
+      actions.push(`NOTE ${w.people[id]?.name ?? id}: ${why} — ${type} hits on him again, run-out count ${HIT_RUNOUT_MAX - 1} (${buildVersion()})`);
+      return false;
+    }
     return true;
   };
   const isOut = (id: number) => notFoundOut(id) || outOfReachOut(id) || refusedOut(id) || runOutAside('kill', id) || runOutAside('kidnap', id);
+  /** 1.2.83 (Robert, point 2, report): why a man is out, for the ENDGAME line. */
+  const outReason = (id: number): string => {
+    if (notFoundOut(id)) return `not found (week ${mem.notFound?.get(id) ?? '?'})`;
+    if (outOfReachOut(id)) return `ran out of week (week ${mem.outOfReach?.get(id) ?? '?'}, aside ${HIT_OUT_OF_WEEK_ASIDE} wk)`;
+    if (refusedOut(id)) return `refused as a target (week ${mem.badTargets?.get(id) ?? '?'})`;
+    for (const t of ['kill', 'kidnap']) if (runOutAside(t, id)) { const r = mem.hitRunOuts!.get(`${t}:${id}`)!; return `${t} hits ran out ×${r.n} (last week ${r.week}), aside until seen elsewhere, taken over or week ${r.week + RUNOUT_ASIDE_WEEKS}`; }
+    return 'out';
+  };
   // 1.2.79 (Robert, point 7): men known jailed — the week's news ("… was convicted of …"), matched to the rival
   // men we know by name; cleared by "… was released from prison." or a new sighting.
   {
@@ -1386,7 +1419,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const over = gang.cash - (mem.lastReserve ?? 0);
     return rivalsAlive.every((g) => territoryCount(w, g.id) * ENDGAME_BLOCK_RATIO <= ours) && over >= ENDGAME_CASH_WEEKS * Math.max(1, bill);
   })();
-  if (endgame) actions.push(`ENDGAME (1.2.69, rivals at most 1/${ENDGAME_BLOCK_RATIO} of our blocks, ${ENDGAME_CASH_WEEKS} wk of the bill over the reserve, proposed): ${rivalsAlive.map((g) => { const i = intelOf.get(g.id)!; const boss = w.people[g.bossId]; const out = boss && isOut(boss.id); return `${g.name} chart ${i.chartMen} men, street ${i.street}, recruits ${i.recruitsPW.toFixed(1)}/wk, ${i.knownMen.length} men known, ${i.knownBiz.length} businesses known, boss ${boss && gang.knownPeople.includes(boss.id) ? (out ? 'out of reach (refused as a target)' : 'known') : 'unknown'}`; }).join('; ')}`);
+  if (endgame) actions.push(`ENDGAME (1.2.69, rivals at most 1/${ENDGAME_BLOCK_RATIO} of our blocks, ${ENDGAME_CASH_WEEKS} wk of the bill over the reserve, proposed): ${rivalsAlive.map((g) => { const i = intelOf.get(g.id)!; const boss = w.people[g.bossId]; const out = boss && isOut(boss.id); return `${g.name} chart ${i.chartMen} men, street ${i.street}, recruits ${i.recruitsPW.toFixed(1)}/wk, ${i.knownMen.length} men known, ${i.knownBiz.length} businesses known, boss ${boss && gang.knownPeople.includes(boss.id) ? (out ? `out of reach: ${outReason(boss.id)} (${buildVersion()})` : 'known') : 'unknown'}`; }).join('; ')}`);
   {
     const best = { blocks: 0, wealth: 0, power: 0 };
     for (const g of rivalsAlive) { best.blocks = Math.max(best.blocks, territoryCount(w, g.id)); best.wealth = Math.max(best.wealth, intelOf.get(g.id)?.chartAssets ?? 0); best.power = Math.max(best.power, chartPowerOf(g)); }
@@ -1715,7 +1748,8 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       for (const o of w.lastWeekOrders) {
         if (o.gangId !== gang.id || o.type !== 'kill' || o.targetPersonId == null) continue;
         const p = w.people[o.targetPersonId], x = outcomes.get(o.id);
-        if (x && p && p.gangId != null && p.gangId !== gang.id && p.status === 'dead') x.value += mem.lastWin.per;
+        // 1.2.83 (Robert, point 5): only a man in our own kills list (killed by us), not one another gang got first.
+        if (x && p && p.gangId != null && p.gangId !== gang.id && p.status === 'dead' && killedByUs(p.id)) x.value += mem.lastWin.per;
       }
       // 1.2.71 (Robert, point 5): a kidnap is learned at one rival man when the prisoner is killed (dead, or our
       // prisoner in ENDGAME, who is killed this week, never released); a bomb at the business's worth as given
@@ -3161,11 +3195,13 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // 1.2.70 (Robert, point 12): a charge for every business ENDGAME DENY bombs a week (2 per attack crew, at least 2).
     // 1.2.71 (point 10): EXPLOSIVES_PER_ATTACK_CREW (proposed) per attack crew.
     { let n = 0; while ((gang.weapons.explosives ?? 0) < Math.max(2, EXPLOSIVES_PER_ATTACK_CREW * attackers.length) && spare() >= WEAPONS.explosives.cost && buyWeapon(w, gang.id, 'explosives').ok) n++; if (n) bought.push(`${n}× explosives`); }
+    // 1.2.83 (Robert, point 3): one car per attack crew, from the cash over the reserve (as 1.2.69); the line reports each crew's cars.
+    const carsOf = (t: Team) => Object.values(t.vehicles).reduce((n, k) => n + (k ?? 0), 0);
     for (const t of attackers) {
-      if (Object.values(t.vehicles).some((n) => n > 0) || spare() < VEHICLES.coupe.cost) continue;
+      if (carsOf(t) > 0 || spare() < VEHICLES.coupe.cost) continue;
       if (buyVehicle(w, gang.id, 'coupe', t.id).ok) bought.push(`a coupe for ${t.name}`);
     }
-    actions.push(`ENDGAME ARM (1.2.69): ${attackers.length} attack crew(s), ${men} men${filled.length ? `; filled ${filled.join(', ')}` : ''}; ${bought.length ? `bought ${bought.join(', ')}` : 'nothing to buy'} (cash over the reserve $${Math.round(spare())})`);
+    actions.push(`ENDGAME ARM (1.2.69; ${buildVersion()} cars): ${attackers.length} attack crew(s), ${men} men; cars ${attackers.map((t) => `${t.name} ${carsOf(t)}`).join(', ') || 'none'}${filled.length ? `; filled ${filled.join(', ')}` : ''}; ${bought.length ? `bought ${bought.join(', ')}` : 'nothing to buy'} (cash over the reserve $${Math.round(spare())})`);
   }
   // 1.2.31 (Robert): only a crew holding a bombing order carries explosives;
   // every other crew hands them to the store.
@@ -3308,7 +3344,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     for (const o of w.lastWeekOrders) {
       if (o.gangId !== gang.id || (o.type !== 'kill' && o.type !== 'kidnap') || o.targetPersonId == null) continue;
       const t = w.people[o.targetPersonId];
-      if (t && t.gangId != null && t.gangId !== gang.id && t.status === 'dead') list.push({ teamId: o.teamId, week: w.week - 1 });
+      if (t && t.gangId != null && t.gangId !== gang.id && t.status === 'dead' && killedByUs(t.id)) list.push({ teamId: o.teamId, week: w.week - 1 });
     }
     mem.crewKills = list.filter((k) => k.week >= w.week - 4);
   }
@@ -3451,7 +3487,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         : t.travel <= 0 && t.wait > 0 ? `waited ${h(t.wait)} and never set out`
         : t.nearest >= 0 && t.nearest <= 12 ? `came within ${t.nearest} of the target but never counted as arrived (${t.reroutes} re-route(s))`
         : `travelled ${h(t.travel)} and never got near (nearest ${t.nearest < 0 ? '?' : t.nearest}, last ${t.lastDist < 0 ? '?' : t.lastDist}; ${t.reroutes} re-route(s))`;
-      return { text: `travel ${h(t.travel)}, executing ${h(t.exec)}, waiting ${h(t.wait)}; re-routes ${t.reroutes}; ${t.car ? 'by car' : 'on foot'}; nearest ${t.nearest < 0 ? '?' : t.nearest}, last ${t.lastDist < 0 ? '?' : t.lastDist}; ${where}; last state ${t.lastState || '?'}`, cause };
+      return { text: `travel ${h(t.travel)}, executing ${h(t.exec)}, waiting ${h(t.wait)}; re-routes ${t.reroutes}; ${t.car ? 'by car' : 'on foot'}; nearest ${t.nearest < 0 ? '?' : t.nearest}, last ${t.lastDist < 0 ? '?' : t.lastDist}; ${where}; last state ${t.lastState || '?'}${t.kerb ? `; KERB (${buildVersion()}, by car on a man indoors, ${h(t.kerb.n)} sampled): car to its destination ${t.kerb.toDest}, car to the target ${t.kerb.toTarget}, destination to the target ${t.kerb.gap} (largest ${t.kerb.maxGap}; a chase re-routes when over 12)` : ''}`, cause };
     };
     for (const o of w.lastWeekOrders) {
       if (o.gangId !== gang.id || (o.type !== 'kill' && o.type !== 'bomb')) continue;
@@ -3784,6 +3820,21 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
           noteWait(`NOTE not given to ${name}'s crew — a ${input.type} takes about ${hm(est)}${pv != null ? ` (estimate ${hm(pv)} × ${hf})` : ''}, over ${share} of a week${finishHit ? ' (finishing week, 1.2.75)' : ''} (1.2.72; 1.2.74 correction, proposed)`, label);
           // 1.2.75 (point 4): a finishing-week hit goes on to the next crew (shortest estimate next).
           return { ok: false, error: finishHit ? `held back — a ${input.type} would not finish within the week's time; try elsewhere` : `held back — a ${input.type} would not finish this week` };
+        }
+        // 1.2.83 (Robert, point 3): a crew with no car free for this hit (its cars ≤ the hits it was given this
+        // week; a busy car leaves the men on foot) is judged on the game's estimate for it on foot; over the week → held.
+        const cars = Object.values(team.vehicles).reduce((n, k) => n + (k ?? 0), 0);
+        if (target && cars <= (killsGiven.get(team.id) ?? 0)) {
+          const saved = team.vehicles;
+          let foot: number | undefined;
+          try { team.vehicles = {} as typeof saved; foot = previewOrder(w, gang.id, { ...input, teamId: team.id })?.estimatedMinutes; } finally { team.vehicles = saved; }
+          const footEst = foot != null ? foot * hf : timeLedger[ledgerKey(input.type, false)];
+          if (footEst != null && footEst > MINUTES_PER_WEEK) {
+            if ((giveValue ?? 0) > (mem.killHeld?.week === w.week ? mem.killHeld.worth : 0)) mem.killHeld = { week: w.week, worth: giveValue ?? 0, est: footEst, teamIds: [team.id] };
+            else if (mem.killHeld?.week === w.week && !mem.killHeld.teamIds.includes(team.id)) mem.killHeld.teamIds.push(team.id);
+            noteWait(`NOTE not given to ${name}'s crew — no car free (${cars} car(s), ${killsGiven.get(team.id) ?? 0} hit(s) given this week): on foot a ${input.type} takes about ${hm(footEst)}${foot != null ? ` (estimate on foot ${hm(foot)} × ${hf})` : ' (ledger, on foot)'}, over the week (${buildVersion()})`, label);
+            return { ok: false, error: `held back — no car free; on foot a ${input.type} would not finish this week; try elsewhere` };
+          }
         }
       }
       // 1.2.70 (Robert, point 7): at most the crew's free men ÷ KILL_MEN_EACH (proposed) kills a week, at least one.
