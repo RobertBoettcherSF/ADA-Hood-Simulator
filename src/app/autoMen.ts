@@ -42,6 +42,8 @@ export interface ManContext {
   /** Stars for a job. */
   stars: (p: Person, role: CrewRole) => number;
   warrantBar: number;
+  /** 1.2.84 (Robert, point 5): a man's FBI score by Auto's own count (no hidden score is read). */
+  fbiScore: (p: Person) => number;
 }
 
 export interface ManValue { job: CrewRole | null; earn: number; lieutenant: number; bonus: number; wage: number; risk: number; net: number }
@@ -62,7 +64,7 @@ export function jobEarnings(p: Person, role: CrewRole, ctx: ManContext, weekMinu
 
 /** The expected arrest cost a week: jail weeks × V + a court bribe (+ part of his crew for a lieutenant). */
 export function wantedRisk(p: Person, ctx: ManContext, crewSize: number): number {
-  const chance = Math.min(1, (p.fbiWarrant ? WARRANT_ARREST_CHANCE : 0) + SUSPICION_ARREST_CHANCE * (p.crimeSuspicion ?? 0) / ctx.warrantBar);
+  const chance = Math.min(1, (p.fbiWarrant ? WARRANT_ARREST_CHANCE : 0) + SUSPICION_ARREST_CHANCE * ctx.fbiScore(p) / ctx.warrantBar);
   const cost = ARREST_WEEKS * ctx.scale.V + COURT_BRIBE_COST + (p.role === 'lieutenant' ? crewSize * CREW_TAKEN_SHARE * ctx.scale.A : 0);
   return chance * cost;
 }

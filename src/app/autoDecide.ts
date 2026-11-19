@@ -47,6 +47,8 @@ export interface Proposal<T> {
   first?: boolean;
   /** 1.2.70 (Robert, point 7): among proposals alike in `first`, a higher tier goes ahead (the finishing week's boss and heirs). */
   tier?: number;
+  /** 1.2.84 (Robert, point 1): not held when its unified net is at or below $0 (the FBI-cover buys: their cash × λ does not hold them). */
+  noNetHold?: boolean;
   /** 1.2.72 (Robert, point 8): the order type a sized-at-give proposal (input is a function) learns under — the type of the order it builds. */
   orderType?: string;
 }
@@ -125,7 +127,7 @@ export function decideWeek<T>(
     // 1.2.55 (Robert): heat priced above the order's worth — not given (no lie-low rule).
     // 1.2.78 (Robert, point 7): the unified net decides — given above $0, held at or below $0 (no d20);
     // the old heat-against-score hold only where no unified value could be priced.
-    const held = u ? u.net <= 0 : h > 0 && score <= 0;
+    const held = (u ? u.net <= 0 : h > 0 && score <= 0) && !p.noNetHold;
     // 1.2.82 (Robert, point 4): an order that goes first is held too when its unified net is at or below $0
     // (the old heat-over-score case keeps its first exemption).
     if (held && (!p.first || !!u) && !(explore && explore(p, score + h, h, u))) {

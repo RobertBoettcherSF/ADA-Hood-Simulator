@@ -9,7 +9,7 @@ import { ORDERS, ORDER_GROUPS } from '../sim/constants';
 import { BUILDING_BY_ID, ILLEGAL_TYPES, ESTABLISHABLE_TYPES, coverQuality } from '../sim/data/buildings';
 import { expandTargets } from '../sim/execution';
 import { donationAmount } from '../sim/charity';
-import { crewPeople, orderStaffing, readyForPlanning } from '../sim/orderStaffing';
+import { crewPeople, freeForOrders, orderStaffing } from '../sim/orderStaffing';
 import { orderCashCost, spendableCash } from '../sim/orderCost';
 import { buildingName, buildingsOfBlock, money } from '../sim/world';
 import { Icon, Kicker, Rivets, Stars } from './common';
@@ -401,8 +401,8 @@ export function JobCardPanel() {
               <select aria-label="Preferred crew member" className="text-input" value={jc.opts.preferredHoodId ?? ''} onChange={(e) => updateOpts({ preferredHoodId: e.target.value ? Number(e.target.value) : null })}>
                 <option value="">Let the lieutenant choose</option>
                 {preferredCrewOrder(people, def.skills).map((p) => (
-                  <option key={p.id} value={p.id} disabled={!readyForPlanning(w, p)}>
-                    {preferredCrewLabel(p, def.skills)}{!readyForPlanning(w, p) ? ' — unavailable' : ''}
+                  <option key={p.id} value={p.id} disabled={!freeForOrders(w, p)}>
+                    {preferredCrewLabel(p, def.skills)}{!freeForOrders(w, p) ? ' — unavailable' : ''}
                   </option>
                 ))}
               </select>

@@ -122,12 +122,36 @@ export function fbiProject(s: HeatState, extraOffice = 0, extraTakings = 0, plan
   for (let k = 0; k < HEAT_WEEKS; k++) { t = Math.min(255, t - Math.trunc(t / 10) + r); top = Math.max(top, t); }
   return top;
 }
-const fbiP = (x: number) => clamp01((x - (FBI_CASE_THRESHOLD - FBI_BAND)) / FBI_BAND);
+const fbiRamp = (x: number) => clamp01((x - (FBI_CASE_THRESHOLD - FBI_BAND)) / FBI_BAND);
+/**
+ * 1.2.84 (Robert, point 7): the weeks a total of x keeps over the case line by
+ * the game's decay alone (a tenth off a week, no new rise): ln(x ÷ 200) ÷
+ * ln(10 ÷ 9), at most HEAT_WEEKS. Grows with every point up to the game's 255.
+ */
+export function weeksOverLine(x: number): number {
+  return x <= FBI_CASE_THRESHOLD ? 0 : Math.min(HEAT_WEEKS, Math.log(x / FBI_CASE_THRESHOLD) / Math.log(10 / 9));
+}
+/**
+ * The share of a boss case an FBI total stands for: the ramp over the FBI_BAND
+ * below the line (as since 1.2.55), and above the line (1.2.84, point 7) the
+ * share of the HEAT_WEEKS it keeps the total over 200 — so a point above the
+ * line is no longer priced at $0.
+ */
+const fbiP = (x: number) => fbiRamp(x) + weeksOverLine(x) / HEAT_WEEKS;
+/** 1.2.84 (Robert, point 8): the week's rise before the game truncates it (to see an order that adds points at all). */
+function fbiRiseExact(s: HeatState, extraOffice = 0, plannedAdd = 0): number {
+  if (!s.standard) return 0;
+  const office = Math.max(0, officeThisWeek(s, extraOffice, plannedAdd));
+  return Math.max(0, (office / premisesBase(s) - s.ratioLimit) * 2);
+}
 /** The hard guard: an order that adds office takings must not take the projected total past 200 (1.2.56: with every order given this week counted). */
 export function fbiGuard(s: HeatState, extraOffice: number, plannedAdd = 0): boolean {
   if (!s.standard || (extraOffice <= 0 && plannedAdd <= 0)) return false;
-  const after = fbiProject(s, extraOffice, 0, plannedAdd);
-  return after > FBI_CASE_THRESHOLD && after > fbiProject(s);
+  const before = fbiProject(s), after = fbiProject(s, extraOffice, 0, plannedAdd);
+  // 1.2.84 (Robert, point 8): already over the line (the projection may sit at the game's cap),
+  // any order that adds FBI points is held.
+  if (before > FBI_CASE_THRESHOLD || s.fbiTotal > FBI_CASE_THRESHOLD) return fbiRiseExact(s, extraOffice, plannedAdd) > fbiRiseExact(s);
+  return after > FBI_CASE_THRESHOLD && after > before;
 }
 /** The FBI heat price removed by more legal takings (a legal buy raises the premises base). */
 export function legalCredit(s: HeatState, extraTakings: number): number {
@@ -376,7 +400,7 @@ export function heatLine(s: HeatState, crewTop: { wanted: number; fbiScore: numb
   const slope = Math.min(0.05, 0.25 / (0.3 * Math.max(10, s.defence)));
   const spent = Object.entries(spend).filter(([, v]) => v > 0.5).map(([k, v]) => `${k} $${Math.round(v)}`).join(', ');
   return `HEAT (1.2.56, H ${HEAT_WEEKS} wk, bands ${FBI_BAND}/${WANTED_BAND}, boss case ${BOSS_CASE_A}×A, proposed): `
-    + `FBI total ${s.fbiTotal} (projected ${fbiNow}, rise ${fbiRise(s)}/wk) line ${FBI_CASE_THRESHOLD} gap ${FBI_CASE_THRESHOLD - fbiNow}, $${Math.round(fbiUnit)}/point; `
+    + `FBI total ${s.fbiTotal} seen (graph × 2.55, 1.2.84) (projected ${fbiNow}, ${weeksOverLine(fbiNow).toFixed(1)} wk over the line, rise ${fbiRise(s)}/wk) line ${FBI_CASE_THRESHOLD} gap ${FBI_CASE_THRESHOLD - fbiNow}, $${Math.round(fbiUnit)}/point; `
     + `top wanted ${Math.round(crewTop.wanted)} line ${Math.round(line)} gap ${Math.round(line - crewTop.wanted)}, $${Math.round(wantedUnit)}/point (×man); `
     + `top FBI score ${Math.round(crewTop.fbiScore)} line ${MEMBER_WARRANT_BAR} gap ${Math.round(MEMBER_WARRANT_BAR - crewTop.fbiScore)}, $${Math.round(warrantUnit)}/point (×man); `
     + `chief ${Math.round(s.chief)} (mayor ${Math.round(s.mayor)}) line ${HOSTILE_LINE} gap ${Math.round(s.chief - HOSTILE_LINE)}, $${Math.round(chiefUnit)}/mayor point; `

@@ -1,7 +1,7 @@
 import { ORDERS } from './constants';
 import type { Order, Person, Team, WorldState } from './types';
 import { skillAvg } from './world';
-import { idleInside, isGangOffice } from './officeDefence';
+import { isGangOffice } from './officeDefence';
 
 export function crewPeople(w: WorldState, team: Team): Person[] {
   return [...new Set([team.lieutenantId, ...team.memberIds])].map(id => w.people[id])
@@ -15,14 +15,13 @@ export function readyForPlanning(w: WorldState, p: Person): boolean {
 }
 
 /**
- * 1.2.50 (Robert): a crew man or lieutenant of a gang that keeps its idle men
- * inside (Auto sets idleInside for its own gang only) waiting inside his own
- * office counts as free for orders; he walks out when an order takes him.
- * readyForPlanning stays as it is for player orders and rival gangs.
+ * 1.2.50 (Robert): a crew man or lieutenant waiting inside his own office
+ * counts as free for orders; he walks out when an order takes him.
+ * 1.2.84 (Robert): for every gang (idle men wait inside for all gangs).
  */
 export function waitingInside(w: WorldState, p: Person): boolean {
   return p.status === 'active' && p.buildingId != null && p.burningEscape?.week !== w.week &&
-    !!idleInside.get(w)?.has(p.gangId ?? -1) && isGangOffice(w.buildings[p.buildingId], p.gangId);
+    (p.role === 'hood' || p.role === 'lieutenant') && isGangOffice(w.buildings[p.buildingId], p.gangId);
 }
 
 /** Free for orders: ready for planning, or waiting inside his own office (1.2.50). */

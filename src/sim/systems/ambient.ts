@@ -4,7 +4,7 @@ import { specialistParticipants, specialistVisitTargets } from '../specialistJob
 import { clearDestination, noteEarlyStep, setDestination, stepPerson } from '../movement';
 import { trafficContext } from '../traffic';
 import { boardingCount, sendHome } from '../transport';
-import { hqAvoidance, idleInside, isGangOffice, RAID_REACH, raidWaitSpot } from '../officeDefence';
+import { isGangOffice } from '../officeDefence';
 import { peopleSlice } from '../peopleSlices';
 import type { Rng } from '../rng';
 import type { Block, Building, ID, Person, WorldState } from '../types';
@@ -99,43 +99,25 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
       return;
     }
     // 1.2.39 (Robert): the pool waits inside the office (off the street, out
-    // of street combat); a crew man idle at the office stands at the door as
-    // before. A pool hood idle away from any office walks home first.
-    // 1.2.44 (Robert): an idle lieutenant waits at the office door like his men.
-    // 1.2.46 (Robert): while an FBI case is open nobody waits in or at the
-    // HQ; sendHome takes them to the gang's refuge instead.
-    // 1.2.51 (Robert): the boss too stays out of the HQ during a raid.
-    const avoid = p.gangId != null && (p.role === 'hood' || p.role === 'lieutenant' || p.role === 'boss') && !p.dest ? hqAvoidance.get(w)?.get(p.gangId) : undefined;
-    const avoidedHq = avoid ? w.buildings[avoid.hqId] : undefined;
-    if (avoid && avoidedHq && (p.buildingId === avoidedHq.id || (!p.inVehicle && dist(p.pos, buildingDoor(w, avoidedHq)) <= RAID_REACH))) {
-      const refuge = avoid.refugeId != null ? w.buildings[avoid.refugeId] : undefined;
-      if (refuge && refuge.state !== 'destroyed' && refuge.ownerGangId === p.gangId) { sendHome(w, p); return; }
-      // 1.2.50 (Robert): no other premises — out of the HQ to the street, just past the raid's reach.
-      if (p.buildingId === avoidedHq.id) p.pos = buildingDoor(w, avoidedHq);
-      p.buildingId = null;
-      setDestination(w, p, raidWaitSpot(w, avoidedHq, p));
-      return;
-    }
-    // 1.2.49 (Robert): a gang that keeps its idle men inside (idleInside) sends
-    // its idle crew men and lieutenants into the office like the pool.
-    const inside = p.gangId != null && !p.dest && !p.inVehicle && (p.role === 'hood' || p.role === 'lieutenant') && !!idleInside.get(w)?.has(p.gangId);
-    if (p.role === 'lieutenant' && !inside && p.gangId != null && !p.dest && p.buildingId != null && isGangOffice(w.buildings[p.buildingId], p.gangId)) p.buildingId = null;
-    if ((p.role === 'hood' || inside) && p.gangId != null && !p.dest) {
-      const inOffice = isGangOffice(p.buildingId != null ? w.buildings[p.buildingId] : undefined, p.gangId);
-      if (p.teamId != null && inOffice && !inside) p.buildingId = null;
-      else if ((p.teamId == null || inside) && p.buildingId == null) {
-        let home: Building | undefined, far = false;
-        // 1.2.41: a hood stationed at an office of his gang waits only there.
-        const station = p.homeOfficeId != null ? w.buildings[p.homeOfficeId] : undefined;
-        const stationed = isGangOffice(station, p.gangId) ? station : undefined;
-        for (const b of gangOfficesThisPass(w, p.gangId).offices) {
-          if ((stationed && b.id !== stationed.id) || b.id === avoid?.hqId) continue;
-          if (dist(buildingDoor(w, b), p.pos) < 24) { home = b; break; }
-          far = true;
-        }
-        if (home) { p.inVehicle = false; p.buildingId = home.id; p.pos = { ...w.lots[home.lotId].center }; return; }
-        if (far && !p.inVehicle) { sendHome(w, p); return; }
+    // of street combat). A man idle away from any office walks home first.
+    // 1.2.84 (Robert): the same rule for every gang, the player's and the
+    // rivals' alike — idle crew men and lieutenants wait inside the nearest
+    // office like the pool (no longer at the door; replaces the 1.2.49 flag
+    // only Auto set). An FBI raid on the office still takes everyone inside.
+    // (The 1.2.46–1.2.51 keep-away-from-the-HQ rule only Auto used is gone.)
+    const inside = p.gangId != null && !p.dest && !p.inVehicle && (p.role === 'hood' || p.role === 'lieutenant');
+    if (inside && p.buildingId == null) {
+      let home: Building | undefined, far = false;
+      // 1.2.41: a pool hood stationed at an office of his gang waits only there.
+      const station = p.teamId == null && p.homeOfficeId != null ? w.buildings[p.homeOfficeId] : undefined;
+      const stationed = isGangOffice(station, p.gangId) ? station : undefined;
+      for (const b of gangOfficesThisPass(w, p.gangId!).offices) {
+        if (stationed && b.id !== stationed.id) continue;
+        if (dist(buildingDoor(w, b), p.pos) < 24) { home = b; break; }
+        far = true;
       }
+      if (home) { p.inVehicle = false; p.buildingId = home.id; p.pos = { ...w.lots[home.lotId].center }; return; }
+      if (far && !p.inVehicle) { sendHome(w, p); return; }
     }
     if (p.buildingId != null && p.role !== 'police' && p.role !== 'fbi' && p.role !== 'snitch' && p.role !== 'reporter') {
       // Owners and managers stay at their premises.
@@ -203,8 +185,9 @@ function ambientPerson(w: WorldState, rng: Rng, p: Person, minutes: number, traf
       case 'lawyer': {
         // Gang members between jobs simply walk home.
         const arrived = !!p.dest && stepPerson(p, minutes, traffic);
-        if (arrived && p.role === 'hood' && p.teamId == null) {
-          // 1.2.39: a pool hood home from a walk goes inside the office.
+        if (arrived && (p.role === 'hood' || p.role === 'lieutenant')) {
+          // 1.2.39: a pool hood home from a walk goes inside the office;
+          // 1.2.84: crew men and lieutenants too, for every gang.
           const home = officeNear(w, p);
           if (home) { p.inVehicle = false; p.buildingId = home.id; p.pos = { ...w.lots[home.lotId].center }; }
         } else if (arrived && (p.role === 'lawyer' || p.role === 'accountant')) {
@@ -246,9 +229,7 @@ function gangOfficesThisPass(w: WorldState, gangId: ID): { offices: Building[]; 
 /** 1.2.39: any office of his gang within reach (where sendHome walks him). */
 function officeNear(w: WorldState, p: Person): Building | undefined {
   if (p.gangId == null) return undefined;
-  // 1.2.50 (Robert): never into an HQ that a raid is due on.
-  const avoided = hqAvoidance.get(w)?.get(p.gangId)?.hqId;
-  for (const b of gangOfficesThisPass(w, p.gangId).offices) if (b.id !== avoided && dist(buildingDoor(w, b), p.pos) < 24) return b;
+  for (const b of gangOfficesThisPass(w, p.gangId).offices) if (dist(buildingDoor(w, b), p.pos) < 24) return b;
   return undefined;
 }
 
@@ -257,8 +238,7 @@ function officeNear(w: WorldState, p: Person): Building | undefined {
  * about 1.3 GB a week of garbage on a 36 × 28 city.) */
 function officeAtHand(w: WorldState, p: Person): Building | undefined {
   if (p.gangId == null) return undefined;
-  const avoided = hqAvoidance.get(w)?.get(p.gangId)?.hqId;
-  for (const b of gangOfficesThisPass(w, p.gangId).hqs) if (b.id !== avoided && dist(buildingDoor(w, b), p.pos) < 24) return b;
+  for (const b of gangOfficesThisPass(w, p.gangId).hqs) if (dist(buildingDoor(w, b), p.pos) < 24) return b;
   return undefined;
 }
 

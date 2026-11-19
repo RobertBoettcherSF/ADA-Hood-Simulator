@@ -608,6 +608,25 @@ export function moveToPool(w: WorldState, gangId: ID, personId: ID): ApiResult {
   return ok();
 }
 
+/**
+ * 1.2.84 (Robert): the gang's lawyer or accountant leaves the pool or a crew he
+ * was put in and goes back to the office (a specialist works from the office,
+ * not in a crew). Any gang may call it.
+ */
+export function releaseSpecialist(w: WorldState, gangId: ID, personId: ID): ApiResult {
+  const gang = w.gangs[gangId];
+  const p = w.people[personId];
+  if (!gang || !p || p.gangId !== gangId || (p.role !== 'lawyer' && p.role !== 'accountant')) return fail('Choose your lawyer or your accountant.');
+  const old = p.teamId == null ? null : w.teams[p.teamId];
+  const inPool = gang.poolIds.includes(personId);
+  if (!inPool && !old) return ok(`${p.name} is not in the pool or a crew.`);
+  if (old) old.memberIds = old.memberIds.filter((id) => id !== personId);
+  p.teamId = null;
+  if (inPool) gang.poolIds = gang.poolIds.filter((id) => id !== personId);
+  retimeCrew(w, old);
+  return ok(`${p.name} is back at the office.`);
+}
+
 /** A man who signs on is off the market: take him off every gang's list. */
 function unlistRecruit(w: WorldState, personId: ID): void {
   for (const g of Object.values(w.gangs)) g.recruitIds = g.recruitIds.filter((id) => id !== personId);

@@ -22,6 +22,7 @@ import {
   MINUTES_PER_WEEK,
   ORDERS,
   VEHICLES,
+  WALK_SPEED,
   WEAPON_ORDER,
 } from './constants';
 import { BUILDING_BY_ID, coverQuality } from './data/buildings';
@@ -521,7 +522,15 @@ export function orderStart(w: WorldState, team: Team, order: Order): Vec2 | null
   return crewStartFor(w, team, orderFirstPos(w, order), order.id);
 }
 
-export function estimateMinutes(w: WorldState, team: Team, order: Order): number {
+/**
+ * 1.2.84 (Robert): the same estimate for the crew going on foot (no car), for a
+ * planner judging an order when the crew's cars are taken.
+ */
+export function estimateMinutesOnFoot(w: WorldState, team: Team, order: Order): number {
+  return estimateMinutes(w, team, order, true);
+}
+
+export function estimateMinutes(w: WorldState, team: Team, order: Order, onFoot = false): number {
   const def = ORDERS[order.type];
   // A standing order ties up its hoods for the week, not the whole crew: it
   // costs the crew's week in proportion to the men it takes.
@@ -532,7 +541,7 @@ export function estimateMinutes(w: WorldState, team: Team, order: Order): number
 
   const manpower = Math.max(1, order.opts.manpower);
   const candidates=orderStaffing(w,team,order,w.phase==='planning').chosen;
-  const speed=plannedTravelSpeed(w,team,candidates,order.type);
+  const speed=onFoot?WALK_SPEED:plannedTravelSpeed(w,team,candidates,order.type);
   const lt = w.people[team.lieutenantId];
   const efficiency = lt ? 1.35 - starFactor(skillAvg(lt, ['organization', 'intelligence'])) * 0.4 : 1.2;
 

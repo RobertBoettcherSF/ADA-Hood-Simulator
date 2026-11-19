@@ -4,7 +4,6 @@ import { cargoWarehouse, routeCargoReturn, unloadCargo } from './cargo';
 import { clearDestination, setDestination } from './movement';
 import { onRoad, parkingSpot, pavementBeside } from './vehicleNavigation';
 import { allBuildings, buildingDoor, dist } from './world';
-import { hqAvoidance, raidWaitSpot } from './officeDefence';
 import type { FleetVehicle, Gang, ID, OrderType, Person, Team, Vec2, VehicleId, WorldState } from './types';
 
 // Seat counts, cargo units and speed multipliers are remake tuning. The manual
@@ -205,12 +204,7 @@ export function sendHome(w:WorldState,p:Person):void {
   if(p.status!=='active'||p.gangId==null)return;
   // 1.2.41: a pool hood stationed at an office of his gang goes home there.
   const station=p.homeOfficeId!=null&&p.teamId==null?w.buildings[p.homeOfficeId]:undefined;
-  // 1.2.46 (Robert): while the gang keeps away from its HQ (FBI case open), home is its refuge.
-  const avoid=hqAvoidance.get(w)?.get(p.gangId),refuge=avoid?.refugeId!=null?w.buildings[avoid.refugeId]:undefined;
-  const away=refuge&&refuge.ownerGangId===p.gangId&&refuge.state!=='destroyed'?buildingDoor(w,refuge):undefined;
-  // 1.2.50 (Robert): no refuge while a raid is due — wait in the street just past the raid's reach.
-  const hq=avoid?w.buildings[avoid.hqId]:undefined,wait=avoid&&!away&&hq?raidWaitSpot(w,hq,p):undefined;
-  const destination=station&&station.ownerGangId===p.gangId&&station.typeId==='office'&&station.state!=='destroyed'&&!((away||wait)&&station.id===avoid?.hqId)?buildingDoor(w,station):away??wait??base(w,p.gangId,p.pos),v=vehicleOf(w,p);
+  const destination=station&&station.ownerGangId===p.gangId&&station.typeId==='office'&&station.state!=='destroyed'?buildingDoor(w,station):base(w,p.gangId,p.pos),v=vehicleOf(w,p);
   p.buildingId=null;
   // Back into the waiting car after stepping out for the job.
   if(v&&!p.inVehicle&&v.boarding)tryBoard(w,v);
