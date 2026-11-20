@@ -16,6 +16,7 @@ import { reclaimStaffVehicle } from './specialists';
 import { allocateTransport, alight, availableVehicle, dismount, stepOut, orderVehicles, plannedTravelSpeed, transportPlan, reconcileTransport, releaseTransportOrder, resetWeekTransport, sendHome } from './transport';
 import { cargoVehicles, cargoWarehouse, emptyGoods, goodsTotal, loadCargo, refreshExportCargo, unloadCargo } from './cargo';
 import {
+  CHASE_REROUTE_MOVE,
   DRIVE_MIN_DISTANCE,
   MAX_TEAMS,
   MAX_TEAM_SIZE,
@@ -37,7 +38,7 @@ import { noteBribe, payCash, receiveOrderCash } from './finances';
 import { resetBusinessInvestigation } from './businessState';
 import { raidableGoods } from './goodsStorage';
 import { exportLoadValue, exportedThisWeek, isExportTerminal, nearestExportTerminal, recoverExportGoods, sellExport } from './exportGoods';
-import { clearDestination, setDestination, stepPerson } from './movement';
+import { clearDestination, crossingHolder, setDestination, stepPerson } from './movement';
 import { trafficContext } from './traffic';
 import { allocateWeapons, attackProfile, type Loadout } from './weapons';
 import type { Rng } from './rng';
@@ -434,6 +435,32 @@ function traceHit(w: WorldState, order: Order, actors: Person[], minutes: number
     if (b) { at = buildingDoor(w, b); t.insideId = b.id; t.street = false; }
   }
   if (!at) return;
+  // 1.2.87 (report): men on foot — held at a kerb (and by what), waiting to board, path left, destination to target.
+  const walkers = actors.filter((a) => !a.inVehicle);
+  if (walkers.length) {
+    const r1 = (x: number) => Math.round(x * 10) / 10;
+    const f = t.foot ??= { n: 0, held: 0, heldBy: {}, boarding: 0, far: '', pathLeft: -1, destToTarget: -1 };
+    f.n += minutes;
+    const held = walkers.find((a) => a.halted && a.path[0]?.cross);
+    if (held) {
+      f.held += minutes;
+      const by = crossingHolder(trafficContext(w), held.pos, held.path[0]) ?? 'nothing now';
+      f.heldBy[by] = (f.heldBy[by] ?? 0) + minutes;
+    }
+    const v = walkers.map((a) => a.vehicleKey ? w.vehicleFleet?.[a.vehicleKey] : undefined).find((x) => x?.boarding);
+    if (v) {
+      f.boarding += minutes;
+      const far = v.occupantIds.map((id) => w.people[id]).find((p) => !p || dist(p.pos, v.pos) > 3);
+      f.far = far ? `${far.name} ${r1(dist(far.pos, v.pos))} m` : '';
+    }
+    const lead = walkers.find((a) => a.dest);
+    if (lead && lead.dest) {
+      let len = 0, from = lead.pos;
+      for (const q of lead.path) { len += dist(from, q); from = q; }
+      len += dist(from, lead.dest);
+      f.pathLeft = r1(len); f.destToTarget = r1(dist(lead.dest, at));
+    }
+  }
   const d = Math.min(...actors.map((a) => dist(a.pos, at!)));
   t.lastDist = Math.round(d * 10) / 10;
   if (t.nearest < 0 || d < t.nearest) t.nearest = Math.round(d * 10) / 10;
@@ -804,7 +831,12 @@ export function tickOrders(w: WorldState, rng: Rng, minutes: number, loadout: Lo
         for (const a of actors) {
           // Chasing a person means re-routing as they move.
           const boarding=a.vehicleKey&&w.vehicleFleet?.[a.vehicleKey]?.boarding;
-          if (!boarding && def.target === 'person' && (!a.dest || dist(a.dest, tp) > 12)) { setDestination(w, a, tp); if (order.hitTrace) order.hitTrace.reroutes++; }
+          // 1.2.87: a man in a car re-routes when the target has moved CHASE_REROUTE_MOVE from where his route was
+          // last planned to, not when his kerb stop is far from a man indoors (that re-planned every minute, never arriving).
+          const planned = a.inVehicle ? order.chaseFrom?.[a.id] : undefined;
+          if (!a.inVehicle && order.chaseFrom) delete order.chaseFrom[a.id];
+          const chase = def.target === 'person' && (a.inVehicle ? planned == null || dist(planned, tp) > CHASE_REROUTE_MOVE : !a.dest || dist(a.dest, tp) > 12);
+          if (!boarding && chase) { setDestination(w, a, tp); if (a.inVehicle) (order.chaseFrom ??= {})[a.id] = { x: tp.x, y: tp.y }; if (order.hitTrace) order.hitTrace.reroutes++; }
           else if (!boarding && !a.dest && dist(a.pos, tp) > 6) setDestination(w, a, tp);
           if (stepPerson(a, minutes, trafficContext(w)) || !boarding && !a.inVehicle && dist(a.pos, tp) <= 6) arrived++;
         }

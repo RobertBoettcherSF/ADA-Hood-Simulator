@@ -1,7 +1,7 @@
 import { BLOCK_SIZE, CELL, PAVEMENT_OFFSET, STREET_WIDTH } from './constants';
 import { afterTransportStep, parkedSpots, syncVehicle, transportSpeed, vehicleDriver, vehicleOf } from './transport';
 import { r01 } from './hash';
-import { crossingBlocked, roadAheadBlocked, roadAheadRoom, type TrafficContext } from './traffic';
+import { crossingBlockCause, crossingBlocked, roadAheadBlocked, roadAheadRoom, type TrafficContext } from './traffic';
 import type { PathPoint, Person, Vec2, WorldState } from './types';
 import { dist } from './world';
 import { blockRect, cityBlockAt, cityStreetInset, streetRouteNodes } from './cityLayout';
@@ -292,6 +292,13 @@ function crossingHasTraffic(t: TrafficContext, at: Vec2, next: Vec2): boolean {
   return Math.abs(next.x - at.x) >= Math.abs(next.y - at.y)
     ? crossingBlocked(t, false, Math.round(mx / CELL), my, mx, my)
     : crossingBlocked(t, true, Math.round(my / CELL), mx, mx, my);
+}
+/** 1.2.87 (report-only): what holds a walker at this kerb (crossingHasTraffic's tests, named), or null. */
+export function crossingHolder(t: TrafficContext, at: Vec2, next: Vec2): string | null {
+  const mx = (at.x + next.x) / 2, my = (at.y + next.y) / 2;
+  return Math.abs(next.x - at.x) >= Math.abs(next.y - at.y)
+    ? crossingBlockCause(t, false, Math.round(mx / CELL), my)
+    : crossingBlockCause(t, true, Math.round(my / CELL), mx);
 }
 
 /**

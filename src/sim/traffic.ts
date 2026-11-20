@@ -801,6 +801,29 @@ export function crossingBlocked(t: TrafficContext, streetAxisX: boolean, line: n
 }
 
 /**
+ * 1.2.87 (report-only, never read by the gangs): what crossingBlocked would
+ * hold a walker for at this crossing — the same tests, named — or null.
+ */
+export function crossingBlockCause(t: TrafficContext, streetAxisX: boolean, line: number, s0: number): string | null {
+  for (const c of t.carsByStreet.get(streetKey(streetAxisX, line)) ?? []) {
+    if (c.halted && c.waited === 0) continue;
+    const gap = (s0 - c.s) * c.dir;
+    if (gap > CAR_CLEARANCE && gap < c.speed * WALKER_LEAD_MINUTES + CAR_MARGIN) return 'street traffic';
+  }
+  for (const d of t.drivers) {
+    if (Math.abs((streetAxisX ? d.pos.y : d.pos.x) - line * CELL) >= STREET_WIDTH / 2 + 3) continue;
+    const off = s0 - (streetAxisX ? d.pos.x : d.pos.y);
+    if (Math.abs(off) >= DRIVER_RADIUS) continue;
+    const n = d.path[0];
+    const head = n ? (streetAxisX ? n.x - d.pos.x : n.y - d.pos.y) : 0;
+    const who = d.id != null && t.world?.people[d.id] ? ` (${t.world.people[d.id].name}${t.world.people[d.id].gangId != null ? `, ${t.world.gangs[t.world.people[d.id].gangId!]?.name ?? 'gang'}` : ''})` : '';
+    if (Math.abs(off) < 3) return `a car standing at the crossing${who}${d.halted ? ', halted' : ''}`;
+    if (head !== 0 && Math.sign(head) === Math.sign(off)) return `a car driving to the crossing${who}`;
+  }
+  return null;
+}
+
+/**
  * Whether a driver heading for `next` has a walker in the road just ahead,
  * in the car's own path. A walker still on the far half of the street is no
  * reason to stop: the car is by long before they reach its lane, and a car

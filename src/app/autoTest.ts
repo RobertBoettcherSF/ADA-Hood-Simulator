@@ -3733,7 +3733,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         : t.travel <= 0 && t.wait > 0 ? `waited ${h(t.wait)} and never set out`
         : t.nearest >= 0 && t.nearest <= 12 ? `came within ${t.nearest} of the target but never counted as arrived (${t.reroutes} re-route(s))`
         : `travelled ${h(t.travel)} and never got near (nearest ${t.nearest < 0 ? '?' : t.nearest}, last ${t.lastDist < 0 ? '?' : t.lastDist}; ${t.reroutes} re-route(s))`;
-      return { text: `travel ${h(t.travel)}, executing ${h(t.exec)}, waiting ${h(t.wait)}; re-routes ${t.reroutes}; ${t.car ? 'by car' : 'on foot'}; nearest ${t.nearest < 0 ? '?' : t.nearest}, last ${t.lastDist < 0 ? '?' : t.lastDist}; ${where}; last state ${t.lastState || '?'}${t.kerb ? `; KERB (${buildVersion()}, by car on a man indoors, ${h(t.kerb.n)} sampled): car to its destination ${t.kerb.toDest}, car to the target ${t.kerb.toTarget}, destination to the target ${t.kerb.gap} (largest ${t.kerb.maxGap}; a chase re-routes when over 12)` : ''}`, cause };
+      return { text: `travel ${h(t.travel)}, executing ${h(t.exec)}, waiting ${h(t.wait)}; re-routes ${t.reroutes}; ${t.car ? 'by car' : 'on foot'}; nearest ${t.nearest < 0 ? '?' : t.nearest}, last ${t.lastDist < 0 ? '?' : t.lastDist}; ${where}; last state ${t.lastState || '?'}${t.kerb ? `; KERB (${buildVersion()}, by car on a man indoors, ${h(t.kerb.n)} sampled): car to its destination ${t.kerb.toDest}, car to the target ${t.kerb.toTarget}, destination to the target ${t.kerb.gap} (largest ${t.kerb.maxGap}; a chase re-routes when over 12)` : ''}${!t.car && t.foot ? `; ON FOOT (${buildVersion()}, ${h(t.foot.n)} sampled): held at a kerb ${h(t.foot.held)}${Object.keys(t.foot.heldBy).length ? ` by ${Object.entries(t.foot.heldBy).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, m]) => `${k} ${h(m)}`).join(', ')}` : ''}; boarding ${h(t.foot.boarding)}${t.foot.far ? ` (man >3 m from the car: ${t.foot.far})` : ''}; path left ${t.foot.pathLeft < 0 ? '?' : t.foot.pathLeft}, destination to the target ${t.foot.destToTarget < 0 ? '?' : t.foot.destToTarget}` : ''}`, cause };
     };
     for (const o of w.lastWeekOrders) {
       if (o.gangId !== gang.id || (o.type !== 'kill' && o.type !== 'bomb')) continue;
@@ -3742,6 +3742,23 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       const tr = traceOf(o);
       const tgt = o.type === 'kill' ? (o.targetPersonId != null ? w.people[o.targetPersonId]?.name : undefined) : (o.targetBuildingIds[0] != null ? `building #${o.targetBuildingIds[0]}` : undefined);
       actions.push(`HIT TRACE (${buildVersion()}, report) ${o.type} on ${tgt ?? '?'} by ${w.teams[o.teamId]?.name ?? 'crew'}: ${o.state}${out ? ', ran out of week' : ''}; ${tr.text}${out ? ` → cause: ${tr.cause}` : ''}`);
+    }
+    // 1.2.87 (Robert, point 3, report-only — never read by Auto): the rivals' kill orders on the same counters, to
+    // check the movement rules treat every gang alike.
+    {
+      const rv = new Map<number, { done: number; outCar: number; outFoot: number; otherFail: number; car: number; foot: number; rr: number; n: number }>();
+      for (const o of w.lastWeekOrders) {
+        if (o.gangId === gang.id || o.type !== 'kill') continue;
+        const said = o.failReason ?? o.results.at(-1) ?? '';
+        const out = /not enough time in the week|Searched all week|Ran out of week/i.test(said) || isRunOut(said);
+        const r = rv.get(o.gangId) ?? { done: 0, outCar: 0, outFoot: 0, otherFail: 0, car: 0, foot: 0, rr: 0, n: 0 };
+        const car = !!o.hitTrace?.car;
+        if (car) r.car++; else r.foot++;
+        if (o.state === 'done') r.done++; else if (out) { if (car) r.outCar++; else r.outFoot++; } else r.otherFail++;
+        r.rr += o.hitTrace?.reroutes ?? 0; r.n++;
+        rv.set(o.gangId, r);
+      }
+      for (const [gid, r] of rv) actions.push(`RIVAL HITS (${buildVersion()}, report only) ${w.gangs[gid]?.name ?? `gang #${gid}`}: ${r.n} kill order(s) — done ${r.done}, ran out by car ${r.outCar}, ran out on foot ${r.outFoot}, failed otherwise ${r.otherFail}; by car ${r.car}, on foot ${r.foot}; mean re-routes ${Math.round(r.rr / Math.max(1, r.n))}`);
     }
     for (const o of w.lastWeekOrders) {
       if (o.gangId !== gang.id || (o.type !== 'kill' && o.type !== 'kidnap')) continue;

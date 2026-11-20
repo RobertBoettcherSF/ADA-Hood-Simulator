@@ -242,6 +242,14 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 
 Robert's decision (2026-11-17): from 1.2.77 on, each version moves Auto toward one unified fitness function — an action's value toward the chosen victory minus its costs, in one currency, per crew hour. It will later become a shared module used by Auto and by all rival gangs. Not implemented in 1.2.76; 1.2.77 takes the first step (point 13 below).
 
+## v1.2.87 decisions
+
+Robert's Go (2026-11-20) after the 1.2.86 runs: in city 1932, weeks 157–208, 42 kill hits ran out of week. 25 went by car (18 of them with exactly 7,200 re-routes in 40h, nearest 29 but last 600–2,000 m, the target inside a building), and all 17 on foot had 0 re-routes and barely moved. A man indoors is targeted at his spot inside, and a car stops at the kerb 17.6 m away, so the chase rule re-planned every man's route every minute while the gap stayed over 12, and a car counts as arrived only once its route is finished. One engine rule changes, for every gang alike; points 2 and 3 are report-only. The new constant is proposed.
+
+1. A man in a car re-routes his chase when the target has moved more than `CHASE_REROUTE_MOVE` 12 (proposed) from the spot his route was last planned to (kept per man on the order), instead of when his kerb stop is more than 12 from a man indoors. A car crew arrives when it reaches its kerb stop, as before. Men on foot keep the old rule. Should move: HIT TRACE re-routes and by-car run-outs, DM kill ranout_prev down and done_prev up.
+2. Report only: HIT TRACE on foot adds `ON FOOT`: minutes held at a kerb and what held them (street traffic, a car standing at the crossing or driving to it, with its driver), minutes waiting to board and the last man more than 3 m from the car, the walker's path left and his destination's distance to the target.
+3. Report only, never read by Auto: a `RIVAL HITS` line per rival gang with its kill orders done, ran out by car, ran out on foot and failed otherwise, by car/on foot, and mean re-routes, from the same counters as HIT TRACE.
+
 ## v1.2.86 decisions
 
 Robert's Go (2026-11-19) after the 1.2.85 run on city seed 409741673 / Auto seed 2453866227 held $1.7M over the reserve at w52 and $8.4M at w104. The cash pass took nearly every spend put to it (λ at its 0.30 floor), and $0.7–0.9M of buys a week were released because no crew was given them. ENDGAME waited from w31 (block test passed) to w50 for 26 weeks of the bill in cash, and a rival man had no time value outside going straight. Auto keeps its profit-first play; it pushes for speed once it holds the cash it needs to finish. Points 4–6 shift crews and spends toward the win only when that cash is held or close. All new constants are proposed.

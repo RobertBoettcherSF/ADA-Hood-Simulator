@@ -38,6 +38,8 @@ export const DRIVE_SPEED = WALK_SPEED * 3.4;
  * 18.75 of its map cells, five to a block).
  */
 export const DRIVE_MIN_DISTANCE = 18.75 * CELL / 5;
+/** 1.2.87 (proposed): a crew in a car re-routes a chase only once the target has moved this far from where its route was last planned to (any gang). */
+export const CHASE_REROUTE_MOVE = 12;
 
 /** 1.2.68 (Robert): twelve lieutenants for every gang (was eight). */
 export const MAX_TEAMS = 12;

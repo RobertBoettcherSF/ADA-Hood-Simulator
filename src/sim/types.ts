@@ -613,7 +613,12 @@ export interface Order {
    *  target was (inside which building, or on the street) at the last tick. */
   hitTrace?: { travel: number; exec: number; wait: number; reroutes: number; car: boolean; nearest: number; insideId: ID | null; street: boolean; lastDist: number; lastState: string;
     /** 1.2.83 (report): by car on a man inside a building — minutes sampled, and the last car's distance to its own destination, to the target, and its destination's distance to the target (largest too). */
-    kerb?: { n: number; toDest: number; toTarget: number; gap: number; maxGap: number } };
+    kerb?: { n: number; toDest: number; toTarget: number; gap: number; maxGap: number };
+    /** 1.2.87 (report): men on foot — minutes sampled, minutes held at a kerb and by what, minutes waiting to board
+     *  and the last man more than 3 m from the car, the last walker's path still to go and his destination's distance to the target. */
+    foot?: { n: number; held: number; heldBy: Record<string, number>; boarding: number; far: string; pathLeft: number; destToTarget: number } };
+  /** 1.2.87: per man in a car, the target spot his chase route was last planned to (re-route once the target moves CHASE_REROUTE_MOVE from it). */
+  chaseFrom?: Record<number, Vec2>;
   /** Hunting: the target's whereabouts are unknown, so the crew asks around at these places first. */
   hunting?: boolean;
   huntStopIds?: ID[];
