@@ -800,6 +800,8 @@ const v140 = new WeakMap<Sim['world'], {
   weakestId?: number;
   /** 1.2.69: last week's cash reserve (the ENDGAME test runs before this week's). */
   lastReserve?: number;
+  /** 1.2.90: the week ENDGAME began; it stays on (block test not asked again) while FINISH CASH reads held. */
+  endgameSince?: number;
   /** 1.2.86 (Robert, point 6): our snitch asks that were answered and the new rival men they named. */
   snitchYield?: { asks: number; men: number };
   /** 1.2.69: per gang, the first week every known heir had a kill proposed. */
@@ -1547,10 +1549,13 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     return { R, bill, takings, switching, protectionLost, deficit, weeks, estimated, need, cash, held: cash >= need, close: cash >= FINISH_CLOSE_SHARE * need };
   })();
   const blocksOk = rivalsAlive.length > 0 && goalsFor(w).includes('eliminate') && rivalsAlive.every((g) => territoryCount(w, g.id) * ENDGAME_BLOCK_RATIO <= territoryCount(w, gang.id));
-  const endgame = blocksOk && finishCash.held;
+  // 1.2.90 (Robert, point 3): the block test only starts ENDGAME; once on, it stays on while FINISH CASH reads held.
+  const endgameKept = mem.endgameSince != null && finishCash.held && rivalsAlive.length > 0 && goalsFor(w).includes('eliminate');
+  const endgame = (blocksOk || endgameKept) && finishCash.held;
+  if (endgame) mem.endgameSince ??= w.week; else delete mem.endgameSince;
   if (rivalsAlive.length && goalsFor(w).includes('eliminate')) {
     const f = finishCash;
-    actions.push(`FINISH CASH (1.2.86, close at ${Math.round(FINISH_CLOSE_SHARE * 100)}%, proposed): need $${f.need} = reserve $${Math.round(f.R)} + (bill $${Math.round(f.bill)} − takings $${Math.round(f.takings)}${f.switching ? ` less $${Math.round(f.protectionLost)} Protection of ${f.switching} crew(s) to attack` : ''} → short $${Math.round(f.deficit)}/wk) × ${f.estimated ? `WIN TIME high ${f.weeks} wk` : `${ENDGAME_CASH_WEEKS} wk (no WIN TIME estimate)`}; cash $${f.cash} → ${f.held ? 'held' : f.close ? 'close' : `short $${f.need - f.cash}`}; blocks ${blocksOk ? 'ok' : 'not yet (a rival above 1/' + ENDGAME_BLOCK_RATIO + ' of ours)'} → ${endgame ? 'ENDGAME' : 'no endgame'}`);
+    actions.push(`FINISH CASH (1.2.86, close at ${Math.round(FINISH_CLOSE_SHARE * 100)}%, proposed): need $${f.need} = reserve $${Math.round(f.R)} + (bill $${Math.round(f.bill)} − takings $${Math.round(f.takings)}${f.switching ? ` less $${Math.round(f.protectionLost)} Protection of ${f.switching} crew(s) to attack` : ''} → short $${Math.round(f.deficit)}/wk) × ${f.estimated ? `WIN TIME high ${f.weeks} wk` : `${ENDGAME_CASH_WEEKS} wk (no WIN TIME estimate)`}; cash $${f.cash} → ${f.held ? 'held' : f.close ? 'close' : `short $${f.need - f.cash}`}; blocks ${blocksOk ? 'ok' : endgame ? `a rival above 1/${ENDGAME_BLOCK_RATIO} of ours, kept on since week ${mem.endgameSince} (1.2.90)` : 'not yet (a rival above 1/' + ENDGAME_BLOCK_RATIO + ' of ours)'} → ${endgame ? 'ENDGAME' : 'no endgame'}`);
   }
   endgameOn = endgame;
   // 1.2.84 (Robert, point 13, report only — never read by Auto): a rival boss set aside as "not found":

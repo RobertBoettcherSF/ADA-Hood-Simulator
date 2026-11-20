@@ -242,6 +242,16 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 
 Robert's decision (2026-11-17): from 1.2.77 on, each version moves Auto toward one unified fitness function — an action's value toward the chosen victory minus its costs, in one currency, per crew hour. It will later become a shared module used by Auto and by all rival gangs. Not implemented in 1.2.76; 1.2.77 takes the first step (point 13 below).
 
+## v1.2.90 decisions
+
+Robert's Go (2026-11-20) after the 1.2.89 run on city 1932 / Auto 1932 (won after week 110; 1.2.88 won at week 82). The car rule compared straight-line walks, which run shorter than the footway routes men actually walk, so men set out on foot for walks that took the week; the estimate left out the walk to a car; and ENDGAME switched off whenever a rival's blocks rose above 1/3 of ours. Points 1 and 2 change engine rules for every gang alike; point 3 is Auto, from player-knowable inputs only; points 4 and 5 are report-only and never read by Auto. No new constants. Boss/heir rules, ending rules and the score are unchanged.
+
+1. **Walks are measured along the footways.** The car-or-walk test (`quickerByCar`) measures the walk to the car and the walk to the job by the man's walking route length — the measure the boarding wait already uses — instead of a straight line. The route search is the cached street-graph search every walker already uses.
+2. **The estimate includes the walk to the car.** The travel plan returns, besides the slowest speed, the longest walk of any car's riders to that car; the order estimate adds it at walking speed before the drive. The cars set out together, so it is the longest walk, not a sum. Auto's existing "would not finish this week" hold then sees hits whose walk fills the week.
+3. **ENDGAME stays on once started.** The block test (every rival at most 1/3 of our blocks) only starts ENDGAME. Once on, it stays on while FINISH CASH reads held; when cash falls short it stops, and the block test is needed again to restart it. The FINISH CASH line says "kept on since week N" when the block test alone would have said no.
+4. **Report: START shows the car rule used.** Each free car reads "taken" or "not quicker" by the same plan the hand-out makes, instead of "skipped, over 203".
+5. **Report: the first boarding wait is counted.** The hit's trace is made before the cars are handed out, so ON FOOT "boarding waits" includes the wait begun at dispatch.
+
 ## v1.2.89 decisions
 
 Robert's Go (2026-11-20) after the 1.2.88 run on city 1932 / Auto 1932 (won at w82, score 100; 1.2.87 won at w107). Weeks 53–82 had 27 hits run out of week. 18 crews set out on foot because every free crew car stood more than 202.5 m away (`DRIVE_MIN_DISTANCE`, used as the furthest walk to a car). Left-out cars stood unfetched for 3–7 weeks, and routes of 1,339–2,153 m were walked at 1,296 m a week. A boarding wait of 60 minutes is 32.4 m of walking against seats given up to 202.5 m away, so the waits ran out, the car was released and given again: up to 13h of boarding in a week. Points 1 and 2 change engine rules for every gang alike; point 3 is report-only and never read by Auto. No new constants.

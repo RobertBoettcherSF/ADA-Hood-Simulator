@@ -13,7 +13,7 @@ import { crewPeople, freeForOrders, orderStaffing, waitingInside } from './order
 import { claimedTerritoryBlocks, distanceToTerritory } from './territory';
 import { observeTargetRace } from './targetRace';
 import { reclaimStaffVehicle } from './specialists';
-import { allocateTransport, alight, crewCarsReport, vehicleOf, availableVehicle, dismount, stepOut, orderVehicles, plannedTravelSpeed, transportPlan, reconcileTransport, releaseTransportOrder, resetWeekTransport, sendHome } from './transport';
+import { allocateTransport, alight, crewCarsReport, vehicleOf, availableVehicle, dismount, stepOut, orderVehicles, plannedTravel, transportPlan, reconcileTransport, releaseTransportOrder, resetWeekTransport, sendHome } from './transport';
 import { cargoVehicles, cargoWarehouse, emptyGoods, goodsTotal, loadCargo, refreshExportCargo, unloadCargo } from './cargo';
 import {
   CHASE_REROUTE_MOVE,
@@ -581,7 +581,9 @@ export function estimateMinutes(w: WorldState, team: Team, order: Order, onFoot 
   const candidates=orderStaffing(w,team,order,w.phase==='planning').chosen;
   // 1.2.88: the cars are tested from where the crew sets out (as dispatch hands them out), not where the men stand now.
   const start = orderStart(w, team, order);
-  const speed=onFoot?WALK_SPEED:plannedTravelSpeed(w,team,candidates,order.type,{from:start??undefined,to:orderFirstPos(w,order)??undefined});
+  // 1.2.90: plus the longest walk to a car before the drive.
+  const planned=onFoot?{speed:WALK_SPEED,walkMinutes:0}:plannedTravel(w,team,candidates,order.type,{from:start??undefined,to:orderFirstPos(w,order)??undefined});
+  const speed=planned.speed;
   const lt = w.people[team.lieutenantId];
   const efficiency = lt ? 1.35 - starFactor(skillAvg(lt, ['organization', 'intelligence'])) * 0.4 : 1.2;
 
@@ -632,7 +634,7 @@ export function estimateMinutes(w: WorldState, team: Team, order: Order, onFoot 
     }
   }
 
-  return Math.round(work / manpower + travel / speed + hunt);
+  return Math.round(work / manpower + travel / speed + planned.walkMinutes + hunt);
 }
 
 // ---------------------------------------------------------------- week start
@@ -705,7 +707,9 @@ function assignOrder(w: WorldState, team: Team, order: Order, atWeekStart = fals
     }
   }
   // 1.2.88 (report-only, never read by the gangs): the crew's cars as the job is handed out (HIT TRACE START).
-  const cars = tp && (order.type === 'kill' || order.type === 'bomb') ? crewCarsReport(w, team, chosen[0], tp) : null;
+  const cars = tp && (order.type === 'kill' || order.type === 'bomb') ? crewCarsReport(w, team, chosen, tp, order.id) : null;
+  // 1.2.90 (report): the trace exists before the cars are handed out, so the first boarding wait is counted.
+  if (cars) order.hitTrace = { travel: 0, exec: 0, wait: 0, reroutes: 0, car: false, nearest: -1, insideId: null, street: false, lastDist: -1, lastState: '' };
   if(tp)allocateTransport(w,team,chosen,tp,order.id,order.type);
   if (tp && cars) {
     const t = order.hitTrace ??= { travel: 0, exec: 0, wait: 0, reroutes: 0, car: false, nearest: -1, insideId: null, street: false, lastDist: -1, lastState: '' };

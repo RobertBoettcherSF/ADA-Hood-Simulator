@@ -1,7 +1,7 @@
 import { BOARD_WAIT_MINUTES, DRIVE_MIN_DISTANCE, DRIVE_SPEED, MINUTES_PER_WEEK, VEHICLES, WALK_SPEED } from './constants';
 import { hash32 } from './hash';
 import { cargoWarehouse, routeCargoReturn, unloadCargo } from './cargo';
-import { clearDestination, setDestination } from './movement';
+import { clearDestination, setDestination, walkRoute } from './movement';
 import { onRoad, parkingSpot, pavementBeside } from './vehicleNavigation';
 import { allBuildings, buildingDoor, dist } from './world';
 import type { FleetVehicle, Gang, ID, OrderType, Person, Team, Vec2, VehicleId, WorldState } from './types';
@@ -173,20 +173,29 @@ export function transportPlan(w:WorldState,team:Team,people:Person[],type:OrderT
   }
   return {cars,walkers:remaining};
 }
+/** 1.2.90: the length of the walk a man would take from one point to another, along his own footway route
+ *  (the measure the boarding wait uses), not a straight line. */
+function walkLength(w:WorldState,from:Vec2,to:Vec2,id:number):number{
+  let len=0,at=from;
+  for(const q of walkRoute(from,to,id,w)){len+=dist(at,q);at=q;}
+  return len+dist(at,to);
+}
 /** 1.2.89: walking to the car and driving on is quicker than walking to the job — the test a lawyer or
- *  accountant uses for his own car. Trips shorter than DRIVE_MIN_DISTANCE are walked. */
-function quickerByCar(from:Vec2,spot:Vec2,to:Vec2,kind:VehicleId,p:Person):boolean{
+ *  accountant uses for his own car. Trips shorter than DRIVE_MIN_DISTANCE are walked.
+ *  1.2.90: both walks are measured along the man's walking route (walkLength). */
+function quickerByCar(w:WorldState,from:Vec2,spot:Vec2,to:Vec2,kind:VehicleId,p:Person,toCar:number):boolean{
   if(dist(from,to)<=DRIVE_MIN_DISTANCE)return false;
   if(dist(from,spot)<=8)return true;
   const drive=DRIVE_SPEED*VEHICLES[kind].speed*(.75+p.skills.driving*.1);
-  return dist(from,spot)/WALK_SPEED+dist(spot,to)/drive<dist(from,to)/WALK_SPEED;
+  return toCar/WALK_SPEED+dist(spot,to)/drive<walkLength(w,from,to,p.id)/WALK_SPEED;
 }
 /** 1.2.89 (any gang): a crew's riders take the nearest free car for which the trip by car is quicker
  *  (before, a car more than DRIVE_MIN_DISTANCE from a rider was never walked to). A car not yet out stands by
  *  the gang's office nearest the job. Without a destination (a preview), the 1.2.88 distance limit stays. */
 function crewTransportPlan(w:WorldState,team:Team,people:Person[],at:{from?:Vec2;to?:Vec2}) {
   const remaining=[...people];
-  const cars:{key:string;kind:VehicleId;slot:number;riders:Person[]}[]=[];
+  // 1.2.90: walk = the longest walk (route length) of the car's riders to it; the estimate adds it before the drive.
+  const cars:{key:string;kind:VehicleId;slot:number;riders:Person[];walk?:number}[]=[];
   const free:{key:string;kind:VehicleId;slot:number;spot:Vec2|null}[]=[];
   for(const kind of kinds)for(let slot=0;slot<(team.vehicles[kind]??0);slot++){
     const key=`team:${team.id}:${kind}:${slot}`,parked=w.vehicleFleet?.[key];
@@ -197,11 +206,13 @@ function crewTransportPlan(w:WorldState,team:Team,people:Person[],at:{from?:Vec2
   if(from0)free.sort((a,b)=>(a.spot?dist(a.spot,from0):0)-(b.spot?dist(b.spot,from0):0));
   for(const {key,kind,slot,spot} of free){
     if(!remaining.length)break;
-    const ok=(p:Person)=>{const from=at.from??p.pos;return !spot||(at.to?quickerByCar(from,spot,at.to,kind,p):dist(spot,from)<=DRIVE_MIN_DISTANCE);};
+    const toCar=new Map<Person,number>();
+    const walkTo=(p:Person)=>{let d=toCar.get(p);if(d==null){const from=at.from??p.pos;d=spot&&dist(from,spot)>8?walkLength(w,from,spot,p.id):0;toCar.set(p,d);}return d;};
+    const ok=(p:Person)=>{const from=at.from??p.pos;return !spot||(at.to?quickerByCar(w,from,spot,at.to,kind,p,walkTo(p)):dist(spot,from)<=DRIVE_MIN_DISTANCE);};
     const riders=remaining.filter(ok).slice(0,VEHICLES[kind].capacity);
     if(!riders.length)continue;
     for(const p of riders)remaining.splice(remaining.indexOf(p),1);
-    cars.push({key,kind,slot,riders});
+    cars.push({key,kind,slot,riders,walk:Math.max(0,...riders.map(walkTo))});
   }
   return {cars,walkers:remaining};
 }
@@ -422,20 +433,29 @@ export function restoreLegacyTransport(w:WorldState):void {
   }
 }
 /** 1.2.88 (report-only, never read by the gangs): each of the crew's cars as a job is handed out — free or busy,
- *  where it stands against the first man, and whether it is too far to be walked to. */
-export function crewCarsReport(w:WorldState,team:Team,first:Person|undefined,to:Vec2):string[] {
-  const out:string[]=[];
+ *  and where it stands against the first man. 1.2.90: a free car is "taken" or "not quicker" by the rule the
+ *  hand-out uses (the same plan allocateTransport makes for these men). */
+export function crewCarsReport(w:WorldState,team:Team,people:Person[],to:Vec2,orderId:ID):string[] {
+  const out:string[]=[],first=people[0];
+  const noCar=w.orders[orderId]?.noCarIds??[];
+  const taken=new Set(crewTransportPlan(w,team,people.filter(p=>dist(p.pos,to)>DRIVE_MIN_DISTANCE&&!noCar.includes(p.id)),{to}).cars.map(c=>c.key));
   for(const kind of kinds)for(let slot=0;slot<(team.vehicles[kind]??0);slot++){
     const key=`team:${team.id}:${kind}:${slot}`,v=w.vehicleFleet?.[key];
     const spot=v?v.pos:base(w,team.gangId,to),d=first?Math.round(dist(spot,first.pos)*10)/10:-1;
-    out.push(`${kind} ${slot + 1} ${busy(v)?'busy':'free'}${v?'':' (at the office)'} ${d<0?'?':d} from the first man${d>DRIVE_MIN_DISTANCE?', skipped, over '+Math.round(DRIVE_MIN_DISTANCE):''}`);
+    out.push(`${kind} ${slot + 1} ${busy(v)?'busy':'free'}${v?'':' (at the office)'} ${d<0?'?':d} from the first man${busy(v)?'':taken.has(key)?', taken':', not quicker'}`);
   }
   return out;
 }
-/** Planning uses the slowest dispatched traveller; excess people go on foot. */
-export function plannedTravelSpeed(w:WorldState,team:Team,people:Person[],type:OrderType,at:{from?:Vec2;to?:Vec2}={}):number {
+/** Planning uses the slowest dispatched traveller; excess people go on foot.
+ *  1.2.90: and the minutes of the longest walk to a car (route length at walking speed) before anyone drives —
+ *  the cars go at once, so the longest walk of any car, not their sum. */
+export function plannedTravel(w:WorldState,team:Team,people:Person[],type:OrderType,at:{from?:Vec2;to?:Vec2}={}):{speed:number;walkMinutes:number} {
   const plan=transportPlan(w,team,people,type,at);
   const speeds=plan.cars.map(c=>DRIVE_SPEED*VEHICLES[c.kind].speed*(.75+Math.max(...c.riders.map(p=>p.skills.driving))*.1));
   if(plan.walkers.length||!speeds.length)speeds.push(WALK_SPEED);
-  return Math.min(...speeds);
+  const walk=Math.max(0,...plan.cars.map(c=>(c as {walk?:number}).walk??0));
+  return {speed:Math.min(...speeds),walkMinutes:walk/WALK_SPEED};
+}
+export function plannedTravelSpeed(w:WorldState,team:Team,people:Person[],type:OrderType,at:{from?:Vec2;to?:Vec2}={}):number {
+  return plannedTravel(w,team,people,type,at).speed;
 }
