@@ -40,6 +40,8 @@ export const DRIVE_SPEED = WALK_SPEED * 3.4;
 export const DRIVE_MIN_DISTANCE = 18.75 * CELL / 5;
 /** 1.2.87 (proposed): a crew in a car re-routes a chase only once the target has moved this far from where its route was last planned to (any gang). */
 export const CHASE_REROUTE_MOVE = 12;
+/** 1.2.88 (proposed): minutes a crew's car waits for riders still walking to it before it goes with those at it (any gang). */
+export const BOARD_WAIT_MINUTES = 60;
 
 /** 1.2.68 (Robert): twelve lieutenants for every gang (was eight). */
 export const MAX_TEAMS = 12;

@@ -13,7 +13,7 @@ import { crewPeople, freeForOrders, orderStaffing, waitingInside } from './order
 import { claimedTerritoryBlocks, distanceToTerritory } from './territory';
 import { observeTargetRace } from './targetRace';
 import { reclaimStaffVehicle } from './specialists';
-import { allocateTransport, alight, availableVehicle, dismount, stepOut, orderVehicles, plannedTravelSpeed, transportPlan, reconcileTransport, releaseTransportOrder, resetWeekTransport, sendHome } from './transport';
+import { allocateTransport, alight, crewCarsReport, availableVehicle, dismount, stepOut, orderVehicles, plannedTravelSpeed, transportPlan, reconcileTransport, releaseTransportOrder, resetWeekTransport, sendHome } from './transport';
 import { cargoVehicles, cargoWarehouse, emptyGoods, goodsTotal, loadCargo, refreshExportCargo, unloadCargo } from './cargo';
 import {
   CHASE_REROUTE_MOVE,
@@ -451,7 +451,9 @@ function traceHit(w: WorldState, order: Order, actors: Person[], minutes: number
     if (v) {
       f.boarding += minutes;
       const far = v.occupantIds.map((id) => w.people[id]).find((p) => !p || dist(p.pos, v.pos) > 3);
-      f.far = far ? `${far.name} ${r1(dist(far.pos, v.pos))} m` : '';
+      // 1.2.88 (report): the far man's state.
+      const job = !far ? '' : far.orderId === order.id ? 'on this order' : far.orderId != null ? 'on another order' : far.streetOrder ? `on a street ${far.streetOrder.type}` : 'no order';
+      f.far = far ? `${far.name} ${r1(dist(far.pos, v.pos))} m; ${far.status}, ${job}, ${far.buildingId != null ? `inside #${far.buildingId}` : 'outdoors'}, ${far.dest ? 'has a destination' : 'no destination'}${far.halted ? ', held at a kerb' : ''}` : '';
     }
     const lead = walkers.find((a) => a.dest);
     if (lead && lead.dest) {
@@ -568,7 +570,9 @@ export function estimateMinutes(w: WorldState, team: Team, order: Order, onFoot 
 
   const manpower = Math.max(1, order.opts.manpower);
   const candidates=orderStaffing(w,team,order,w.phase==='planning').chosen;
-  const speed=onFoot?WALK_SPEED:plannedTravelSpeed(w,team,candidates,order.type);
+  // 1.2.88: the cars are tested from where the crew sets out (as dispatch hands them out), not where the men stand now.
+  const start = orderStart(w, team, order);
+  const speed=onFoot?WALK_SPEED:plannedTravelSpeed(w,team,candidates,order.type,{from:start??undefined,to:orderFirstPos(w,order)??undefined});
   const lt = w.people[team.lieutenantId];
   const efficiency = lt ? 1.35 - starFactor(skillAvg(lt, ['organization', 'intelligence'])) * 0.4 : 1.2;
 
@@ -582,7 +586,7 @@ export function estimateMinutes(w: WorldState, team: Team, order: Order, onFoot 
   // week sets out from the gang's office nearest that order's first target (as the hoods do at the
   // start of the week); a later order from the previous queued order's last target.
   let travel = 0;
-  let cur: Vec2 | null = orderStart(w, team, order);
+  let cur: Vec2 | null = start;
   const list = def.target === 'area' ? order.targetBuildingIds : order.targetBuildingIds.slice(0, 1);
   for (const id of list) {
     const b = w.buildings[id];
@@ -690,7 +694,15 @@ function assignOrder(w: WorldState, team: Team, order: Order, atWeekStart = fals
       }
     }
   }
+  // 1.2.88 (report-only, never read by the gangs): the crew's cars as the job is handed out (HIT TRACE START).
+  const cars = tp && (order.type === 'kill' || order.type === 'bomb') ? crewCarsReport(w, team, chosen[0], tp) : null;
   if(tp)allocateTransport(w,team,chosen,tp,order.id,order.type);
+  if (tp && cars) {
+    const t = order.hitTrace ??= { travel: 0, exec: 0, wait: 0, reroutes: 0, car: false, nearest: -1, insideId: null, street: false, lastDist: -1, lastState: '' };
+    const lead = chosen[0], route = (p: Person) => { if (!p.dest) return 0; let len = 0, from = p.pos; for (const q of p.path) { len += dist(from, q); from = q; } return len + dist(from, p.dest); };
+    t.start = { foot: chosen.filter((p) => !p.vehicleKey).length, car: chosen.filter((p) => !!p.vehicleKey).length,
+      dist: lead ? Math.round(dist(lead.pos, tp) * 10) / 10 : -1, path: lead ? Math.round(route(lead) * 10) / 10 : -1, cars };
+  }
   return true;
 }
 
@@ -825,7 +837,7 @@ export function tickOrders(w: WorldState, rng: Rng, minutes: number, loadout: Lo
         // a free car after all (it set out on foot when he was near).
         const team = w.teams[order.teamId];
         if (def.target === 'person' && team && actors.every(a => !a.vehicleKey && !a.inVehicle) &&
-            actors.some(a => dist(a.pos, tp) > DRIVE_MIN_DISTANCE) && transportPlan(w, team, actors, order.type).cars.length)
+            actors.some(a => dist(a.pos, tp) > DRIVE_MIN_DISTANCE) && transportPlan(w, team, actors, order.type, { to: tp }).cars.length)
           allocateTransport(w, team, actors, tp, order.id, order.type);
         let arrived = 0;
         for (const a of actors) {
@@ -838,7 +850,10 @@ export function tickOrders(w: WorldState, rng: Rng, minutes: number, loadout: Lo
           const chase = def.target === 'person' && (a.inVehicle ? planned == null || dist(planned, tp) > CHASE_REROUTE_MOVE : !a.dest || dist(a.dest, tp) > 12);
           if (!boarding && chase) { setDestination(w, a, tp); if (a.inVehicle) (order.chaseFrom ??= {})[a.id] = { x: tp.x, y: tp.y }; if (order.hitTrace) order.hitTrace.reroutes++; }
           else if (!boarding && !a.dest && dist(a.pos, tp) > 6) setDestination(w, a, tp);
+          const was = order.hitTrace && !a.inVehicle ? { x: a.pos.x, y: a.pos.y } : null;
           if (stepPerson(a, minutes, trafficContext(w)) || !boarding && !a.inVehicle && dist(a.pos, tp) <= 6) arrived++;
+          // 1.2.88 (report): metres walked on foot (HIT TRACE START).
+          if (was && order.hitTrace?.start && !a.inVehicle) order.hitTrace.start.walked = (order.hitTrace.start.walked ?? 0) + dist(was, a.pos);
         }
         if (order.hunting) {
           // Whoever they are looking for may die meanwhile (another crew, a

@@ -616,7 +616,10 @@ export interface Order {
     kerb?: { n: number; toDest: number; toTarget: number; gap: number; maxGap: number };
     /** 1.2.87 (report): men on foot — minutes sampled, minutes held at a kerb and by what, minutes waiting to board
      *  and the last man more than 3 m from the car, the last walker's path still to go and his destination's distance to the target. */
-    foot?: { n: number; held: number; heldBy: Record<string, number>; boarding: number; far: string; pathLeft: number; destToTarget: number } };
+    foot?: { n: number; held: number; heldBy: Record<string, number>; boarding: number; far: string; pathLeft: number; destToTarget: number };
+    /** 1.2.88 (report): as the job was handed out — men on foot and by car, the first man's distance and route to the target,
+     *  each crew car (free/busy, distance to the first man, skipped as too far), and metres walked since. */
+    start?: { foot: number; car: number; dist: number; path: number; cars: string[]; walked?: number } };
   /** 1.2.87: per man in a car, the target spot his chase route was last planned to (re-route once the target moves CHASE_REROUTE_MOVE from it). */
   chaseFrom?: Record<number, Vec2>;
   /** Hunting: the target's whereabouts are unknown, so the crew asks around at these places first. */
@@ -699,6 +702,8 @@ export interface FleetVehicle {
   unloading?: { buildingId: ID; until: number };
   /** Absolute minute before which nobody gets back in (a man out for a throw). */
   boardAfter?: number;
+  /** 1.2.88: absolute minute the riders were first waited for (a crew's car leaves after BOARD_WAIT_MINUTES). */
+  boardSince?: number;
 }
 
 export type DiplomacyLevel = 'alliance' | 'peace' | 'ceasefire' | 'aggression' | 'war';

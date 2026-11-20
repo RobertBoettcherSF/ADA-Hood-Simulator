@@ -242,6 +242,17 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 
 Robert's decision (2026-11-17): from 1.2.77 on, each version moves Auto toward one unified fitness function — an action's value toward the chosen victory minus its costs, in one currency, per crew hour. It will later become a shared module used by Auto and by all rival gangs. Not implemented in 1.2.76; 1.2.77 takes the first step (point 13 below).
 
+## v1.2.88 decisions
+
+Robert's Go (2026-11-20) after the 1.2.87 run on city 1932 / Auto 1932 (won at w107). The car re-route fix worked; 9 of the 11 kill run-outs were on foot. Seven crews walked about 2,000 m at 0.54 m a minute against game estimates of 19–26h made for a car. Two crews' cars waited all week for a rider who never came (one was 1,379 m away, as only the first rider's distance to the car was checked). Points 3–5 change engine rules for every gang alike; points 1, 2 and 6 are report-only and never read by Auto. The new constant is proposed.
+
+1. HIT TRACE adds `START`, recorded as the job is handed out: men on foot and by car, the first man's distance and route to the target, each crew car (free or busy, its distance to the first man, skipped when over `DRIVE_MIN_DISTANCE`), and metres walked over the week.
+2. The ON FOOT boarding text adds the far man's state: status, his order (this one, another, a street job or none), inside a building or outdoors, whether he has a destination, held at a kerb.
+3. A car seats only riders within `DRIVE_MIN_DISTANCE` of it (before, only the first rider was checked). A car not yet out stands by the gang's office nearest the job. A man too far goes in another car or on foot. Exports and raids, which carry goods, keep the first-rider check.
+4. A crew's car waits `BOARD_WAIT_MINUTES` 60 (proposed) for its riders. Then those within 3 m get in and drive off; the rest give up the seat and walk on to the job. With nobody at the car it is released. Cars fetched home or carrying goods back keep waiting as before.
+5. The estimate tests the crew's cars from where the crew sets out (the order's start) and for the job's place, as dispatch hands them out, not from where the men stand while orders are planned.
+6. `RIVAL HIT TRACE`: one line for each rival kill that ran out of week, with the same travel, nearest/last, ON FOOT and START text as ours.
+
 ## v1.2.87 decisions
 
 Robert's Go (2026-11-20) after the 1.2.86 runs: in city 1932, weeks 157–208, 42 kill hits ran out of week. 25 went by car (18 of them with exactly 7,200 re-routes in 40h, nearest 29 but last 600–2,000 m, the target inside a building), and all 17 on foot had 0 re-routes and barely moved. A man indoors is targeted at his spot inside, and a car stops at the kerb 17.6 m away, so the chase rule re-planned every man's route every minute while the gap stayed over 12, and a car counts as arrived only once its route is finished. One engine rule changes, for every gang alike; points 2 and 3 are report-only. The new constant is proposed.
