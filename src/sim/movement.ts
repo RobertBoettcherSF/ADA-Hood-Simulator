@@ -358,6 +358,10 @@ function dropFront(p: Person, path: PathPoint[], n: number): void {
   for (let i = n; i < len; i++) path[i - n] = path[i];
   path.length = len - n;
 }
+/** 1.2.89 (report-only, never read by the gangs): what last held a car on its way this minute — a walker on the
+ *  crossing ahead, or a car in front leaving no room. Not part of the game state. */
+const driveHold = new WeakMap<Person, string>();
+export function driveHoldOf(p: Person): string | undefined { return driveHold.get(p); }
 function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?: WorldState): boolean {
   // `== null`, not `!p.dest`: the same test for a point or nothing, without reading the point.
   if (p.dest == null) { if (p.commandFraction !== undefined) p.commandFraction = undefined; return true; }
@@ -365,6 +369,7 @@ function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?:
   const fraction = p.commandFraction;
   if (fraction !== undefined) { minutes = Math.max(0, minutes - fraction); p.commandFraction = undefined; }
   p.halted = false;
+  if (p.inVehicle) driveHold.delete(p);
   let budget = personSpeed(p,world) * minutes;
   // Mid-block walkers, on foot: one step toward the next corner, almost always
   // still short of it. Footways are axis-aligned, so the distance is |dx| or
@@ -419,13 +424,14 @@ function stepRoute(p: Person, minutes: number, traffic?: TrafficContext, world?:
     // the waypoint itself there is no heading yet; take it first.
     if (traffic && p.inVehicle && d > 0.5 && roadAheadBlocked(traffic, p.pos, next)) {
       p.halted = true;
+      driveHold.set(p, 'a walker on the crossing ahead');
       if (index) dropFront(p, path, index);
       return false;
     }
     // A slower car in front: close up behind it and keep its pace.
     if (traffic && p.inVehicle && d > 0.5) {
       budget = Math.min(budget, roadAheadRoom(traffic, p.pos, next, vehicleDriver(world ?? traffic.world!, p), path[index + 1]));
-      if (budget <= 0) { if (index) dropFront(p, path, index); return false; }
+      if (budget <= 0) { driveHold.set(p, 'a car in front'); if (index) dropFront(p, path, index); return false; }
     }
     if (d <= budget) {
       p.pos.x = next.x;

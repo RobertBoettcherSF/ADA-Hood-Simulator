@@ -102,18 +102,23 @@ export function tryBoard(w: WorldState, v: FleetVehicle): void {
   if (people.some(p=>!p || dist(p.pos,v.pos)>3)) {
     // 1.2.88: a crew's car waits BOARD_WAIT_MINUTES for its riders (any gang). Then those at the car get in and
     // go; the rest give up the seat and walk on to the job (before, the car waited for ever).
-    if (v.orderId == null || now - v.boardSince < BOARD_WAIT_MINUTES) return;
+    // 1.2.89: the wait is the furthest rider's walk to the car (at hand-out) plus BOARD_WAIT_MINUTES.
+    if (v.orderId == null || now - v.boardSince < (v.boardWait ?? 0) + BOARD_WAIT_MINUTES) return;
     const near = people.filter((p): p is Person => !!p && dist(p.pos, v.pos) <= 3);
+    const order = w.orders[v.orderId];
+    if (order?.hitTrace) order.hitTrace.boardReleases = (order.hitTrace.boardReleases ?? 0) + 1;
     for (const p of people) if (p && !near.includes(p)) {
       p.vehicleKey = undefined; p.inVehicle = false;
       if (p.orderId === v.orderId && v.destination) setDestination(w, p, v.destination);
+      // 1.2.89: he is not given a car again on this order.
+      if (order && p.orderId === v.orderId) (order.noCarIds ??= []).includes(p.id) || order.noCarIds!.push(p.id);
     }
     v.occupantIds = near.map(p => p.id);
-    if (!near.length) { v.boarding = false; v.destination = null; v.orderId = null; v.driverId = null; delete v.boardSince; return; }
+    if (!near.length) { v.boarding = false; v.destination = null; v.orderId = null; v.driverId = null; delete v.boardSince; delete v.boardWait; return; }
     v.driverId = bestDriver(w, v.occupantIds);
     people = near;
   }
-  delete v.boardSince;
+  delete v.boardSince; delete v.boardWait;
   v.boarding = false;
   boardings++;
   for(const p of people){p.inVehicle=true;p.pos={...v.pos};clearDestination(p);}
@@ -127,10 +132,22 @@ function reserve(w:WorldState,key:string,v:FleetVehicle,people:Person[],to:Vec2,
   for(const p of people){p.vehicleKey=key;p.inVehicle=false;setDestination(w,p,v.pos);}
   // Starting beside the car is an ordinary board, never a teleport across town.
   for(const p of people)if(dist(p.pos,v.pos)<=8){p.pos={...v.pos};clearDestination(p);}
+  // 1.2.89: the car waits as long as the furthest rider's walk to it, plus BOARD_WAIT_MINUTES.
+  v.boardWait=Math.round(Math.max(0,...people.map(p=>routeLength(p)))/WALK_SPEED);
   tryBoard(w,v);
+  // 1.2.89 (report): boarding waits for a kill or bomb (HIT TRACE ON FOOT).
+  const trace=orderId!=null&&v.boarding?w.orders[orderId]?.hitTrace:undefined;
+  if(trace)trace.boardWaits=(trace.boardWaits??0)+1;
+}
+/** The walk still ahead of a man on his route (0 with no destination). */
+function routeLength(p:Person):number{
+  if(!p.dest)return 0;
+  let len=0,from=p.pos;for(const q of p.path){len+=dist(from,q);from=q;}
+  return len+dist(from,p.dest);
 }
 /** The estimator and dispatch use the same free cars, riders and drivers. */
 export function transportPlan(w:WorldState,team:Team,people:Person[],type:OrderType,at:{from?:Vec2;to?:Vec2}={}) {
+  if(type!=='export'&&type!=='raid')return crewTransportPlan(w,team,people,at);
   const remaining=[...people];
   const cars:{key:string;kind:VehicleId;slot:number;riders:Person[]}[]=[];
   const preference=type==='export'||type==='raid'?['truck','coupe','speedster'] as VehicleId[]:kinds;
@@ -156,11 +173,45 @@ export function transportPlan(w:WorldState,team:Team,people:Person[],type:OrderT
   }
   return {cars,walkers:remaining};
 }
+/** 1.2.89: walking to the car and driving on is quicker than walking to the job — the test a lawyer or
+ *  accountant uses for his own car. Trips shorter than DRIVE_MIN_DISTANCE are walked. */
+function quickerByCar(from:Vec2,spot:Vec2,to:Vec2,kind:VehicleId,p:Person):boolean{
+  if(dist(from,to)<=DRIVE_MIN_DISTANCE)return false;
+  if(dist(from,spot)<=8)return true;
+  const drive=DRIVE_SPEED*VEHICLES[kind].speed*(.75+p.skills.driving*.1);
+  return dist(from,spot)/WALK_SPEED+dist(spot,to)/drive<dist(from,to)/WALK_SPEED;
+}
+/** 1.2.89 (any gang): a crew's riders take the nearest free car for which the trip by car is quicker
+ *  (before, a car more than DRIVE_MIN_DISTANCE from a rider was never walked to). A car not yet out stands by
+ *  the gang's office nearest the job. Without a destination (a preview), the 1.2.88 distance limit stays. */
+function crewTransportPlan(w:WorldState,team:Team,people:Person[],at:{from?:Vec2;to?:Vec2}) {
+  const remaining=[...people];
+  const cars:{key:string;kind:VehicleId;slot:number;riders:Person[]}[]=[];
+  const free:{key:string;kind:VehicleId;slot:number;spot:Vec2|null}[]=[];
+  for(const kind of kinds)for(let slot=0;slot<(team.vehicles[kind]??0);slot++){
+    const key=`team:${team.id}:${kind}:${slot}`,parked=w.vehicleFleet?.[key];
+    if(busy(parked))continue;
+    free.push({key,kind,slot,spot:parked?parked.pos:at.to?base(w,team.gangId,at.to):null});
+  }
+  const from0=at.from??remaining[0]?.pos;
+  if(from0)free.sort((a,b)=>(a.spot?dist(a.spot,from0):0)-(b.spot?dist(b.spot,from0):0));
+  for(const {key,kind,slot,spot} of free){
+    if(!remaining.length)break;
+    const ok=(p:Person)=>{const from=at.from??p.pos;return !spot||(at.to?quickerByCar(from,spot,at.to,kind,p):dist(spot,from)<=DRIVE_MIN_DISTANCE);};
+    const riders=remaining.filter(ok).slice(0,VEHICLES[kind].capacity);
+    if(!riders.length)continue;
+    for(const p of riders)remaining.splice(remaining.indexOf(p),1);
+    cars.push({key,kind,slot,riders});
+  }
+  return {cars,walkers:remaining};
+}
 /** Each car is reserved once, including parked cars retained by an active job. */
 export function allocateTransport(w:WorldState,team:Team,people:Person[],to:Vec2,orderId:ID,type:OrderType):void {
   reconcileTransport(w);
   // Only men going far enough to drive take a car (exports and raids carry goods, so always do).
-  const drivers=type==='export'||type==='raid'?people:people.filter(p=>dist(p.pos,to)>DRIVE_MIN_DISTANCE);
+  // 1.2.89: a man who gave up his seat on this order (a boarding wait ran out) walks the rest of it.
+  const noCar=w.orders[orderId]?.noCarIds??[];
+  const drivers=type==='export'||type==='raid'?people:people.filter(p=>dist(p.pos,to)>DRIVE_MIN_DISTANCE&&!noCar.includes(p.id));
   const plan=transportPlan(w,team,drivers,type,{to});
   for(const {key,kind,slot,riders} of plan.cars)reserve(w,key,makeVehicle(w,key,kind,team.gangId,team.id,null,slot,to),riders,to,orderId);
   for(const p of [...plan.walkers,...people.filter(p=>!drivers.includes(p))]){p.inVehicle=false;p.vehicleKey = undefined;setDestination(w,p,to);}
@@ -341,7 +392,7 @@ export function resetWeekTransport(w:WorldState):void {
     // Left out on the streets: it is still there next week (fetched, or taken from where it stands).
     else if(v.teamId!=null&&stranded(w,v)){
       v.occupantIds=[];v.driverId=null;v.orderId=null;v.destination=null;v.boarding=false;v.returning=false;
-      delete v.boardAfter;delete v.boardSince;delete v.unloading;
+      delete v.boardAfter;delete v.boardSince;delete v.boardWait;delete v.unloading;
     }
     else delete w.vehicleFleet![key];
   }

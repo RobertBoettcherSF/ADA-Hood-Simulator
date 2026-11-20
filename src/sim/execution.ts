@@ -13,7 +13,7 @@ import { crewPeople, freeForOrders, orderStaffing, waitingInside } from './order
 import { claimedTerritoryBlocks, distanceToTerritory } from './territory';
 import { observeTargetRace } from './targetRace';
 import { reclaimStaffVehicle } from './specialists';
-import { allocateTransport, alight, crewCarsReport, availableVehicle, dismount, stepOut, orderVehicles, plannedTravelSpeed, transportPlan, reconcileTransport, releaseTransportOrder, resetWeekTransport, sendHome } from './transport';
+import { allocateTransport, alight, crewCarsReport, vehicleOf, availableVehicle, dismount, stepOut, orderVehicles, plannedTravelSpeed, transportPlan, reconcileTransport, releaseTransportOrder, resetWeekTransport, sendHome } from './transport';
 import { cargoVehicles, cargoWarehouse, emptyGoods, goodsTotal, loadCargo, refreshExportCargo, unloadCargo } from './cargo';
 import {
   CHASE_REROUTE_MOVE,
@@ -38,7 +38,7 @@ import { noteBribe, payCash, receiveOrderCash } from './finances';
 import { resetBusinessInvestigation } from './businessState';
 import { raidableGoods } from './goodsStorage';
 import { exportLoadValue, exportedThisWeek, isExportTerminal, nearestExportTerminal, recoverExportGoods, sellExport } from './exportGoods';
-import { clearDestination, crossingHolder, setDestination, stepPerson } from './movement';
+import { clearDestination, crossingHolder, driveHoldOf, setDestination, stepPerson } from './movement';
 import { trafficContext } from './traffic';
 import { allocateWeapons, attackProfile, type Loadout } from './weapons';
 import type { Rng } from './rng';
@@ -428,6 +428,10 @@ function traceHit(w: WorldState, order: Order, actors: Person[], minutes: number
         const r1 = (x: number) => Math.round(x * 10) / 10;
         const k = t.kerb ??= { n: 0, toDest: 0, toTarget: 0, gap: 0, maxGap: 0 };
         k.n += minutes; k.toDest = r1(dist(car.pos, car.dest)); k.toTarget = r1(dist(car.pos, p.pos)); k.gap = r1(dist(car.dest, p.pos)); k.maxGap = Math.max(k.maxGap, k.gap);
+        // 1.2.89 (report): minutes the car stood held on its way, and what held it last.
+        const drv = vehicleOf(w, car), driver = drv?.driverId != null ? w.people[drv.driverId] : car;
+        const hold = driver ? driveHoldOf(driver) : undefined;
+        if (hold) { k.held = (k.held ?? 0) + minutes; k.heldBy = hold; }
       }
     }
   } else {
@@ -435,6 +439,11 @@ function traceHit(w: WorldState, order: Order, actors: Person[], minutes: number
     if (b) { at = buildingDoor(w, b); t.insideId = b.id; t.street = false; }
   }
   if (!at) return;
+  // 1.2.89 (report): each man's state and distance to the target at the last tick (HIT TRACE END).
+  t.end = actors.map((a) => {
+    const v = a.vehicleKey ? w.vehicleFleet?.[a.vehicleKey] : undefined;
+    return `${a.name} ${a.inVehicle ? 'in the car' : v?.boarding ? 'boarding' : order.noCarIds?.includes(a.id) ? 'on foot (gave up his seat)' : 'on foot'} ${Math.round(dist(a.pos, at!) * 10) / 10}`;
+  });
   // 1.2.87 (report): men on foot — held at a kerb (and by what), waiting to board, path left, destination to target.
   const walkers = actors.filter((a) => !a.inVehicle);
   if (walkers.length) {
@@ -673,6 +682,7 @@ function assignOrder(w: WorldState, team: Team, order: Order, atWeekStart = fals
   order.reportedCrewSize = chosen.length;
   order.workedMinutes = 0;
   delete order.hitTrace;
+  delete order.noCarIds;
   for (const p of chosen) p.orderId = order.id;
   order.state = 'travelling';
   order.cursor = 0;
@@ -837,7 +847,8 @@ export function tickOrders(w: WorldState, rng: Rng, minutes: number, loadout: Lo
         // a free car after all (it set out on foot when he was near).
         const team = w.teams[order.teamId];
         if (def.target === 'person' && team && actors.every(a => !a.vehicleKey && !a.inVehicle) &&
-            actors.some(a => dist(a.pos, tp) > DRIVE_MIN_DISTANCE) && transportPlan(w, team, actors, order.type, { to: tp }).cars.length)
+            actors.some(a => dist(a.pos, tp) > DRIVE_MIN_DISTANCE && !order.noCarIds?.includes(a.id)) &&
+            transportPlan(w, team, actors.filter(a => !order.noCarIds?.includes(a.id)), order.type, { to: tp }).cars.length)
           allocateTransport(w, team, actors, tp, order.id, order.type);
         let arrived = 0;
         for (const a of actors) {

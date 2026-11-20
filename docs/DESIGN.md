@@ -242,6 +242,14 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 
 Robert's decision (2026-11-17): from 1.2.77 on, each version moves Auto toward one unified fitness function — an action's value toward the chosen victory minus its costs, in one currency, per crew hour. It will later become a shared module used by Auto and by all rival gangs. Not implemented in 1.2.76; 1.2.77 takes the first step (point 13 below).
 
+## v1.2.89 decisions
+
+Robert's Go (2026-11-20) after the 1.2.88 run on city 1932 / Auto 1932 (won at w82, score 100; 1.2.87 won at w107). Weeks 53–82 had 27 hits run out of week. 18 crews set out on foot because every free crew car stood more than 202.5 m away (`DRIVE_MIN_DISTANCE`, used as the furthest walk to a car). Left-out cars stood unfetched for 3–7 weeks, and routes of 1,339–2,153 m were walked at 1,296 m a week. A boarding wait of 60 minutes is 32.4 m of walking against seats given up to 202.5 m away, so the waits ran out, the car was released and given again: up to 13h of boarding in a week. Points 1 and 2 change engine rules for every gang alike; point 3 is report-only and never read by Auto. No new constants.
+
+1. A crew's rider takes a free car when walking to it and driving on is quicker than walking to the job, the test a lawyer or accountant uses for his own car. This replaces the fixed 202.5 m limit on the walk to a car. Of the cars that pass, the nearest is taken first. Trips shorter than `DRIVE_MIN_DISTANCE` are still walked. A car not yet out stands by the gang's office nearest the job. Exports and raids are unchanged. A preview with no destination keeps the 1.2.88 distance limit.
+2. A crew's car waits as long as its furthest rider's walk to it when it is handed out, plus `BOARD_WAIT_MINUTES` 60. A rider who gives up his seat when the wait runs out is not given a car again on that order; he walks the rest of it.
+3. Report only. HIT TRACE by car also prints ON FOOT. ON FOOT adds the boarding waits begun and those ended by the timeout. KERB adds the minutes the car stood held on its way and what held it last (a walker on the crossing ahead, or a car in front). A new END part gives each man's state (in the car, boarding, on foot, or on foot after giving up his seat) and his distance to the target at the last tick. START "walked" is per man.
+
 ## v1.2.88 decisions
 
 Robert's Go (2026-11-20) after the 1.2.87 run on city 1932 / Auto 1932 (won at w107). The car re-route fix worked; 9 of the 11 kill run-outs were on foot. Seven crews walked about 2,000 m at 0.54 m a minute against game estimates of 19–26h made for a car. Two crews' cars waited all week for a rider who never came (one was 1,379 m away, as only the first rider's distance to the car was checked). Points 3–5 change engine rules for every gang alike; points 1, 2 and 6 are report-only and never read by Auto. The new constant is proposed.

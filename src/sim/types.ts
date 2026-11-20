@@ -613,15 +613,20 @@ export interface Order {
    *  target was (inside which building, or on the street) at the last tick. */
   hitTrace?: { travel: number; exec: number; wait: number; reroutes: number; car: boolean; nearest: number; insideId: ID | null; street: boolean; lastDist: number; lastState: string;
     /** 1.2.83 (report): by car on a man inside a building — minutes sampled, and the last car's distance to its own destination, to the target, and its destination's distance to the target (largest too). */
-    kerb?: { n: number; toDest: number; toTarget: number; gap: number; maxGap: number };
+    kerb?: { n: number; toDest: number; toTarget: number; gap: number; maxGap: number; held?: number; heldBy?: string };
     /** 1.2.87 (report): men on foot — minutes sampled, minutes held at a kerb and by what, minutes waiting to board
      *  and the last man more than 3 m from the car, the last walker's path still to go and his destination's distance to the target. */
     foot?: { n: number; held: number; heldBy: Record<string, number>; boarding: number; far: string; pathLeft: number; destToTarget: number };
     /** 1.2.88 (report): as the job was handed out — men on foot and by car, the first man's distance and route to the target,
      *  each crew car (free/busy, distance to the first man, skipped as too far), and metres walked since. */
-    start?: { foot: number; car: number; dist: number; path: number; cars: string[]; walked?: number } };
+    start?: { foot: number; car: number; dist: number; path: number; cars: string[]; walked?: number };
+    /** 1.2.89 (report): boarding waits begun and ended by the timeout; each man's state and distance to the target at the
+     *  last tick; and, by car, minutes the car stood held and what held it last. */
+    boardWaits?: number; boardReleases?: number; end?: string[] };
   /** 1.2.87: per man in a car, the target spot his chase route was last planned to (re-route once the target moves CHASE_REROUTE_MOVE from it). */
   chaseFrom?: Record<number, Vec2>;
+  /** 1.2.89: men who gave up their seat on this order when a boarding wait ran out; they walk the rest of it. */
+  noCarIds?: ID[];
   /** Hunting: the target's whereabouts are unknown, so the crew asks around at these places first. */
   hunting?: boolean;
   huntStopIds?: ID[];
@@ -704,6 +709,8 @@ export interface FleetVehicle {
   boardAfter?: number;
   /** 1.2.88: absolute minute the riders were first waited for (a crew's car leaves after BOARD_WAIT_MINUTES). */
   boardSince?: number;
+  /** 1.2.89: minutes the furthest rider needed to walk to the car when it was handed out (the wait is this + BOARD_WAIT_MINUTES). */
+  boardWait?: number;
 }
 
 export type DiplomacyLevel = 'alliance' | 'peace' | 'ceasefire' | 'aggression' | 'war';
