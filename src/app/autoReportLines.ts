@@ -4,7 +4,7 @@
  * after the week is played and are never read back by Auto's desk — the rival
  * and officials lines show what the game knows, not what Auto knows.
  */
-import { hireLines, type HireLine } from '../sim/hireLog';
+import { hireLines, inflowSoFar, type HireLine } from '../sim/hireLog';
 import { memberLosses } from '../sim/memberLosses';
 import { gangManpower, territoryCount } from '../sim/world';
 import type { Order, Person, WorldState } from '../sim/types';
@@ -62,6 +62,18 @@ export function buyTimingLine(w: WorldState, gangId: number, week: number, roleO
 export function rivalLine(w: WorldState, gangId: number, week: number): string {
   const rivals = Object.values(w.gangs).filter((g) => g.id !== gangId && !g.eliminated);
   return `REPORT-ONLY RIVALS wk ${week} (Auto never reads this; us: ${gangName(w, gangId)}): ${rivals.length ? rivals.map((g) => `${g.name} men ${gangManpower(w, g)}, crews ${g.teamIds.length}, pool ${g.poolIds.length}, cash $${Math.round(g.cash).toLocaleString('en-US')}, blocks ${territoryCount(w, g.id)}`).join('; ') : 'none left'}`;
+}
+
+/** 1.2.91 (Robert, point 1): RIVAL INFLOW — each rival's men gained by source over the week just played and the
+ *  settlement after it, and its recruit orders (the game's figures; Auto never reads this). */
+export function rivalInflowLine(w: WorldState, gangId: number, week: number): string {
+  const by = inflowSoFar(w);
+  const rivals = Object.values(w.gangs).filter((g) => g.id !== gangId && (!g.eliminated || by.has(g.id)));
+  return `REPORT-ONLY RIVAL INFLOW wk ${week} (1.2.91, Auto never reads this): ${rivals.length ? rivals.map((g) => {
+    const f = by.get(g.id);
+    if (!f) return `${g.name} none`;
+    return `${g.name} men gained ${f.recruit + f.free} (recruit orders ${f.recruit}, free hire ${f.free}), new crews by promotion ${f.promotion}, heirs ${f.heir}; recruit orders ${f.issued}: done ${f.done}, ran out ${f.ranOut}, other ${f.other}; started by car ${f.car}, on foot ${f.foot}`;
+  }).join('; ') : 'none left'}`;
 }
 
 /** 1.2.76 (Robert, point 8): OFFICERS — the police officers' opinion of us (all, and those on nobody's payroll), who pays or bought them. */

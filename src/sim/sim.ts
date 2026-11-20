@@ -1,6 +1,6 @@
 import { victoryAllowed } from './victory';
 import { gangOffice, isGangOffice } from './officeDefence';
-import { noteFreeOffer, noteHireLine } from './hireLog';
+import { noteFreeOffer, noteHireLine, noteInflow, noteRecruitOutcomes } from './hireLog';
 import {settleBurningEscapes, tickBuildingEmergencies} from './systems/buildingEmergency';
 import { driveFrom, earlySteps, finishMovementTick, repairVehicleRoutes } from './movement';
 import { boardingCount, reconcileTransport, resetWeekTransport, restoreLegacyTransport } from './transport';
@@ -497,6 +497,8 @@ export class Sim {
         if (p?.orderId === order.id) p.orderId = null;
       }
     }
+    // 1.2.91 (report only): each recruit order's outcome for RIVAL INFLOW.
+    noteRecruitOutcomes(w, Object.values(w.orders));
     for (const p of peopleList(w)) {
       p.streetOrder = null;
       if (p.status === 'beaten') p.status = 'active';
@@ -683,6 +685,7 @@ export class Sim {
 
       if (lieutenants.length) {
         const heir = lieutenants[0];
+        noteInflow(w, gang.id, 'heir'); // 1.2.91 (report only): RIVAL INFLOW
         if (heir.buildingId != null) {
           const site = w.buildings[heir.buildingId];
           if (site && site.managerId === heir.id) site.managerId = null;

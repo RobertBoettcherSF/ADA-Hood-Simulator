@@ -242,6 +242,14 @@ Auto Test fill-first, the business crew, manager and lead swaps, guns, firing (R
 
 Robert's decision (2026-11-17): from 1.2.77 on, each version moves Auto toward one unified fitness function — an action's value toward the chosen victory minus its costs, in one currency, per crew hour. It will later become a shared module used by Auto and by all rival gangs. Not implemented in 1.2.76; 1.2.77 takes the first step (point 13 below).
 
+## v1.2.91 decisions
+
+Robert's Go (2026-11-20) after the 1.2.90 run on city 1932 / Auto 1932 (won after week 150). Our kill rate held at about 4 a week in weeks 53–104, but the rivals' men came back as fast; the last weeks of each rival were spent on a gang of 1–6 men refilled by free hires and heirs. Point 1 and 2 are report-only and never read by Auto or the gangs; point 3 is Auto, from the chart only. No new constants. The 1.2.90 estimate change, boss/heir rules, ending rules and the score are unchanged.
+
+1. **Report: RIVAL INFLOW.** One line a week for every rival: men gained from recruit orders and from the under-2-men free hire, new crews made by promotion, heirs who took over as boss, and the rival's recruit orders — issued, done, ran out, other — and how many started by car or on foot. The count runs from one week's hand-out to the next, so the week played and the settlement after it fall together. Kept for the session only.
+2. **Report: a target that could not be found.** When a hit ends "The target could not be found", KILL RESULT and HIT TRACE give the target's status and where he was at that moment (a building, or the street).
+3. **One attack crew for a rival nearly gone.** In ENDGAME, the attack crews wanted count 2 for each rival, but 1 for a rival down to FINISH_MEN street men on the chart; at most ENDGAME_ATTACK_MAX as before. Each switch still needs its kills to be worth more than the takings it gives up.
+
 ## v1.2.90 decisions
 
 Robert's Go (2026-11-20) after the 1.2.89 run on city 1932 / Auto 1932 (won after week 110; 1.2.88 won at week 82). The car rule compared straight-line walks, which run shorter than the footway routes men actually walk, so men set out on foot for walks that took the week; the estimate left out the walk to a car; and ENDGAME switched off whenever a rival's blocks rose above 1/3 of ours. Points 1 and 2 change engine rules for every gang alike; point 3 is Auto, from player-knowable inputs only; points 4 and 5 are report-only and never read by Auto. No new constants. Boss/heir rules, ending rules and the score are unchanged.

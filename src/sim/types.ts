@@ -611,6 +611,9 @@ export interface Order {
   /** 1.2.82 (report-only, never read by the gangs): where a kill's or bomb's week went — minutes by state,
    *  re-routes while chasing, whether a car was used, the nearest any man came to the target, and where the
    *  target was (inside which building, or on the street) at the last tick. */
+  /** 1.2.91 (report-only, never read by the gangs): a hit that ended "The target could not be found" — the
+   *  target's status and place at that moment (KILL RESULT, HIT TRACE). */
+  lostTarget?: string;
   hitTrace?: { travel: number; exec: number; wait: number; reroutes: number; car: boolean; nearest: number; insideId: ID | null; street: boolean; lastDist: number; lastState: string;
     /** 1.2.83 (report): by car on a man inside a building — minutes sampled, and the last car's distance to its own destination, to the target, and its destination's distance to the target (largest too). */
     kerb?: { n: number; toDest: number; toTarget: number; gap: number; maxGap: number; held?: number; heldBy?: string };

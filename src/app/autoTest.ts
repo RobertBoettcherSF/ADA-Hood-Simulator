@@ -10,7 +10,7 @@ import { exportLoadValue, exportedThisWeek, isExportTerminal } from '../sim/expo
 import { goodsRetailer, raidableGoods } from '../sim/goodsStorage';
 import { illegalSaturationFactor } from '../sim/originalTables';
 import { resetSystemTimings, systemTimings } from '../sim/simTimings';
-import { arrestsByCauseLine, buyTimingLine, crewBribeResultLine, hireReportLines, lawyerJobsLine, officersLine, officialsLine, rivalLine } from './autoReportLines';
+import { arrestsByCauseLine, buyTimingLine, crewBribeResultLine, hireReportLines, lawyerJobsLine, officersLine, officialsLine, rivalLine, rivalInflowLine } from './autoReportLines';
 import type { HireLine } from '../sim/hireLog';
 import { buyRetryBanned, siteTimeBanned, deskMemory, isRunOut, noteRunOut, noteTimeRatio, runOutChance, runOutBands, RUN_OUT_LOAD_BANDS, timeFactor, HQ_STRIKE_GAP, knownRivalHQs, moveRefused, noteRefusedMove, reviewBuys } from './autoBusiness';
 import { execChance, execCounts, execMemory, lastGivenWeek, noteGivenTry, noteNotGiven, settleExec } from './autoExec';
@@ -1482,6 +1482,9 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // 1.2.69 (Robert, point 1): a rival's strength from the Graphs chart and our map only (autoIntel).
   const intelOf = new Map(rivalsAlive.map((g) => [g.id, rivalIntel(w, gang, g)] as const));
   const streetOf = (g: Gang) => intelOf.get(g.id)?.street ?? 0;
+  // 1.2.91 (Robert, point 3): attack crews wanted in ENDGAME — ENDGAME_ATTACK_PER_RIVAL a rival, but one for a rival
+  // down to FINISH_MEN street men on the chart (what a player sees); at most ENDGAME_ATTACK_MAX.
+  const attackWant = () => Math.min(ENDGAME_ATTACK_MAX, rivalsAlive.reduce((n, g) => n + (streetOf(g) <= FINISH_MEN ? 1 : ENDGAME_ATTACK_PER_RIVAL), 0));
   const chartPowerOf = (g: Gang) => intelOf.get(g.id)?.chartPower ?? 0;
   /** 1.2.69 (point 10): what stands between a gang and its end — its street men and its managers (heirs; 1.2.70 point 6: managers = min(known businesses, chart men − known men)). */
   const heirsOf = (g: Gang) => { const i = intelOf.get(g.id); return i ? i.street + i.managers : 0; };
@@ -1538,7 +1541,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     const prev = crewRoleMemory.get(w);
     const collects = crewsOf().filter((t) => (prev?.get(t.id) ?? 'collect') === 'collect').length;
     const attack = crewsOf().filter((t) => prev?.get(t.id) === 'muscle').length;
-    const want = Math.min(ENDGAME_ATTACK_MAX, ENDGAME_ATTACK_PER_RIVAL * rivalsAlive.length);
+    const want = attackWant();
     const switching = Math.max(0, Math.min(want - attack, collects - 1));
     const protectionLost = collects > 0 ? (inc?.protection ?? 0) * switching / collects : 0;
     const deficit = Math.max(0, bill - (takings - protectionLost));
@@ -3069,7 +3072,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // least ELIM_KILLS_PER_WEEK) × a rival man top the takings it gives up.
   if (endgame && win && goal === 'eliminate') {
     const now = rolesNow();
-    const want = Math.min(ENDGAME_ATTACK_MAX, ENDGAME_ATTACK_PER_RIVAL * rivalsAlive.length);
+    const want = attackWant();
     let have = crewsOf().filter((t) => now.get(t.id) === 'muscle').length;
     const earns = (t: Team) => { const job = now.get(t.id)!; return t.memberIds.reduce((sum, id) => { const p = w.people[id]; return sum + (p ? jobEarnings(p, job, manCtx, MINUTES_PER_WEEK) : 0); }, 0); };
     const collects = crewsOf().filter((t) => now.get(t.id) === 'collect').sort((a, b) => earns(a) - earns(b) || a.id - b.id);
@@ -3084,7 +3087,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
       switched.push(`${t.name} ($${gain} of kills against $${lose} of takings)`);
       menMoves.push(`crew ${t.name} Protection → attack (ENDGAME)`);
     }
-    actions.push(`ENDGAME CREWS (1.2.69, ${ENDGAME_ATTACK_PER_RIVAL} per rival, at most ${ENDGAME_ATTACK_MAX}, proposed): ${have} attack crew(s) of ${want}${switched.length ? `; switched ${switched.join(', ')}` : ''}`);
+    actions.push(`ENDGAME CREWS (1.2.69, ${ENDGAME_ATTACK_PER_RIVAL} per rival, 1.2.91: 1 for a rival at ≤${FINISH_MEN} street men on the chart, at most ${ENDGAME_ATTACK_MAX}, proposed): ${have} attack crew(s) of ${want}${switched.length ? `; switched ${switched.join(', ')}` : ''}`);
   }
   // 1.2.86 (Robert, point 4): CREW ROLE FIT before ENDGAME — with the cash to finish held or close (FINISH CASH),
   // the next Protection crew (the least earning) turns to attack when the kills it can make (as ENDGAME CREWS)
@@ -3092,7 +3095,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
   // dollar); one crew a week, within the ENDGAME caps. Otherwise Auto keeps its profit-first crews.
   if (!endgame && pushOn && win) {
     const now = rolesNow();
-    const want = Math.min(ENDGAME_ATTACK_MAX, ENDGAME_ATTACK_PER_RIVAL * rivalsAlive.length);
+    const want = attackWant();
     const have = crewsOf().filter((t) => now.get(t.id) === 'muscle').length;
     const earns = (t: Team) => { const job = now.get(t.id)!; return t.memberIds.reduce((sum, id) => { const p = w.people[id]; return sum + (p ? jobEarnings(p, job, manCtx, MINUTES_PER_WEEK) : 0); }, 0); };
     const collects = crewsOf().filter((t) => now.get(t.id) === 'collect').sort((a, b) => earns(a) - earns(b) || a.id - b.id);
@@ -3731,14 +3734,16 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
     // own counters on the order), and a cause for every one that ran out of week.
     const traceOf = (o: (typeof w.lastWeekOrders)[number]) => {
       const t = o.hitTrace;
-      if (!t) return { text: 'no trace (never started)', cause: 'never started' };
+      // 1.2.91 (report): a hit that could not find its man says where he was and in what state.
+      const lost = o.lostTarget ? `; NOT FOUND (${buildVersion()}): target ${o.lostTarget}` : '';
+      if (!t) return { text: `no trace (never started)${lost}`, cause: 'never started' };
       const h = (m: number) => hm(Math.round(m));
       const where = t.insideId != null ? (o.type === 'bomb' ? `target building #${t.insideId}` : `target inside building #${t.insideId}${w.buildings[t.insideId]?.isHQ ? ' (an HQ)' : ''}`) : t.street ? 'target on the street' : 'target not placed';
       const cause = t.exec > 0 ? `reached the target (${h(t.exec)} at work) but the work did not finish`
         : t.travel <= 0 && t.wait > 0 ? `waited ${h(t.wait)} and never set out`
         : t.nearest >= 0 && t.nearest <= 12 ? `came within ${t.nearest} of the target but never counted as arrived (${t.reroutes} re-route(s))`
         : `travelled ${h(t.travel)} and never got near (nearest ${t.nearest < 0 ? '?' : t.nearest}, last ${t.lastDist < 0 ? '?' : t.lastDist}; ${t.reroutes} re-route(s))`;
-      return { text: `travel ${h(t.travel)}, executing ${h(t.exec)}, waiting ${h(t.wait)}; re-routes ${t.reroutes}; ${t.car ? 'by car' : 'on foot'}; nearest ${t.nearest < 0 ? '?' : t.nearest}, last ${t.lastDist < 0 ? '?' : t.lastDist}; ${where}; last state ${t.lastState || '?'}${t.kerb ? `; KERB (${buildVersion()}, by car on a man indoors, ${h(t.kerb.n)} sampled): car to its destination ${t.kerb.toDest}, car to the target ${t.kerb.toTarget}, destination to the target ${t.kerb.gap} (largest ${t.kerb.maxGap}; a chase re-routes when over 12)${t.kerb.held ? `; held on its way ${h(t.kerb.held)}, last by ${t.kerb.heldBy}` : '; never held on its way'}` : ''}${t.foot ? `; ON FOOT (${buildVersion()}, ${h(t.foot.n)} sampled): held at a kerb ${h(t.foot.held)}${Object.keys(t.foot.heldBy).length ? ` by ${Object.entries(t.foot.heldBy).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, m]) => `${k} ${h(m)}`).join(', ')}` : ''}; boarding ${h(t.foot.boarding)}${t.foot.far ? ` (man >3 m from the car: ${t.foot.far})` : ''}; path left ${t.foot.pathLeft < 0 ? '?' : t.foot.pathLeft}, destination to the target ${t.foot.destToTarget < 0 ? '?' : t.foot.destToTarget}; boarding waits ${t.boardWaits ?? 0}, ended by the timeout ${t.boardReleases ?? 0}` : ''}${t.start ? `; START (${buildVersion()}, as handed out): ${t.start.foot} on foot, ${t.start.car} by car; first man ${t.start.dist < 0 ? '?' : t.start.dist} from the target, route ${t.start.path < 0 ? '?' : t.start.path}; cars ${t.start.cars.length ? t.start.cars.join(', ') : 'none'}; walked ${Math.round((t.start.walked ?? 0) / Math.max(1, t.start.foot + t.start.car) * 10) / 10} per man` : ''}${t.end?.length ? `; END (${buildVersion()}, last tick): ${t.end.join(', ')}` : ''}`, cause };
+      return { text: `travel ${h(t.travel)}, executing ${h(t.exec)}, waiting ${h(t.wait)}; re-routes ${t.reroutes}; ${t.car ? 'by car' : 'on foot'}; nearest ${t.nearest < 0 ? '?' : t.nearest}, last ${t.lastDist < 0 ? '?' : t.lastDist}; ${where}; last state ${t.lastState || '?'}${t.kerb ? `; KERB (${buildVersion()}, by car on a man indoors, ${h(t.kerb.n)} sampled): car to its destination ${t.kerb.toDest}, car to the target ${t.kerb.toTarget}, destination to the target ${t.kerb.gap} (largest ${t.kerb.maxGap}; a chase re-routes when over 12)${t.kerb.held ? `; held on its way ${h(t.kerb.held)}, last by ${t.kerb.heldBy}` : '; never held on its way'}` : ''}${t.foot ? `; ON FOOT (${buildVersion()}, ${h(t.foot.n)} sampled): held at a kerb ${h(t.foot.held)}${Object.keys(t.foot.heldBy).length ? ` by ${Object.entries(t.foot.heldBy).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, m]) => `${k} ${h(m)}`).join(', ')}` : ''}; boarding ${h(t.foot.boarding)}${t.foot.far ? ` (man >3 m from the car: ${t.foot.far})` : ''}; path left ${t.foot.pathLeft < 0 ? '?' : t.foot.pathLeft}, destination to the target ${t.foot.destToTarget < 0 ? '?' : t.foot.destToTarget}; boarding waits ${t.boardWaits ?? 0}, ended by the timeout ${t.boardReleases ?? 0}` : ''}${t.start ? `; START (${buildVersion()}, as handed out): ${t.start.foot} on foot, ${t.start.car} by car; first man ${t.start.dist < 0 ? '?' : t.start.dist} from the target, route ${t.start.path < 0 ? '?' : t.start.path}; cars ${t.start.cars.length ? t.start.cars.join(', ') : 'none'}; walked ${Math.round((t.start.walked ?? 0) / Math.max(1, t.start.foot + t.start.car) * 10) / 10} per man` : ''}${t.end?.length ? `; END (${buildVersion()}, last tick): ${t.end.join(', ')}` : ''}${lost}`, cause };
     };
     for (const o of w.lastWeekOrders) {
       if (o.gangId !== gang.id || (o.type !== 'kill' && o.type !== 'bomb')) continue;
@@ -3822,7 +3827,7 @@ export function playAutoWeek(sim: Sim, seed: number, strategy: PlayStrategy): st
         const seen = [...(mem.threatSeen ?? [])].reverse().find((x) => x.personId === t.id);
         (mem.bossPlaced ??= new Map()).set(t.id, { week: seen?.week ?? -1, block: seen?.block ?? null });
       }
-      lines.push(`${killSide(o.teamId, o.sentIds ?? [], o.id)} ${o.type} on ${killTarget(o.targetPersonId ?? undefined, o.id)} — ${o.state}${said ? `: "${said}"` : ''}${o.startedMinute != null && o.finishedMinute != null ? `, ${hm(o.finishedMinute - o.startedMinute)}` : ''}${ranOut ? `, ran out of week (${traceOf(o).cause})` : ''}; game estimate ${o.estimatedMinutes > 0 ? hm(o.estimatedMinutes) : '?'}${given.get(o.id)?.corrected ? ` (× correction ${hm(given.get(o.id)!.corrected!)})` : ''}; ${men} sent, ${died} lost`);
+      lines.push(`${killSide(o.teamId, o.sentIds ?? [], o.id)} ${o.type} on ${killTarget(o.targetPersonId ?? undefined, o.id)} — ${o.state}${said ? `: "${said}"` : ''}${o.lostTarget ? ` (1.2.91 report: target ${o.lostTarget})` : ''}${o.startedMinute != null && o.finishedMinute != null ? `, ${hm(o.finishedMinute - o.startedMinute)}` : ''}${ranOut ? `, ran out of week (${traceOf(o).cause})` : ''}; game estimate ${o.estimatedMinutes > 0 ? hm(o.estimatedMinutes) : '?'}${given.get(o.id)?.corrected ? ` (× correction ${hm(given.get(o.id)!.corrected!)})` : ''}; ${men} sent, ${died} lost`);
     }
     for (const [id, at] of [...hard]) { const p = w.people[id]; if (!p || p.status === 'dead' || p.gangId == null || w.week - at > BAD_TARGET_RETRY_WEEKS * 2) hard.delete(id); }
     if (lines.length) actions.push(`KILL RESULT (1.2.75): ${lines.join('; ')}`);
@@ -9356,6 +9361,7 @@ export async function runAutoTest(sim: Sim, settings: AutoTestSettings, finish: 
     actions.push(...hireReportLines(sim.world, weekBefore - 1, hireShown));
     { const line = buyTimingLine(sim.world, sim.playerGang.id, weekBefore, (teamId) => crewRoleMemory.get(sim.world)?.get(teamId) ?? 'disbanded crew'); if (line) actions.push(line); }
     actions.push(rivalLine(sim.world, sim.playerGang.id, weekBefore));
+    actions.push(rivalInflowLine(sim.world, sim.playerGang.id, weekBefore));
     rememberRecruitResults(sim.world.lastWeekOrders.filter((order) => order.gangId === sim.playerGang.id));
     for (const pending of pendingActions) {
       const verdict = judgeAction(sim.world, sim.playerGang, pending, sim.world.lastWeekOrders);

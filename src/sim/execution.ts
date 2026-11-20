@@ -2,6 +2,7 @@ import { traceStop } from './devTrace';
 import { armedPoolDefenders, isGangOffice } from './officeDefence';
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
 import { noteMemberLoss } from './memberLosses';
+import { noteInflow, noteRecruitCar, rollInflow } from './hireLog';
 import { recruitJoin } from './recruitDestination';
 import { originalStartingWage, originalWageQuote } from './originalWages';
 import { BLAST_DAMAGE, blastFear, effectiveHostility, fearOf, hostilityOf, MEMBER_DEATH_FEAR, NO_ORIGINAL_CHANNEL, opinionShift, ownerSquealLevel, setAttitude, shiftAttitude } from './attitudes';
@@ -380,6 +381,13 @@ function onTheStreet(p: Person): boolean {
   return p.status === 'active' || p.status === 'beaten';
 }
 
+/** 1.2.91 (report-only): the target's status and place when a hit ends "The target could not be found". */
+function noteLostTarget(w: WorldState, order: Order, p: Person | null | undefined): void {
+  if (!p) { order.lostTarget = 'no such person'; return; }
+  const b = p.buildingId != null ? w.buildings[p.buildingId] : undefined;
+  order.lostTarget = `${p.status}, ${b ? `in ${placeName(w, b)} #${b.id}` : `in the street at ${Math.round(p.pos.x)},${Math.round(p.pos.y)}`}`;
+}
+
 /** Where the hoods must physically stand for the current target. */
 function targetPos(w: WorldState, order: Order): Vec2 | null {
   const def = ORDERS[order.type];
@@ -685,6 +693,7 @@ function assignOrder(w: WorldState, team: Team, order: Order, atWeekStart = fals
   order.workedMinutes = 0;
   delete order.hitTrace;
   delete order.noCarIds;
+  delete order.lostTarget;
   for (const p of chosen) p.orderId = order.id;
   order.state = 'travelling';
   order.cursor = 0;
@@ -711,6 +720,7 @@ function assignOrder(w: WorldState, team: Team, order: Order, atWeekStart = fals
   // 1.2.90 (report): the trace exists before the cars are handed out, so the first boarding wait is counted.
   if (cars) order.hitTrace = { travel: 0, exec: 0, wait: 0, reroutes: 0, car: false, nearest: -1, insideId: null, street: false, lastDist: -1, lastState: '' };
   if(tp)allocateTransport(w,team,chosen,tp,order.id,order.type);
+  if (order.type === 'recruit' && chosen.some((p) => !!p.vehicleKey)) noteRecruitCar(w, order.id); // 1.2.91 (report only)
   if (tp && cars) {
     const t = order.hitTrace ??= { travel: 0, exec: 0, wait: 0, reroutes: 0, car: false, nearest: -1, insideId: null, street: false, lastDist: -1, lastState: '' };
     const lead = chosen[0], route = (p: Person) => { if (!p.dest) return 0; let len = 0, from = p.pos; for (const q of p.path) { len += dist(from, q); from = q; } return len + dist(from, p.dest); };
@@ -722,6 +732,7 @@ function assignOrder(w: WorldState, team: Team, order: Order, atWeekStart = fals
 
 /** Called when the working week begins: hand every queued order its hoods. */
 export function beginWeekOrders(w: WorldState): void {
+  rollInflow(w); // 1.2.91 (report only): RIVAL INFLOW counts from one hand-out to the next
   resetWeekTransport(w);
   for(const p of Object.values(w.people))if(p.gangId!=null&&['hood','lieutenant'].includes(p.role)&&p.buildingId==null&&!p.vehicleKey){clearDestination(p);p.streetOrder=null;p.inVehicle=false;}
   for (const team of Object.values(w.teams)) {
@@ -843,6 +854,7 @@ export function tickOrders(w: WorldState, rng: Rng, minutes: number, loadout: Lo
           continue;
         }
         if (!tp) {
+          if (def.target === 'person') noteLostTarget(w, order, quarry ?? (order.targetPersonId != null ? w.people[order.targetPersonId] : null));
           finishOrder(w, order, 'The target could not be found.');
           freedSomething = true;
           continue;
@@ -882,6 +894,7 @@ export function tickOrders(w: WorldState, rng: Rng, minutes: number, loadout: Lo
             continue;
           }
           if (!target) {
+            noteLostTarget(w, order, target);
             finishOrder(w, order, 'The target could not be found.');
             freedSomething = true;
             continue;
@@ -1258,7 +1271,7 @@ function resolveTarget(
   // there is nobody left to bribe, beat, take or shoot (a corpse was beaten
   // back to life, a prisoner taken twice).
   if (order.type === 'kill' && victim?.status === 'dead') { order.results.push(`${victim.name} is already dead.`); return; }
-  if (def.target === 'person' && (!victim || !onTheStreet(victim))) return finishOrder(w, order, 'The target could not be found.');
+  if (def.target === 'person' && (!victim || !onTheStreet(victim))) { noteLostTarget(w, order, victim); return finishOrder(w, order, 'The target could not be found.'); }
   const here = building ? w.lots[building.lotId].center : lead.pos;
   if (victim) keepContactDistance(actors, victim);
 
@@ -1619,6 +1632,7 @@ function resolveTarget(
       const joined = crew + pool;
       // 1.2.51: hoods signed on by the order, for order fitness.
       order.hired = (order.hired ?? 0) + joined;
+      noteInflow(w, gang.id, 'recruit', joined); // 1.2.91 (report only): RIVAL INFLOW
       const hired = !joined
         ? 'Nobody new was willing to work for you.'
         : toPool

@@ -1,3 +1,4 @@
+import { noteInflow } from './hireLog';
 import { originalWeeklyStance, rollOriginalProfile, stanceOfHostility, startingHostility } from './aiStance';
 import { cityBlockAt } from './cityLayout';
 import {
@@ -419,7 +420,7 @@ function manageStaff(w: WorldState, rng: Rng, gang: Gang): void {
       .map((id) => w.people[id])
       .filter((p) => p && p.status === 'active')
       .sort((a, b) => b.skills.organization + b.skills.intelligence - (a.skills.organization + a.skills.intelligence))[0];
-    if (best) promote(w, gang.id, best.id);
+    if (best) { promote(w, gang.id, best.id); noteInflow(w, gang.id, 'promotion'); } // 1.2.91 (report only): RIVAL INFLOW
   }
 
   // Reserves include the extra starting hoods. Put them to work after any

@@ -2,7 +2,7 @@ import { victoryAllowed } from './victory';
 import { INCIDENT_HOSTILITY, provoke } from './aiStance';
 import { isGangOffice } from './officeDefence';
 import { noteMemberLoss } from './memberLosses';
-import { noteFreeHire } from './hireLog';
+import { noteFreeHire, noteInflow } from './hireLog';
 import { CLEANUP_COST_PER_SITE, huntStops, streetsClearable, whereaboutsUnknown } from './execution';
 export { huntStops, whereaboutsUnknown };
 import { LEFT_GANG, NO_ORIGINAL_CHANNEL, opinionSet } from './attitudes';
@@ -643,6 +643,7 @@ export function hireRecruit(
   const p = w.people[personId];
   if (!gang || !p) return fail('No such person.');
   if (p.gangId != null) return fail('They already work for somebody.');
+  const listed = gang.recruitIds.includes(personId); // 1.2.91 (report): found willing by a recruit order (or the free offer)
   if (p.status !== 'active') return fail('That recruit is not available.');
 
   if (p.role === 'accountant' || p.role === 'lawyer') {
@@ -682,7 +683,9 @@ export function hireRecruit(
   p.pay = p.payDemand;
   if (standardRules(w)) originalStartingWage(p, gangId);
   unlistRecruit(w, personId);
-  noteFreeHire(w, gang, p);
+  // 1.2.91 (report only): RIVAL INFLOW — the under-2-men offer, else a man a recruit order found willing.
+  // (a lawyer or accountant taken on directly is in neither and is not counted).
+  if (noteFreeHire(w, gang, p)) noteInflow(w, gangId, 'free'); else if (listed) noteInflow(w, gangId, 'recruit');
 
   p.inVehicle = false;
   const office = nearestOffice(w, gangId, p.pos);
