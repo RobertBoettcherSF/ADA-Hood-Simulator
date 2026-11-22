@@ -14,9 +14,6 @@ package Hood.Host_ABI is
 
    subtype Error_Code is Integer_32 range Error_Bounds .. Error_Crash_Test;
 
-   --  Seed of the placeholder state hash (proposed).
-   Hash_Seed : constant := 1932;
-
    --  Longest Ada file name kept for the crash notice.
    Max_File : constant := 64;
 
@@ -26,8 +23,42 @@ package Hood.Host_ABI is
 
    function State_Hash return Unsigned_32
      with Export, Convention => C, External_Name => "hs_state_hash";
-   --  FNV-1a (32 bit) over the four little-endian bytes of Hash_Seed.
-   --  A placeholder until the world exists (item 2).
+   --  Hood.World.Hash of the current world; 0 before hs_new_game.
+
+   procedure New_Game
+     (City_Seed, Auto_Seed : Unsigned_32; Blocks_X, Blocks_Y : Integer_32)
+     with Export, Convention => C, External_Name => "hs_new_game";
+   --  A new world. Seeds cross as 32-bit patterns (seeds above 2**31 are
+   --  common). Sizes outside 8 .. 44 by 8 .. 35 blocks are clamped.
+
+   Stream_Main  : constant := 1;  --  mulberry32 values (proposed numbers)
+   Stream_Int   : constant := 2;  --  int (0, 99) on mulberry32
+   Stream_Plan  : constant := 3;  --  city-plan LCG values
+   Max_Draws    : constant := 1_000;
+
+   function Rng_Value (Stream, Index : Integer_32) return Unsigned_32
+     with Export, Convention => C, External_Name => "hs_rng_value";
+   --  The Index-th value (1-based) of Stream, freshly seeded with the
+   --  current world's city seed; 0 for an unknown stream or index.
+
+   function Grid_W return Integer_32
+     with Export, Convention => C, External_Name => "hs_grid_w";
+   function Grid_H return Integer_32
+     with Export, Convention => C, External_Name => "hs_grid_h";
+   --  Cells across and down in the current world.
+
+   function Cell_Kind (X, Y : Integer_32) return Integer_32
+     with Export, Convention => C, External_Name => "hs_cell_kind";
+   --  0 street, 1 block, -1 outside the matrix.
+
+   Check_Count : constant := 9;
+
+   function Check_Value (Id : Integer_32) return Integer_32
+     with Export, Convention => C, External_Name => "hs_check_value";
+   --  Number checks shown on the page (ids proposed):
+   --  1 54 units in map units, 2 10.8 units (54/5), 3 distance (3, 4),
+   --  4 distance (1, 1), 5 sin 45 degrees, 6 cos 0, 7 atan2 (1, 1),
+   --  8 the cell of x = 54 units, 9 cells in the Large city; 0 otherwise.
 
    procedure Crash_Test (Code : Integer_32)
      with Export, Convention => C, External_Name => "hs_crash_test",

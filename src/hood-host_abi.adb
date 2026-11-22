@@ -1,4 +1,9 @@
+with Hood.Grid;
+with Hood.Random;
+with Hood.Trig;
+with Hood.Units;
 with Hood.Version;
+with Hood.World;
 
 package body Hood.Host_ABI is
 
@@ -8,15 +13,79 @@ package body Hood.Host_ABI is
 
    function Build_Id return Integer_32 is (Hood.Version.Build_Id);
 
+   World   : Hood.World.World_State;
+   Started : Boolean := False;
+
    function State_Hash return Unsigned_32 is
-      Seed : constant Unsigned_32 := Hash_Seed;
-      H    : Unsigned_32 := 16#811C_9DC5#;
+     (if Started then Hood.World.Hash (World) else 0);
+
+   function Clamp (V, Low, High : Integer_32) return Integer_32 is
+     (Integer_32'Max (Low, Integer_32'Min (High, V)));
+
+   procedure New_Game
+     (City_Seed, Auto_Seed : Unsigned_32; Blocks_X, Blocks_Y : Integer_32) is
    begin
-      for Byte in 0 .. 3 loop
-         H := (H xor (Shift_Right (Seed, 8 * Byte) and 16#FF#)) * 16#0100_0193#;
+      Hood.World.New_Game
+        (World, City_Seed, Auto_Seed,
+         Clamp (Blocks_X, Hood.Grid.Min_Blocks, Hood.Grid.Max_Blocks_X),
+         Clamp (Blocks_Y, Hood.Grid.Min_Blocks, Hood.Grid.Max_Blocks_Y));
+      Started := True;
+   end New_Game;
+
+   function Rng_Value (Stream, Index : Integer_32) return Unsigned_32 is
+      Seed  : constant Unsigned_32 := (if Started then World.City_Seed else 0);
+      Main  : Hood.Random.Mulberry := Hood.Random.Seeded (Seed);
+      Plan  : Hood.Random.Plan_Lcg := Hood.Random.Plan_Seeded (Seed);
+      U     : Unsigned_32 := 0;
+      I     : Integer_32 := 0;
+      P     : Hood.Random.Plan_Value := 0;
+   begin
+      if Index not in 1 .. Max_Draws then
+         return 0;
+      end if;
+      for Draw in 1 .. Index loop
+         case Stream is
+            when Stream_Main => Hood.Random.Next (Main, U);
+            when Stream_Int  => Hood.Random.Int (Main, 0, 99, I);
+            when Stream_Plan => Hood.Random.Plan_Next (Plan, P);
+            when others      => return 0;
+         end case;
       end loop;
-      return H;
-   end State_Hash;
+      case Stream is
+         when Stream_Main => return U;
+         when Stream_Int  => return Unsigned_32 (I);
+         when others      => return Unsigned_32 (P);
+      end case;
+   end Rng_Value;
+
+   function Grid_W return Integer_32 is
+     (if Started then World.Blocks_X * Hood.Grid.Cells_Per_Block else 0);
+
+   function Grid_H return Integer_32 is
+     (if Started then World.Blocks_Y * Hood.Grid.Cells_Per_Block else 0);
+
+   function Cell_Kind (X, Y : Integer_32) return Integer_32 is
+     (if Started and then X in 0 .. Grid_W - 1 and then Y in 0 .. Grid_H - 1
+      then Hood.Grid.Cell_Kind'Pos
+             (World.Cells (Hood.Grid.Cell_X (X), Hood.Grid.Cell_Y (Y)).Kind)
+      else -1);
+
+   function Check_Value (Id : Integer_32) return Integer_32 is
+      use Hood.Units;
+   begin
+      case Id is
+         when 1 => return Integer_32 (Whole (54));
+         when 2 => return Integer_32 (Ratio (54, 5));
+         when 3 => return Integer_32 (Distance (Whole (3), Whole (4)));
+         when 4 => return Integer_32 (Distance (Whole (1), Whole (1)));
+         when 5 => return Hood.Trig.Sin (Hood.Trig.Eighth_Turn);
+         when 6 => return Hood.Trig.Cos (0);
+         when 7 => return Integer_32 (Hood.Trig.Atan2 (Whole (1), Whole (1)));
+         when 8 => return Hood.Grid.Cell_Of (Whole (54));
+         when 9 => return Hood.Grid.Max_W * Hood.Grid.Max_H;
+         when others => return 0;
+      end case;
+   end Check_Value;
 
    procedure Crash_Test (Code : Integer_32) is
    begin

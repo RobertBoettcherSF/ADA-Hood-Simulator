@@ -9,7 +9,7 @@
 set -e
 cd "$(dirname "$0")"
 
-VERSION=0.1.0   # proposed
+VERSION=0.2.0   # proposed
 
 A=${ADAWEBPACK:-$HOME/toolchains/adawebpack-24}
 T=$A/usr
@@ -65,6 +65,8 @@ ar x "$T/lib/rts-native/adalib/libgnat.a" s-memcop.o s-memmov.o s-memset.o
 $LD --no-entry --allow-undefined --strip-all \
   --export=hs_build_id --export=hs_state_hash --export=hs_crash_test \
   --export=hs_error_file_length --export=hs_error_file_char \
+  --export=hs_new_game --export=hs_rng_value --export=hs_grid_w --export=hs_grid_h \
+  --export=hs_cell_kind --export=hs_check_value \
   -z stack-size=1048576 --initial-memory=33554432 \
   -o hood.wasm ./*.o
 cd ../..
