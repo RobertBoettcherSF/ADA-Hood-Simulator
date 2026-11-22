@@ -12,8 +12,8 @@ body {
   font: 16px/1.45 Georgia, "Times New Roman", serif;
   background: radial-gradient(ellipse at 50% 30%, #2b2418 0%, #120f0b 70%);
   color: #eadcc0;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: calc(16px + env(safe-area-inset-top)) 16px calc(48px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  padding: calc(56px + env(safe-area-inset-top)) 16px calc(48px + env(safe-area-inset-bottom));
 }
 #flags { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); display: flex; gap: 6px; }
 #flags button { padding: 0; border: 2px solid transparent; border-radius: 4px; background: none; cursor: pointer; line-height: 0; }
@@ -30,6 +30,16 @@ button.main {
 }
 button.main:hover, button.main:focus-visible { background: #4b3c26; }
 button.danger { border-color: #a0463a; }
+#panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; width: min(1100px, 100%); margin-top: 1.6em; }
+.panel { background: rgba(32, 26, 18, .85); border: 1px solid #5c4a2b; border-radius: 8px; padding: 12px 14px; }
+.panel h2 { margin: 0 0 .5em; font-size: 1.1rem; color: #f1d58f; }
+.panel .sum { margin: 0 0 .5em; }
+.panel table { border-collapse: collapse; font: 12px/1.35 ui-monospace, Menlo, Consolas, monospace; width: 100%; }
+.panel th, .panel td { padding: 1px 6px; text-align: right; border-bottom: 1px solid #3a2f1f; }
+.panel th { color: #c9b48a; font-weight: normal; }
+.panel td.ok { color: #9fd49a; } .panel td.bad { color: #ff8a7a; font-weight: bold; }
+.scroll { max-height: 260px; overflow: auto; }
+#grid-canvas { width: 225px; height: 225px; image-rendering: pixelated; border: 1px solid #5c4a2b; display: block; margin-top: 6px; }
 #stamp { position: fixed; right: calc(10px + env(safe-area-inset-right)); bottom: calc(8px + env(safe-area-inset-bottom)); font: 12px ui-monospace, Menlo, Consolas, monospace; color: #9c8c6c; }
 .overlay { position: fixed; inset: 0; background: rgba(8, 6, 4, .82); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
 .overlay.open { display: flex; }
@@ -62,7 +72,13 @@ button.danger { border-color: #a0463a; }
   <button class="main" id="debug" data-t="debug"></button>
   <button class="main danger" id="crash" data-t="crash_test"></button>
 </div>
-<div id="stamp">v0.1.0 b20261122-1841 5b39e7a</div>
+<div id="panels">
+  <section class="panel"><h2 data-t="p_random"></h2><p class="sum" id="random-sum"></p><div class="scroll"><table id="random-table"></table></div></section>
+  <section class="panel"><h2 data-t="p_numbers"></h2><p class="sum" id="numbers-sum"></p><table id="numbers-table"></table></section>
+  <section class="panel"><h2 data-t="p_grid"></h2><p class="sum" id="grid-sum"></p><canvas id="grid-canvas" width="15" height="15"></canvas><p class="sum" data-t="grid_legend"></p></section>
+  <section class="panel"><h2 data-t="p_world"></h2><p class="sum" id="world-sum"></p></section>
+</div>
+<div id="stamp">v0.2.0 b20261122-1908 977a10b</div>
 
 <div class="overlay" id="report" role="dialog" aria-modal="true" aria-labelledby="report-title">
   <div class="box">
@@ -90,15 +106,41 @@ button.danger { border-color: #a0463a; }
 
 <script>
 "use strict";
-const STAMP = "v0.1.0 b20261122-1841 5b39e7a";
-const WASM = "AGFzbQEAAAABGQVgAn9/AGAAAX9gAX8AYAF/AX9gA39/fwACFQEDZW52DWhzX2hvc3RfZXJyb3IAAAMJCAEBAgEDAwQABQQBAIAEBgkBfwFB4IjAAAsHZAYGbWVtb3J5AgALaHNfYnVpbGRfaWQAAQ1oc19zdGF0ZV9oYXNoAAINaHNfY3Jhc2hfdGVzdAADFGhzX2Vycm9yX2ZpbGVfbGVuZ3RoAAQSaHNfZXJyb3JfZmlsZV9jaGFyAAUKuAQICABBkZ3E/QALCABBpLi4qHsLJwBBACAAQQMgAEF/akEESRs2ApSIgIAAQYCIgIAAQRwQiICAgAAACwsAQQAoAtiIgIAACzABAX9BACEBAkAgAEEBSA0AQQAoAtiIgIAAIABIDQAgAEGXiICAAGotAAAhAQsgAQsLAEEAKAKUiICAAAv3AQEDf0EBIQNBAEEAIAEoAAQiBCABKAAAIgFrIgVBPyAFQT9IG0EBaiAEIAFIGyIBNgLYiICAAAJAIAFBAUgNACABQQNxIQQCQCABQQRJDQBBACABQXxxayEFQQEhAwNAIANBl4iAgABqIAAgA2oiAUF/ai0AADoAACADQZiIgIAAaiABLQAAOgAAIANBmYiAgABqIAFBAWotAAA6AAAgA0GaiICAAGogAUECai0AADoAACAFIANBBGoiA2pBAUcNAAsLIARFDQAgA0F/aiEDA0AgA0GYiICAAGogACADai0AADoAACADQQFqIQMgBEF/aiIEDQALCwu5AQEDfyOAgICAAEEQayICJICAgIAAQQAhAwJAAkACQANAAkAgACADaiIELQAADQAgAyEEDAQLAkAgBEEBai0AAEUNACAEQQJqLQAARQ0CIARBA2otAABFDQNBwAAhBCADQQRqIgNBwABHDQEMBAsLIANBAWohBAwCCyADQQJqIQQMAQsgA0EDaiEECyACIAQ2AgwgAkEBNgIIIAAgAkEIaiAEEIeAgIAAIAQQhoCAgAAgARCAgICAAAALC2MCAEGACAsSaG9vZC1ob3N0X2FiaS5hZGIAAEGUCAtEAwAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA=";
+const STAMP = "v0.2.0 b20261122-1908 977a10b";
+const WASM = "AGFzbQEAAAABRQtgAn9/AGAEf39/fwBgAAF/YAJ/fwF/YAF/AX9gAX8AYAN/f38AYAV/f39/fwBgA39/fwF/YAN+fn8BfmAGf39/f39/AAIVAQNlbnYNaHNfaG9zdF9lcnJvcgAAAxsaAQICAQMCAgMEBQIEBAYABgcGAwgJAwgICgMFBAEAgAQGCQF/AUGw99IACwe5AQwGbWVtb3J5AgALaHNfYnVpbGRfaWQAAg1oc19zdGF0ZV9oYXNoAAMLaHNfbmV3X2dhbWUABAxoc19ybmdfdmFsdWUABQloc19ncmlkX3cABgloc19ncmlkX2gABwxoc19jZWxsX2tpbmQACA5oc19jaGVja192YWx1ZQAJDWhzX2NyYXNoX3Rlc3QAChRoc19lcnJvcl9maWxlX2xlbmd0aAALEmhzX2Vycm9yX2ZpbGVfY2hhcgAMCpIZGtIBAQl/IAJBBWwhBCABQQVsIQVBACEGA0AgBiAGQf//A3FBBW4iB0EFbGtB//8DcUF8aiEIIAAhAkEAIQkDQEF/IQpBACELAkAgBSAGTA0AIAQgCUwNACAIQX1JDQBBfyEKIAkgCUH//wNxQQVuIgxBBWxrQf//A3FBf2pBA08NACAMIAFsIAdqIQpBASELCyACIAs6AAAgAkEEaiAKNgIAIAJBCGohAiAJQQFqIglBrwFHDQALIABB+ApqIQAgBkHbAUYhAiAGQQFqIQYgAkUNAAsLCABB1J3E/QALKQEBf0EAIQACQEEALQCs95KAAEUNAEHskICAACAAEJqAgIAAIQALIAALRwBB7JCAgAAgACABIAJBLCACQSxIGyICQQggAkEIShsgA0EjIANBI0gbIgNBCCADQQhKGyADEJmAgIAAQQBBAToArPeSgAALjAIBB38jgICAgABBIGsiAiSAgICAAEEAIQMCQCABQX9qQecHSw0AIABBf2pBAksNAEEAKALskICAAEEAQQAtAKz3koAAGyIEQbnz3fF5IAQbIQUgAEF/aiEGQQAhA0EAIQdBACEIA0ACQAJAAkACQCAGDgIAAQILIAJBEGogBSACEJCAgIAAIAIoAhQhAyACKAIQIQUMAgsgAkEYaiAFQQBB4wAgAhCRgICAACACKAIcIQcgAigCGCEFDAELIAJBCGogBCACEJKAgIAAIAIoAgwhCCACKAIIIQQLIAFBf2oiAQ0ACwJAAkAgAEF/ag4CAgABCyAHIQMMAQsgCCEDCyACQSBqJICAgIAAIAMLGgBBACgC9JCAgABBBWxBAEEALQCs95KAABsLGgBBACgC+JCAgABBBWxBAEEALQCs95KAABsLXgACQEEALQCs95KAAEUNACAAQQBIDQBBACgC9JCAgABBBWwgAEwNACABQQBIDQBBACgC+JCAgABBBWwgAUwNACAAwUH4CmwgAUEQdEENdWpBjJGAgABqLQAADwtBfwvaAQEBf0HkrAIhAQJAAkACQAJAAkACQAJAAkACQAJAIABBf2oOCQABAgMEBQYHCAkLQTYgABCWgICAAA8LQTZBBSAAEJeAgIAADwtBAyAAEJaAgIAAQQQgABCWgICAACAAEJiAgIAADwtBASAAEJaAgIAAIgAgACAAEJiAgIAADwtBgAEgABCTgICAAA8LQYACIAAQk4CAgAAPC0EBIAAQloCAgAAiACAAIAAQlICAgABB/wdxDwtBNiAAEJaAgIAArEIFfkKA7AAgABCVgICAAKchAQsgAQ8LQQALKABBACAAQQMgAEF/akEESRs2AqSQgIAAQYCIgIAAQeEAEI+AgIAAAAsLAEEAKALokICAAAswAQF/QQAhAQJAIABBAUgNAEEAKALokICAACAASA0AIABBp5CAgABqLQAAIQELIAELCwBBACgCpJCAgAAL9wEBA39BASEDQQBBACABKAAEIgQgASgAACIBayIFQT8gBUE/SBtBAWogBCABSBsiATYC6JCAgAACQCABQQFIDQAgAUEDcSEEAkAgAUEESQ0AQQAgAUF8cWshBUEBIQMDQCADQaeQgIAAaiAAIANqIgFBf2otAAA6AAAgA0GokICAAGogAS0AADoAACADQamQgIAAaiABQQFqLQAAOgAAIANBqpCAgABqIAFBAmotAAA6AAAgBSADQQRqIgNqQQFHDQALCyAERQ0AIANBf2ohAwNAIANBqJCAgABqIAAgA2otAAA6AAAgA0EBaiEDIARBf2oiBA0ACwsLuQEBA38jgICAgABBEGsiAiSAgICAAEEAIQMCQAJAAkADQAJAIAAgA2oiBC0AAA0AIAMhBAwECwJAIARBAWotAABFDQAgBEECai0AAEUNAiAEQQNqLQAARQ0DQcAAIQQgA0EEaiIDQcAARw0BDAQLCyADQQFqIQQMAgsg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";
 const START = performance.now();
 
 // ---- strings (D-025: en-GB, de, es, fr) ----
 const STRINGS = {
   "en-GB": {
     subtitle: "Saint Volstead, 1932",
-    status: "Step 1: the skeleton page. The game itself arrives in the next steps.",
+    status: "Step 2: random numbers, whole-number positions, table trigonometry and the grid.",
+    p_random: "Random numbers (seed 1932)",
+    random_sum: "{n}/{m} values match the TypeScript build 1.2.91.",
+    col_i: "#",
+    col_main: "mulberry32",
+    col_int: "int(0,99)",
+    col_plan: "city-plan LCG",
+    col_ref: "1.2.91",
+    p_numbers: "Numbers",
+    numbers_sum: "{n}/{m} checks give the expected value.",
+    col_check: "check",
+    col_ada: "Ada",
+    col_exp: "expected",
+    c1: "54 units (×256)",
+    c2: "10.8 units = 54/5 (×256, rounded down)",
+    c3: "distance (3, 4) (×256)",
+    c4: "distance (1, 1) = √2 (×256)",
+    c5: "sin 45° (×65536)",
+    c6: "cos 0° (×65536)",
+    c7: "atan2 (1, 1) (1/1024 turn)",
+    c8: "cell of x = 54 units",
+    c9: "cells in the Large city",
+    p_grid: "Grid",
+    grid_sum: "{w} × {h} = {n} cells (Large city, 44 × 35 blocks, cell 10.8 units).",
+    grid_legend: "Top-left 3 × 3 blocks: light = block cell, dark = street cell.",
+    p_world: "New world",
+    world_sum: "Seed {seed} / Auto seed {auto}, Large ({w} × {h} cells): world hash {hash}.",
     core: "Ada core: build id {id} · state hash {hash}",
     core_missing: "Ada core did not load: {error}",
     sound_on: "Sound: on", sound_off: "Sound: off", test_sound: "Test sound",
@@ -111,7 +153,33 @@ const STRINGS = {
   },
   de: {
     subtitle: "Saint Volstead, 1932",
-    status: "Schritt 1: die Grundseite. Das Spiel selbst folgt in den nächsten Schritten.",
+    status: "Schritt 2: Zufallszahlen, ganzzahlige Positionen, Tabellen-Trigonometrie und das Raster.",
+    p_random: "Zufallszahlen (Seed 1932)",
+    random_sum: "{n}/{m} Werte stimmen mit der TypeScript-Version 1.2.91 überein.",
+    col_i: "#",
+    col_main: "mulberry32",
+    col_int: "int(0,99)",
+    col_plan: "Stadtplan-LCG",
+    col_ref: "1.2.91",
+    p_numbers: "Zahlen",
+    numbers_sum: "{n}/{m} Prüfungen ergeben den erwarteten Wert.",
+    col_check: "Prüfung",
+    col_ada: "Ada",
+    col_exp: "erwartet",
+    c1: "54 Einheiten (×256)",
+    c2: "10,8 Einheiten = 54/5 (×256, abgerundet)",
+    c3: "Abstand (3, 4) (×256)",
+    c4: "Abstand (1, 1) = √2 (×256)",
+    c5: "sin 45° (×65536)",
+    c6: "cos 0° (×65536)",
+    c7: "atan2 (1, 1) (1/1024 Umdrehung)",
+    c8: "Zelle von x = 54 Einheiten",
+    c9: "Zellen der großen Stadt",
+    p_grid: "Raster",
+    grid_sum: "{w} × {h} = {n} Zellen (große Stadt, 44 × 35 Blöcke, Zelle 10,8 Einheiten).",
+    grid_legend: "Oben links 3 × 3 Blöcke: hell = Blockzelle, dunkel = Straßenzelle.",
+    p_world: "Neue Welt",
+    world_sum: "Seed {seed} / Auto-Seed {auto}, groß ({w} × {h} Zellen): Welt-Hash {hash}.",
     core: "Ada-Kern: Build-ID {id} · Zustands-Hash {hash}",
     core_missing: "Ada-Kern nicht geladen: {error}",
     sound_on: "Ton: an", sound_off: "Ton: aus", test_sound: "Ton testen",
@@ -124,7 +192,33 @@ const STRINGS = {
   },
   es: {
     subtitle: "Saint Volstead, 1932",
-    status: "Paso 1: la página base. El juego llegará en los próximos pasos.",
+    status: "Paso 2: números aleatorios, posiciones enteras, trigonometría por tablas y la cuadrícula.",
+    p_random: "Números aleatorios (semilla 1932)",
+    random_sum: "{n}/{m} valores coinciden con la versión TypeScript 1.2.91.",
+    col_i: "#",
+    col_main: "mulberry32",
+    col_int: "int(0,99)",
+    col_plan: "LCG del plano",
+    col_ref: "1.2.91",
+    p_numbers: "Números",
+    numbers_sum: "{n}/{m} comprobaciones dan el valor esperado.",
+    col_check: "comprobación",
+    col_ada: "Ada",
+    col_exp: "esperado",
+    c1: "54 unidades (×256)",
+    c2: "10,8 unidades = 54/5 (×256, redondeado hacia abajo)",
+    c3: "distancia (3, 4) (×256)",
+    c4: "distancia (1, 1) = √2 (×256)",
+    c5: "sen 45° (×65536)",
+    c6: "cos 0° (×65536)",
+    c7: "atan2 (1, 1) (1/1024 de vuelta)",
+    c8: "celda de x = 54 unidades",
+    c9: "celdas de la ciudad grande",
+    p_grid: "Cuadrícula",
+    grid_sum: "{w} × {h} = {n} celdas (ciudad grande, 44 × 35 manzanas, celda de 10,8 unidades).",
+    grid_legend: "Arriba a la izquierda 3 × 3 manzanas: claro = celda de manzana, oscuro = celda de calle.",
+    p_world: "Mundo nuevo",
+    world_sum: "Semilla {seed} / semilla Auto {auto}, grande ({w} × {h} celdas): hash del mundo {hash}.",
     core: "Núcleo Ada: id de compilación {id} · hash de estado {hash}",
     core_missing: "El núcleo Ada no se cargó: {error}",
     sound_on: "Sonido: sí", sound_off: "Sonido: no", test_sound: "Probar sonido",
@@ -137,7 +231,33 @@ const STRINGS = {
   },
   fr: {
     subtitle: "Saint Volstead, 1932",
-    status: "Étape 1 : la page de base. Le jeu lui-même arrive aux prochaines étapes.",
+    status: "Étape 2 : nombres aléatoires, positions entières, trigonométrie par tables et la grille.",
+    p_random: "Nombres aléatoires (graine 1932)",
+    random_sum: "{n}/{m} valeurs identiques à la version TypeScript 1.2.91.",
+    col_i: "#",
+    col_main: "mulberry32",
+    col_int: "int(0,99)",
+    col_plan: "LCG du plan",
+    col_ref: "1.2.91",
+    p_numbers: "Nombres",
+    numbers_sum: "{n}/{m} vérifications donnent la valeur attendue.",
+    col_check: "vérification",
+    col_ada: "Ada",
+    col_exp: "attendu",
+    c1: "54 unités (×256)",
+    c2: "10,8 unités = 54/5 (×256, arrondi par défaut)",
+    c3: "distance (3, 4) (×256)",
+    c4: "distance (1, 1) = √2 (×256)",
+    c5: "sin 45° (×65536)",
+    c6: "cos 0° (×65536)",
+    c7: "atan2 (1, 1) (1/1024 de tour)",
+    c8: "cellule de x = 54 unités",
+    c9: "cellules de la grande ville",
+    p_grid: "Grille",
+    grid_sum: "{w} × {h} = {n} cellules (grande ville, 44 × 35 pâtés, cellule de 10,8 unités).",
+    grid_legend: "En haut à gauche 3 × 3 pâtés : clair = cellule de pâté, sombre = cellule de rue.",
+    p_world: "Nouveau monde",
+    world_sum: "Graine {seed} / graine Auto {auto}, grande ({w} × {h} cellules) : hash du monde {hash}.",
     core: "Noyau Ada : id de build {id} · hash d'état {hash}",
     core_missing: "Le noyau Ada n'a pas été chargé : {error}",
     sound_on: "Son : activé", sound_off: "Son : coupé", test_sound: "Tester le son",
@@ -191,6 +311,49 @@ function hostError(code, line) {
   throw new HostStop("Ada core stopped: " + err.file + ":" + line);
 }
 
+// ---- step 2 panels: 1.2.91 reference values (src/sim/rng.ts run in Node, seed 1932) ----
+const REF_MAIN = [2087000994, 1345216982, 2537227108, 2322682548, 3464602834, 1449177721, 955002386, 2725655775, 3304141253, 1945812103,
+  3106597394, 3860522775, 3923203638, 3143742962, 942210133, 573572034, 4118670652, 2227219457, 2140019606, 4173634592];
+const REF_INT = [48, 31, 59, 54, 80, 33, 22, 63, 76, 45, 72, 89, 91, 73, 21, 13, 95, 51, 49, 97];
+const REF_PLAN = [6347, 31496, 30113, 27735, 13669, 28831, 25076, 12886, 27578, 14561, 15010, 14895, 11210, 18983, 2483, 24216, 15099, 5001, 1002, 15126];
+const EXPECTED_CHECKS = [13824, 2764, 1280, 362, 46341, 65536, 128, 5, 38500];
+const WORLD = { seed: 1932, auto: 1932, w: 44, h: 35 };
+let step2 = null;
+function readStep2() {
+  core.hs_new_game(WORLD.seed, WORLD.auto, WORLD.w, WORLD.h);
+  const streams = [1, 2, 3].map(s => Array.from({ length: 20 }, (_, i) => core.hs_rng_value(s, i + 1) >>> 0));
+  const checks = EXPECTED_CHECKS.map((_, i) => core.hs_check_value(i + 1));
+  const gw = core.hs_grid_w(), gh = core.hs_grid_h();
+  const pattern = [];
+  for (let y = 0; y < 15; y++) for (let x = 0; x < 15; x++) pattern.push(core.hs_cell_kind(x, y));
+  step2 = { streams, checks, gw, gh, pattern };
+  const refs = [REF_MAIN, REF_INT, REF_PLAN];
+  step2.randomMatches = streams.reduce((n, s, k) => n + s.filter((v, i) => v === refs[k][i]).length, 0);
+  step2.checkMatches = checks.filter((v, i) => v === EXPECTED_CHECKS[i]).length;
+  logEvent("step2_values", { random_matches: step2.randomMatches, check_matches: step2.checkMatches, grid: [gw, gh] });
+}
+function cell(v, ref) { return `<td class="${v === ref ? "ok" : "bad"}">${v}</td>`; }
+function renderStep2() {
+  if (!step2) return;
+  const { streams, checks, gw, gh, pattern } = step2, refs = [REF_MAIN, REF_INT, REF_PLAN];
+  document.getElementById("random-sum").textContent = t("random_sum", { n: step2.randomMatches, m: 60 });
+  let rows = `<tr><th>${t("col_i")}</th><th>${t("col_main")}</th><th>${t("col_ref")}</th><th>${t("col_int")}</th><th>${t("col_ref")}</th><th>${t("col_plan")}</th><th>${t("col_ref")}</th></tr>`;
+  for (let i = 0; i < 20; i++) {
+    rows += `<tr><td>${i + 1}</td>`;
+    for (let k = 0; k < 3; k++) rows += cell(streams[k][i], refs[k][i]) + `<td>${refs[k][i]}</td>`;
+    rows += "</tr>";
+  }
+  document.getElementById("random-table").innerHTML = rows;
+  document.getElementById("numbers-sum").textContent = t("numbers_sum", { n: step2.checkMatches, m: checks.length });
+  let nrows = `<tr><th style="text-align:left">${t("col_check")}</th><th>${t("col_ada")}</th><th>${t("col_exp")}</th></tr>`;
+  checks.forEach((v, i) => { nrows += `<tr><td style="text-align:left">${t("c" + (i + 1))}</td>${cell(v, EXPECTED_CHECKS[i])}<td>${EXPECTED_CHECKS[i]}</td></tr>`; });
+  document.getElementById("numbers-table").innerHTML = nrows;
+  document.getElementById("grid-sum").textContent = t("grid_sum", { w: gw, h: gh, n: (gw * gh).toLocaleString(lang) });
+  const ctx = document.getElementById("grid-canvas").getContext("2d");
+  pattern.forEach((k, i) => { ctx.fillStyle = k === 1 ? "#d9c08a" : k === 0 ? "#3a3026" : "#ff0000"; ctx.fillRect(i % 15, Math.floor(i / 15), 1, 1); });
+  document.getElementById("world-sum").textContent = t("world_sum", { seed: WORLD.seed, auto: WORLD.auto, w: gw, h: gh, hash: hexHash(stateHash) + " (" + (stateHash >>> 0) + ")" });
+}
+
 // ---- view ----
 function render() {
   document.documentElement.lang = lang;
@@ -201,6 +364,7 @@ function render() {
     ? t("core", { id: buildId, hash: hexHash(stateHash) + " (" + (stateHash >>> 0) + ")" })
     : t("core_missing", { error: loadError ?? "…" });
   if (lastCrash) fillCrash(lastCrash);
+  renderStep2();
 }
 
 // ---- sound (soft, off switch visible) ----
@@ -222,7 +386,7 @@ function report(kind, expected) {
   return {
     schema: "poncelet-report", schema_version: 1, kind,
     stamp: STAMP, created: new Date().toISOString(),
-    seeds: { state_hash_seed: 1932 }, test_key: null, expected,
+    seeds: { city: WORLD.seed, auto: WORLD.auto }, test_key: null, expected,
     state_hash: stateHash === null ? null : hexHash(stateHash),
     action_log: actionLog, actions_dropped: actionsDropped,
     events, events_dropped: eventsDropped, errors,
@@ -233,7 +397,9 @@ function report(kind, expected) {
     },
     custom: {
       build_id: buildId, state_hash_u32: stateHash === null ? null : stateHash >>> 0,
-      wasm_bytes: Math.floor(WASM.length * 3 / 4), core_load_error: loadError
+      wasm_bytes: Math.floor(WASM.length * 3 / 4), core_load_error: loadError,
+      world: WORLD, random_matches: step2?.randomMatches ?? null, check_matches: step2?.checkMatches ?? null,
+      grid: step2 ? [step2.gw, step2.gh] : null
     }
   };
 }
@@ -297,6 +463,7 @@ WebAssembly.instantiate(Uint8Array.from(atob(WASM), c => c.charCodeAt(0)), { env
   .then(({ instance }) => {
     core = instance.exports;
     buildId = core.hs_build_id();
+    readStep2();
     stateHash = core.hs_state_hash();
     logEvent("core_loaded", { build_id: buildId, state_hash: hexHash(stateHash) });
     render();
