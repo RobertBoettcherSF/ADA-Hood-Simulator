@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hood Simulator</title>
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font: 16px/1.45 Georgia, "Times New Roman", serif;
+  background: radial-gradient(ellipse at 50% 30%, #2b2418 0%, #120f0b 70%);
+  color: #eadcc0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: calc(16px + env(safe-area-inset-top)) 16px calc(48px + env(safe-area-inset-bottom));
+}
+#flags { position: fixed; top: calc(10px + env(safe-area-inset-top)); right: calc(10px + env(safe-area-inset-right)); display: flex; gap: 6px; }
+#flags button { padding: 0; border: 2px solid transparent; border-radius: 4px; background: none; cursor: pointer; line-height: 0; }
+#flags button[aria-pressed="true"] { border-color: #e0b55a; }
+#flags svg { width: 36px; height: 24px; display: block; border-radius: 2px; }
+h1 { font-size: clamp(2.2rem, 7vw, 4rem); letter-spacing: .06em; margin: 0; color: #f1d58f; text-align: center; }
+#subtitle { font-size: 1.25rem; margin: .2em 0 1.2em; color: #c9b48a; font-style: italic; }
+#status { max-width: 34em; text-align: center; margin: 0 0 1.4em; }
+#core { font: 14px/1.5 ui-monospace, Menlo, Consolas, monospace; color: #bfae8c; text-align: center; margin-bottom: 1.4em; }
+#buttons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+button.main {
+  font: inherit; font-size: 1rem; padding: .55em 1.1em; border-radius: 6px; cursor: pointer;
+  background: #3a2f1f; color: #f3e6c8; border: 1px solid #8a6d3b;
+}
+button.main:hover, button.main:focus-visible { background: #4b3c26; }
+button.danger { border-color: #a0463a; }
+#stamp { position: fixed; right: calc(10px + env(safe-area-inset-right)); bottom: calc(8px + env(safe-area-inset-bottom)); font: 12px ui-monospace, Menlo, Consolas, monospace; color: #9c8c6c; }
+.overlay { position: fixed; inset: 0; background: rgba(8, 6, 4, .82); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+.overlay.open { display: flex; }
+.box { background: #201a12; border: 1px solid #8a6d3b; border-radius: 8px; padding: 18px 20px; max-width: 32em; width: 100%; }
+.box h2 { margin: 0 0 .5em; color: #f1d58f; font-size: 1.3rem; }
+.box textarea { width: 100%; min-height: 6em; font: inherit; background: #120f0b; color: #eadcc0; border: 1px solid #6b5631; border-radius: 4px; padding: 6px; }
+.box .row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
+#crash-where { font: 14px ui-monospace, Menlo, Consolas, monospace; color: #ffb4a8; }
+@media (prefers-reduced-motion: no-preference) {
+  h1, #subtitle { animation: rise 1.2s ease-out both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+}
+</style>
+</head>
+<body>
+<nav id="flags" aria-label="Language">
+  <button data-lang="en-GB" title="English"><svg viewBox="0 0 60 30" aria-hidden="true"><clipPath id="gb-a"><path d="M0,0v30h60V0z"/></clipPath><clipPath id="gb-b"><path d="M30,15h30v15zv15H0zH0V0zV0h30z"/></clipPath><g clip-path="url(#gb-a)"><path d="M0,0v30h60V0z" fill="#012169"/><path d="M0,0L60,30M60,0L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0L60,30M60,0L0,30" clip-path="url(#gb-b)" stroke="#C8102E" stroke-width="4"/><path d="M30,0v30M0,15h60" stroke="#fff" stroke-width="10"/><path d="M30,0v30M0,15h60" stroke="#C8102E" stroke-width="6"/></g></svg></button>
+  <button data-lang="de" title="Deutsch"><svg viewBox="0 0 5 3" aria-hidden="true"><path fill="#000" d="M0 0h5v1H0z"/><path fill="#D00" d="M0 1h5v1H0z"/><path fill="#FFCE00" d="M0 2h5v1H0z"/></svg></button>
+  <button data-lang="es" title="Español"><svg viewBox="0 0 4 3" aria-hidden="true"><path fill="#AA151B" d="M0 0h4v3H0z"/><path fill="#F1BF00" d="M0 .75h4v1.5H0z"/></svg></button>
+  <button data-lang="fr" title="Français"><svg viewBox="0 0 3 2" aria-hidden="true"><path fill="#002395" d="M0 0h1v2H0z"/><path fill="#fff" d="M1 0h1v2H1z"/><path fill="#ED2939" d="M2 0h1v2H2z"/></svg></button>
+</nav>
+
+<h1>Hood Simulator</h1>
+<div id="subtitle" data-t="subtitle"></div>
+<p id="status" data-t="status"></p>
+<div id="core"></div>
+<div id="buttons">
+  <button class="main" id="sound"></button>
+  <button class="main" id="beep" data-t="test_sound"></button>
+  <button class="main" id="debug" data-t="debug"></button>
+  <button class="main danger" id="crash" data-t="crash_test"></button>
+</div>
+<div id="stamp">v0.1.0 b20261122-1841 5b39e7a</div>
+
+<div class="overlay" id="report" role="dialog" aria-modal="true" aria-labelledby="report-title">
+  <div class="box">
+    <h2 id="report-title" data-t="report_title"></h2>
+    <label for="expected" data-t="expected"></label>
+    <textarea id="expected"></textarea>
+    <div class="row">
+      <button class="main" id="report-cancel" data-t="cancel"></button>
+      <button class="main" id="report-save" data-t="download" disabled></button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="crashed" role="alertdialog" aria-modal="true" aria-labelledby="crash-title">
+  <div class="box">
+    <h2 id="crash-title" data-t="crash_title"></h2>
+    <p id="crash-text"></p>
+    <p id="crash-where"></p>
+    <div class="row">
+      <button class="main" id="crash-report" data-t="download"></button>
+      <button class="main" id="crash-reload" data-t="reload"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const STAMP = "v0.1.0 b20261122-1841 5b39e7a";
+const WASM = "AGFzbQEAAAABGQVgAn9/AGAAAX9gAX8AYAF/AX9gA39/fwACFQEDZW52DWhzX2hvc3RfZXJyb3IAAAMJCAEBAgEDAwQABQQBAIAEBgkBfwFB4IjAAAsHZAYGbWVtb3J5AgALaHNfYnVpbGRfaWQAAQ1oc19zdGF0ZV9oYXNoAAINaHNfY3Jhc2hfdGVzdAADFGhzX2Vycm9yX2ZpbGVfbGVuZ3RoAAQSaHNfZXJyb3JfZmlsZV9jaGFyAAUKuAQICABBkZ3E/QALCABBpLi4qHsLJwBBACAAQQMgAEF/akEESRs2ApSIgIAAQYCIgIAAQRwQiICAgAAACwsAQQAoAtiIgIAACzABAX9BACEBAkAgAEEBSA0AQQAoAtiIgIAAIABIDQAgAEGXiICAAGotAAAhAQsgAQsLAEEAKAKUiICAAAv3AQEDf0EBIQNBAEEAIAEoAAQiBCABKAAAIgFrIgVBPyAFQT9IG0EBaiAEIAFIGyIBNgLYiICAAAJAIAFBAUgNACABQQNxIQQCQCABQQRJDQBBACABQXxxayEFQQEhAwNAIANBl4iAgABqIAAgA2oiAUF/ai0AADoAACADQZiIgIAAaiABLQAAOgAAIANBmYiAgABqIAFBAWotAAA6AAAgA0GaiICAAGogAUECai0AADoAACAFIANBBGoiA2pBAUcNAAsLIARFDQAgA0F/aiEDA0AgA0GYiICAAGogACADai0AADoAACADQQFqIQMgBEF/aiIEDQALCwu5AQEDfyOAgICAAEEQayICJICAgIAAQQAhAwJAAkACQANAAkAgACADaiIELQAADQAgAyEEDAQLAkAgBEEBai0AAEUNACAEQQJqLQAARQ0CIARBA2otAABFDQNBwAAhBCADQQRqIgNBwABHDQEMBAsLIANBAWohBAwCCyADQQJqIQQMAQsgA0EDaiEECyACIAQ2AgwgAkEBNgIIIAAgAkEIaiAEEIeAgIAAIAQQhoCAgAAgARCAgICAAAALC2MCAEGACAsSaG9vZC1ob3N0X2FiaS5hZGIAAEGUCAtEAwAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA=";
+const START = performance.now();
+
+// ---- strings (D-025: en-GB, de, es, fr) ----
+const STRINGS = {
+  "en-GB": {
+    subtitle: "Saint Volstead, 1932",
+    status: "Step 1: the skeleton page. The game itself arrives in the next steps.",
+    core: "Ada core: build id {id} · state hash {hash}",
+    core_missing: "Ada core did not load: {error}",
+    sound_on: "Sound: on", sound_off: "Sound: off", test_sound: "Test sound",
+    debug: "Debug (F9)", crash_test: "Crash test",
+    report_title: "Feedback report", expected: "What did you expect?",
+    download: "Download report", cancel: "Cancel",
+    crash_title: "The game stopped", crash_text: "Error {code}: {name}.", reload: "Reload",
+    err1: "an index outside its table", err2: "a value outside its range",
+    err3: "an unexpected state", err4: "crash test"
+  },
+  de: {
+    subtitle: "Saint Volstead, 1932",
+    status: "Schritt 1: die Grundseite. Das Spiel selbst folgt in den nächsten Schritten.",
+    core: "Ada-Kern: Build-ID {id} · Zustands-Hash {hash}",
+    core_missing: "Ada-Kern nicht geladen: {error}",
+    sound_on: "Ton: an", sound_off: "Ton: aus", test_sound: "Ton testen",
+    debug: "Debug (F9)", crash_test: "Absturztest",
+    report_title: "Feedback-Bericht", expected: "Was hast du erwartet?",
+    download: "Bericht herunterladen", cancel: "Abbrechen",
+    crash_title: "Das Spiel wurde angehalten", crash_text: "Fehler {code}: {name}.", reload: "Neu laden",
+    err1: "ein Index außerhalb seiner Tabelle", err2: "ein Wert außerhalb seines Bereichs",
+    err3: "ein unerwarteter Zustand", err4: "Absturztest"
+  },
+  es: {
+    subtitle: "Saint Volstead, 1932",
+    status: "Paso 1: la página base. El juego llegará en los próximos pasos.",
+    core: "Núcleo Ada: id de compilación {id} · hash de estado {hash}",
+    core_missing: "El núcleo Ada no se cargó: {error}",
+    sound_on: "Sonido: sí", sound_off: "Sonido: no", test_sound: "Probar sonido",
+    debug: "Depurar (F9)", crash_test: "Prueba de fallo",
+    report_title: "Informe de comentarios", expected: "¿Qué esperabas?",
+    download: "Descargar informe", cancel: "Cancelar",
+    crash_title: "El juego se detuvo", crash_text: "Error {code}: {name}.", reload: "Recargar",
+    err1: "un índice fuera de su tabla", err2: "un valor fuera de su rango",
+    err3: "un estado inesperado", err4: "prueba de fallo"
+  },
+  fr: {
+    subtitle: "Saint Volstead, 1932",
+    status: "Étape 1 : la page de base. Le jeu lui-même arrive aux prochaines étapes.",
+    core: "Noyau Ada : id de build {id} · hash d'état {hash}",
+    core_missing: "Le noyau Ada n'a pas été chargé : {error}",
+    sound_on: "Son : activé", sound_off: "Son : coupé", test_sound: "Tester le son",
+    debug: "Débogage (F9)", crash_test: "Test de plantage",
+    report_title: "Rapport de retour", expected: "Qu'attendiez-vous ?",
+    download: "Télécharger le rapport", cancel: "Annuler",
+    crash_title: "Le jeu s'est arrêté", crash_text: "Erreur {code} : {name}.", reload: "Recharger",
+    err1: "un index hors de sa table", err2: "une valeur hors de son domaine",
+    err3: "un état inattendu", err4: "test de plantage"
+  }
+};
+function load(key, fallback) { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } }
+function save(key, value) { try { localStorage.setItem(key, value); } catch { /* private mode */ } }
+let lang = load("ahs.lang", "en-GB");
+if (!STRINGS[lang]) lang = "en-GB";
+let soundOn = load("ahs.sound", "on") !== "off";
+const t = (key, vars = {}) => STRINGS[lang][key].replace(/\{(\w+)\}/g, (_, v) => vars[v]);
+
+// ---- report collection (D-007) ----
+const MAX_LOG = 500;
+const actionLog = [], events = [], errors = [];
+let actionsDropped = 0, eventsDropped = 0;
+const ms = () => Math.round(performance.now() - START);
+function logAction(action, detail) {
+  if (actionLog.length >= MAX_LOG) { actionLog.shift(); actionsDropped++; }
+  actionLog.push({ t_ms: ms(), action, ...(detail === undefined ? {} : { detail }) });
+}
+function logEvent(event, detail) {
+  if (events.length >= MAX_LOG) { events.shift(); eventsDropped++; }
+  events.push({ t_ms: ms(), event, ...(detail === undefined ? {} : { detail }) });
+}
+window.addEventListener("error", e => errors.push({ t_ms: ms(), kind: "javascript", message: String(e.message), file: e.filename, line: e.lineno }));
+window.addEventListener("unhandledrejection", e => errors.push({ t_ms: ms(), kind: "javascript", message: String(e.reason) }));
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+
+// ---- the Ada core ----
+let core = null, buildId = null, stateHash = null, loadError = null;
+class HostStop extends Error {}
+function hexHash(h) { return "0x" + (h >>> 0).toString(16).padStart(8, "0"); }
+function fileName() {
+  const n = core.hs_error_file_length();
+  let s = "";
+  for (let i = 1; i <= n; i++) s += String.fromCharCode(core.hs_error_file_char(i));
+  return s;
+}
+function hostError(code, line) {
+  const err = { t_ms: ms(), kind: "last_chance", code, name: STRINGS["en-GB"]["err" + code] ?? "unknown", file: fileName(), line };
+  errors.push(err);
+  logEvent("core_stopped", { code, file: err.file, line });
+  showCrash(err);
+  throw new HostStop("Ada core stopped: " + err.file + ":" + line);
+}
+
+// ---- view ----
+function render() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-t]").forEach(el => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll("#flags button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  document.getElementById("sound").textContent = t(soundOn ? "sound_on" : "sound_off");
+  document.getElementById("core").textContent = core
+    ? t("core", { id: buildId, hash: hexHash(stateHash) + " (" + (stateHash >>> 0) + ")" })
+    : t("core_missing", { error: loadError ?? "…" });
+  if (lastCrash) fillCrash(lastCrash);
+}
+
+// ---- sound (soft, off switch visible) ----
+let audio = null;
+function beep() {
+  if (!soundOn) return;
+  audio ??= new (window.AudioContext || window.webkitAudioContext)();
+  const osc = audio.createOscillator(), gain = audio.createGain(), now = audio.currentTime;
+  osc.type = "sine"; osc.frequency.value = 523.25;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.06, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
+  osc.connect(gain).connect(audio.destination);
+  osc.start(now); osc.stop(now + 0.4);
+}
+
+// ---- report download ----
+function report(kind, expected) {
+  return {
+    schema: "poncelet-report", schema_version: 1, kind,
+    stamp: STAMP, created: new Date().toISOString(),
+    seeds: { state_hash_seed: 1932 }, test_key: null, expected,
+    state_hash: stateHash === null ? null : hexHash(stateHash),
+    action_log: actionLog, actions_dropped: actionsDropped,
+    events, events_dropped: eventsDropped, errors,
+    environment: {
+      user_agent: navigator.userAgent, browser_language: navigator.language, page_language: lang,
+      viewport: [innerWidth, innerHeight], device_pixel_ratio: devicePixelRatio,
+      reduced_motion: reducedMotion.matches, sound: soundOn ? "on" : "off", url: location.href
+    },
+    custom: {
+      build_id: buildId, state_hash_u32: stateHash === null ? null : stateHash >>> 0,
+      wasm_bytes: Math.floor(WASM.length * 3 / 4), core_load_error: loadError
+    }
+  };
+}
+function download(kind, expected) {
+  const json = JSON.stringify(report(kind, expected), null, 2);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+  a.download = "hood-report-" + STAMP.split(" ")[1] + "-" + Date.now() + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  logAction("report_downloaded", kind);
+}
+const reportBox = document.getElementById("report"), expectedBox = document.getElementById("expected");
+const saveButton = document.getElementById("report-save");
+function openReport(source) {
+  logAction("report_opened", source);
+  reportBox.classList.add("open"); expectedBox.focus();
+}
+function closeReport() { reportBox.classList.remove("open"); }
+expectedBox.addEventListener("input", () => { saveButton.disabled = expectedBox.value.trim() === ""; });
+saveButton.addEventListener("click", () => { download("manual", expectedBox.value.trim()); expectedBox.value = ""; saveButton.disabled = true; closeReport(); });
+document.getElementById("report-cancel").addEventListener("click", () => { logAction("report_cancelled"); closeReport(); });
+
+// ---- crash notice ----
+let lastCrash = null;
+function fillCrash(err) {
+  document.getElementById("crash-text").textContent = t("crash_text", { code: err.code, name: t("err" + err.code) });
+  document.getElementById("crash-where").textContent = err.file + ":" + err.line;
+}
+function showCrash(err) {
+  lastCrash = err; fillCrash(err);
+  document.getElementById("crashed").classList.add("open");
+}
+document.getElementById("crash-report").addEventListener("click", () => download("crash", null));
+document.getElementById("crash-reload").addEventListener("click", () => location.reload());
+
+// ---- controls ----
+document.querySelectorAll("#flags button").forEach(b => b.addEventListener("click", () => {
+  lang = b.dataset.lang; save("ahs.lang", lang); logAction("language", lang); render();
+}));
+document.getElementById("sound").addEventListener("click", () => {
+  soundOn = !soundOn; save("ahs.sound", soundOn ? "on" : "off"); logAction("sound", soundOn ? "on" : "off"); render(); beep();
+});
+document.getElementById("beep").addEventListener("click", () => { logAction("test_sound"); beep(); });
+document.getElementById("debug").addEventListener("click", () => openReport("debug_button"));
+document.getElementById("crash").addEventListener("click", () => {
+  logAction("crash_test");
+  if (!core) return;
+  try { core.hs_crash_test(4); }
+  catch (e) { if (!(e instanceof HostStop)) errors.push({ t_ms: ms(), kind: "wasm", message: String(e) }); }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "F9") { e.preventDefault(); openReport("f9"); }
+  else if (e.key === "Escape" && reportBox.classList.contains("open")) closeReport();
+});
+reducedMotion.addEventListener?.("change", () => logEvent("reduced_motion", reducedMotion.matches));
+
+render();
+logEvent("page_loaded", { stamp: STAMP });
+WebAssembly.instantiate(Uint8Array.from(atob(WASM), c => c.charCodeAt(0)), { env: { hs_host_error: hostError } })
+  .then(({ instance }) => {
+    core = instance.exports;
+    buildId = core.hs_build_id();
+    stateHash = core.hs_state_hash();
+    logEvent("core_loaded", { build_id: buildId, state_hash: hexHash(stateHash) });
+    render();
+  })
+  .catch(e => { loadError = String(e); errors.push({ t_ms: ms(), kind: "wasm_load", message: loadError }); render(); });
+</script>
+</body>
+</html>
