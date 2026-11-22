@@ -1,0 +1,13 @@
+# Toolchain (shared, never committed)
+toolchain/
+# Build outputs (dist/ is committed: it is the githack page)
+obj/
+build/
+*.o
+*.ali
+*.wasm
+# Web tooling
+node_modules/
+# Editors and OS
+*~
+.DS_Store
