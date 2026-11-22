@@ -324,6 +324,116 @@ procedure Smoke is
              and then Cell_Of (Hood.Units.Whole (-1)) = -1, "cell of a position");
    end Grid_Checks;
 
+   ---------------------------------------------------------------------
+   --  The city (step 3): references from 1.2.91's createWorld run in
+   --  Node up to citygen.ts:539, hashed as Hood.City.City_Hash describes;
+   --  the Standard headquarters blocks from the finished 1.2.91 world.
+   ---------------------------------------------------------------------
+
+   type City_Ref is record
+      W, H       : Integer_32;
+      Seed       : Unsigned_32;
+      Rng_After  : Unsigned_32;
+      City, Structure : Unsigned_32;
+      Blocks, Merged, Lots, Buildings, Types_Used : Integer_32;
+      Classes    : I32_List (1 .. 8);  --  Building_Class order
+      Districts  : I32_List (1 .. 5);  --  District order
+      Uses       : I32_List (1 .. 6);  --  Block_Use order
+      HQ         : I32_List (1 .. 8);  --  gx, gy of gangs 1 .. 4; Standard only
+   end record;
+
+   No_HQ : constant I32_List (1 .. 8) := [others => -1];
+
+   City_Refs : constant array (1 .. 4) of City_Ref :=
+     [(36, 28, 1932, 787968811, 130389902, 2172434479, 1008, 140, 8769, 8769, 164,
+       [966, 0, 4093, 3091, 359, 257, 3, 0], [63, 269, 56, 534, 86],
+       [988, 8, 12, 0, 0, 0], No_HQ),
+      (40, 32, 1932, 1183664769, 162525796, 3010893233, 1280, 22, 4580, 4580, 170,
+       [719, 1918, 490, 1377, 44, 20, 12, 0], [13, 200, 52, 989, 26],
+       [899, 24, 31, 10, 272, 44], [13, 10, 31, 4, 7, 20, 36, 25]),
+      (44, 35, 1932, 214220379, 1231309806, 2436981367, 1540, 209, 13488, 13488, 166,
+       [1460, 0, 6507, 4651, 452, 415, 3, 0], [94, 415, 69, 838, 124],
+       [1520, 8, 12, 0, 0, 0], No_HQ),
+      --  A seed whose first city plan gets stuck (one retry).
+      (40, 32, 187, 1183663024, 2335500783, 2753879728, 1280, 20, 4733, 4733, 170,
+       [755, 1781, 440, 1675, 44, 20, 18, 0], [13, 247, 57, 936, 27],
+       [900, 22, 31, 15, 272, 40], [11, 9, 29, 4, 9, 17, 25, 23])];
+
+   procedure City_Checks is
+      Rng : Unsigned_32;
+   begin
+      for R of City_Refs loop
+         New_Game (R.Seed, 1932, R.W, R.H);
+         Rng := Unsigned_32 (City_Count (Count_Rng_Low))
+           or Shift_Left (Unsigned_32 (City_Count (Count_Rng_High)), 16);
+         declare
+            Label : constant String :=
+              Image (R.W) & "x" & Image (R.H) & " seed " & Image (R.Seed);
+            Classes_Ok, Districts_Ok, Uses_Ok, HQ_Ok : Boolean := True;
+         begin
+            Put ("city " & Label & ": rng " & Image (Rng) & " city " & Image (City_Hash)
+                 & " structure " & Image (Structure_Hash)
+                 & " blocks " & Image (City_Count (Count_Blocks))
+                 & " merged " & Image (City_Count (Count_Merged))
+                 & " lots " & Image (City_Count (Count_Lots))
+                 & " buildings " & Image (City_Count (Count_Buildings))
+                 & " types " & Image (City_Count (Count_Types_Used))
+                 & " retries " & Image (City_Count (Count_Retries))
+                 & " hq");
+            for G in Integer_32 range 1 .. City_Count (Count_HQ) loop
+               Put (" " & Image (City_Get (Table_Block, City_Get (Table_HQ, G, F_HQ_Block), F_GX))
+                    & "," & Image (City_Get (Table_Block, City_Get (Table_HQ, G, F_HQ_Block), F_GY)));
+            end loop;
+            New_Line;
+            Check (City_Count (Count_Status) = 0, Label & ": generated without a stop");
+            Check (Rng = R.Rng_After, Label & ": random-number state after the city matches 1.2.91");
+            Check (City_Hash = R.City, Label & ": city hash matches 1.2.91");
+            Check (Structure_Hash = R.Structure, Label & ": structure hash matches 1.2.91");
+            Check (City_Count (Count_Blocks) = R.Blocks and then City_Count (Count_Merged) = R.Merged
+                   and then City_Count (Count_Lots) = R.Lots
+                   and then City_Count (Count_Buildings) = R.Buildings
+                   and then City_Count (Count_Types_Used) = R.Types_Used,
+                   Label & ": blocks, merged, lots, buildings, types used match 1.2.91");
+            for K in R.Classes'Range loop
+               Classes_Ok := Classes_Ok and then
+                 City_Count (Count_Class + Integer_32 (K) - 1) = R.Classes (K);
+            end loop;
+            for K in R.Districts'Range loop
+               Districts_Ok := Districts_Ok and then
+                 City_Count (Count_District + Integer_32 (K) - 1) = R.Districts (K);
+            end loop;
+            for K in R.Uses'Range loop
+               Uses_Ok := Uses_Ok and then
+                 City_Count (Count_Use + Integer_32 (K) - 1) = R.Uses (K);
+            end loop;
+            Check (Classes_Ok and then Districts_Ok and then Uses_Ok,
+                   Label & ": buildings by class, blocks by district and use match 1.2.91");
+            if R.HQ (1) >= 0 then
+               HQ_Ok := City_Count (Count_HQ) = 4;
+               for G in Integer_32 range 1 .. 4 loop
+                  HQ_Ok := HQ_Ok
+                    and then City_Get (Table_Block, City_Get (Table_HQ, G, F_HQ_Block), F_GX) = R.HQ (Positive (2 * G - 1))
+                    and then City_Get (Table_Block, City_Get (Table_HQ, G, F_HQ_Block), F_GY) = R.HQ (Positive (2 * G));
+               end loop;
+               Check (HQ_Ok, Label & ": headquarters blocks match 1.2.91");
+            else
+               Check (City_Count (Count_HQ) = 0, Label & ": headquarters deferred to step 4");
+            end if;
+         end;
+      end loop;
+      --  The draw layers agree with the tables.
+      New_Game (1932, 1932, 40, 32);
+      Check (Draw_Len (Layer_Blocks) = 1280 * Block_Stride
+             and then Draw_Len (Layer_Lots) = 4580 * Lot_Stride
+             and then Draw_Len (3) = 0 and then Draw_Ptr (3) = 0
+             and then Draw_Ptr (Layer_Blocks) /= 0 and then Draw_Ptr (Layer_Lots) /= 0,
+             "hs_draw_len/hs_draw_ptr for both layers");
+      Check (City_Get (Table_Lot, 0, F_Lot_Block) >= 0 and then City_Get (Table_Lot, 4580, F_Lot_Block) = 0
+             and then City_Get (9, 0, 0) = 0 and then City_Count (99) = 0,
+             "hs_get/hs_count outside their tables give 0");
+      New_Game (1932, 1932, 44, 35);  --  the Large world the later checks use
+   end City_Checks;
+
    procedure World_Checks is
       Small : Hood.World.World_State;
       First : Unsigned_32;
@@ -353,6 +463,7 @@ begin
    Put_Line ("hs_build_id    " & Image (Build_Id));
    Check (Build_Id = Hood.Version.Build_Id, "hs_build_id matches the stamp");
    World_Checks;
+   City_Checks;
    Random_Checks;
    Number_Checks;
    Trig_Checks;

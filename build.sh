@@ -1,7 +1,11 @@
 #!/bin/sh
-# Builds dist/index.html and dist/version.txt.
+# Builds dist/: index.html, version.txt, app.js, app.css and vendor/.
 # The Ada core (src/, src/wasm/) is compiled to WebAssembly with AdaWebPack 24
-# (GNAT-LLVM), linked with wasm-ld and inlined as base64 into web/template.html.
+# (GNAT-LLVM), linked with wasm-ld and inlined as base64 into web/index.html.
+# The page script (web/src, TypeScript and React) is bundled by Vite into
+# app.js and app.css; React 18.3.1 and Three.js 0.169.0 are copied from
+# web/node_modules into dist/vendor/. Every file the page loads carries
+# ?v=<stamp>. Run "npm ci" in web/ once before the first build.
 # Wasm builds use -gnatp; the contracts are checked by the native smoke test
 # (tests/smoke.gpr, -gnata). This script never downloads anything: the
 # toolchain comes from $ADAWEBPACK (default ~/toolchains/adawebpack-24),
@@ -9,7 +13,7 @@
 set -e
 cd "$(dirname "$0")"
 
-VERSION=0.2.0   # proposed
+VERSION=0.3.0   # proposed
 
 A=${ADAWEBPACK:-$HOME/toolchains/adawebpack-24}
 T=$A/usr
@@ -19,6 +23,11 @@ if [ ! -x "$T/bin/llvm-gcc" ]; then
   exit 1
 fi
 export LD_LIBRARY_PATH="$A/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+if [ ! -x web/node_modules/.bin/vite ]; then
+  echo "web/node_modules missing: run \"npm ci\" in web/ once."
+  exit 1
+fi
 
 if command -v wasm-ld > /dev/null; then
   LD=wasm-ld
@@ -67,21 +76,42 @@ $LD --no-entry --allow-undefined --strip-all \
   --export=hs_error_file_length --export=hs_error_file_char \
   --export=hs_new_game --export=hs_rng_value --export=hs_grid_w --export=hs_grid_h \
   --export=hs_cell_kind --export=hs_check_value \
+  --export=hs_count --export=hs_get --export=hs_draw_ptr --export=hs_draw_len \
+  --export=hs_city_hash --export=hs_structure_hash \
   -z stack-size=1048576 --initial-memory=33554432 \
   -o hood.wasm ./*.o
 cd ../..
 
+(cd web && HS_STAMP="$STAMP" ./node_modules/.bin/tsc --noEmit -p . && HS_STAMP="$STAMP" ./node_modules/.bin/vite build --logLevel warn)
+
 STAMP="$STAMP" python3 - << 'PY'
-import base64, os
+import base64, os, shutil, urllib.parse
 from pathlib import Path
 wasm = Path("obj/wasm/hood.wasm").read_bytes()
 stamp = os.environ["STAMP"]
-html = Path("web/template.html").read_text()
+dist = Path("dist")
+shutil.rmtree(dist)
+(dist / "vendor").mkdir(parents=True)
+for name in ("app.js", "app.css"):
+    shutil.copy(Path("obj/web") / name, dist / name)
+nm = Path("web/node_modules")
+for src, dst in (("three/build/three.module.min.js", "three.module.min.js"),
+                 ("three/LICENSE", "three.LICENSE.txt"),
+                 ("react/umd/react.production.min.js", "react.production.min.js"),
+                 ("react/LICENSE", "react.LICENSE.txt"),
+                 ("react-dom/umd/react-dom.production.min.js", "react-dom.production.min.js"),
+                 ("react-dom/LICENSE", "react-dom.LICENSE.txt")):
+    shutil.copy(nm / src, dist / "vendor" / dst)
+html = Path("web/index.html").read_text()
 html = html.replace("__WASM_BASE64__", base64.b64encode(wasm).decode("ascii"))
+html = html.replace("__STAMP_URL__", urllib.parse.quote(stamp, safe=""))
 html = html.replace("__STAMP__", stamp)
-if "__WASM_BASE64__" in html or "__STAMP__" in html:
+if "__WASM_BASE64__" in html or "__STAMP" in html:
     raise SystemExit("template placeholders left unreplaced")
-Path("dist/index.html").write_text(html)
-Path("dist/version.txt").write_text(stamp + "\n")
-print(f"Built dist/index.html ({len(wasm)} bytes of WebAssembly), {stamp}")
+app = (dist / "app.js").read_text()
+if "three.module.min.js?v=" + urllib.parse.quote(stamp, safe="") not in app:
+    raise SystemExit("app.js does not import the stamped Three.js")
+(dist / "index.html").write_text(html)
+(dist / "version.txt").write_text(stamp + "\n")
+print(f"Built dist/ ({len(wasm)} bytes of WebAssembly, app.js {len(app)} bytes), {stamp}")
 PY

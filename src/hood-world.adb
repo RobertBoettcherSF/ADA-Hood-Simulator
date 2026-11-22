@@ -15,6 +15,7 @@ package body Hood.World is
       W.Week      := 1;
       W.Minute    := 0;
       Hood.Grid.Fill (W.Cells, Blocks_X, Blocks_Y);
+      Hood.City.Generate (W.City, W.Main, City_Seed, Blocks_X, Blocks_Y);
    end New_Game;
 
    procedure Add (H : in out Unsigned_32; V : Unsigned_32) is
@@ -44,6 +45,7 @@ package body Hood.World is
             Add (H, Bits (W.Cells (X, Y).Block_Id));
          end loop;
       end loop;
+      Add (H, W.City.City_Hash);
       return H;
    end Hash;
 

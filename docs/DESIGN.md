@@ -162,12 +162,12 @@ The web-safe subset (D-001, PRACTICES "Web-safe Ada subset") allows no heap: eve
 | Civilians / police at 40×32, scaled by block count | 6,000 / 400 | `src/sim/citygen.ts:35, 586-605` |
 | FBI agents / judges / DAs | 5 / 4 / 4 | `citygen.ts:581-594` |
 
-### 3.2 Caps (all proposed; item 3 measures the real counts for 1932 and the Large city and reports them before they are fixed)
+### 3.2 Caps (all proposed; block, lot and building caps measured in item 3)
 
 | Cap | Proposed | Basis |
 |---|---|---|
 | Max_Blocks | 1,540 | 44 × 35 (`newGameValidation.ts:17`) |
-| Max_Lots, Max_Buildings | 18,480 | 12 per block; measured in item 3 (1.2.91 grid blocks have 9 lots, `citygen.ts:450`; varied layout differs, `src/sim/cityLayout.ts:218, :283`) |
+| Max_Lots, Max_Buildings | 18,480 | 12 per block on average. Measured in item 3: Large 1932 has 13,488 lots, Standard 1932 4,580, Small 1932 8,769; one block holds at most 17 (varied layout) or 9 (Standard) |
 | Max_People | 16,384 | civilians 6,000 + police 400 at 40×32, scaled ×1.2 for Large; owners, staff, officials; up to ~700 of our men at w88 (1.2.91 timeline); recruit pools |
 | Max_Gangs | 4 | four gang colours (`constants.ts:499-504`) |
 | Max_Teams | 48 | 12 per gang × 4 |
@@ -362,7 +362,8 @@ Each subsection: rules (with 1.2.91 references), constants, what the player sees
 - Special places: 3 trade unions, 5 gyms, 5 pool halls, 3 accountancies, 3 law firms, 3 warehouses (`citygen.ts:528-536`); owners, clergy, reporters in their buildings (`:548-558`); 4 judges, 4 DAs (`:581-582`); police and civilians scaled by block count (`:586-605`); 5 FBI agents (`:593-595`); 3 snitches (`:597-599`).
 - Gangs: four gangs, starting offices and hoods (`citygen.ts:639-660`, `:812`, `:878`); rival profiles rolled per opponent setting (`citygen.ts:736-748`).
 - Trams and lines (`src/sim/trams.ts:44-54, :86`).
-- Constants: as section 3.1. New: none.
+- Constants: as section 3.1. New (item 3, all proposed): see `docs/HOW_WE_GOT_HERE.md`, step 3.
+- Item 3 outcome: the stream state after the city, the city hash, the structure hash and all counts match 1.2.91 for Standard, Large and Small 1932 and further seeds; the Standard headquarters match; trams and the Large and Small headquarters follow later.
 - Player-visible: the map, every building's outside type, the player's own gang; rival men are not known until seen or bought from a snitch (`gang.knownPeople`).
 
 ### 6.3 People and the weekly loop
@@ -506,7 +507,7 @@ Size: 1.2.91 logic to port is about 40,000 TypeScript lines (`src/sim` 23,514, `
 1. **Q1 Seed batch** (1.3): which city and Auto seeds besides 1932/1932, and how many.
 2. **Q2 Small losses** (1.3): ±2 men when 10 or fewer, instead of ±20 % (which fails on any loss when 1.2.91 had 0).
 3. **Q3 Names across the interface** (2.2): reading name bytes from wasm memory — acceptable under D-004?
-4. **Q4 Panels:** plain DOM panels, or the 1.2.91 React panels with the street view from item 3?
-5. **Q5 Three.js delivery** (7): inline into the one HTML file, or a sibling file (D-005 allows multi-file pages without the base64-wasm export)?
+4. **Q4 Panels:** settled (Robert, 2026-11-22): the 1.2.91 panel layout, written fresh in React; panels of later items shown disabled with their item number.
+5. **Q5 Three.js delivery** (7): settled (Robert, 2026-11-22): sibling files in `dist/vendor/` (Three.js 0.169.0, React 18.3.1), each loaded with the build stamp in its URL.
 6. **Q6 Learning for rivals** (4.3): off for rivals at first (a profile flag), on for Auto?
 7. **Q7 Toolchain download** on Robert's laptop (D-016): agreed for item 1?

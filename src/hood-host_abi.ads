@@ -60,6 +60,84 @@ package Hood.Host_ABI is
    --  4 distance (1, 1), 5 sin 45 degrees, 6 cos 0, 7 atan2 (1, 1),
    --  8 the cell of x = 54 units, 9 cells in the Large city; 0 otherwise.
 
+   --  The city (step 3). Numbers of counts, tables and fields are all
+   --  proposed; the page reads them through these functions only.
+
+   function City_Hash return Unsigned_32
+     with Export, Convention => C, External_Name => "hs_city_hash";
+   function Structure_Hash return Unsigned_32
+     with Export, Convention => C, External_Name => "hs_structure_hash";
+   --  Hood.City.City_Hash and Structure_Hash of the current city; 0 before
+   --  hs_new_game.
+
+   Count_Blocks     : constant := 1;
+   Count_Merged     : constant := 2;
+   Count_Lots       : constant := 3;
+   Count_Buildings  : constant := 4;   --  live ones
+   Count_Blocks_X   : constant := 5;
+   Count_Blocks_Y   : constant := 6;
+   Count_HQ         : constant := 7;
+   Count_Status     : constant := 8;
+   Count_Retries    : constant := 9;
+   Count_Class      : constant := 10;  --  + Building_Class'Pos
+   Count_District   : constant := 20;  --  + District'Pos
+   Count_Use        : constant := 30;  --  + Block_Use'Pos
+   Count_Types_Used : constant := 40;
+   Count_Edge       : constant := 41;
+   Count_Rng_Low    : constant := 42;  --  simulation stream state after
+   Count_Rng_High   : constant := 43;  --  the city, low and high 16 bits
+
+   function City_Count (What : Integer_32) return Integer_32
+     with Export, Convention => C, External_Name => "hs_count";
+   --  The count numbered What in the current city; 0 for an unknown one.
+
+   Table_Block    : constant := 1;
+   Table_Lot      : constant := 2;
+   Table_Building : constant := 3;
+   Table_HQ       : constant := 4;  --  index 1 .. 4
+
+   --  Block fields
+   F_GX : constant := 0;  F_GY : constant := 1;  F_District : constant := 2;
+   F_Use : constant := 3;  F_Span_X : constant := 4;  F_Span_Y : constant := 5;
+   F_Merged : constant := 6;  F_Land_Value : constant := 7;
+   F_Squalor : constant := 8;  F_Content : constant := 9;  F_Rail : constant := 10;
+   F_Landmark : constant := 11;  F_Name : constant := 12;  F_Module : constant := 13;
+   F_Turn : constant := 14;  F_Center_X : constant := 15;  F_Center_Y : constant := 16;
+   F_First_Lot : constant := 17;  F_Lots : constant := 18;  F_Plan_Value : constant := 19;
+   --  Lot fields
+   F_Lot_Block : constant := 0;  F_Lot_Index : constant := 1;  F_Lot_X : constant := 2;
+   F_Lot_Y : constant := 3;  F_Lot_W : constant := 4;  F_Lot_H : constant := 5;
+   F_Lot_Face : constant := 6;  F_Lot_Building : constant := 7;
+   --  Building fields
+   F_B_Lot : constant := 0;  F_B_Block : constant := 1;  F_B_Type : constant := 2;
+   F_B_Class : constant := 3;  F_B_Storeys : constant := 4;  F_B_Trade : constant := 5;
+   F_B_Removed : constant := 6;
+   --  Headquarters fields
+   F_HQ_Block : constant := 0;  F_HQ_Front : constant := 1;  F_HQ_Front_As : constant := 2;
+   F_HQ_FX : constant := 3;  F_HQ_FY : constant := 4;
+
+   function City_Get (Table, Index, Field : Integer_32) return Integer_32
+     with Export, Convention => C, External_Name => "hs_get";
+   --  One field of one row (positions in 1/256 m, booleans 0/1, missing
+   --  ids -1); 0 for an unknown table, row or field.
+
+   Layer_Blocks : constant := 1;  --  Block_Stride integers per block
+   Layer_Lots   : constant := 2;  --  Lot_Stride integers per lot
+   Block_Stride : constant := 12;
+   --  gx, gy, district, use, span x, span y, merged into, land value,
+   --  squalor, content, rail, landmark
+   Lot_Stride   : constant := 10;
+   --  block, index, x, y, w, h (1/256 m), face, type, class, storeys
+
+   function Draw_Ptr (Layer : Integer_32) return Unsigned_32
+     with Export, Convention => C, External_Name => "hs_draw_ptr";
+   --  Address in linear memory of the layer's Integer_32 array (filled by
+   --  hs_new_game); 0 for an unknown layer.
+
+   function Draw_Len (Layer : Integer_32) return Integer_32
+     with Export, Convention => C, External_Name => "hs_draw_len";
+   --  Number of integers in the layer.
+
    procedure Crash_Test (Code : Integer_32)
      with Export, Convention => C, External_Name => "hs_crash_test",
           No_Return;

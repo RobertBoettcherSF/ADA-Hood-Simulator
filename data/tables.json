@@ -1,0 +1,6793 @@
+{
+ "format": 1,
+ "districts": [
+  "downtown",
+  "commercial",
+  "industrial",
+  "residential",
+  "civic"
+ ],
+ "types": [
+  {
+   "id": "bakers",
+   "name": "Bakers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5200,
+   "profit": 260,
+   "weight": [
+    4,
+    10,
+    null,
+    8,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "butchers",
+   "name": "Butchers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5600,
+   "profit": 280,
+   "weight": [
+    null,
+    9,
+    null,
+    7,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "grocers",
+   "name": "Grocers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 6000,
+   "profit": 300,
+   "weight": [
+    null,
+    10,
+    null,
+    9,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "convenienceStore",
+   "name": "Convenience Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 14200,
+   "profit": 710,
+   "weight": [
+    5,
+    9,
+    null,
+    8,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "shoeStore",
+   "name": "Shoe Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 6800,
+   "profit": 330,
+   "weight": [
+    6,
+    8,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "tailors",
+   "name": "Tailors",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 7200,
+   "profit": 360,
+   "weight": [
+    6,
+    7,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "bookStore",
+   "name": "Book Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 6600,
+   "profit": 300,
+   "weight": [
+    5,
+    6,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "printers",
+   "name": "Printers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8200,
+   "profit": 400,
+   "weight": [
+    null,
+    5,
+    6,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "pawnbroker",
+   "name": "Pawnbrokers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 7000,
+   "profit": 380,
+   "weight": [
+    null,
+    6,
+    null,
+    5,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "jewellers",
+   "name": "Jewellers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 12500,
+   "profit": 720,
+   "weight": [
+    8,
+    5,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "furrier",
+   "name": "Furrier",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 12000,
+   "profit": 700,
+   "weight": [
+    6,
+    4,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "drugStore",
+   "name": "Drug Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 7400,
+   "profit": 350,
+   "weight": [
+    null,
+    9,
+    null,
+    8,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "plumbers",
+   "name": "Plumbers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 260,
+   "weight": [
+    null,
+    6,
+    7,
+    5,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "cafe",
+   "name": "Cafe",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 6200,
+   "profit": 300,
+   "weight": [
+    7,
+    9,
+    null,
+    6,
+    null
+   ],
+   "recruit": "hood",
+   "special": null
+  },
+  {
+   "id": "milkBar",
+   "name": "Milk Bar",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 280,
+   "weight": [
+    null,
+    8,
+    null,
+    7,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "breakfastBar",
+   "name": "Breakfast Bar",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5600,
+   "profit": 270,
+   "weight": [
+    null,
+    7,
+    6,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "restaurant",
+   "name": "Restaurant",
+   "cls": "commercial",
+   "storeys": 3,
+   "cost": 16800,
+   "profit": 890,
+   "weight": [
+    8,
+    7,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "poolHall",
+   "name": "Pool Hall",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 7600,
+   "profit": 340,
+   "weight": [
+    null,
+    7,
+    4,
+    6,
+    null
+   ],
+   "recruit": "hood",
+   "special": null
+  },
+  {
+   "id": "gym",
+   "name": "Gymnasium",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4500,
+   "profit": 190,
+   "weight": [
+    null,
+    6,
+    4,
+    6,
+    null
+   ],
+   "recruit": "hood",
+   "special": null
+  },
+  {
+   "id": "healthCenter",
+   "name": "Health Center",
+   "cls": "commercial",
+   "storeys": 3,
+   "cost": 9000,
+   "profit": 430,
+   "weight": [
+    5,
+    5,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "massageParlor",
+   "name": "Massage Parlor",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8400,
+   "profit": 420,
+   "weight": [
+    4,
+    5,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "danceStudio",
+   "name": "Dance Studio",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 3800,
+   "profit": 190,
+   "weight": [
+    5,
+    5,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "barbers",
+   "name": "Barbers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4800,
+   "profit": 220,
+   "weight": [
+    null,
+    8,
+    null,
+    8,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "laundry",
+   "name": "Laundry",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5400,
+   "profit": 250,
+   "weight": [
+    null,
+    7,
+    5,
+    8,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "hardwareStore",
+   "name": "Hardware Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 6600,
+   "profit": 310,
+   "weight": [
+    null,
+    7,
+    6,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "autoShop",
+   "name": "Auto Shop",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 9200,
+   "profit": 450,
+   "weight": [
+    null,
+    6,
+    8,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "financeCompany",
+   "name": "Finance Company",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 5900,
+   "profit": 330,
+   "weight": [
+    9,
+    3,
+    null,
+    null,
+    null
+   ],
+   "recruit": "accountant",
+   "special": null
+  },
+  {
+   "id": "accountancy",
+   "name": "Accountancy Firm",
+   "cls": "commercial",
+   "storeys": 3,
+   "cost": 11000,
+   "profit": 560,
+   "weight": [
+    8,
+    3,
+    null,
+    null,
+    null
+   ],
+   "recruit": "accountant",
+   "special": null
+  },
+  {
+   "id": "lawFirm",
+   "name": "Law Offices",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 12000,
+   "profit": 620,
+   "weight": [
+    8,
+    null,
+    null,
+    null,
+    6
+   ],
+   "recruit": "lawyer",
+   "special": null
+  },
+  {
+   "id": "hotelSmall",
+   "name": "Hotel",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 13000,
+   "profit": 700,
+   "weight": [
+    6,
+    5,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "hotelLarge",
+   "name": "Hotel (Large)",
+   "cls": "commercial",
+   "storeys": 7,
+   "cost": 26000,
+   "profit": 1500,
+   "weight": [
+    5,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "departmentStore",
+   "name": "Department Store",
+   "cls": "commercial",
+   "storeys": 6,
+   "cost": 34000,
+   "profit": 2100,
+   "weight": [
+    6,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "bankSmall",
+   "name": "Bank",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 22000,
+   "profit": 1250,
+   "weight": [
+    5,
+    2,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": "bank"
+  },
+  {
+   "id": "bankLarge",
+   "name": "Main Bank",
+   "cls": "commercial",
+   "storeys": 8,
+   "cost": 46000,
+   "profit": 2800,
+   "weight": [
+    3,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": "accountant",
+   "special": "bank"
+  },
+  {
+   "id": "newspaper",
+   "name": "Newspaper Offices",
+   "cls": "commercial",
+   "storeys": 5,
+   "cost": 44000,
+   "profit": 1650,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": "newspaper"
+  },
+  {
+   "id": "radioStation",
+   "name": "Radio Station",
+   "cls": "commercial",
+   "storeys": 3,
+   "cost": 44000,
+   "profit": 1650,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": "radio"
+  },
+  {
+   "id": "warehouse",
+   "name": "Warehouse",
+   "cls": "industrial",
+   "storeys": 2,
+   "cost": 9000,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    12,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "foundry",
+   "name": "Foundry",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16000,
+   "profit": 780,
+   "weight": [
+    null,
+    null,
+    10,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "mill",
+   "name": "Mill",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 14000,
+   "profit": 680,
+   "weight": [
+    null,
+    null,
+    9,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "cannery",
+   "name": "Cannery",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 23800,
+   "profit": 1170,
+   "weight": [
+    null,
+    null,
+    9,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "garageDepot",
+   "name": "Garage Depot",
+   "cls": "industrial",
+   "storeys": 2,
+   "cost": 11000,
+   "profit": 520,
+   "weight": [
+    null,
+    null,
+    8,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "tradeUnion",
+   "name": "Trade Union",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 12000,
+   "profit": 380,
+   "weight": [
+    null,
+    null,
+    6,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": "union"
+  },
+  {
+   "id": "docks",
+   "name": "Docks",
+   "cls": "industrial",
+   "storeys": 2,
+   "cost": 41200,
+   "profit": 1650,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": "hood",
+   "special": "docks"
+  },
+  {
+   "id": "railroad",
+   "name": "Railroad Terminal",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 30000,
+   "profit": 1200,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": "railroad"
+  },
+  {
+   "id": "tenementPoor",
+   "name": "Tenement Block",
+   "cls": "tenement",
+   "storeys": 4,
+   "cost": 4200,
+   "profit": 200,
+   "weight": [
+    null,
+    null,
+    6,
+    14,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "tenementMid",
+   "name": "Apartment Block",
+   "cls": "tenement",
+   "storeys": 5,
+   "cost": 7000,
+   "profit": 380,
+   "weight": [
+    null,
+    6,
+    null,
+    10,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "tenementRich",
+   "name": "Residences",
+   "cls": "tenement",
+   "storeys": 5,
+   "cost": 12000,
+   "profit": 640,
+   "weight": [
+    5,
+    null,
+    null,
+    5,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "cityHall",
+   "name": "City Hall",
+   "cls": "municipal",
+   "storeys": 6,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": "cityHall"
+  },
+  {
+   "id": "courthouse",
+   "name": "Courthouse",
+   "cls": "municipal",
+   "storeys": 5,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": "lawyer",
+   "special": "courthouse"
+  },
+  {
+   "id": "policeHQ",
+   "name": "Police Headquarters",
+   "cls": "municipal",
+   "storeys": 4,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": "policeHQ"
+  },
+  {
+   "id": "hospital",
+   "name": "Hospital",
+   "cls": "municipal",
+   "storeys": 5,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    3
+   ],
+   "recruit": null,
+   "special": "hospital"
+  },
+  {
+   "id": "school",
+   "name": "School",
+   "cls": "municipal",
+   "storeys": 3,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    3,
+    4
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "library",
+   "name": "Library",
+   "cls": "municipal",
+   "storeys": 3,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    3
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "labourExchange",
+   "name": "Labour Exchange",
+   "cls": "municipal",
+   "storeys": 2,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    3,
+    null,
+    3
+   ],
+   "recruit": "hood",
+   "special": null
+  },
+  {
+   "id": "firehouse",
+   "name": "Fire House",
+   "cls": "municipal",
+   "storeys": 2,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    2,
+    2
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "fbiHQ",
+   "name": "F.B.I. Headquarters",
+   "cls": "municipal",
+   "storeys": 5,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "museum",
+   "name": "Museum",
+   "cls": "municipal",
+   "storeys": 3,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "publicBaths",
+   "name": "Public Baths",
+   "cls": "municipal",
+   "storeys": 2,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "usPost",
+   "name": "US Post",
+   "cls": "municipal",
+   "storeys": 3,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "powerPlant",
+   "name": "Power Plant",
+   "cls": "municipal",
+   "storeys": 3,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "waterPlant",
+   "name": "Water Plant",
+   "cls": "municipal",
+   "storeys": 2,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "residence",
+   "name": "Residences",
+   "cls": "residential",
+   "storeys": 2,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "church",
+   "name": "Church",
+   "cls": "charity",
+   "storeys": 3,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    3,
+    3
+   ],
+   "recruit": null,
+   "special": "church"
+  },
+  {
+   "id": "orphanage",
+   "name": "Orphanage",
+   "cls": "charity",
+   "storeys": 3,
+   "cost": 0,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    2,
+    null
+   ],
+   "recruit": null,
+   "special": "orphanage"
+  },
+  {
+   "id": "soupKitchen",
+   "name": "Soup Kitchen",
+   "cls": "charity",
+   "storeys": 1,
+   "cost": 3000,
+   "profit": -180,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "clothingBank",
+   "name": "Clothing Bank",
+   "cls": "charity",
+   "storeys": 1,
+   "cost": 2000,
+   "profit": -100,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "office",
+   "name": "Office",
+   "cls": "illegal",
+   "storeys": 2,
+   "cost": 6000,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "speakeasy",
+   "name": "Speakeasy",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 8000,
+   "profit": 3000,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "moonshineStill",
+   "name": "Moonshine Still",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 4500,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "casino",
+   "name": "Casino",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 18000,
+   "profit": 4200,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "cardGames",
+   "name": "Card Games",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 4000,
+   "profit": 900,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "diceGame",
+   "name": "Dice Game",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 3600,
+   "profit": 820,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "gamblingDen",
+   "name": "Gambling Den",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 6500,
+   "profit": 1600,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "prizeFight",
+   "name": "Prizefight Ring",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 7000,
+   "profit": 1750,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "grifters",
+   "name": "Grifters",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 4200,
+   "profit": 1050,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "insiderTrading",
+   "name": "Insider Trading",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 12000,
+   "profit": 2500,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "loanShark",
+   "name": "Loan Shark",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 7500,
+   "profit": 1900,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "counterfeitPress",
+   "name": "Counterfeit Press",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 9500,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "numbersRacket",
+   "name": "Numbers Racket",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 5000,
+   "profit": 1300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "rentedRooms",
+   "name": "Rented Rooms",
+   "cls": "illegal",
+   "storeys": 4,
+   "cost": 11000,
+   "profit": 0,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "teamsters",
+   "name": "Teamsters",
+   "cls": "illegal",
+   "storeys": 1,
+   "cost": 8500,
+   "profit": 1100,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "acupunctureClinic",
+   "name": "Acupuncture Clinic",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 330,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "antiquesDealer",
+   "name": "Antiques Dealer",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8100,
+   "profit": 510,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "artGallery",
+   "name": "Art Gallery",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8100,
+   "profit": 510,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "auctionRooms",
+   "name": "Auction Rooms",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 13900,
+   "profit": 670,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "autoDealers",
+   "name": "Auto Dealers",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 10400,
+   "profit": 530,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "bailiffs",
+   "name": "Bailiffs",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4100,
+   "profit": 230,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "beautyParlor",
+   "name": "Beauty Parlor",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 7000,
+   "profit": 310,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "blacksmiths",
+   "name": "Blacksmiths",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4400,
+   "profit": 240,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "bridalParlor",
+   "name": "Bridal Parlor",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 7000,
+   "profit": 310,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "cabCompany",
+   "name": "Cab Company",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 10400,
+   "profit": 530,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "cakeStore",
+   "name": "Cake Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "candyStore",
+   "name": "Candy Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4400,
+   "profit": 240,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "carpetStore",
+   "name": "Carpet Store",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 10400,
+   "profit": 530,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "cateringSuppliers",
+   "name": "Catering Suppliers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "cheeseStore",
+   "name": "Cheese Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5500,
+   "profit": 260,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "chinaStore",
+   "name": "China Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8100,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "chiropodists",
+   "name": "Chiropodists",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8100,
+   "profit": 370,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "clothiers",
+   "name": "Clothiers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5500,
+   "profit": 280,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "coffinMakers",
+   "name": "Coffin Makers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 330,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "cosmeticsStore",
+   "name": "Cosmetics Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 7000,
+   "profit": 310,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "delicatessen",
+   "name": "Delicatessen",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "orthodontists",
+   "name": "Orthodontists",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8100,
+   "profit": 460,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "detectiveAgency",
+   "name": "Detective Agency",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5500,
+   "profit": 260,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "diamondMerchant",
+   "name": "Diamond Merchant",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 11600,
+   "profit": 710,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "doctors",
+   "name": "Doctors",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8100,
+   "profit": 570,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "dressmakers",
+   "name": "Dressmakers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8100,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "electricalSuppliers",
+   "name": "Electrical Suppliers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "electricians",
+   "name": "Electricians",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5500,
+   "profit": 260,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "costumeStore",
+   "name": "Costume Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4100,
+   "profit": 230,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "fishmongers",
+   "name": "Fishmongers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "florists",
+   "name": "Florists",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4400,
+   "profit": 240,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "fortuneTellers",
+   "name": "Fortune Tellers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4600,
+   "profit": 280,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "frenchPolishers",
+   "name": "French Polishers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5500,
+   "profit": 260,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "fruitAndVegStore",
+   "name": "Fruit and Veg. Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "funeralDirectors",
+   "name": "Funeral Directors",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "furnitureStore",
+   "name": "Furniture Store",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 11600,
+   "profit": 810,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "gardeningSuppliers",
+   "name": "Gardening Suppliers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "gasStationMechanic",
+   "name": "Gas Station/Mechanic",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4400,
+   "profit": 240,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "giftStore",
+   "name": "Gift Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 7000,
+   "profit": 310,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "goldMerchants",
+   "name": "Gold Merchants",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8100,
+   "profit": 510,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "golfStore",
+   "name": "Golf Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4600,
+   "profit": 280,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "gramophoneStore",
+   "name": "Gramophone Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "glassware",
+   "name": "Glassware",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 2900,
+   "profit": 150,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "haberdashery",
+   "name": "Haberdashery",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "hairSalon",
+   "name": "Hair Salon",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "wigMakers",
+   "name": "Wig Makers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4600,
+   "profit": 280,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "iceStore",
+   "name": "Ice Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4400,
+   "profit": 240,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "iceCreamParlor",
+   "name": "Ice Cream Parlor",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "ladieswear",
+   "name": "Ladieswear",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8100,
+   "profit": 370,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "lingerieStore",
+   "name": "Lingerie Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 7000,
+   "profit": 310,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "localStore",
+   "name": "Local Store",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 13900,
+   "profit": 670,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "locksmiths",
+   "name": "Locksmiths",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5500,
+   "profit": 260,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "lumberMerchant",
+   "name": "Lumber Merchant",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "milliners",
+   "name": "Milliners",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "movieTheater",
+   "name": "Movie Theater",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 11600,
+   "profit": 810,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "musicStore",
+   "name": "Music Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4400,
+   "profit": 240,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "newsAgency",
+   "name": "News Agency",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5500,
+   "profit": 260,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "nurseryStore",
+   "name": "Nursery Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "optometrist",
+   "name": "Optometrist",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8100,
+   "profit": 510,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "perfumeStore",
+   "name": "Perfume Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 7000,
+   "profit": 310,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "pestControllers",
+   "name": "Pest Controllers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4400,
+   "profit": 240,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "petStore",
+   "name": "Pet Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4100,
+   "profit": 230,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "photographers",
+   "name": "Photographers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "pianoStore",
+   "name": "Piano Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5500,
+   "profit": 260,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "realEstate",
+   "name": "Real Estate",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 8100,
+   "profit": 370,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "recordStore",
+   "name": "Record Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5500,
+   "profit": 260,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "removalsCompany",
+   "name": "Removals Company",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 10400,
+   "profit": 530,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "saddlers",
+   "name": "Saddlers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4100,
+   "profit": 230,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "shoeRepairs",
+   "name": "Shoe Repairs",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4100,
+   "profit": 230,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "signWriters",
+   "name": "Sign Writers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5500,
+   "profit": 260,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "sodaFountain",
+   "name": "Soda Fountain",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "sportsEquipment",
+   "name": "Sports Equipment",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5800,
+   "profit": 300,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "stampAndCoinDealers",
+   "name": "Stamp and Coin Dealers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4100,
+   "profit": 230,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "stationers",
+   "name": "Stationers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4400,
+   "profit": 240,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "tattooParlor",
+   "name": "Tattoo Parlor",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 2900,
+   "profit": 150,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "telegraphOffice",
+   "name": "Telegraph Office",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5500,
+   "profit": 260,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "theater",
+   "name": "Theater",
+   "cls": "commercial",
+   "storeys": 4,
+   "cost": 9300,
+   "profit": 710,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "tobacconists",
+   "name": "Tobacconists",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4100,
+   "profit": 230,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "toyStore",
+   "name": "Toy Store",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4100,
+   "profit": 230,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "upholsterers",
+   "name": "Upholsterers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 5500,
+   "profit": 260,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "watchmakers",
+   "name": "Watchmakers",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 10400,
+   "profit": 450,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "windowCleaners",
+   "name": "Window Cleaners",
+   "cls": "commercial",
+   "storeys": 2,
+   "cost": 4100,
+   "profit": 230,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "abattoir",
+   "name": "Abattoir",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 5800,
+   "profit": 720,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "builders",
+   "name": "Builders",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "cementFactory",
+   "name": "Cement Factory",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "ceramics",
+   "name": "Ceramics",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "chandler",
+   "name": "Chandler",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 31900,
+   "profit": 1190,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "leatherCurers",
+   "name": "Leather Curers",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "engineers",
+   "name": "Engineers",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 20900,
+   "profit": 1040,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "excavators",
+   "name": "Excavators",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "fabricators",
+   "name": "Fabricators",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 31900,
+   "profit": 1190,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "factory",
+   "name": "Factory",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "foodProcessors",
+   "name": "Food Processors",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 20900,
+   "profit": 1040,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "freightForwarding",
+   "name": "Freight Forwarding",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "furriers",
+   "name": "Furriers",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 31900,
+   "profit": 1190,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "glaziers",
+   "name": "Glaziers",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "iceHouse",
+   "name": "Ice House",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 2300,
+   "profit": 580,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "ironmongers",
+   "name": "Ironmongers",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "joiners",
+   "name": "Joiners",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "junkYard",
+   "name": "Junk Yard",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 2300,
+   "profit": 580,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "lumberYard",
+   "name": "Lumber Yard",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 5800,
+   "profit": 720,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "milkYard",
+   "name": "Milk Yard",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "packagingPlant",
+   "name": "Packaging Plant",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "paperMill",
+   "name": "Paper Mill",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 20900,
+   "profit": 1040,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "sheetWorkers",
+   "name": "Sheet Workers",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 20900,
+   "profit": 1040,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "steelMill",
+   "name": "Steel Mill",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 31900,
+   "profit": 1190,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "stoneMasons",
+   "name": "Stone Masons",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "tanners",
+   "name": "Tanners",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "textiles",
+   "name": "Textiles",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 20900,
+   "profit": 1040,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "weavers",
+   "name": "Weavers",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  },
+  {
+   "id": "wheelwrights",
+   "name": "Wheelwrights",
+   "cls": "industrial",
+   "storeys": 3,
+   "cost": 16200,
+   "profit": 960,
+   "weight": [
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "recruit": null,
+   "special": null
+  }
+ ],
+ "kinds": [
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 768,
+   "lv_min": 80,
+   "lv_max": 180,
+   "size": 1,
+   "type": "accountancy"
+  },
+  {
+   "group": 0,
+   "capacity": 128,
+   "capacity_max": 256,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "acupunctureClinic"
+  },
+  {
+   "group": 0,
+   "capacity": 384,
+   "capacity_max": 576,
+   "lv_min": 80,
+   "lv_max": 180,
+   "size": 1,
+   "type": "antiquesDealer"
+  },
+  {
+   "group": 0,
+   "capacity": 384,
+   "capacity_max": 576,
+   "lv_min": 80,
+   "lv_max": 180,
+   "size": 1,
+   "type": "artGallery"
+  },
+  {
+   "group": 0,
+   "capacity": 192,
+   "capacity_max": 288,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 3,
+   "type": "auctionRooms"
+  },
+  {
+   "group": 0,
+   "capacity": 192,
+   "capacity_max": 288,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 3,
+   "type": "autoDealers"
+  },
+  {
+   "group": 0,
+   "capacity": 1024,
+   "capacity_max": 1536,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "bailiffs"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 5120,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "bakers"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 5120,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "barbers"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "beautyParlor"
+  },
+  {
+   "group": 0,
+   "capacity": 384,
+   "capacity_max": 576,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "blacksmiths"
+  },
+  {
+   "group": 0,
+   "capacity": 1280,
+   "capacity_max": 1984,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "bookStore"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "breakfastBar"
+  },
+  {
+   "group": 0,
+   "capacity": 256,
+   "capacity_max": 384,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "bridalParlor"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 5120,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "butchers"
+  },
+  {
+   "group": 0,
+   "capacity": 192,
+   "capacity_max": 288,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 3,
+   "type": "cabCompany"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 1920,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "cafe"
+  },
+  {
+   "group": 0,
+   "capacity": 1152,
+   "capacity_max": 1728,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "cakeStore"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "candyStore"
+  },
+  {
+   "group": 0,
+   "capacity": 384,
+   "capacity_max": 576,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 3,
+   "type": "carpetStore"
+  },
+  {
+   "group": 0,
+   "capacity": 1152,
+   "capacity_max": 1728,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "cateringSuppliers"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "cheeseStore"
+  },
+  {
+   "group": 0,
+   "capacity": 1152,
+   "capacity_max": 1728,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 1,
+   "type": "chinaStore"
+  },
+  {
+   "group": 0,
+   "capacity": 320,
+   "capacity_max": 512,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 1,
+   "type": "chiropodists"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 1,
+   "type": "clothiers"
+  },
+  {
+   "group": 0,
+   "capacity": 64,
+   "capacity_max": 92,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "coffinMakers"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 3,
+   "type": "convenienceStore"
+  },
+  {
+   "group": 0,
+   "capacity": 1152,
+   "capacity_max": 1728,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "cosmeticsStore"
+  },
+  {
+   "group": 0,
+   "capacity": 576,
+   "capacity_max": 896,
+   "lv_min": 50,
+   "lv_max": 100,
+   "size": 1,
+   "type": "danceStudio"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "delicatessen"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 832,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 1,
+   "type": "orthodontists"
+  },
+  {
+   "group": 0,
+   "capacity": 384,
+   "capacity_max": 576,
+   "lv_min": 150,
+   "lv_max": 255,
+   "size": 8,
+   "type": "departmentStore"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 832,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "detectiveAgency"
+  },
+  {
+   "group": 0,
+   "capacity": 64,
+   "capacity_max": 92,
+   "lv_min": 80,
+   "lv_max": 255,
+   "size": 1,
+   "type": "diamondMerchant"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 1,
+   "type": "doctors"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 3072,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 1,
+   "type": "dressmakers"
+  },
+  {
+   "group": 0,
+   "capacity": 1536,
+   "capacity_max": 2304,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 1,
+   "type": "drugStore"
+  },
+  {
+   "group": 0,
+   "capacity": 1152,
+   "capacity_max": 1728,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "electricalSuppliers"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "electricians"
+  },
+  {
+   "group": 0,
+   "capacity": 384,
+   "capacity_max": 576,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "costumeStore"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "financeCompany"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 3456,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "fishmongers"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 2304,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "florists"
+  },
+  {
+   "group": 0,
+   "capacity": 128,
+   "capacity_max": 220,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "fortuneTellers"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 768,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "frenchPolishers"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 3840,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "fruitAndVegStore"
+  },
+  {
+   "group": 0,
+   "capacity": 384,
+   "capacity_max": 576,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "funeralDirectors"
+  },
+  {
+   "group": 0,
+   "capacity": 256,
+   "capacity_max": 384,
+   "lv_min": 80,
+   "lv_max": 200,
+   "size": 1,
+   "type": "furrier"
+  },
+  {
+   "group": 0,
+   "capacity": 384,
+   "capacity_max": 576,
+   "lv_min": 80,
+   "lv_max": 180,
+   "size": 3,
+   "type": "furnitureStore"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "gardeningSuppliers"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 768,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "gasStationMechanic"
+  },
+  {
+   "group": 0,
+   "capacity": 1536,
+   "capacity_max": 2304,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "giftStore"
+  },
+  {
+   "group": 0,
+   "capacity": 256,
+   "capacity_max": 384,
+   "lv_min": 80,
+   "lv_max": 180,
+   "size": 1,
+   "type": "goldMerchants"
+  },
+  {
+   "group": 0,
+   "capacity": 128,
+   "capacity_max": 220,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "golfStore"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 768,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "gramophoneStore"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 3840,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "grocers"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 1824,
+   "lv_min": 50,
+   "lv_max": 100,
+   "size": 1,
+   "type": "glassware"
+  },
+  {
+   "group": 0,
+   "capacity": 1152,
+   "capacity_max": 1728,
+   "lv_min": 50,
+   "lv_max": 100,
+   "size": 1,
+   "type": "gym"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "haberdashery"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "hairSalon"
+  },
+  {
+   "group": 0,
+   "capacity": 128,
+   "capacity_max": 220,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "wigMakers"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "hardwareStore"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 768,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "healthCenter"
+  },
+  {
+   "group": 0,
+   "capacity": 1152,
+   "capacity_max": 1728,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "iceStore"
+  },
+  {
+   "group": 0,
+   "capacity": 1152,
+   "capacity_max": 1728,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "iceCreamParlor"
+  },
+  {
+   "group": 0,
+   "capacity": 1536,
+   "capacity_max": 2304,
+   "lv_min": 80,
+   "lv_max": 200,
+   "size": 1,
+   "type": "jewellers"
+  },
+  {
+   "group": 0,
+   "capacity": 2304,
+   "capacity_max": 3456,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 1,
+   "type": "ladieswear"
+  },
+  {
+   "group": 0,
+   "capacity": 64,
+   "capacity_max": 92,
+   "lv_min": 140,
+   "lv_max": 255,
+   "size": 8,
+   "type": "bankLarge"
+  },
+  {
+   "group": 0,
+   "capacity": 256,
+   "capacity_max": 384,
+   "lv_min": 80,
+   "lv_max": 180,
+   "size": 8,
+   "type": "hotelLarge"
+  },
+  {
+   "group": 0,
+   "capacity": 1536,
+   "capacity_max": 2304,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "laundry"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 768,
+   "lv_min": 80,
+   "lv_max": 180,
+   "size": 1,
+   "type": "lawFirm"
+  },
+  {
+   "group": 0,
+   "capacity": 256,
+   "capacity_max": 384,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 3,
+   "type": "library"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "lingerieStore"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 3,
+   "type": "localStore"
+  },
+  {
+   "group": 0,
+   "capacity": 640,
+   "capacity_max": 960,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "locksmiths"
+  },
+  {
+   "group": 0,
+   "capacity": 1536,
+   "capacity_max": 2304,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "lumberMerchant"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 768,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "massageParlor"
+  },
+  {
+   "group": 0,
+   "capacity": 1152,
+   "capacity_max": 1728,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "milkBar"
+  },
+  {
+   "group": 0,
+   "capacity": 1536,
+   "capacity_max": 2304,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "milliners"
+  },
+  {
+   "group": 0,
+   "capacity": 256,
+   "capacity_max": 384,
+   "lv_min": 80,
+   "lv_max": 180,
+   "size": 3,
+   "type": "movieTheater"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "musicStore"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 3840,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "newsAgency"
+  },
+  {
+   "group": 0,
+   "capacity": 1152,
+   "capacity_max": 1728,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "nurseryStore"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 80,
+   "lv_max": 180,
+   "size": 1,
+   "type": "optometrist"
+  },
+  {
+   "group": 0,
+   "capacity": 1536,
+   "capacity_max": 2304,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "pawnbroker"
+  },
+  {
+   "group": 0,
+   "capacity": 1536,
+   "capacity_max": 2304,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "perfumeStore"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "pestControllers"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "petStore"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "photographers"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "pianoStore"
+  },
+  {
+   "group": 0,
+   "capacity": 1536,
+   "capacity_max": 2304,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "plumbers"
+  },
+  {
+   "group": 0,
+   "capacity": 1536,
+   "capacity_max": 2304,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "poolHall"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "printers"
+  },
+  {
+   "group": 0,
+   "capacity": 0,
+   "capacity_max": 3456,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 1,
+   "type": "realEstate"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "recordStore"
+  },
+  {
+   "group": 0,
+   "capacity": 384,
+   "capacity_max": 576,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 3,
+   "type": "removalsCompany"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 200,
+   "size": 3,
+   "type": "restaurant"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 768,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "saddlers"
+  },
+  {
+   "group": 0,
+   "capacity": 1024,
+   "capacity_max": 1536,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "shoeRepairs"
+  },
+  {
+   "group": 0,
+   "capacity": 1536,
+   "capacity_max": 2304,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 1,
+   "type": "shoeStore"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 768,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "signWriters"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "sodaFountain"
+  },
+  {
+   "group": 0,
+   "capacity": 256,
+   "capacity_max": 384,
+   "lv_min": 100,
+   "lv_max": 180,
+   "size": 3,
+   "type": "bankSmall"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 768,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 3,
+   "type": "hotelSmall"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 768,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "sportsEquipment"
+  },
+  {
+   "group": 0,
+   "capacity": 384,
+   "capacity_max": 576,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "stampAndCoinDealers"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "stationers"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "tailors"
+  },
+  {
+   "group": 0,
+   "capacity": 512,
+   "capacity_max": 768,
+   "lv_min": 50,
+   "lv_max": 100,
+   "size": 1,
+   "type": "tattooParlor"
+  },
+  {
+   "group": 0,
+   "capacity": 256,
+   "capacity_max": 384,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "telegraphOffice"
+  },
+  {
+   "group": 0,
+   "capacity": 128,
+   "capacity_max": 192,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 3,
+   "type": "theater"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "tobacconists"
+  },
+  {
+   "group": 0,
+   "capacity": 1152,
+   "capacity_max": 1728,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "toyStore"
+  },
+  {
+   "group": 0,
+   "capacity": 256,
+   "capacity_max": 384,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "tradeUnion"
+  },
+  {
+   "group": 0,
+   "capacity": 1152,
+   "capacity_max": 1728,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 1,
+   "type": "upholsterers"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 80,
+   "lv_max": 200,
+   "size": 1,
+   "type": "watchmakers"
+  },
+  {
+   "group": 0,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 1,
+   "type": "windowCleaners"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 9,
+   "type": "abattoir"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "builders"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "cannery"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "cementFactory"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "ceramics"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "chandler"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "leatherCurers"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 9,
+   "type": "docks"
+  },
+  {
+   "group": 1,
+   "capacity": 192,
+   "capacity_max": 288,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "engineers"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "excavators"
+  },
+  {
+   "group": 1,
+   "capacity": 192,
+   "capacity_max": 288,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "fabricators"
+  },
+  {
+   "group": 1,
+   "capacity": 192,
+   "capacity_max": 288,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "factory"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "foodProcessors"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "freightForwarding"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "furriers"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "glaziers"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 100,
+   "size": 9,
+   "type": "iceHouse"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "ironmongers"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "joiners"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 100,
+   "size": 9,
+   "type": "junkYard"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 120,
+   "size": 9,
+   "type": "lumberYard"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "milkYard"
+  },
+  {
+   "group": 1,
+   "capacity": 256,
+   "capacity_max": 384,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 9,
+   "type": "newspaper"
+  },
+  {
+   "group": 1,
+   "capacity": 128,
+   "capacity_max": 192,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "packagingPlant"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "paperMill"
+  },
+  {
+   "group": 1,
+   "capacity": 256,
+   "capacity_max": 384,
+   "lv_min": 50,
+   "lv_max": 180,
+   "size": 9,
+   "type": "radioStation"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "sheetWorkers"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "steelMill"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "stoneMasons"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "tanners"
+  },
+  {
+   "group": 1,
+   "capacity": 128,
+   "capacity_max": 192,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "textiles"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "weavers"
+  },
+  {
+   "group": 1,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 9,
+   "type": "wheelwrights"
+  },
+  {
+   "group": 2,
+   "capacity": 0,
+   "capacity_max": 0,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 1,
+   "type": "emptyLand"
+  },
+  {
+   "group": 3,
+   "capacity": 9984,
+   "capacity_max": 9984,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 8,
+   "type": "residence"
+  },
+  {
+   "group": 4,
+   "capacity": 768,
+   "capacity_max": 1152,
+   "lv_min": 0,
+   "lv_max": 128,
+   "size": 9,
+   "type": "warehouse"
+  },
+  {
+   "group": 5,
+   "capacity": 0,
+   "capacity_max": 0,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 1,
+   "type": "soupKitchen"
+  },
+  {
+   "group": 5,
+   "capacity": 256,
+   "capacity_max": 384,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "church"
+  },
+  {
+   "group": 5,
+   "capacity": 64,
+   "capacity_max": 96,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "orphanage"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "cityHall"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "courthouse"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "labourExchange"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "fbiHQ"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "firehouse"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "hospital"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "museum"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "policeHQ"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "powerPlant"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "publicBaths"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "railroad"
+  },
+  {
+   "group": 6,
+   "capacity": 256,
+   "capacity_max": 256,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "school"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "usPost"
+  },
+  {
+   "group": 6,
+   "capacity": 64,
+   "capacity_max": 64,
+   "lv_min": 0,
+   "lv_max": 255,
+   "size": 9,
+   "type": "waterPlant"
+  },
+  {
+   "group": 7,
+   "capacity": 32000,
+   "capacity_max": 48000,
+   "lv_min": 50,
+   "lv_max": 150,
+   "size": 8,
+   "type": "tenementPoor"
+  }
+ ],
+ "kind_groups": {
+  "start": [
+   0,
+   117,
+   150,
+   151,
+   152,
+   153,
+   156,
+   170
+  ],
+  "count": [
+   117,
+   33,
+   1,
+   1,
+   1,
+   3,
+   14,
+   1
+  ]
+ },
+ "trades": [
+  {
+   "id": "acupunctureClinic",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "antiquesDealer",
+   "family": "shops",
+   "upmarket": true
+  },
+  {
+   "id": "artGallery",
+   "family": "shops",
+   "upmarket": true
+  },
+  {
+   "id": "auctionRooms",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "autoDealers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "bailiffs",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "beautyParlor",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "blacksmiths",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "bridalParlor",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "cabCompany",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "cakeStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "candyStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "carpetStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "cateringSuppliers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "cheeseStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "chinaStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "chiropodists",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "clothiers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "coffinMakers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "cosmeticsStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "delicatessen",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "orthodontists",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "detectiveAgency",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "diamondMerchant",
+   "family": "shops",
+   "upmarket": true
+  },
+  {
+   "id": "doctors",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "dressmakers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "electricalSuppliers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "electricians",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "costumeStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "fishmongers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "florists",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "fortuneTellers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "frenchPolishers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "fruitAndVegStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "funeralDirectors",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "furnitureStore",
+   "family": "business",
+   "upmarket": true
+  },
+  {
+   "id": "gardeningSuppliers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "gasStationMechanic",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "giftStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "goldMerchants",
+   "family": "shops",
+   "upmarket": true
+  },
+  {
+   "id": "golfStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "gramophoneStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "glassware",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "haberdashery",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "hairSalon",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "wigMakers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "iceStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "iceCreamParlor",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "ladieswear",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "lingerieStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "localStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "locksmiths",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "lumberMerchant",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "milliners",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "movieTheater",
+   "family": "business",
+   "upmarket": true
+  },
+  {
+   "id": "musicStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "newsAgency",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "nurseryStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "optometrist",
+   "family": "shops",
+   "upmarket": true
+  },
+  {
+   "id": "perfumeStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "pestControllers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "petStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "photographers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "pianoStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "realEstate",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "recordStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "removalsCompany",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "saddlers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "shoeRepairs",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "signWriters",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "sodaFountain",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "sportsEquipment",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "stampAndCoinDealers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "stationers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "tattooParlor",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "telegraphOffice",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "theater",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "tobacconists",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "toyStore",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "upholsterers",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "watchmakers",
+   "family": "shops",
+   "upmarket": true
+  },
+  {
+   "id": "windowCleaners",
+   "family": "shops",
+   "upmarket": false
+  },
+  {
+   "id": "abattoir",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "builders",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "cementFactory",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "ceramics",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "chandler",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "leatherCurers",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "engineers",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "excavators",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "fabricators",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "factory",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "foodProcessors",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "freightForwarding",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "furriers",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "glaziers",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "iceHouse",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "ironmongers",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "joiners",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "junkYard",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "lumberYard",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "milkYard",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "packagingPlant",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "paperMill",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "sheetWorkers",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "steelMill",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "stoneMasons",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "tanners",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "textiles",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "weavers",
+   "family": "works",
+   "upmarket": false
+  },
+  {
+   "id": "wheelwrights",
+   "family": "works",
+   "upmarket": false
+  }
+ ],
+ "modules": [
+  {
+   "id": "terrace-court-v1",
+   "width": 34,
+   "depth": 34,
+   "plots": [
+    {
+     "index": 0,
+     "x": 0,
+     "y": 0,
+     "w": 10,
+     "h": 10,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 1,
+     "x": 10,
+     "y": 0,
+     "w": 14,
+     "h": 10,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 2,
+     "x": 24,
+     "y": 0,
+     "w": 10,
+     "h": 10,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 3,
+     "x": 0,
+     "y": 10,
+     "w": 10,
+     "h": 14,
+     "facing": "west",
+     "use": "homes",
+     "vacant": true,
+     "setback": 0.4
+    },
+    {
+     "index": 5,
+     "x": 24,
+     "y": 10,
+     "w": 10,
+     "h": 14,
+     "facing": "east",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 6,
+     "x": 0,
+     "y": 24,
+     "w": 12,
+     "h": 10,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 7,
+     "x": 12,
+     "y": 24,
+     "w": 10,
+     "h": 10,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 8,
+     "x": 22,
+     "y": 24,
+     "w": 12,
+     "h": 10,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 4,
+     "x": 14,
+     "y": 14,
+     "w": 6,
+     "h": 6,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 1.2
+    }
+   ],
+   "grounds": [
+    {
+     "x": 10,
+     "y": 10,
+     "w": 14,
+     "h": 14,
+     "surface": "gravel"
+    },
+    {
+     "x": 0.6,
+     "y": 10.6,
+     "w": 8.8,
+     "h": 12.8,
+     "surface": "lawn"
+    },
+    {
+     "x": 10,
+     "y": 10,
+     "w": 4,
+     "h": 4,
+     "surface": "lawn"
+    },
+    {
+     "x": 20,
+     "y": 10,
+     "w": 4,
+     "h": 4,
+     "surface": "lawn"
+    },
+    {
+     "x": 10,
+     "y": 20,
+     "w": 4,
+     "h": 4,
+     "surface": "lawn"
+    },
+    {
+     "x": 20,
+     "y": 20,
+     "w": 4,
+     "h": 4,
+     "surface": "lawn"
+    }
+   ],
+   "trees": [
+    {
+     "x": 12,
+     "y": 12
+    },
+    {
+     "x": 22,
+     "y": 22
+    }
+   ]
+  },
+  {
+   "id": "residential-row-v1",
+   "width": 34,
+   "depth": 34,
+   "plots": [
+    {
+     "index": 0,
+     "x": 0,
+     "y": 0,
+     "w": 10,
+     "h": 14,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 1,
+     "x": 10,
+     "y": 0,
+     "w": 14,
+     "h": 14,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 2,
+     "x": 24,
+     "y": 0,
+     "w": 10,
+     "h": 14,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 3,
+     "x": 0,
+     "y": 14,
+     "w": 14,
+     "h": 6,
+     "facing": "west",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 5,
+     "x": 20,
+     "y": 14,
+     "w": 14,
+     "h": 6,
+     "facing": "east",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 6,
+     "x": 0,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 7,
+     "x": 12,
+     "y": 20,
+     "w": 10,
+     "h": 14,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 8,
+     "x": 22,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 4,
+     "x": 14,
+     "y": 14,
+     "w": 6,
+     "h": 6,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 1.2
+    }
+   ],
+   "grounds": [
+    {
+     "x": 14,
+     "y": 14,
+     "w": 6,
+     "h": 6,
+     "surface": "gravel"
+    }
+   ],
+   "trees": []
+  },
+  {
+   "id": "corner-shops-v2",
+   "width": 34,
+   "depth": 34,
+   "plots": [
+    {
+     "index": 0,
+     "x": 0,
+     "y": 0,
+     "w": 10,
+     "h": 14,
+     "facing": "north",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 1,
+     "x": 10,
+     "y": 0,
+     "w": 14,
+     "h": 14,
+     "facing": "north",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 2,
+     "x": 24,
+     "y": 0,
+     "w": 10,
+     "h": 14,
+     "facing": "north",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 3,
+     "x": 0,
+     "y": 14,
+     "w": 14,
+     "h": 6,
+     "facing": "west",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 5,
+     "x": 20,
+     "y": 14,
+     "w": 14,
+     "h": 6,
+     "facing": "east",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 6,
+     "x": 0,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 7,
+     "x": 12,
+     "y": 20,
+     "w": 10,
+     "h": 14,
+     "facing": "south",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 8,
+     "x": 22,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 4,
+     "x": 14,
+     "y": 14,
+     "w": 6,
+     "h": 6,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 1.2
+    }
+   ],
+   "grounds": [
+    {
+     "x": 14,
+     "y": 14,
+     "w": 6,
+     "h": 6,
+     "surface": "gravel"
+    }
+   ],
+   "trees": []
+  },
+  {
+   "id": "mercantile-court-v2",
+   "width": 34,
+   "depth": 34,
+   "plots": [
+    {
+     "index": 0,
+     "x": 0,
+     "y": 0,
+     "w": 10,
+     "h": 14,
+     "facing": "north",
+     "use": "business",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 1,
+     "x": 10,
+     "y": 0,
+     "w": 14,
+     "h": 14,
+     "facing": "north",
+     "use": "business",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 2,
+     "x": 24,
+     "y": 0,
+     "w": 10,
+     "h": 14,
+     "facing": "north",
+     "use": "business",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 3,
+     "x": 0,
+     "y": 14,
+     "w": 14,
+     "h": 6,
+     "facing": "west",
+     "use": "business",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 5,
+     "x": 20,
+     "y": 14,
+     "w": 14,
+     "h": 6,
+     "facing": "east",
+     "use": "business",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 6,
+     "x": 0,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "business",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 7,
+     "x": 12,
+     "y": 20,
+     "w": 10,
+     "h": 14,
+     "facing": "south",
+     "use": "business",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 8,
+     "x": 22,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "business",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 4,
+     "x": 14,
+     "y": 14,
+     "w": 6,
+     "h": 6,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 1.2
+    }
+   ],
+   "grounds": [
+    {
+     "x": 14,
+     "y": 14,
+     "w": 6,
+     "h": 6,
+     "surface": "gravel"
+    }
+   ],
+   "trees": []
+  },
+  {
+   "id": "works-court-v1",
+   "width": 34,
+   "depth": 34,
+   "plots": [
+    {
+     "index": 0,
+     "x": 0,
+     "y": 0,
+     "w": 10,
+     "h": 14,
+     "facing": "north",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 1,
+     "x": 10,
+     "y": 0,
+     "w": 14,
+     "h": 14,
+     "facing": "north",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 2,
+     "x": 24,
+     "y": 0,
+     "w": 10,
+     "h": 14,
+     "facing": "north",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 3,
+     "x": 0,
+     "y": 14,
+     "w": 14,
+     "h": 6,
+     "facing": "west",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 5,
+     "x": 20,
+     "y": 14,
+     "w": 14,
+     "h": 6,
+     "facing": "east",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 6,
+     "x": 0,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 7,
+     "x": 12,
+     "y": 20,
+     "w": 10,
+     "h": 14,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 8,
+     "x": 22,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 4,
+     "x": 14,
+     "y": 14,
+     "w": 6,
+     "h": 6,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 1.2
+    }
+   ],
+   "grounds": [
+    {
+     "x": 14,
+     "y": 14,
+     "w": 6,
+     "h": 6,
+     "surface": "gravel"
+    }
+   ],
+   "trees": []
+  },
+  {
+   "id": "terrace-row-v1",
+   "width": 88,
+   "depth": 34,
+   "plots": [
+    {
+     "index": 0,
+     "x": 0,
+     "y": 0,
+     "w": 12,
+     "h": 10,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 1,
+     "x": 12,
+     "y": 0,
+     "w": 14,
+     "h": 10,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 2,
+     "x": 26,
+     "y": 0,
+     "w": 12,
+     "h": 10,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 3,
+     "x": 38,
+     "y": 0,
+     "w": 12,
+     "h": 10,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 5,
+     "x": 50,
+     "y": 0,
+     "w": 14,
+     "h": 10,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 6,
+     "x": 64,
+     "y": 0,
+     "w": 12,
+     "h": 10,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 7,
+     "x": 76,
+     "y": 0,
+     "w": 12,
+     "h": 10,
+     "facing": "north",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 8,
+     "x": 0,
+     "y": 24,
+     "w": 12,
+     "h": 10,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 9,
+     "x": 12,
+     "y": 24,
+     "w": 14,
+     "h": 10,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 10,
+     "x": 26,
+     "y": 24,
+     "w": 12,
+     "h": 10,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 11,
+     "x": 38,
+     "y": 24,
+     "w": 12,
+     "h": 10,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 12,
+     "x": 50,
+     "y": 24,
+     "w": 14,
+     "h": 10,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 13,
+     "x": 64,
+     "y": 24,
+     "w": 12,
+     "h": 10,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 14,
+     "x": 76,
+     "y": 24,
+     "w": 12,
+     "h": 10,
+     "facing": "south",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 15,
+     "x": 0,
+     "y": 10,
+     "w": 10,
+     "h": 10,
+     "facing": "west",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 16,
+     "x": 78,
+     "y": 10,
+     "w": 10,
+     "h": 10,
+     "facing": "east",
+     "use": "homes",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 4,
+     "x": 38,
+     "y": 10,
+     "w": 10,
+     "h": 10,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 1.2
+    }
+   ],
+   "grounds": [
+    {
+     "x": 0,
+     "y": 10,
+     "w": 88,
+     "h": 14,
+     "surface": "gravel"
+    },
+    {
+     "x": 12,
+     "y": 10,
+     "w": 12,
+     "h": 10,
+     "surface": "lawn"
+    },
+    {
+     "x": 26,
+     "y": 10,
+     "w": 10,
+     "h": 10,
+     "surface": "lawn"
+    },
+    {
+     "x": 50,
+     "y": 10,
+     "w": 12,
+     "h": 10,
+     "surface": "lawn"
+    },
+    {
+     "x": 64,
+     "y": 10,
+     "w": 12,
+     "h": 10,
+     "surface": "lawn"
+    }
+   ],
+   "trees": [
+    {
+     "x": 18,
+     "y": 15
+    },
+    {
+     "x": 70,
+     "y": 15
+    }
+   ]
+  },
+  {
+   "id": "shopping-row-v2",
+   "width": 88,
+   "depth": 34,
+   "plots": [
+    {
+     "index": 0,
+     "x": 0,
+     "y": 0,
+     "w": 10,
+     "h": 14,
+     "facing": "north",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 1,
+     "x": 10,
+     "y": 0,
+     "w": 14,
+     "h": 18,
+     "facing": "north",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 2,
+     "x": 24,
+     "y": 0,
+     "w": 14,
+     "h": 18,
+     "facing": "north",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 3,
+     "x": 38,
+     "y": 0,
+     "w": 10,
+     "h": 14,
+     "facing": "north",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 5,
+     "x": 48,
+     "y": 0,
+     "w": 14,
+     "h": 18,
+     "facing": "north",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 6,
+     "x": 62,
+     "y": 0,
+     "w": 16,
+     "h": 18,
+     "facing": "north",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 7,
+     "x": 78,
+     "y": 0,
+     "w": 10,
+     "h": 14,
+     "facing": "north",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 8,
+     "x": 0,
+     "y": 20,
+     "w": 10,
+     "h": 14,
+     "facing": "south",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 9,
+     "x": 10,
+     "y": 18,
+     "w": 14,
+     "h": 16,
+     "facing": "south",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 10,
+     "x": 24,
+     "y": 18,
+     "w": 14,
+     "h": 16,
+     "facing": "south",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 11,
+     "x": 38,
+     "y": 20,
+     "w": 10,
+     "h": 14,
+     "facing": "south",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 12,
+     "x": 48,
+     "y": 18,
+     "w": 14,
+     "h": 16,
+     "facing": "south",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 13,
+     "x": 62,
+     "y": 18,
+     "w": 16,
+     "h": 16,
+     "facing": "south",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 14,
+     "x": 78,
+     "y": 20,
+     "w": 10,
+     "h": 14,
+     "facing": "south",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 15,
+     "x": 0,
+     "y": 14,
+     "w": 10,
+     "h": 6,
+     "facing": "west",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 16,
+     "x": 78,
+     "y": 14,
+     "w": 10,
+     "h": 6,
+     "facing": "east",
+     "use": "shops",
+     "vacant": false,
+     "setback": 0
+    },
+    {
+     "index": 4,
+     "x": 38,
+     "y": 14,
+     "w": 10,
+     "h": 6,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 1.2
+    }
+   ],
+   "grounds": [
+    {
+     "x": 38,
+     "y": 14,
+     "w": 10,
+     "h": 6,
+     "surface": "gravel"
+    }
+   ],
+   "trees": []
+  },
+  {
+   "id": "works-row-v1",
+   "width": 88,
+   "depth": 34,
+   "plots": [
+    {
+     "index": 0,
+     "x": 0,
+     "y": 0,
+     "w": 12,
+     "h": 14,
+     "facing": "north",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 1,
+     "x": 12,
+     "y": 0,
+     "w": 14,
+     "h": 14,
+     "facing": "north",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 2,
+     "x": 26,
+     "y": 0,
+     "w": 12,
+     "h": 14,
+     "facing": "north",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 3,
+     "x": 38,
+     "y": 0,
+     "w": 12,
+     "h": 14,
+     "facing": "north",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 5,
+     "x": 50,
+     "y": 0,
+     "w": 14,
+     "h": 14,
+     "facing": "north",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 6,
+     "x": 64,
+     "y": 0,
+     "w": 12,
+     "h": 14,
+     "facing": "north",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 7,
+     "x": 76,
+     "y": 0,
+     "w": 12,
+     "h": 14,
+     "facing": "north",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 8,
+     "x": 0,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 9,
+     "x": 12,
+     "y": 20,
+     "w": 14,
+     "h": 14,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 10,
+     "x": 26,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 11,
+     "x": 38,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 12,
+     "x": 50,
+     "y": 20,
+     "w": 14,
+     "h": 14,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 13,
+     "x": 64,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 14,
+     "x": 76,
+     "y": 20,
+     "w": 12,
+     "h": 14,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 15,
+     "x": 0,
+     "y": 14,
+     "w": 10,
+     "h": 4,
+     "facing": "west",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 16,
+     "x": 78,
+     "y": 14,
+     "w": 10,
+     "h": 4,
+     "facing": "east",
+     "use": "works",
+     "vacant": false,
+     "setback": 0.4
+    },
+    {
+     "index": 4,
+     "x": 38,
+     "y": 14,
+     "w": 10,
+     "h": 6,
+     "facing": "south",
+     "use": "works",
+     "vacant": false,
+     "setback": 1.2
+    }
+   ],
+   "grounds": [
+    {
+     "x": 0,
+     "y": 14,
+     "w": 88,
+     "h": 6,
+     "surface": "gravel"
+    }
+   ],
+   "trees": []
+  }
+ ],
+ "families": {
+  "homes": [
+   "tenementPoor",
+   "tenementMid",
+   "tenementMid",
+   "tenementRich"
+  ],
+  "shops": [
+   "grocers",
+   "bakers",
+   "butchers",
+   "convenienceStore",
+   "shoeStore",
+   "tailors",
+   "bookStore",
+   "pawnbroker",
+   "jewellers",
+   "furrier",
+   "drugStore",
+   "plumbers",
+   "cafe",
+   "milkBar",
+   "breakfastBar",
+   "restaurant",
+   "poolHall",
+   "gym",
+   "healthCenter",
+   "massageParlor",
+   "danceStudio",
+   "barbers",
+   "laundry",
+   "hardwareStore",
+   "autoShop"
+  ],
+  "business": [
+   "bankSmall",
+   "bankLarge",
+   "financeCompany",
+   "hotelSmall",
+   "hotelLarge",
+   "departmentStore",
+   "accountancy",
+   "lawFirm",
+   "school",
+   "library",
+   "firehouse",
+   "labourExchange"
+  ],
+  "works": [
+   "warehouse",
+   "garageDepot",
+   "printers",
+   "foundry",
+   "mill",
+   "cannery",
+   "tradeUnion"
+  ]
+ },
+ "names": {
+  "newspapers": [
+   "Saint Volstead Herald",
+   "Saint Volstead Post",
+   "Saint Volstead Tribune",
+   "Saint Volstead Times"
+  ],
+  "streets_ns": [
+   "Wabash",
+   "Clark",
+   "Dearborn",
+   "State",
+   "Halsted",
+   "Ashland",
+   "Racine",
+   "Morgan",
+   "Sangamon",
+   "Peoria",
+   "Carpenter",
+   "Laflin",
+   "Wood",
+   "Paulina",
+   "Hermitage",
+   "Wolcott",
+   "Damen",
+   "Leavitt",
+   "Oakley",
+   "Claremont"
+  ],
+  "streets_ew": [
+   "Madison",
+   "Monroe",
+   "Adams",
+   "Jackson",
+   "Van Buren",
+   "Harrison",
+   "Polk",
+   "Taylor",
+   "Roosevelt",
+   "Maxwell",
+   "Cermak",
+   "Archer",
+   "Pershing",
+   "Garfield",
+   "Lawrence",
+   "Belmont",
+   "Fullerton",
+   "Diversey",
+   "Addison",
+   "Irving"
+  ],
+  "parks": [
+   "Volstead Green",
+   "Hinge Oak",
+   "Lantern Park",
+   "Cinder Gardens"
+  ],
+  "churches": [
+   "St. Michael’s",
+   "St. Mary’s",
+   "St. Joseph’s",
+   "St. Patrick’s"
+  ]
+ }
+}
