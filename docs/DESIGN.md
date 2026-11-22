@@ -129,7 +129,7 @@ Positions between ticks: 1.2.91 interpolates with `subMinute` (`src/sim/sim.ts:1
 ### 2.5 Saves
 
 - The Ada core writes one versioned binary save buffer (`Save_Version` 1, header: magic, version, build id, seeds, week). The host stores it.
-- IndexedDB database name stays `original-gangster`, object store `saves` (as `src/app/save.ts:40-42`), so existing browser storage and save-slot UI behaviour do not change. The name is internal and never shown.
+- The IndexedDB database keeps the same internal name and object store `saves` as the TypeScript build (`src/app/save.ts:40-42`), so existing browser storage and save-slot UI behaviour do not change. The name is internal and never shown.
 - A TypeScript (1.2.x JSON) save is not loadable in the Ada build (the formats differ); the slot list shows it as "made with the TypeScript build". **Proposed.**
 - Auto's learned state (1.2.91 `BEGIN AUTO TEST LEARNED STATE` block) is saved in its own small buffer.
 

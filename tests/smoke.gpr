@@ -1,0 +1,15 @@
+--  Native smoke test: every hs_ export once, contracts on (-gnata).
+--  Run ./build.sh first: it writes obj/gen/hood-version.ads.
+project Smoke is
+   for Source_Dirs use ("../src", "../obj/gen", ".");
+   for Object_Dir use "../obj/native";
+   for Exec_Dir use "../obj/native";
+   for Main use ("smoke.adb");
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-gnat2022", "-gnata", "-gnatwa", "-gnatwe", "-O2");
+   end Compiler;
+   package Binder is
+      for Default_Switches ("Ada") use ("-static");
+   end Binder;
+end Smoke;
