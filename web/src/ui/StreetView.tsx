@@ -3,9 +3,13 @@ import React, { useEffect, useRef } from 'react';
 import { City } from '../city';
 import { StreetScene } from '../street/scene';
 
-interface Props { city: City; selected: number; onSelect: (lot: number) => void; turnSignal: number; visible: boolean; label: string }
+interface Props {
+  city: City; selected: number; onSelect: (lot: number) => void; turnSignal: number; visible: boolean; label: string;
+  people: Int32Array | null; gangColours: number[]; person: number; onPerson: (person: number) => void;
+  focus: { x: number; y: number; n: number } | null;
+}
 
-export function StreetView({ city, selected, onSelect, turnSignal, visible, label }: Props) {
+export function StreetView({ city, selected, onSelect, turnSignal, visible, label, people, gangColours, person, onPerson, focus }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const scene = useRef<StreetScene | null>(null);
 
@@ -20,6 +24,8 @@ export function StreetView({ city, selected, onSelect, turnSignal, visible, labe
   useEffect(() => { scene.current?.setCity(city); }, [city]);
   useEffect(() => { scene.current?.select(selected); }, [selected, city]);
   useEffect(() => { if (turnSignal) scene.current?.turn(); }, [turnSignal]);
+  useEffect(() => { if (people) scene.current?.setPeople(people, gangColours, person); }, [people, gangColours, person, city]);
+  useEffect(() => { if (focus) scene.current?.lookAt(focus.x, focus.y); }, [focus]);
   useEffect(() => { if (visible) scene.current?.update(); }, [visible]);
 
   // Dragging pans; a press that does not move selects. Two pointers pinch.
@@ -49,7 +55,10 @@ export function StreetView({ city, selected, onSelect, turnSignal, visible, labe
       }
     };
     const up = (e: PointerEvent) => {
-      if (pointers.size === 1 && moved < 4 && scene.current) onSelect(scene.current.pick(e.clientX, e.clientY));
+      if (pointers.size === 1 && moved < 4 && scene.current) {
+        const hit = scene.current.pick(e.clientX, e.clientY);
+        if (hit.person >= 0) onPerson(hit.person); else onSelect(hit.lot);
+      }
       pointers.delete(e.pointerId);
       if (pointers.size < 2) pinch = 0;
     };
@@ -64,7 +73,7 @@ export function StreetView({ city, selected, onSelect, turnSignal, visible, labe
       c.removeEventListener('pointerup', up); c.removeEventListener('pointercancel', up);
       c.removeEventListener('wheel', wheel);
     };
-  }, [onSelect]);
+  }, [onSelect, onPerson]);
 
   // Arrow keys pan, + and - zoom (not while typing in a field).
   useEffect(() => {

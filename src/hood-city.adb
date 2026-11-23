@@ -16,6 +16,27 @@ package body Hood.City is
       return Hood.Units.Units (I);
    end To_Units;
 
+   procedure Count_Built (C : in out City_State) is
+      Used : array (Hood.Tables.Type_Id) of Boolean := [others => False];
+   begin
+      C.Built_Class := [others => 0];
+      C.Built_Types := 0;
+      for I in 0 .. C.Building_Count - 1 loop
+         if not C.Buildings (I).Removed then
+            declare
+               T : constant Hood.Tables.Type_Id := C.Buildings (I).Kind_Of;
+               K : constant Hood.Tables.Building_Class := Hood.Tables.Type_Class (T);
+            begin
+               C.Built_Class (K) := C.Built_Class (K) + 1;
+               if not Used (T) then
+                  Used (T) := True;
+                  C.Built_Types := C.Built_Types + 1;
+               end if;
+            end;
+         end if;
+      end loop;
+   end Count_Built;
+
    procedure Generate
      (C      : out City_State;
       Main   : in out Hood.Random.Mulberry;
@@ -45,6 +66,7 @@ package body Hood.City is
       C.Rng_After_City := Hood.Random.State (Main);
       C.City_Hash := City_Hash (C);
       C.Structure_Hash := Structure_Hash (C);
+      Count_Built (C);
       if C.Standard and then C.Status = Status_Ok then
          Hood.City.Standard.Place_Headquarters (C, Seed);
       end if;
@@ -221,5 +243,15 @@ package body Hood.City is
       end if;
       Add_Building (C, Lot, Kind_Of, Hood.Tables.No_Kind, B);
    end Replace_Building;
+
+   procedure Starting_Sites
+     (C     : City_State;
+      Gang  : Integer_32;
+      Taken : Building_Flags;
+      Sites : out Starting_Site_List;
+      Count : out Integer_32) is
+   begin
+      Hood.City.Standard.Starting_Sites (C, Gang, Taken, Sites, Count);
+   end Starting_Sites;
 
 end Hood.City;

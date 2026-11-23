@@ -1,10 +1,10 @@
-// The Debug drawer: the checks of steps 1 to 3 against 1.2.91 values, the
+// The Debug drawer: the checks of steps 1 to 4 against 1.2.91 values, the
 // test sound and the crash test.
 import React from 'react';
 import { City } from '../city';
-import { hex, u32 } from '../core';
+import { COUNT, Exports, hex, u32 } from '../core';
 import { Key } from '../i18n';
-import { CITY_REFS, EXPECTED_CHECKS, REF_INT, REF_MAIN, REF_PLAN } from '../references';
+import { CITY_REFS, EXPECTED_CHECKS, PEOPLE_REFS, REF_INT, REF_MAIN, REF_PLAN } from '../references';
 
 type T = (key: Key, vars?: Record<string, string | number>) => string;
 
@@ -28,11 +28,22 @@ export function cityReference(city: City) {
 const Cell = ({ v, expect }: { v: number; expect: number }) => <td className={v === expect ? "ok" : "bad"}>{v}</td>;
 
 interface Props {
-  t: T; stamp: string; buildId: number | null; stateHash: number | null; step2: Step2 | null; city: City | null;
+  t: T; stamp: string; buildId: number | null; stateHash: number | null; step2: Step2 | null; city: City | null; core: Exports | null;
   onClose: () => void; onSound: () => void; onCrash: () => void;
 }
 
-export function DebugDrawer({ t, stamp, buildId, stateHash, step2, city, onClose, onSound, onCrash }: Props) {
+export function DebugDrawer({ t, stamp, buildId, stateHash, step2, city, core, onClose, onSound, onCrash }: Props) {
+  const pref = city ? PEOPLE_REFS.find(r => r.w === city.w && r.h === city.h && r.seed === city.seed) ?? null : null;
+  const joined = (lo: number, hi: number) => core ? u32(core.hs_count(lo) | (core.hs_count(hi) << 16)) : 0;
+  const peopleRows: [string, number, number | null][] = core && city ? [
+    [t('d_people'), core.hs_count(COUNT.people), pref?.people ?? null],
+    [t('d_rng'), joined(COUNT.setupLow, COUNT.setupHigh), pref?.rngSetup ?? null],
+    ...['people', 'positions', 'opinions', 'names'].map((k, i): [string, number, number | null] =>
+      [`${k} hash`, u32(core.hs_population_hash(i + 1)), pref?.hashes[i] ?? null]),
+    // Shown once week 1 has run its first minute (0 before).
+    [t('d_minute1'), joined(COUNT.m1Low, COUNT.m1High), pref?.rngMinute1 ?? null],
+  ] : [];
+  const peopleMatch = peopleRows.filter(([, v, r]) => r !== null && u32(v) === u32(r)).length;
   const ref = city ? cityReference(city) : null;
   const cityRows: [string, number, number | null][] = city ? [
     [t('d_rng'), city.rngAfter, ref?.rng ?? null],
@@ -54,6 +65,20 @@ export function DebugDrawer({ t, stamp, buildId, stateHash, step2, city, onClose
   return (
     <aside className="drawer" aria-label={t('d_title')}>
       <header><h2>{t('d_title')}</h2><button className="close" onClick={onClose} aria-label={t('d_close')}>×</button></header>
+
+      {core && city && (
+        <section>
+          <h3>{t('d_step4')}</h3>
+          <p className="sum">{pref ? t('d_match', { n: peopleMatch, m: peopleRows.length }) : t('d_no_ref')}</p>
+          <table><tbody>
+            {peopleRows.map(([k, v, r]) => (
+              <tr key={k}><th>{k}</th>
+                {r === null ? <td>{u32(v)}</td> : <Cell v={u32(v)} expect={u32(r)} />}
+                <td>{r === null ? '' : u32(r)}</td></tr>
+            ))}
+          </tbody></table>
+        </section>
+      )}
 
       <section>
         <h3>{t('d_step3')}</h3>

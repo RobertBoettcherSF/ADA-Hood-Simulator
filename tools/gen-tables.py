@@ -167,6 +167,121 @@ w(f"   Family_Total : constant := {len(flist)};")
 w("   Family_Types : constant array (Integer_32 range 0 .. Family_Total - 1) of Listed_Type :=")
 w("     [" + wrap([str(x) for x in flist], 6).lstrip() + "];")
 w("")
+# People (step 4): roles, skills, name pools, hood types, attitudes, rival
+# profiles and the hiring places' quotas.
+pe = data["people"]
+roles = pe["roles"]
+w("   --  People (step 4)")
+w("   type Role is")
+w("     (" + wrap(["R_" + ada_name(r) for r in roles], 6).lstrip() + ");")
+w("   type Skill is")
+w("     (" + wrap([ada_name(k) for k in pe["skills"]], 6).lstrip() + ");")
+w("")
+# One text with every name; pools are runs of name numbers.
+name_list = []
+def pool(names):
+    start = len(name_list)
+    name_list.extend(names)
+    return start, len(names)
+pools = {}
+for key in ("male_first", "female_first", "surnames", "nicknames", "gang_surnames"):
+    pools[key] = pool(pe[key])
+her = pe["heritages"]
+her_pools = [(pool(h["male"]), pool(h["female"]), pool(h["surnames"])) for h in her]
+text = "".join(name_list)
+assert all(ord(c) < 128 and c != '"' for c in text)
+starts, k = [], 0
+for n in name_list:
+    starts.append(k)
+    k += len(n)
+w(f"   Name_Count : constant := {len(name_list)};")
+w("   subtype Name_Id is Integer_32 range 0 .. Name_Count - 1;")
+w("   No_Name : constant := -1;")
+chunks = [text[i:i + 60] for i in range(0, len(text), 60)]
+w("   Name_Text : constant String :=")
+w("     " + "\n     & ".join('"' + c + '"' for c in chunks) + ";")
+w("   Name_Start : constant array (Name_Id) of Integer_32 :=")
+w("     [" + wrap([str(x + 1) for x in starts], 6).lstrip() + "];")
+w("   Name_Length : constant array (Name_Id) of Integer_32 :=")
+w("     [" + wrap([str(len(n)) for n in name_list], 6).lstrip() + "];")
+w("   type Name_Pool is (Male_First, Female_First, Surnames, Nicknames, Gang_Surnames);")
+w("   Pool_First : constant array (Name_Pool) of Name_Id :=")
+w("     [" + ", ".join(str(pools[k][0]) for k in ("male_first", "female_first", "surnames", "nicknames", "gang_surnames")) + "];")
+w("   Pool_Length : constant array (Name_Pool) of Integer_32 :=")
+w("     [" + ", ".join(str(pools[k][1]) for k in ("male_first", "female_first", "surnames", "nicknames", "gang_surnames")) + "];")
+w(f"   Heritage_Count : constant := {len(her)};")
+w("   subtype Heritage_Id is Integer_32 range 0 .. Heritage_Count - 1;")
+for i, h in enumerate(her):
+    w(f"   H_{ada_name(h['id'].replace('-', '_').title().replace('_', ''))} : constant := {i};")
+for name, idx in (("Heritage_Male_First", 0), ("Heritage_Male_Count", 0), ("Heritage_Female_First", 1),
+                  ("Heritage_Female_Count", 1), ("Heritage_Surname_First", 2), ("Heritage_Surname_Count", 2)):
+    part = 0 if name.endswith("First") else 1
+    w(f"   {name} : constant array (Heritage_Id) of Integer_32 :=")
+    w("     [" + ", ".join(str(hp[idx][part]) for hp in her_pools) + "];")
+gs = pe["gang_surnames"]
+def heritage_of(surname):
+    for i, h in enumerate(her):
+        if surname in h["surnames"]:
+            return i
+    return -1
+anglo = [h["id"] for h in her].index("anglo")
+w("   --  The heritage of each gang surname (anglo when no heritage has it).")
+w("   Gang_Surname_Heritage : constant array (Integer_32 range 0 .. " + str(len(gs) - 1) + ") of Heritage_Id :=")
+w("     [" + ", ".join(str(heritage_of(s) if heritage_of(s) >= 0 else anglo) for s in gs) + "];")
+pl = pe["player"]
+plain = lambda s: "".join(c for c in s.lower() if "a" <= c <= "z")
+twin = [i for i, s in enumerate(gs) if plain(s) == plain(pl["last"])]
+w("   --  The player's boss (proposed, as 1.2.91's default new game).")
+w(f"   Player_First : constant Name_Id := {pools['male_first'][0] + pe['male_first'].index(pl['first'])};")
+w(f"   Player_Last : constant Name_Id := {pools['surnames'][0] + pe['surnames'].index(pl['last'])};")
+w(f"   Player_Heritage : constant Heritage_Id := {heritage_of(pl['last']) if heritage_of(pl['last']) >= 0 else [h['id'] for h in her].index('italian')};")
+w(f"   Player_Gang_Surname : constant Integer_32 := {twin[0] if twin else -1};  --  its twin among the gang surnames")
+w("")
+ht = pe["hood_types"]
+w(f"   Hood_Type_Count : constant := {len(ht)};")
+w("   subtype Hood_Type is Integer_32 range 0 .. Hood_Type_Count - 1;")
+w("   Hood_Weight : constant array (Hood_Type) of Integer_32 :=")
+w("     [" + ", ".join(str(t["weight"]) for t in ht) + "];")
+w("   Hood_Business : constant array (Hood_Type) of Boolean :=")
+w("     [" + wrap(["True" if t["business"] else "False" for t in ht], 6).lstrip() + "];")
+w("   type Skill_Row is array (Skill) of Integer_32;")
+w("   Hood_Base : constant array (Hood_Type) of Skill_Row :=")
+w("     [" + wrap(["[" + ", ".join(str(r[0]) for r in t["rows"]) + "]" for t in ht], 6).lstrip() + "];")
+w("   Hood_Range : constant array (Hood_Type) of Skill_Row :=")
+w("     [" + wrap(["[" + ", ".join(str(r[1]) for r in t["rows"]) + "]" for t in ht], 6).lstrip() + "];")
+w("")
+ac = pe["attitude_classes"]
+w("   type Attitude_Class is")
+w("     (" + wrap(["A_" + ada_name(c["id"]) for c in ac], 6).lstrip() + ");")
+for field, name in (("hostility", "Hostility"), ("fear", "Fear")):
+    w(f"   {name}_Base : constant array (Attitude_Class) of Integer_32 :=")
+    w("     [" + ", ".join(str(c[field][0]) for c in ac) + "];")
+    w(f"   {name}_Range : constant array (Attitude_Class) of Integer_32 :=")
+    w("     [" + ", ".join(str(c[field][1]) for c in ac) + "];")
+w("   Fear_Adds_Hostility : constant array (Attitude_Class) of Boolean :=")
+w("     [" + wrap(["True" if c["fear_adds_hostility"] else "False" for c in ac], 6).lstrip() + "];")
+w("   Role_Class : constant array (Role) of Attitude_Class :=")
+w("     [" + wrap(["A_" + ada_name(pe["role_class"][r]) for r in roles], 6).lstrip() + "];")
+w("")
+rp = pe["rival_profiles"]
+w(f"   Profile_Count : constant := {len(rp)};")
+w("   type Profile_Row is array (Integer_32 range 0 .. 6) of Integer_32;")
+w("   Rival_Profile : constant array (Integer_32 range 0 .. Profile_Count - 1) of Profile_Row :=")
+w("     [" + wrap(["[" + ", ".join(str(x) for x in r) + "]" for r in rp], 6).lstrip() + "];")
+w("")
+rq = pe["recruit_quotas"]
+w(f"   Quota_Count : constant := {len(rq)};")
+w("   subtype Quota_Id is Integer_32 range 0 .. Quota_Count - 1;")
+w("   Quota_Type : constant array (Quota_Id) of Listed_Type :=")
+w("     [" + ", ".join(str(tindex[q["type"]]) for q in rq) + "];")
+w("   Quota_Role : constant array (Quota_Id) of Role :=")
+w("     [" + ", ".join("R_" + ada_name(q["role"]) for q in rq) + "];")
+w("   Quota_People : constant array (Quota_Id) of Integer_32 :=")
+w("     [" + ", ".join(str(q["count"]) for q in rq) + "];")
+w("")
+w("   Type_Profit : constant array (Type_Id) of Integer_32 :=")
+w("     [" + wrap([str(int(t["profit"])) for t in types] + ["0"], 6).lstrip() + "];")
+w("")
 w("end Hood.Tables;")
 (ROOT / "src/hood-tables.ads").write_text("\n".join(out) + "\n", encoding="utf-8")
 print(f"src/hood-tables.ads: {len(types)} types, {len(kinds)} kinds, {len(trades)} trades, "
@@ -181,5 +296,9 @@ ts.append("export const PARK_NAMES: readonly string[] = " + json.dumps(data["nam
 ts.append("export const CHURCH_NAMES: readonly string[] = " + json.dumps(data["names"]["churches"], ensure_ascii=False) + ";")
 ts.append("export const STREETS_NS: readonly string[] = " + json.dumps(data["names"]["streets_ns"], ensure_ascii=False) + ";")
 ts.append("export const STREETS_EW: readonly string[] = " + json.dumps(data["names"]["streets_ew"], ensure_ascii=False) + ";")
+ts.append("export const NAMES: readonly string[] = " + json.dumps(name_list, ensure_ascii=False) + ";")
+ts.append("export const ROLES: readonly string[] = " + json.dumps(roles) + ";")
+ts.append("export const SKILLS: readonly string[] = " + json.dumps(pe["skills"]) + ";")
+ts.append("export const HERITAGES: readonly string[] = " + json.dumps([h["label"] for h in her], ensure_ascii=False) + ";")
 (ROOT / "web/src/tables.ts").write_text("\n".join(ts) + "\n", encoding="utf-8")
 print(f"web/src/tables.ts: {len(types) + 1} type names")

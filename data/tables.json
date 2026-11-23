@@ -6789,5 +6789,2041 @@
    "St. Joseph’s",
    "St. Patrick’s"
   ]
+ },
+ "people": {
+  "roles": [
+   "boss",
+   "lieutenant",
+   "hood",
+   "accountant",
+   "lawyer",
+   "citizen",
+   "owner",
+   "police",
+   "firefighter",
+   "policeChief",
+   "fbi",
+   "fbiHead",
+   "judge",
+   "da",
+   "mayor",
+   "reporter",
+   "clergy",
+   "snitch"
+  ],
+  "skills": [
+   "intelligence",
+   "organization",
+   "business",
+   "firearms",
+   "fists",
+   "knives",
+   "arson",
+   "explosives",
+   "intimidation",
+   "driving",
+   "stealth"
+  ],
+  "male_first": [
+   "Alphonse",
+   "Vito",
+   "Salvatore",
+   "Frank",
+   "Johnny",
+   "Tommy",
+   "Angelo",
+   "Rocco",
+   "Carmine",
+   "Dominic",
+   "Enzo",
+   "Gino",
+   "Luigi",
+   "Marco",
+   "Nico",
+   "Paulie",
+   "Sal",
+   "Tony",
+   "Vinnie",
+   "Bugsy",
+   "Dutch",
+   "Lefty",
+   "Moe",
+   "Jake",
+   "Abe",
+   "Sam",
+   "Meyer",
+   "Solly",
+   "Hymie",
+   "Sean",
+   "Declan",
+   "Patrick",
+   "Liam",
+   "Eamon",
+   "Rory",
+   "Mickey",
+   "Fergus",
+   "Brendan",
+   "Walter",
+   "Harold",
+   "Clarence",
+   "Chester",
+   "Herbert",
+   "Raymond",
+   "Ernest",
+   "Floyd",
+   "Otto",
+   "Klaus",
+   "Heinrich",
+   "Wilhelm",
+   "Stefan",
+   "Anton",
+   "Ludwig",
+   "Amos",
+   "Cyrus",
+   "Silas",
+   "Homer",
+   "Virgil",
+   "Emmett",
+   "Wilbur",
+   "Elmer",
+   "Orville"
+  ],
+  "female_first": [
+   "Rosa",
+   "Concetta",
+   "Maria",
+   "Angelina",
+   "Lucia",
+   "Carmela",
+   "Gina",
+   "Nina",
+   "Sofia",
+   "Bridget",
+   "Maureen",
+   "Nora",
+   "Colleen",
+   "Kathleen",
+   "Siobhan",
+   "Aileen",
+   "Ruth",
+   "Esther",
+   "Sadie",
+   "Belle",
+   "Pearl",
+   "Mabel",
+   "Hazel",
+   "Edna",
+   "Vera",
+   "Opal",
+   "Dorothy",
+   "Gladys",
+   "Mildred",
+   "Beatrice",
+   "Constance",
+   "Harriet",
+   "Florence",
+   "Greta",
+   "Ilse",
+   "Anneliese",
+   "Hilde",
+   "Marlene",
+   "Lillian",
+   "Wilma",
+   "Norma",
+   "Thelma",
+   "Bessie",
+   "Myrtle",
+   "Ada"
+  ],
+  "surnames": [
+   "Capone",
+   "Moretti",
+   "Bellini",
+   "Ricci",
+   "Costa",
+   "Rinaldi",
+   "Marino",
+   "Gallo",
+   "Fontana",
+   "Genovese",
+   "Lombardi",
+   "Barbieri",
+   "Vitale",
+   "Ferrante",
+   "Bruno",
+   "Greco",
+   "Rizzo",
+   "OConnell",
+   "Doyle",
+   "Kelly",
+   "Sullivan",
+   "Murphy",
+   "Flanagan",
+   "Gallagher",
+   "Quinn",
+   "Byrne",
+   "Donnelly",
+   "Fitzgerald",
+   "Rourke",
+   "Maguire",
+   "Brennan",
+   "Rosenberg",
+   "Goldstein",
+   "Weiss",
+   "Kaplan",
+   "Lansky",
+   "Bernstein",
+   "Shapiro",
+   "Roth",
+   "Schmidt",
+   "Braun",
+   "Wagner",
+   "Keller",
+   "Hoffman",
+   "Zimmer",
+   "Krause",
+   "Bauer",
+   "Kowalski",
+   "Nowak",
+   "Wozniak",
+   "Zielinski",
+   "Jankowski",
+   "Whitaker",
+   "Ashford",
+   "Carmichael",
+   "Blackwood",
+   "Hollis",
+   "Vance",
+   "Sterling",
+   "Marsh",
+   "Doyle",
+   "Crane",
+   "Hargrove",
+   "Pemberton",
+   "Locke",
+   "Radcliffe",
+   "Winslow",
+   "Petrov",
+   "Sokolov",
+   "Ivanov",
+   "Volkov",
+   "Papadakis",
+   "Stavros",
+   "Kostas"
+  ],
+  "nicknames": [
+   "Scarface",
+   "The Enforcer",
+   "Bugs",
+   "Baby Face",
+   "Pretty Boy",
+   "Lucky",
+   "The Waiter",
+   "Machine Gun",
+   "The Chin",
+   "Three Fingers",
+   "The Cigar",
+   "Ice Pick",
+   "Knuckles",
+   "The Weasel",
+   "Fats",
+   "Slim",
+   "The Ghost",
+   "Nails",
+   "Trigger",
+   "Whitey",
+   "Doc",
+   "The Butcher",
+   "Sleepy",
+   "Cricket",
+   "Half-Moon",
+   "Tick-Tock",
+   "Silk",
+   "Curly"
+  ],
+  "gang_surnames": [
+   "Moretti",
+   "OConnell",
+   "Rosenberg",
+   "Vanetti",
+   "Delgado",
+   "Kowalski",
+   "Bellini",
+   "Doyle",
+   "Marchetti",
+   "Sullivan",
+   "Weiss",
+   "Corvino"
+  ],
+  "heritages": [
+   {
+    "id": "african-american",
+    "label": "African American",
+    "male": [
+     "Clarence",
+     "Amos",
+     "Floyd",
+     "Ellis",
+     "Jesse",
+     "Otis",
+     "Rufus",
+     "Willie",
+     "Booker",
+     "Luther",
+     "Calvin",
+     "Odell"
+    ],
+    "female": [
+     "Pearl",
+     "Bessie",
+     "Hazel",
+     "Mattie",
+     "Viola",
+     "Ida",
+     "Lula",
+     "Minnie"
+    ],
+    "surnames": [
+     "Washington",
+     "Jefferson",
+     "Coleman",
+     "Freeman",
+     "Banks",
+     "Tillman",
+     "Haywood",
+     "Hollins",
+     "Mosley",
+     "Gaines",
+     "Pruitt",
+     "Dawson"
+    ]
+   },
+   {
+    "id": "anglo",
+    "label": "Anglo-American",
+    "male": [
+     "Walter",
+     "Clarence",
+     "Chester",
+     "Harold",
+     "Herbert",
+     "Leonard",
+     "Raymond",
+     "Everett",
+     "Howard",
+     "Lloyd",
+     "Russell",
+     "Wesley"
+    ],
+    "female": [
+     "Dorothy",
+     "Mildred",
+     "Edna",
+     "Gladys",
+     "Irene",
+     "Myrtle",
+     "Agnes",
+     "Vera"
+    ],
+    "surnames": [
+     "Whitaker",
+     "Carmichael",
+     "Pemberton",
+     "Ashford",
+     "Blakely",
+     "Hollis",
+     "Prescott",
+     "Thornton",
+     "Granger",
+     "Whitfield",
+     "Kendall",
+     "Hartley"
+    ]
+   },
+   {
+    "id": "chinese",
+    "label": "Chinese",
+    "male": [
+     "Henry",
+     "Walter",
+     "Eddie",
+     "Tommy",
+     "Albert",
+     "Johnny",
+     "Frank",
+     "Sam",
+     "George",
+     "Harry"
+    ],
+    "female": [
+     "Mae",
+     "Lillian",
+     "Rose",
+     "Ruby",
+     "Grace",
+     "Alice"
+    ],
+    "surnames": [
+     "Lee",
+     "Wong",
+     "Chin",
+     "Chan",
+     "Fong",
+     "Lum",
+     "Yee",
+     "Quan",
+     "Moy",
+     "Louie"
+    ]
+   },
+   {
+    "id": "german",
+    "label": "German",
+    "male": [
+     "Otto",
+     "Heinrich",
+     "Ludwig",
+     "Fritz",
+     "Hans",
+     "Karl",
+     "Werner",
+     "Max",
+     "Franz",
+     "Wilhelm",
+     "Emil",
+     "Gustav"
+    ],
+    "female": [
+     "Greta",
+     "Hilde",
+     "Ilse",
+     "Frieda",
+     "Marta",
+     "Klara",
+     "Liesl",
+     "Erna"
+    ],
+    "surnames": [
+     "Schmidt",
+     "Keller",
+     "Bauer",
+     "Wagner",
+     "Weber",
+     "Hoffmann",
+     "Kruger",
+     "Fischer",
+     "Becker",
+     "Schulz",
+     "Vogel",
+     "Braun"
+    ]
+   },
+   {
+    "id": "greek",
+    "label": "Greek",
+    "male": [
+     "Nikos",
+     "Kostas",
+     "Yannis",
+     "Dimitri",
+     "Spiros",
+     "Christos",
+     "Vasilis",
+     "Andreas",
+     "Petros",
+     "Stelios"
+    ],
+    "female": [
+     "Eleni",
+     "Sophia",
+     "Katerina",
+     "Despina",
+     "Irini",
+     "Anastasia"
+    ],
+    "surnames": [
+     "Papadakis",
+     "Stavros",
+     "Kostas",
+     "Pappas",
+     "Karras",
+     "Demos",
+     "Galanis",
+     "Vlahos",
+     "Manos",
+     "Lykos"
+    ]
+   },
+   {
+    "id": "irish",
+    "label": "Irish",
+    "male": [
+     "Declan",
+     "Brendan",
+     "Mickey",
+     "Fergus",
+     "Seamus",
+     "Liam",
+     "Cormac",
+     "Dermot",
+     "Owen",
+     "Paddy",
+     "Kieran",
+     "Ronan"
+    ],
+    "female": [
+     "Bridget",
+     "Maureen",
+     "Nora",
+     "Siobhan",
+     "Kathleen",
+     "Peggy",
+     "Eileen",
+     "Molly"
+    ],
+    "surnames": [
+     "Doyle",
+     "Flanagan",
+     "Maguire",
+     "OConnell",
+     "Sullivan",
+     "Callahan",
+     "Brennan",
+     "Keane",
+     "Murphy",
+     "Quinlan",
+     "Dolan",
+     "Hennessy"
+    ]
+   },
+   {
+    "id": "italian",
+    "label": "Italian",
+    "male": [
+     "Salvatore",
+     "Rocco",
+     "Carmine",
+     "Vito",
+     "Angelo",
+     "Enzo",
+     "Luigi",
+     "Marco",
+     "Paolo",
+     "Domenico",
+     "Sal",
+     "Nunzio",
+     "Tony",
+     "Frankie",
+     "Gino",
+     "Aldo"
+    ],
+    "female": [
+     "Concetta",
+     "Rosa",
+     "Carmela",
+     "Lucia",
+     "Gina",
+     "Teresa",
+     "Filomena",
+     "Angela"
+    ],
+    "surnames": [
+     "Moretti",
+     "Rinaldi",
+     "Ferrante",
+     "Vanetti",
+     "Corvino",
+     "Bellini",
+     "Marchetti",
+     "Ricci",
+     "Costa",
+     "Lombardi",
+     "Esposito",
+     "Greco",
+     "Russo",
+     "Romano",
+     "Santoro"
+    ]
+   },
+   {
+    "id": "jewish",
+    "label": "Jewish",
+    "male": [
+     "Meyer",
+     "Abe",
+     "Solly",
+     "Moe",
+     "Izzy",
+     "Benny",
+     "Hymie",
+     "Sam",
+     "Lou",
+     "Morris",
+     "Irving",
+     "Nat"
+    ],
+    "female": [
+     "Esther",
+     "Sadie",
+     "Ruth",
+     "Miriam",
+     "Rivka",
+     "Bella",
+     "Fanny",
+     "Goldie"
+    ],
+    "surnames": [
+     "Rosenberg",
+     "Kaplan",
+     "Shapiro",
+     "Weiss",
+     "Goldberg",
+     "Levine",
+     "Feldman",
+     "Siegel",
+     "Abrams",
+     "Horowitz",
+     "Adler",
+     "Bernstein"
+    ]
+   },
+   {
+    "id": "mexican",
+    "label": "Mexican",
+    "male": [
+     "Miguel",
+     "Rafael",
+     "Ernesto",
+     "Jose",
+     "Luis",
+     "Ramon",
+     "Alfonso",
+     "Joaquin",
+     "Arturo",
+     "Ignacio"
+    ],
+    "female": [
+     "Guadalupe",
+     "Rosa",
+     "Elena",
+     "Consuelo",
+     "Dolores",
+     "Lupita",
+     "Carmen",
+     "Juana"
+    ],
+    "surnames": [
+     "Delgado",
+     "Ramirez",
+     "Castillo",
+     "Morales",
+     "Herrera",
+     "Navarro",
+     "Fuentes",
+     "Ortega",
+     "Salazar",
+     "Mendoza"
+    ]
+   },
+   {
+    "id": "polish",
+    "label": "Polish",
+    "male": [
+     "Stefan",
+     "Anton",
+     "Kazimierz",
+     "Jan",
+     "Tadeusz",
+     "Wojciech",
+     "Jozef",
+     "Marek",
+     "Leon",
+     "Bronislaw"
+    ],
+    "female": [
+     "Wanda",
+     "Halina",
+     "Jadwiga",
+     "Zofia",
+     "Irena",
+     "Stasia"
+    ],
+    "surnames": [
+     "Kowalski",
+     "Nowak",
+     "Zielinski",
+     "Wisniewski",
+     "Lewandowski",
+     "Kaminski",
+     "Mazur",
+     "Sobczak",
+     "Pawlak",
+     "Dudek"
+    ]
+   }
+  ],
+  "hood_types": [
+   {
+    "name": "Poor Hood",
+    "weight": 25,
+    "business": false,
+    "rows": [
+     [
+      64,
+      64
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ]
+    ]
+   },
+   {
+    "name": "Poor Lt",
+    "weight": 25,
+    "business": false,
+    "rows": [
+     [
+      64,
+      192
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ]
+    ]
+   },
+   {
+    "name": "Average Hood",
+    "weight": 12,
+    "business": false,
+    "rows": [
+     [
+      64,
+      64
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ]
+    ]
+   },
+   {
+    "name": "Average Lt",
+    "weight": 12,
+    "business": false,
+    "rows": [
+     [
+      128,
+      128
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ],
+     [
+      16,
+      32
+     ]
+    ]
+   },
+   {
+    "name": "Superhood",
+    "weight": 1,
+    "business": false,
+    "rows": [
+     [
+      160,
+      96
+     ],
+     [
+      40,
+      24
+     ],
+     [
+      40,
+      24
+     ],
+     [
+      40,
+      24
+     ],
+     [
+      40,
+      24
+     ],
+     [
+      40,
+      24
+     ],
+     [
+      40,
+      24
+     ],
+     [
+      40,
+      24
+     ],
+     [
+      40,
+      24
+     ],
+     [
+      40,
+      24
+     ],
+     [
+      40,
+      24
+     ]
+    ]
+   },
+   {
+    "name": "Recruiter",
+    "weight": 5,
+    "business": false,
+    "rows": [
+     [
+      160,
+      96
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ]
+    ]
+   },
+   {
+    "name": "Business Hood",
+    "weight": 5,
+    "business": true,
+    "rows": [
+     [
+      96,
+      64
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      32,
+      16
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      16
+     ]
+    ]
+   },
+   {
+    "name": "Business Lt",
+    "weight": 5,
+    "business": true,
+    "rows": [
+     [
+      128,
+      128
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      32,
+      16
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      16
+     ]
+    ]
+   },
+   {
+    "name": "Extortion Hood",
+    "weight": 5,
+    "business": false,
+    "rows": [
+     [
+      96,
+      64
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      16
+     ]
+    ]
+   },
+   {
+    "name": "Extortion Lt",
+    "weight": 5,
+    "business": false,
+    "rows": [
+     [
+      128,
+      128
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      16
+     ]
+    ]
+   },
+   {
+    "name": "Arson Hood",
+    "weight": 5,
+    "business": false,
+    "rows": [
+     [
+      96,
+      64
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      32,
+      16
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ]
+    ]
+   },
+   {
+    "name": "Arson Lt",
+    "weight": 5,
+    "business": false,
+    "rows": [
+     [
+      128,
+      128
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      32,
+      16
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ]
+    ]
+   },
+   {
+    "name": "Explosives Hood",
+    "weight": 5,
+    "business": false,
+    "rows": [
+     [
+      96,
+      64
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      16
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ]
+    ]
+   },
+   {
+    "name": "Explosives Lt",
+    "weight": 5,
+    "business": false,
+    "rows": [
+     [
+      128,
+      128
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      16
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ]
+    ]
+   },
+   {
+    "name": "Firearms Hood",
+    "weight": 5,
+    "business": false,
+    "rows": [
+     [
+      96,
+      64
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ]
+    ]
+   },
+   {
+    "name": "Firearms Lt",
+    "weight": 5,
+    "business": false,
+    "rows": [
+     [
+      128,
+      128
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ]
+    ]
+   },
+   {
+    "name": "Fighting Hood",
+    "weight": 5,
+    "business": false,
+    "rows": [
+     [
+      96,
+      64
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ]
+    ]
+   },
+   {
+    "name": "Fighting Lt",
+    "weight": 5,
+    "business": false,
+    "rows": [
+     [
+      128,
+      128
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      32,
+      32
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      0,
+      40
+     ],
+     [
+      32,
+      32
+     ]
+    ]
+   }
+  ],
+  "attitude_classes": [
+   {
+    "id": "owner",
+    "hostility": [
+     20,
+     130
+    ],
+    "fear": [
+     -20,
+     100
+    ],
+    "fear_adds_hostility": true
+   },
+   {
+    "id": "civilian",
+    "hostility": [
+     20,
+     130
+    ],
+    "fear": [
+     -20,
+     100
+    ],
+    "fear_adds_hostility": true
+   },
+   {
+    "id": "illegalPerson",
+    "hostility": [
+     0,
+     256
+    ],
+    "fear": [
+     0,
+     128
+    ],
+    "fear_adds_hostility": false
+   },
+   {
+    "id": "hood",
+    "hostility": [
+     0,
+     256
+    ],
+    "fear": [
+     0,
+     128
+    ],
+    "fear_adds_hostility": false
+   },
+   {
+    "id": "police",
+    "hostility": [
+     0,
+     256
+    ],
+    "fear": [
+     0,
+     128
+    ],
+    "fear_adds_hostility": false
+   },
+   {
+    "id": "policeChief",
+    "hostility": [
+     128,
+     128
+    ],
+    "fear": [
+     0,
+     128
+    ],
+    "fear_adds_hostility": false
+   },
+   {
+    "id": "fbi",
+    "hostility": [
+     0,
+     256
+    ],
+    "fear": [
+     0,
+     128
+    ],
+    "fear_adds_hostility": false
+   },
+   {
+    "id": "fbiHead",
+    "hostility": [
+     128,
+     128
+    ],
+    "fear": [
+     0,
+     128
+    ],
+    "fear_adds_hostility": false
+   },
+   {
+    "id": "attorney",
+    "hostility": [
+     128,
+     128
+    ],
+    "fear": [
+     0,
+     128
+    ],
+    "fear_adds_hostility": false
+   },
+   {
+    "id": "judge",
+    "hostility": [
+     128,
+     128
+    ],
+    "fear": [
+     0,
+     128
+    ],
+    "fear_adds_hostility": false
+   },
+   {
+    "id": "mayor",
+    "hostility": [
+     128,
+     128
+    ],
+    "fear": [
+     0,
+     128
+    ],
+    "fear_adds_hostility": false
+   },
+   {
+    "id": "reporter",
+    "hostility": [
+     128,
+     128
+    ],
+    "fear": [
+     0,
+     128
+    ],
+    "fear_adds_hostility": false
+   },
+   {
+    "id": "religiousLeader",
+    "hostility": [
+     128,
+     128
+    ],
+    "fear": [
+     0,
+     128
+    ],
+    "fear_adds_hostility": false
+   }
+  ],
+  "role_class": {
+   "boss": "hood",
+   "lieutenant": "hood",
+   "hood": "hood",
+   "accountant": "illegalPerson",
+   "lawyer": "illegalPerson",
+   "citizen": "civilian",
+   "snitch": "civilian",
+   "owner": "owner",
+   "police": "police",
+   "firefighter": "police",
+   "policeChief": "policeChief",
+   "fbi": "fbi",
+   "fbiHead": "fbiHead",
+   "judge": "judge",
+   "da": "attorney",
+   "mayor": "mayor",
+   "reporter": "reporter",
+   "clergy": "religiousLeader"
+  },
+  "rival_profiles": [
+   [
+    10,
+    2,
+    0,
+    191,
+    63,
+    63,
+    0
+   ],
+   [
+    10,
+    4,
+    2,
+    191,
+    126,
+    127,
+    0
+   ],
+   [
+    10,
+    0,
+    1,
+    127,
+    80,
+    63,
+    0
+   ],
+   [
+    10,
+    12,
+    3,
+    191,
+    50,
+    127,
+    0
+   ],
+   [
+    5,
+    2,
+    1,
+    63,
+    80,
+    191,
+    0
+   ],
+   [
+    5,
+    4,
+    3,
+    63,
+    126,
+    127,
+    0
+   ],
+   [
+    5,
+    0,
+    0,
+    63,
+    126,
+    63,
+    0
+   ],
+   [
+    0,
+    12,
+    1,
+    63,
+    100,
+    255,
+    0
+   ],
+   [
+    10,
+    0,
+    2,
+    191,
+    63,
+    127,
+    1
+   ],
+   [
+    10,
+    12,
+    1,
+    191,
+    192,
+    63,
+    1
+   ],
+   [
+    5,
+    4,
+    0,
+    191,
+    126,
+    191,
+    1
+   ],
+   [
+    5,
+    8,
+    2,
+    63,
+    191,
+    63,
+    1
+   ],
+   [
+    5,
+    0,
+    3,
+    127,
+    126,
+    63,
+    1
+   ],
+   [
+    5,
+    4,
+    2,
+    63,
+    63,
+    191,
+    1
+   ],
+   [
+    0,
+    0,
+    0,
+    127,
+    192,
+    127,
+    1
+   ],
+   [
+    0,
+    8,
+    3,
+    63,
+    191,
+    127,
+    1
+   ],
+   [
+    5,
+    2,
+    1,
+    127,
+    126,
+    127,
+    2
+   ],
+   [
+    5,
+    0,
+    1,
+    63,
+    192,
+    127,
+    2
+   ],
+   [
+    0,
+    4,
+    1,
+    63,
+    192,
+    191,
+    2
+   ],
+   [
+    0,
+    8,
+    1,
+    0,
+    255,
+    0,
+    2
+   ],
+   [
+    0,
+    12,
+    1,
+    127,
+    192,
+    127,
+    2
+   ],
+   [
+    0,
+    8,
+    1,
+    63,
+    192,
+    63,
+    2
+   ],
+   [
+    0,
+    4,
+    1,
+    0,
+    255,
+    191,
+    2
+   ],
+   [
+    0,
+    0,
+    1,
+    63,
+    192,
+    127,
+    2
+   ]
+  ],
+  "recruit_quotas": [
+   {
+    "type": "accountancy",
+    "role": "accountant",
+    "count": 1
+   },
+   {
+    "type": "bankLarge",
+    "role": "accountant",
+    "count": 5
+   },
+   {
+    "type": "lawFirm",
+    "role": "lawyer",
+    "count": 1
+   },
+   {
+    "type": "gym",
+    "role": "hood",
+    "count": 2
+   },
+   {
+    "type": "poolHall",
+    "role": "hood",
+    "count": 2
+   },
+   {
+    "type": "docks",
+    "role": "hood",
+    "count": 5
+   },
+   {
+    "type": "courthouse",
+    "role": "lawyer",
+    "count": 5
+   },
+   {
+    "type": "labourExchange",
+    "role": "hood",
+    "count": 5
+   }
+  ],
+  "player": {
+   "first": "Johnny",
+   "last": "Moretti",
+   "colour": "red"
+  }
  }
 }

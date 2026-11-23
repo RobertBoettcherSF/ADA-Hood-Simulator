@@ -14,4 +14,12 @@ private package Hood.City.Standard with Preelaborate is
    --  with Hood.Random.Headquarters_Seed. Records the four sites; the
    --  fronts and offices are built in step 4.
 
+   procedure Starting_Sites
+     (C     : City_State;
+      Gang  : Integer_32;
+      Taken : Building_Flags;
+      Sites : out Starting_Site_List;
+      Count : out Integer_32);
+   --  See Hood.City.Starting_Sites.
+
 end Hood.City.Standard;

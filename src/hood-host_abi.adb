@@ -1,6 +1,7 @@
 with System.Storage_Elements;
 with Hood.City;
 with Hood.Grid;
+with Hood.Population;
 with Hood.Random;
 with Hood.Tables;
 with Hood.Trig;
@@ -30,7 +31,25 @@ package body Hood.Host_ABI is
    Lot_Layer   : array (Integer_32 range 0 .. Hood.City.Max_Lots * Lot_Stride - 1)
      of Integer_32;
 
+   People_Layer : array (Integer_32 range 0 .. Hood.Population.Max_People * People_Stride - 1)
+     of Integer_32;
+
    function B2I (B : Boolean) return Integer_32 is (if B then 1 else 0);
+
+   procedure Fill_People is
+      S : Hood.Population.Population_State renames World.People;
+      K : Integer_32;
+   begin
+      for I in 0 .. S.Count - 1 loop
+         K := I * People_Stride;
+         People_Layer (K) := Integer_32 (S.People (I).X);
+         People_Layer (K + 1) := Integer_32 (S.People (I).Y);
+         People_Layer (K + 2) := Hood.Tables.Role'Pos (S.People (I).Kind);
+         People_Layer (K + 3) := Integer_32 (S.People (I).Gang);
+         People_Layer (K + 4) :=
+           B2I (S.People (I).Building /= Hood.City.No_Id and then not S.People (I).Walking);
+      end loop;
+   end Fill_People;
 
    function Class_Of (T : Hood.Tables.Type_Id) return Integer_32 is
      (Hood.Tables.Building_Class'Pos (Hood.Tables.Type_Class (T)));
@@ -76,7 +95,57 @@ package body Hood.Host_ABI is
          Clamp (Blocks_Y, Hood.Grid.Min_Blocks, Hood.Grid.Max_Blocks_Y));
       Started := True;
       Fill_Layers;
+      Fill_People;
    end New_Game;
+
+   procedure Launch_Week is
+   begin
+      if Started then
+         Hood.World.Launch_Week (World);
+      end if;
+   end Launch_Week;
+
+   function Tick (Minutes : Integer_32) return Integer_32 is
+      Ran : Integer_32 := 0;
+   begin
+      if Started then
+         Hood.World.Run_Minutes (World, Clamp (Minutes, 0, Hood.Population.Minutes_Per_Week), Ran);
+         Fill_People;
+      end if;
+      return Ran;
+   end Tick;
+
+   procedure Finish_Week is
+   begin
+      if Started then
+         Hood.World.Finish_Week (World);
+         Fill_People;
+      end if;
+   end Finish_Week;
+
+   function Name_Char (Person, Index : Integer_32) return Integer_32 is
+   begin
+      if not Started or else Person not in 0 .. World.People.Count - 1
+        or else Index not in 1 .. Hood.Population.Full_Name_Length (World.People.People (Person))
+      then
+         return 0;
+      end if;
+      return Character'Pos (Hood.Population.Full_Name_Char (World.People.People (Person), Index));
+   end Name_Char;
+
+   function Population_Hash (Which : Integer_32) return Unsigned_32 is
+   begin
+      if not Started or else World.City.Status /= Hood.City.Status_Ok then
+         return 0;
+      end if;
+      case Which is
+         when 1 => return Hood.Population.People_Hash (World.People, World.City);
+         when 2 => return Hood.Population.Position_Hash (World.People);
+         when 3 => return Hood.Population.Opinion_Hash (World.People);
+         when 4 => return Hood.Population.Name_Hash (World.People);
+         when others => return 0;
+      end case;
+   end Population_Hash;
 
    function City_Hash return Unsigned_32 is
      (if Started then World.City.City_Hash else 0);
@@ -104,6 +173,29 @@ package body Hood.Host_ABI is
          when Count_Edge      => return C.Industrial_Edge;
          when Count_Rng_Low   => return Integer_32 (C.Rng_After_City and 16#FFFF#);
          when Count_Rng_High  => return Integer_32 (Shift_Right (C.Rng_After_City, 16));
+         when Count_People     => return World.People.Count;
+         when Count_Next_Id    => return World.People.Next_Id;
+         when Count_Week       => return World.People.Week;
+         when Count_Minute     => return World.People.Minute;
+         when Count_Phase      => return Hood.Population.Phase_Kind'Pos (World.People.Phase);
+         when Count_Game_Over  => return B2I (World.People.Game_Over);
+         when Count_Pop_Status => return World.People.Status;
+         when Count_Draws_Week => return World.People.Draws_This_Week;
+         when Count_Setup_Low  => return Integer_32 (World.People.Rng_After_Setup and 16#FFFF#);
+         when Count_Setup_High => return Integer_32 (Shift_Right (World.People.Rng_After_Setup, 16));
+         when Count_M1_Low     => return Integer_32 (World.People.Rng_After_Minute_1 and 16#FFFF#);
+         when Count_M1_High    => return Integer_32 (Shift_Right (World.People.Rng_After_Minute_1, 16));
+         when Count_Built_Class .. Count_Built_Class + 7 =>
+            return C.Built_Class (Hood.Tables.Building_Class'Val (What - Count_Built_Class));
+         when Count_Built_Types => return C.Built_Types;
+         when Count_Walking =>
+            for I in 0 .. World.People.Count - 1 loop
+               N := N + B2I (World.People.People (I).Walking);
+            end loop;
+         when Count_Role .. Count_Role + 17 =>
+            for I in 0 .. World.People.Count - 1 loop
+               N := N + B2I (Hood.Tables.Role'Pos (World.People.People (I).Kind) = What - Count_Role);
+            end loop;
          when Count_Merged =>
             for I in 0 .. C.Block_Count - 1 loop
                N := N + B2I (C.Blocks (I).Merged_Into /= Hood.City.No_Id);
@@ -212,6 +304,98 @@ package body Hood.Host_ABI is
                   when others      => return 0;
                end case;
             end;
+         when Table_Person =>
+            if Index not in 0 .. World.People.Count - 1 then
+               return 0;
+            end if;
+            declare
+               P : Hood.Population.Person_Rec renames World.People.People (Index);
+               G : constant Integer_32 := Integer_32 (P.Gang);
+            begin
+               case Field is
+                  when F_P_Id          => return P.Id;
+                  when F_P_Role        => return Hood.Tables.Role'Pos (P.Kind);
+                  when F_P_Gang        => return G;
+                  when F_P_Female      => return B2I (P.Female);
+                  when F_P_Portrait    => return Integer_32 (P.Portrait);
+                  when F_P_Pay         => return P.Pay;
+                  when F_P_Demand      => return P.Demand;
+                  when F_P_Loyalty     => return P.Loyalty;
+                  when F_P_Team        => return P.Team;
+                  when F_P_Building    => return P.Building;
+                  when F_P_X           => return Integer_32 (P.X);
+                  when F_P_Y           => return Integer_32 (P.Y);
+                  when F_P_Walking     => return B2I (P.Walking);
+                  when F_P_Status      => return Hood.Population.Status_Kind'Pos (P.Status);
+                  when F_P_Hostility   =>
+                     return (if G = 0 then -1 else Hood.Population.Hostility_Of (P, G));
+                  when F_P_Fear        =>
+                     return (if G = 0 then -1 else Hood.Population.Fear_Of (P, G));
+                  when F_P_Name_Length => return Hood.Population.Full_Name_Length (P);
+                  when F_P_Skill .. F_P_Skill + 10 =>
+                     return Integer_32 (P.Skills (Hood.Tables.Skill'Val (Field - F_P_Skill)));
+                  when F_P_Opinion + 1 .. F_P_Opinion + 4 =>
+                     return Integer_32 (P.Opinion (Field - F_P_Opinion));
+                  when others          => return 0;
+               end case;
+            end;
+         when Table_Gang | Table_Crew | Table_Pool =>
+            if Index not in Hood.Population.Gang_Id then
+               return 0;
+            end if;
+            declare
+               G : Hood.Population.Gang_Rec renames World.People.Gangs (Index);
+            begin
+               if Table = Table_Crew then
+                  return (if Field in 1 .. G.Crew_Count then G.Crew (Integer (Field)) else -1);
+               elsif Table = Table_Pool then
+                  return (if Field in 1 .. G.Pool_Count then G.Pool (Integer (Field)) else -1);
+               end if;
+               case Field is
+                  when F_G_Colour      => return G.Colour;
+                  when F_G_Surname     => return G.Surname;
+                  when F_G_Player      => return B2I (G.Player);
+                  when F_G_Profile     => return G.Profile;
+                  when F_G_Boss        => return G.Boss;
+                  when F_G_Cash        => return G.Cash;
+                  when F_G_Office      => return G.Office;
+                  when F_G_Front       => return G.Front;
+                  when F_G_Manager     => return G.Manager;
+                  when F_G_Team        => return G.Team;
+                  when F_G_Lieutenant  => return G.Lieutenant;
+                  when F_G_Crew_Count  => return G.Crew_Count;
+                  when F_G_Pool_Count  => return G.Pool_Count;
+                  when F_G_Pistols     => return G.Pistols;
+                  when F_G_Coupes      => return G.Coupes;
+                  when F_G_Crew_Pistols => return G.Crew_Pistols;
+                  when F_G_Crew_Coupes => return G.Crew_Coupes;
+                  when F_G_Wages       => return G.Wages;
+                  when F_G_Eliminated  => return B2I (G.Eliminated);
+                  when F_G_Heritage    => return Integer_32 (G.Heritage);
+                  when F_G_Offered + 1 .. F_G_Offered + 4 =>
+                     return Hood.Population.Stance'Pos (G.Offered (Field - F_G_Offered));
+                  when others          => return 0;
+               end case;
+            end;
+         when Table_Premises =>
+            if Index not in 0 .. C.Building_Count - 1 then
+               return 0;
+            end if;
+            declare
+               E : Hood.Population.Building_Extra renames World.People.Extra (Index);
+            begin
+               case Field is
+                  when F_Pr_Owner_Gang     => return Integer_32 (E.Owner_Gang);
+                  when F_Pr_Owner_Person   => return E.Owner_Person;
+                  when F_Pr_Manager        => return E.Manager;
+                  when F_Pr_Protect_Gang   => return Integer_32 (E.Protect_Gang);
+                  when F_Pr_Protect_Weekly => return E.Protect_Weekly;
+                  when F_Pr_Front_Of       => return E.Front_Of;
+                  when F_Pr_Hides          => return E.Hides;
+                  when F_Pr_HQ             => return B2I (E.Is_HQ);
+                  when others              => return 0;
+               end case;
+            end;
          when Table_HQ =>
             if Index not in 1 .. C.HQ_Count then
                return 0;
@@ -235,6 +419,7 @@ package body Hood.Host_ABI is
       case Layer is
          when Layer_Blocks => return Unsigned_32'Mod (To_Integer (Block_Layer'Address));
          when Layer_Lots   => return Unsigned_32'Mod (To_Integer (Lot_Layer'Address));
+         when Layer_People => return Unsigned_32'Mod (To_Integer (People_Layer'Address));
          when others       => return 0;
       end case;
    end Draw_Ptr;
@@ -244,6 +429,7 @@ package body Hood.Host_ABI is
       else (case Layer is
                when Layer_Blocks => World.City.Block_Count * Block_Stride,
                when Layer_Lots   => World.City.Lot_Count * Lot_Stride,
+               when Layer_People => World.People.Count * People_Stride,
                when others       => 0));
 
    function Rng_Value (Stream, Index : Integer_32) return Unsigned_32 is

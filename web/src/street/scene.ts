@@ -1,7 +1,9 @@
 // The street view: the generated city as simple shapes. Ground, streets and
 // block slabs, one box per building lot (height from its storeys, colour
 // from its class), low slabs for empty land, flags on the headquarters
-// sites. Buildings are instanced, so even the Large city is a few draw calls.
+// offices (item 4) and the people as small figures coloured by role or gang.
+// Buildings and people are instanced, so even the Large city is a few draw
+// calls.
 import * as THREE from 'three';
 import { CELL, City, blockRect } from '../city';
 import { CameraState, DISTANCE, ZOOM_START, clampTarget, clampZoom, dragged, towardsCamera, viewHeight } from './camera';
@@ -15,6 +17,10 @@ const STOREY = 4.2;        // metres per storey (proposed)
 const SLAB = 0.3;          // pavement slab height
 const MARGIN = 0.8;        // gap between neighbouring buildings
 const FINE = CELL / 5;     // the headquarters' fine cells
+const FIGURE_H = 1.8, FIGURE_W = 0.9;   // a walker, metres (proposed)
+/** Walker colours by role (ROLES order); gang members take their gang's colour. */
+export const ROLE_COLOURS = ['#f1d58f', '#f1d58f', '#f1d58f', '#d8d0b8', '#d8d0b8', '#b9ab8f', '#8c6a46', '#1f3f8f',
+  '#c0392b', '#14286a', '#111111', '#111111', '#6b3f8f', '#6b3f8f', '#6b3f8f', '#e5c84a', '#f4f0e6', '#6f8f6a'];
 
 export class StreetScene {
   readonly renderer: THREE.WebGLRenderer;
@@ -25,6 +31,10 @@ export class StreetScene {
   private buildings: THREE.InstancedMesh | null = null;
   private lotOfInstance: number[] = [];
   private outline: THREE.LineSegments;
+  private walkers: THREE.InstancedMesh | null = null;
+  private personOfInstance: number[] = [];
+  private gangColour: number[] = [0, 0, 1, 2, 3];
+  private ring: THREE.Mesh;
   private raycaster = new THREE.Raycaster();
   view: CameraState = { x: 0, z: 0, zoom: ZOOM_START, turned: false };
   private frame = 0;
@@ -44,6 +54,10 @@ export class StreetScene {
       new THREE.LineBasicMaterial({ color: 0xffe28a }));
     this.outline.visible = false;
     this.scene.add(this.outline);
+    this.ring = new THREE.Mesh(new THREE.RingGeometry(1.4, 2.2, 24), new THREE.MeshBasicMaterial({ color: 0xffe28a, side: THREE.DoubleSide }));
+    this.ring.rotation.x = -Math.PI / 2;
+    this.ring.visible = false;
+    this.scene.add(this.ring);
   }
 
   setCity(city: City) {
@@ -86,16 +100,56 @@ export class StreetScene {
     this.buildings = boxes;
     this.group.add(boxes);
 
-    // Headquarters flags (Standard city): a pole on the front's fine cell.
+    // Gang flags on the offices (item 4): a pole and a flag in the gang's colour.
     for (const hq of city.hq) {
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 40, 8),
-        new THREE.MeshLambertMaterial({ color: GANG_COLOURS[(hq.gang - 1) % 4] }));
+      const material = new THREE.MeshLambertMaterial({ color: GANG_COLOURS[hq.colour % 4] });
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 40, 8), material);
       pole.position.set(hq.fx * FINE + FINE / 2, 20, hq.fy * FINE + FINE / 2);
       this.group.add(pole);
+      const flag = new THREE.Mesh(new THREE.BoxGeometry(12, 7, 0.4), material.clone());
+      flag.position.set(hq.fx * FINE + FINE / 2 + 6.5, 36, hq.fy * FINE + FINE / 2);
+      this.group.add(flag);
     }
+    this.walkers = null;
+    this.ring.visible = false;
     this.outline.visible = false;
     this.view = { x: width / 2, z: depth / 2, zoom: ZOOM_START, turned: false };
     this.update();
+  }
+
+  /** The people layer (x, y, role, gang, indoors per person): figures for
+   * everyone not indoors. gangColours maps gang number to colour index. */
+  setPeople(layer: Int32Array, gangColours: number[], selected: number) {
+    const count = layer.length / 5;
+    if (!this.walkers || this.walkers.instanceMatrix.count < count) {
+      if (this.walkers) { this.group.remove(this.walkers); this.walkers.geometry.dispose(); (this.walkers.material as THREE.Material).dispose(); }
+      const geometry = new THREE.CylinderGeometry(FIGURE_W / 2, FIGURE_W / 2, FIGURE_H, 6);
+      geometry.translate(0, FIGURE_H / 2 + SLAB, 0);
+      this.walkers = new THREE.InstancedMesh(geometry, new THREE.MeshLambertMaterial(), Math.max(count, 1));
+      this.walkers.frustumCulled = false;
+      this.group.add(this.walkers);
+    }
+    this.gangColour = gangColours;
+    const m = new THREE.Matrix4(), colour = new THREE.Color();
+    let n = 0;
+    this.personOfInstance.length = 0;
+    for (let i = 0; i < count; i++) {
+      const o = i * 5;
+      if (layer[o + 4] === 1) continue;
+      m.makeTranslation(layer[o] / 256, 0, layer[o + 1] / 256);
+      this.walkers.setMatrixAt(n, m);
+      const gang = layer[o + 3];
+      this.walkers.setColorAt(n++, colour.set(gang > 0 ? GANG_COLOURS[(this.gangColour[gang] ?? 0) % 4] : ROLE_COLOURS[layer[o + 2]] ?? '#ffffff'));
+      this.personOfInstance.push(i);
+      if (i === selected) { this.ring.position.set(layer[o] / 256, SLAB + 0.05, layer[o + 1] / 256); }
+    }
+    this.ring.visible = selected >= 0 && selected < count && layer[selected * 5 + 4] !== 1;
+    this.walkers.count = n;
+    this.walkers.instanceMatrix.needsUpdate = true;
+    if (this.walkers.instanceColor) this.walkers.instanceColor.needsUpdate = true;
+    this.walkers.computeBoundingSphere();
+    this.render();
+    return n;
   }
 
   select(lotId: number) {
@@ -135,14 +189,27 @@ export class StreetScene {
   turn() { this.view = { ...this.view, turned: !this.view.turned }; this.update(); }
   lookAt(x: number, z: number) { this.view = { ...this.view, x, z }; this.update(); }
 
-  /** The lot under a canvas point, or -1. */
-  pick(clientX: number, clientY: number): number {
-    if (!this.buildings) return -1;
+  /** What is under a canvas point: a person (nearest figure within a few
+   * pixels) or else a lot; -1 for nothing. */
+  pick(clientX: number, clientY: number): { person: number; lot: number } {
+    if (!this.buildings) return { person: -1, lot: -1 };
     const rect = this.renderer.domElement.getBoundingClientRect();
     const ndc = new THREE.Vector2(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+    if (this.walkers && this.walkers.count > 0) {
+      // Figures are tiny: take the nearest one on screen within 8 pixels.
+      const m = new THREE.Matrix4(), p = new THREE.Vector3();
+      let best = -1, bestD = 64;
+      for (let k = 0; k < this.walkers.count; k++) {
+        this.walkers.getMatrixAt(k, m);
+        p.setFromMatrixPosition(m).setY(SLAB + FIGURE_H / 2).project(this.camera);
+        const dx = (p.x - ndc.x) * rect.width / 2, dy = (p.y - ndc.y) * rect.height / 2, d = dx * dx + dy * dy;
+        if (d < bestD) { bestD = d; best = k; }
+      }
+      if (best >= 0) return { person: this.personOfInstance[best], lot: -1 };
+    }
     this.raycaster.setFromCamera(ndc, this.camera);
     const hit = this.raycaster.intersectObject(this.buildings, false)[0];
-    return hit?.instanceId != null ? this.lotOfInstance[hit.instanceId] : -1;
+    return { person: -1, lot: hit?.instanceId != null ? this.lotOfInstance[hit.instanceId] : -1 };
   }
 
   dispose() { cancelAnimationFrame(this.frame); this.renderer.dispose(); }

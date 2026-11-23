@@ -50,7 +50,7 @@ export function CityPlan({ city, selected, onSelect, label }: Props) {
       for (const hq of city.hq) {
         const x = (hq.fx + 0.5) * (CELL / 5), y = (hq.fy + 0.5) * (CELL / 5), s = 9 / scale;
         g.fillStyle = '#1b1208'; g.fillRect(x - 0.6 / scale, y - 2.2 * s, 1.2 / scale, 2.2 * s);
-        g.fillStyle = GANG_COLOURS[(hq.gang - 1) % 4];
+        g.fillStyle = GANG_COLOURS[hq.colour % 4];
         g.beginPath(); g.moveTo(x, y - 2.2 * s); g.lineTo(x + 1.6 * s, y - 1.7 * s); g.lineTo(x, y - 1.2 * s); g.fill();
       }
     };

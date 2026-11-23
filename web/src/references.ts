@@ -23,3 +23,14 @@ export const CITY_REFS: CityReference[] = [
   { w: 44, h: 35, seed: 1932, rng: 214220379, city: 1231309806, structure: 2436981367, blocks: 1540, merged: 209, lots: 13488, buildings: 13488, types: 166, hq: [] },
   { w: 40, h: 32, seed: 187, rng: 1183663024, city: 2335500783, structure: 2753879728, blocks: 1280, merged: 20, lots: 4733, buildings: 4733, types: 170, hq: [[11, 9], [29, 4], [9, 17], [25, 23]] },
 ];
+
+// Step 4: the people of 1.2.91's finished world (createWorld) and its
+// random state after minute 1 of week 1, rival planning off (hashes as
+// Hood.Population describes).
+export interface PeopleReference {
+  w: number; h: number; seed: number; people: number; rngSetup: number; rngMinute1: number; hashes: number[];
+}
+export const PEOPLE_REFS: PeopleReference[] = [
+  { w: 40, h: 32, seed: 1932, people: 8479, rngSetup: 532198006, rngMinute1: 3184470837, hashes: [762905189, 59061474, 867735307, 2325457386] },
+  { w: 44, h: 35, seed: 1932, people: 20879, rngSetup: 3696518514, rngMinute1: 2775660613, hashes: [4085821087, 1945027344, 3513816520, 825993883] },
+];

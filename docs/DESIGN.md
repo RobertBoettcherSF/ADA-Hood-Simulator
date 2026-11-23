@@ -168,7 +168,7 @@ The web-safe subset (D-001, PRACTICES "Web-safe Ada subset") allows no heap: eve
 |---|---|---|
 | Max_Blocks | 1,540 | 44 × 35 (`newGameValidation.ts:17`) |
 | Max_Lots, Max_Buildings | 18,480 | 12 per block on average. Measured in item 3: Large 1932 has 13,488 lots, Standard 1932 4,580, Small 1932 8,769; one block holds at most 17 (varied layout) or 9 (Standard) |
-| Max_People | 16,384 | civilians 6,000 + police 400 at 40×32, scaled ×1.2 for Large; owners, staff, officials; up to ~700 of our men at w88 (1.2.91 timeline); recruit pools |
+| Max_People | 24,576 | measured in item 4: seed 1932 sets up 8,479 people on Standard (ids 9,161–17,647) and 20,879 on Large (ids 27,006–47,892); headroom for up to ~700 of our men at w88 (1.2.91 timeline) and recruit pools |
 | Max_Gangs | 4 | four gang colours (`constants.ts:499-504`) |
 | Max_Teams | 48 | 12 per gang × 4 |
 | Max_Orders (live + last week) | 2,048 | 1.2.91 put forward 16,444 orders in 87 weeks (~190 a week, all gangs' Auto proposals included) |
@@ -296,30 +296,30 @@ The engine never asks who is deciding. Execution, movement, combat, police, FBI 
 11. Combat (`:345`), office defence (`:346`).
 12. Sightings (`:347`). Outcome check.
 
-The Ada tick keeps this order exactly; the 6 ambient slices exist in 1.2.91 to spread work over frames, and in Ada are one loop (**proposed**), because wasm runs a whole minute well inside a frame (to be measured in item 4).
+The Ada tick keeps this order exactly. Item 4 keeps the 6 ambient slices as well (id mod 6, each slice in id order), because the random draws must come in 1.2.91's order for the state after minute 1 to match; one loop, as first proposed, would change that order. A whole week runs in about 0.14 s (Standard) and 0.25 s (Large) in wasm under Node, so the slices are not needed for speed.
 
 ### 5.3 Settlement stages (`sim.ts:394-445`)
 
-| Stage | Work | 1.2.91 |
-|---|---|---|
-| 0 | fail unfinished orders, settle specialist jobs, burning escapes | `:395`, `failUnfinishedOrders` `:453` |
-| 1 | weekly economy | `:396`, `systems/economy.ts:75` |
-| 2 | taxes | `:397`, `systems/taxes.ts:16` |
-| 3 | audits | `:398`, `:511` |
-| 4 | law (police, courts) | `:399`, `systems/law.ts:16` |
-| 5 | FBI | `:400`, `systems/fbi.ts:236` |
-| 6 | opinion, charity | `:401`, `systems/opinion.ts:15` |
-| 7 | territory goodwill | `:402`, `systems/opinion.ts:163` |
-| 8 | politics | `:403`, `systems/politics.ts:17` |
-| 9 | news | `:404`, `systems/news.ts:14` |
-| 10 | diplomacy knowledge | `:405`, `:534` |
-| 11 | rebuild command | `:406`, `:570` |
-| 12 | history | `:407`, `:545` |
-| 13 | succession (boss dies → heir) | `:408`, `:646` |
-| 14 | reserved (empty) | `:409` |
-| 15 | end conditions; finances closed; game over if decided | `:410-422`, `:816` |
-| 16 | transport reset, week + 1, repairs, trading restarts, recruit pools refilled, police chief replaced, protection fear, finances opened, orders rolled over | `:423-434` |
-| 17 + g | rival planning for gang g (`planGang`), then phase = planning | `:435-445` |
+| Stage | Work | 1.2.91 | Ada step |
+|---|---|---|---|
+| 0 | fail unfinished orders, settle specialist jobs, burning escapes | `:395`, `failUnfinishedOrders` `:453` | 5 |
+| 1 | weekly economy | `:396`, `systems/economy.ts:75` | 4 (wages, loyalty, desertion); 8 (income) |
+| 2 | taxes | `:397`, `systems/taxes.ts:16` | 8 |
+| 3 | audits | `:398`, `:511` | 8 |
+| 4 | law (police, courts) | `:399`, `systems/law.ts:16` | 7 |
+| 5 | FBI | `:400`, `systems/fbi.ts:236` | 7 |
+| 6 | opinion, charity | `:401`, `systems/opinion.ts:15` | 8 |
+| 7 | territory goodwill | `:402`, `systems/opinion.ts:163` | 8 |
+| 8 | politics | `:403`, `systems/politics.ts:17` | 8 |
+| 9 | news | `:404`, `systems/news.ts:14` | 8 |
+| 10 | diplomacy knowledge | `:405`, `:534` | 9 |
+| 11 | rebuild command | `:406`, `:570` | 5 |
+| 12 | history | `:407`, `:545` | 8 |
+| 13 | succession (boss dies → heir) | `:408`, `:646` | 4 |
+| 14 | reserved (empty) | `:409` | — |
+| 15 | end conditions; finances closed; game over if decided | `:410-422`, `:816` | 4 (boss-dead check); 8 (finances, other end conditions) |
+| 16 | transport reset, week + 1, repairs, trading restarts, recruit pools refilled, police chief replaced, protection fear, finances opened, orders rolled over | `:423-434` | 4 (week + 1, recruit top-up); the rest 5–8 |
+| 17 + g | rival planning for gang g (`planGang`), then phase = planning | `:435-445` | 9 |
 
 ### 5.4 Order execution
 
@@ -374,6 +374,23 @@ Each subsection: rules (with 1.2.91 references), constants, what the player sees
 - Succession: boss dead → heir; player boss dead → game lost (`sim.ts:646`, `:799-801`).
 - Weekly loop and settlement: section 4.
 - Player-visible: own men's skills, pay, loyalty; the week log; "Other gangs seen" (identified rival men, `LieutenantsTab.tsx:548-551`).
+- **Step 4 outcome (v0.4.0):** people are set up in 1.2.91's exact draw order, and for seed 1932 the random state after setup and after minute 1 matches 1.2.91 on Standard and Large. Wages, pay demands and loyalty in weeks 1–3 also match for every gang member. Loyalty is kept in whole hundredths, so 70 % → 71.57 → 73.14 → 74.71 comes out exactly. Walking after minute 1 is an approximation: an L-shaped path (x first, then y) at `Walk_Step` = 138 units a minute (**proposed**, from 0.54 m a minute), instead of 1.2.91's pavement routes (step 6). From minute 2 on, the random state therefore drifts away from 1.2.91. The walking draws per day stay within +17 % of 1.2.91.
+- **Design tables and 1.2.91.** Step 4 uses only the design tables' people numbers. Where they differ from 1.2.91, 1.2.91 wins:
+
+| Value | Design tables | 1.2.91 (used) |
+|---|---|---|
+| Civilians at 40 × 32 | 2,000 | 6,000 |
+| Judges / district attorneys | 12 / 12 | 4 / 4 |
+| FBI agents | 100 | 5 |
+| Hoods per new gang | 5 | 5 plus a lieutenant |
+| Explosives in a new gang's stock | 3 | 0 |
+| Businesses per new gang | 1 | 3 |
+| Vehicles per new gang | 1 | 2 coupés |
+| Loyalty | a range around a base | a fixed 70 % at the start |
+| A gang that grows too large | splits | men desert at loyalty 16 % or below |
+| Hood type "Recruiter" | "Just recruiting and investigating" | "Recruiter" |
+
+  The police (400) and the starting cash ($6,000) are the same in both.
 
 ### 6.4 Orders and the command API
 
@@ -467,14 +484,13 @@ Refinement order (each a sub-item with its own Go and link, as Auto was refined 
 
 - **Wasm:** AdaWebPack 24 (GNAT-LLVM) at `~/toolchains/adawebpack-24`, path from `ADAWEBPACK`; the build stops with a clear message if it is missing and never downloads (D-016, D-006). One-time download only after Robert agrees: `tools/get-toolchain.sh` (recipe in ada-bot-brain `PRACTICES.md:54-66`; needs `rpm2cpio cpio lld libedit2` and the GNAT 14 runtime library via `alr`).
 - **Compile:** `llvm-gcc -c --target=wasm32 -O2 -gnat2022 -gnatp -gnatwa -gnatwe --RTS=$ADAWEBPACK/usr/lib/rts-native` (D-027: `-gnatp` in wasm, contracts stay in the source). Link: `wasm-ld --no-entry --allow-undefined --strip-all --export=<each hs_ name> -z stack-size=1048576 --initial-memory=33554432` plus `s-memcop.o s-memmov.o s-memset.o` from `libgnat.a` (D-006, PRACTICES).
-- **Native smoke:** `gprbuild -P tests/smoke.gpr` with GNAT 12.3 from `/usr/bin`, `-gnat2022 -gnata -gnatwa -gnatwe`, static runtime (D-002, D-012, D-015, D-027). It calls every Ada unit once with contracts on (D-027). It also runs one week on seed 1932 and prints the state hash; the wasm page shows the same hash (determinism, PRACTICES "Tests").
+- **Native smoke:** `gprbuild -P tests/smoke.gpr` with GNAT 12.3 from `/usr/bin`, `-gnat2022 -gnata -gnatwa -gnatwe`, static runtime (D-002, D-012, D-015, D-027). It calls every Ada unit once with contracts on (D-027). It is built and run on GNAT 12.3 and on GNAT 14.2. It prints every check against the 1.2.91 reference values and the state hash; `tests/wasm-check.mjs` runs the same checks on the wasm build in Node and compares the lines (determinism, PRACTICES "Tests").
 - **Ada 2022 note:** ada-fractal-explorer and holographic-principle compile with `-gnat2012` (`build.sh`, `tests/smoke.gpr:8`). This project uses `-gnat2022` as Robert chose (2026-11-22) and D-012 describes: `[...]` array aggregates, warning-free on GNAT 12.3 and 14. Ada 2022 features that GNAT 12.3 lacks or that AdaWebPack's runtime does not support are avoided; the first item proves the subset on both compilers.
-- **Page:** `build.sh` writes one self-contained `dist/index.html` (base64 wasm + JS host) and `dist/version.txt` (D-005). The Three.js street view (item 3) needs its library: either inlined (size check) or a sibling file with the same `?v=` stamp (PRACTICES "Githack / publish" step 6) — open question Q5.
+- **Page:** `build.sh` writes one self-contained `dist/index.html` (base64 wasm + JS host) and `dist/version.txt` (D-005). React, ReactDOM and Three.js are sibling files in `dist/vendor/`, each loaded with the build stamp in its URL (Q5, settled).
 - **Web-app defaults (D-025):** en-GB, de, es, fr with flags; soft event sounds and a visible Sound off toggle; `prefers-reduced-motion`; visible stamp; F9 report; visible Debug button.
 - **Publish:** commit `dist/` on `main` after Go (D-024), then curl-verify with GET (githack refuses HEAD with 403): the commit-pinned `https://rawcdn.githack.com/RobertBoettcherSF/ADA-Hood-Simulator/<commit>/dist/index.html` must return 200 and contain the new stamp; `version.txt` polled from `raw.githubusercontent.com` (PRACTICES "Githack / publish"). Robert gets the commit-pinned link.
 - **Bot-side checks per item:** `gprbuild -gnatc` (syntax/semantics), the wasm build, the native smoke build and run, the GET check. Robert tests in the browser and, from item 11, runs the native batch.
-- **Repo files:** `README.md` (build and test commands match the scripts, PRACTICES), `docs/DESIGN.md` (this file), `docs/HOW_WE_GOT_HERE.md`, `tools/get-toolchain.sh`, `build.sh`, `tests/smoke.gpr`, `src/` (Ada), `web/` (host template and JS), `dist/`. The web-safe subset checklist from PRACTICES is copied into `docs/DESIGN.md` §7 and ticked as units land.
-- **Never in the repo or any public text:** the private reference files, their names, or the game this tree was first modelled on. The package metadata of the TypeScript tree is not copied.
+- **Repo files:** `README.md` (build and test commands match the scripts, PRACTICES), `docs/DESIGN.md` (this file), `docs/HOW_WE_GOT_HERE.md`, `tools/get-toolchain.sh`, `build.sh`, `tests/smoke.gpr`, `src/` (Ada), `web/` (host template and JS), `dist/`. The web-safe subset (PRACTICES) is checked on every build by `-gnatwa -gnatwe` and by the wasm link, which must need no runtime imports.
 
 ---
 

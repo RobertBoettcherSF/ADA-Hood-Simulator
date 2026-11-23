@@ -2,11 +2,13 @@
 --  contracts on, checks the random numbers against values produced by the
 --  TypeScript build 1.2.91 (src/sim/rng.ts run in Node for seed 1932), and
 --  prints the values the browser page shows, so the two can be compared.
+with Ada.Calendar;
 with Ada.Command_Line;
 with Ada.Exceptions;
 with Ada.Text_IO;
 with Interfaces;
 with Hood.Grid;
+with Hood.Population;
 with Hood.Host_ABI;
 with Hood.Random;
 with Hood.Trig;
@@ -377,7 +379,7 @@ procedure Smoke is
                  & " merged " & Image (City_Count (Count_Merged))
                  & " lots " & Image (City_Count (Count_Lots))
                  & " buildings " & Image (City_Count (Count_Buildings))
-                 & " types " & Image (City_Count (Count_Types_Used))
+                 & " types " & Image (City_Count (Count_Built_Types))
                  & " retries " & Image (City_Count (Count_Retries))
                  & " hq");
             for G in Integer_32 range 1 .. City_Count (Count_HQ) loop
@@ -392,11 +394,11 @@ procedure Smoke is
             Check (City_Count (Count_Blocks) = R.Blocks and then City_Count (Count_Merged) = R.Merged
                    and then City_Count (Count_Lots) = R.Lots
                    and then City_Count (Count_Buildings) = R.Buildings
-                   and then City_Count (Count_Types_Used) = R.Types_Used,
+                   and then City_Count (Count_Built_Types) = R.Types_Used,
                    Label & ": blocks, merged, lots, buildings, types used match 1.2.91");
             for K in R.Classes'Range loop
                Classes_Ok := Classes_Ok and then
-                 City_Count (Count_Class + Integer_32 (K) - 1) = R.Classes (K);
+                 City_Count (Count_Built_Class + Integer_32 (K) - 1) = R.Classes (K);
             end loop;
             for K in R.Districts'Range loop
                Districts_Ok := Districts_Ok and then
@@ -417,7 +419,7 @@ procedure Smoke is
                end loop;
                Check (HQ_Ok, Label & ": headquarters blocks match 1.2.91");
             else
-               Check (City_Count (Count_HQ) = 0, Label & ": headquarters deferred to step 4");
+               Check (City_Count (Count_HQ) = 4, Label & ": headquarters placed with the gangs (item 4)");
             end if;
          end;
       end loop;
@@ -425,14 +427,196 @@ procedure Smoke is
       New_Game (1932, 1932, 40, 32);
       Check (Draw_Len (Layer_Blocks) = 1280 * Block_Stride
              and then Draw_Len (Layer_Lots) = 4580 * Lot_Stride
-             and then Draw_Len (3) = 0 and then Draw_Ptr (3) = 0
+             and then Draw_Len (Layer_People) = 8479 * People_Stride
+             and then Draw_Len (9) = 0 and then Draw_Ptr (9) = 0
              and then Draw_Ptr (Layer_Blocks) /= 0 and then Draw_Ptr (Layer_Lots) /= 0,
              "hs_draw_len/hs_draw_ptr for both layers");
       Check (City_Get (Table_Lot, 0, F_Lot_Block) >= 0 and then City_Get (Table_Lot, 4580, F_Lot_Block) = 0
-             and then City_Get (9, 0, 0) = 0 and then City_Count (99) = 0,
+             and then City_Get (99, 0, 0) = 0 and then City_Count (999) = 0,
              "hs_get/hs_count outside their tables give 0");
       New_Game (1932, 1932, 44, 35);  --  the Large world the later checks use
    end City_Checks;
+
+   ---------------------------------------------------------------------
+   --  People and the week (item 4): references from 1.2.91's Sim for
+   --  seed 1932 (Standard 40 x 32; Large 44 x 35 varied), rival planning
+   --  off, as the item covers no orders. Hashes as Hood.Population
+   --  describes; the member hash is FNV-1a over gangs 1 .. 4, each man
+   --  (boss, lieutenant, crew, pool) as number, pay, demand, loyalty units.
+   ---------------------------------------------------------------------
+
+   type People_Ref is record
+      W, H        : Integer_32;
+      People, Min_Id, Next_Id : Integer_32;
+      Rng_Setup   : Unsigned_32;
+      Hashes      : U32_List (1 .. 4);  --  people, positions, opinions, names
+      Rng_M1      : Unsigned_32;
+      Draws_M1    : Integer_32;
+      Roles       : I32_List (1 .. 18);  --  Role order
+      Wages       : I32_List (1 .. 4);
+      Members     : U32_List (1 .. 3);   --  after weeks 1, 2, 3
+      Week_Draws  : I32_List (1 .. 3);
+      Day_Draws   : I32_List (1 .. 15);
+   end record;
+
+   People_Refs : constant array (1 .. 2) of People_Ref :=
+     [(40, 32, 8479, 9161, 17648, 532198006,
+       [762905189, 59061474, 867735307, 2325457386], 3184470837, 45923,
+       [4, 4, 100, 13, 13, 6000, 1911, 400, 0, 1, 5, 1, 4, 4, 1, 12, 3, 3],
+       [836, 811, 751, 881], [1873473533, 3343565553, 1526196705],
+       [254050, 229972, 228697],
+       [70114, 46838, 45305, 46363, 45430, 46512, 45611, 45824, 45809, 46216,
+        45229, 46068, 45645, 45901, 45854]),
+      (44, 35, 20879, 27006, 47893, 3696518514,
+       [4085821087, 1945027344, 3513816520, 825993883], 2775660613, 46247,
+       [4, 4, 1010, 244, 273, 7219, 11610, 481, 0, 1, 5, 1, 4, 4, 1, 12, 3, 3],
+       [850, 850, 873, 784], [2126860417, 2579826917, 2057194409],
+       [242850, 214840, 214181],
+       [68277, 45502, 42037, 43956, 43078, 42807, 43126, 42885, 43239, 42783,
+        43419, 42664, 42626, 42902, 42570])];
+
+   function Within_20 (Got, Ref : Integer_32) return Boolean is
+     (5 * abs (Integer_64 (Got) - Integer_64 (Ref)) <= Integer_64 (Ref));
+
+   function Percent (Got, Ref : Integer_32) return String is
+     (Image (Integer_32 ((Integer_64 (Got) - Integer_64 (Ref)) * 1000 / Integer_64 (Ref))) & " per mille");
+
+   function Member_Hash return Unsigned_32 is
+      H : Unsigned_32 := 16#811C_9DC5#;
+      procedure Add (V : Integer_32) is
+         U : constant Unsigned_32 := Unsigned_32 (Integer_64 (V) mod 2**32);
+      begin
+         for Byte in 0 .. 3 loop
+            H := (H xor (Shift_Right (U, 8 * Byte) and 16#FF#)) * 16#0100_0193#;
+         end loop;
+      end Add;
+      procedure Man (P : Integer_32) is
+      begin
+         if P >= 0 then
+            Add (City_Get (Table_Person, P, F_P_Id));
+            Add (City_Get (Table_Person, P, F_P_Pay));
+            Add (City_Get (Table_Person, P, F_P_Demand));
+            Add (City_Get (Table_Person, P, F_P_Loyalty));
+         end if;
+      end Man;
+   begin
+      for G in Integer_32 range 1 .. 4 loop
+         Man (City_Get (Table_Gang, G, F_G_Boss));
+         Man (City_Get (Table_Gang, G, F_G_Lieutenant));
+         for K in 1 .. City_Get (Table_Gang, G, F_G_Crew_Count) loop
+            Man (City_Get (Table_Crew, G, K));
+         end loop;
+         for K in 1 .. City_Get (Table_Gang, G, F_G_Pool_Count) loop
+            Man (City_Get (Table_Pool, G, K));
+         end loop;
+      end loop;
+      return H;
+   end Member_Hash;
+
+   function Joined (Low, High : Integer_32) return Unsigned_32 is
+     (Unsigned_32 (Low) or Shift_Left (Unsigned_32 (High), 16));
+
+   procedure People_Checks is
+      use type Ada.Calendar.Time;
+      Ran : Integer_32;
+   begin
+      for R of People_Refs loop
+         New_Game (1932, 1932, R.W, R.H);
+         declare
+            Label : constant String := Image (R.W) & "x" & Image (R.H) & " seed 1932";
+            Got_Hashes : U32_List (1 .. 4);
+            Got_Roles  : I32_List (1 .. 18);
+            Wages_Ok, Days_Ok, Text_Ok : Boolean := True;
+            T0 : Ada.Calendar.Time;
+            Before : Integer_32;
+         begin
+            for K in Got_Hashes'Range loop
+               Got_Hashes (K) := Population_Hash (Integer_32 (K));
+            end loop;
+            for K in Got_Roles'Range loop
+               Got_Roles (K) := City_Count (Count_Role + Integer_32 (K) - 1);
+            end loop;
+            Put_Line ("people " & Label & ": " & Image (City_Count (Count_People)) & " first "
+                      & Image (City_Get (Table_Person, 0, F_P_Id)) & " next "
+                      & Image (City_Count (Count_Next_Id)) & " rng "
+                      & Image (Joined (City_Count (Count_Setup_Low), City_Count (Count_Setup_High))));
+            Check (City_Count (Count_Pop_Status) = 0, Label & ": people placed without a stop");
+            Check (City_Count (Count_People) = R.People
+                   and then City_Get (Table_Person, 0, F_P_Id) = R.Min_Id
+                   and then City_Count (Count_Next_Id) = R.Next_Id,
+                   Label & ": people count, first and next number match 1.2.91");
+            Compare_I32 (Label & " people by role", Got_Roles, R.Roles);
+            Check (Joined (City_Count (Count_Setup_Low), City_Count (Count_Setup_High)) = R.Rng_Setup,
+                   Label & ": random-number state after setup matches 1.2.91");
+            Compare_U32 (Label & " people/position/opinion/name hashes", Got_Hashes, R.Hashes);
+            for K in 1 .. City_Count (Count_People) - 1 loop
+               Text_Ok := Text_Ok and then City_Get (Table_Person, K, F_P_Name_Length) > 0
+                 and then Name_Char (K, 1) in Character'Pos ('A') .. Character'Pos ('Z');
+            end loop;
+            Check (Text_Ok and then Name_Char (0, 0) = 0 and then Name_Char (-1, 1) = 0,
+                   Label & ": every name starts with a capital; hs_name_char 0 outside");
+            for Week in 1 .. 3 loop
+               T0 := Ada.Calendar.Clock;
+               Launch_Week;
+               Check (City_Count (Count_Phase) = 1 and then City_Count (Count_Minute) = 0,
+                      Label & " week" & Week'Image & ": launched");
+               for Day in 1 .. 5 loop
+                  Before := City_Count (Count_Draws_Week);
+                  if Week = 1 and then Day = 1 then
+                     Ran := Tick (1);
+                     Check (Ran = 1 and then Joined (City_Count (Count_M1_Low), City_Count (Count_M1_High)) = R.Rng_M1
+                            and then City_Count (Count_Draws_Week) = R.Draws_M1
+                            and then Population_Hash (2) = R.Hashes (2),
+                            Label & ": random-number state, draws and positions after minute 1 match 1.2.91");
+                     Ran := Tick (Hood.Population.Minutes_Per_Day - 1);
+                  else
+                     Ran := Tick (Hood.Population.Minutes_Per_Day);
+                  end if;
+                  declare
+                     Got : constant Integer_32 := City_Count (Count_Draws_Week) - Before;
+                     Ref : constant Integer_32 := R.Day_Draws ((Week - 1) * 5 + Day);
+                  begin
+                     Days_Ok := Days_Ok and then Within_20 (Got, Ref);
+                     Put_Line ("  " & Label & " week" & Week'Image & " day" & Day'Image & " draws "
+                               & Image (Got) & " (1.2.91 " & Image (Ref) & ", " & Percent (Got, Ref) & ")");
+                  end;
+               end loop;
+               Check (City_Count (Count_Week) = Integer_32 (Week) + 1 and then City_Count (Count_Phase) = 0,
+                      Label & " week" & Week'Image & ": settled, week counter advanced");
+               Put_Line ("  " & Label & " week" & Week'Image & " ran in"
+                         & Integer'Image (Integer (1000.0 * (Ada.Calendar.Clock - T0))) & " ms (native, contracts on)");
+               Check (Within_20 (City_Count (Count_Draws_Week), R.Week_Draws (Week)),
+                      Label & " week" & Week'Image & ": walking draws " & Image (City_Count (Count_Draws_Week))
+                      & " within 20 % of 1.2.91's " & Image (R.Week_Draws (Week))
+                      & " (" & Percent (City_Count (Count_Draws_Week), R.Week_Draws (Week)) & ")");
+               Wages_Ok := True;
+               for G in Integer_32 range 1 .. 4 loop
+                  Wages_Ok := Wages_Ok and then City_Get (Table_Gang, G, F_G_Wages) = R.Wages (Positive (G));
+               end loop;
+               Check (Wages_Ok, Label & " week" & Week'Image & ": wages of the four gangs match 1.2.91");
+               Check (Member_Hash = R.Members (Week),
+                      Label & " week" & Week'Image & ": every member's pay, demand and loyalty match 1.2.91 ("
+                      & Image (Member_Hash) & ")");
+               Check (City_Count (Count_People) = R.People,
+                      Label & " week" & Week'Image & ": nobody joined or left (as in 1.2.91)");
+            end loop;
+            Check (Days_Ok, Label & ": walking draws of every day within 20 % of 1.2.91");
+         end;
+      end loop;
+      --  Finish week runs the rest of a week at once.
+      New_Game (1932, 1932, 40, 32);
+      Launch_Week;
+      Ran := Tick (10);
+      Finish_Week;
+      Check (Ran = 10 and then City_Count (Count_Week) = 2 and then City_Count (Count_Phase) = 0
+             and then Member_Hash = People_Refs (1).Members (1),
+             "hs_finish_week settles the same week as minute by minute");
+      Check (Tick (5) = 0, "hs_tick does nothing between weeks");
+      Check (City_Get (Table_Premises, City_Get (Table_Gang, 1, F_G_Office), F_Pr_HQ) = 1
+             and then City_Get (Table_Premises, City_Get (Table_Gang, 1, F_G_Office), F_Pr_Owner_Gang) = 1,
+             "the player's office is his headquarters");
+      New_Game (1932, 1932, 44, 35);
+   end People_Checks;
 
    procedure World_Checks is
       Small : Hood.World.World_State;
@@ -464,6 +648,7 @@ begin
    Check (Build_Id = Hood.Version.Build_Id, "hs_build_id matches the stamp");
    World_Checks;
    City_Checks;
+   People_Checks;
    Random_Checks;
    Number_Checks;
    Trig_Checks;

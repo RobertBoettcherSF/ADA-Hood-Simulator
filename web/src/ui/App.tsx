@@ -1,14 +1,17 @@
 // The game screen: the street view (or the city plan) filling the window,
-// the map buttons along the top, the journal of later panels, the building
-// card, the week clock, and the boxes and drawer that open over them.
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+// the map buttons along the top, the journal, the building and person
+// cards, the gang panel, the week clock, and the boxes and drawer that open
+// over them.
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { City, readCity } from '../city';
 import { CoreStop, Exports, HostStop, loadCore } from '../core';
 import { Key, LANGS, Lang, translate } from '../i18n';
 import { chime, downloadReport, logAction, logError, logEvent, store, stored } from '../report';
 import { CityPlan } from './CityPlan';
 import { DebugDrawer, STEP2_WORLD, Step2, cityReference, step2Matches } from './Debug';
-import { BuildingCard, Journal, NewGameBox, SIZES, Size, WeekClock } from './Panels';
+import { BuildingCard, GangPanel, Journal, NewGameBox, PersonCard, SIZES, Size, WeekClock } from './Panels';
+import { Clock, Gang, countProtected, personName, readClock, readGangs, readPerson, readWalkers } from '../people';
+import { COUNT } from '../core';
 import { StreetView } from './StreetView';
 import { Flag } from './Flags';
 
@@ -16,6 +19,10 @@ declare global { interface Window { HS: { stamp: string; wasm: string } } }
 
 const STAMP = window.HS.stamp;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+/** 1.2.91's normal pace: 10/3 game minutes a real second (constants.ts MINUTES_PER_SECOND). */
+const MINUTES_PER_SECOND = 10 / 3;
+/** At Max speed, whole minutes are run until this much of a frame is used (ms, proposed). */
+const MAX_BUDGET_MS = 12;
 
 function sizeOf(city: City): Size {
   return (Object.keys(SIZES) as Size[]).find(s => SIZES[s][0] === city.w && SIZES[s][1] === city.h) ?? 'standard';
@@ -37,17 +44,104 @@ export function App() {
   const [debug, setDebug] = useState(false);
   const [feedback, setFeedback] = useState(false);
   const [expected, setExpected] = useState('');
+  const [walkers, setWalkers] = useState<Int32Array | null>(null);
+  const [gangs, setGangs] = useState<Gang[]>([]);
+  const [clock, setClock] = useState<Clock | null>(null);
+  const [person, setPerson] = useState(-1);
+  const [gangsOpen, setGangsOpen] = useState(false);
+  const [speed, setSpeed] = useState(() => Number(stored('ahs.speed', '1')) || 0);
+  const [paused, setPaused] = useState(false);
+  const [focus, setFocus] = useState<{ x: number; y: number; n: number } | null>(null);
+  const [tickNo, setTickNo] = useState(0);
+  const carry = useRef(0);
   const t = useCallback((k: Key, v?: Record<string, string | number>) => translate(lang, k, v), [lang]);
+
+  // Everything the page shows of the people, read after each step of the core.
+  const refreshPeople = useCallback((c: Exports) => {
+    setWalkers(readWalkers(c));
+    const g = readGangs(c);
+    // Building numbers run past the lot count only by the few replaced
+    // ones; hs_get gives 0 past the end, so twice the lots is safe.
+    countProtected(c, c.hs_count(COUNT.lots) * 2, g);
+    setGangs(g);
+    setClock(readClock(c));
+    setTickNo(n => n + 1);
+  }, []);
 
   const start = useCallback((c: Exports, seed: number, size: Size) => {
     const [w, h] = SIZES[size];
     const t0 = performance.now();
     c.hs_new_game(seed, seed, w, h);
     const next = readCity(c, seed);
-    setCity(next); setLot(-1); setStateHash(c.hs_state_hash());
+    setCity(next); setLot(-1); setPerson(-1); setStateHash(c.hs_state_hash());
+    refreshPeople(c);
     logEvent('new_game', { seed, size, ms: Math.round(performance.now() - t0), city_hash: next.cityHash,
       structure_hash: next.structureHash, lots: next.counts.lots, status: next.status });
-  }, []);
+  }, [refreshPeople]);
+
+  // The running week: whole minutes at the chosen speed; Max runs as many
+  // as fit in a frame's budget. hs_tick runs the week's end at minute 2,400.
+  useEffect(() => {
+    if (!core || !clock?.running || paused) return;
+    let frame = 0, last = performance.now();
+    const step = (now: number) => {
+      let minutes = 0;
+      if (speed === 0) {
+        const until = now + MAX_BUDGET_MS;
+        while (performance.now() < until) { const ran = core.hs_tick(4); minutes += ran; if (ran < 4) break; }
+      } else {
+        carry.current += (now - last) / 1000 * MINUTES_PER_SECOND * speed;
+        const whole = Math.floor(carry.current);
+        carry.current -= whole;
+        if (whole > 0) minutes = core.hs_tick(Math.min(whole, 60));
+      }
+      last = now;
+      if (minutes > 0) {
+        refreshPeople(core);
+        if (core.hs_count(COUNT.phase) === 0) {
+          setStateHash(core.hs_state_hash());
+          logEvent('week_settled', { week: core.hs_count(COUNT.week) - 1, draws: core.hs_count(COUNT.drawsWeek),
+            wages: readGangs(core).map(g => g.wages), state_hash: core.hs_state_hash() >>> 0 });
+          chime(sound, 523.25);
+          return;
+        }
+      }
+      frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [core, clock?.running, paused, speed, refreshPeople, sound]);
+
+  const launch = () => {
+    if (!core) return;
+    core.hs_launch_week(); carry.current = 0; setPaused(false);
+    logAction('launch_week', core.hs_count(COUNT.week)); refreshPeople(core);
+  };
+  const finish = () => {
+    if (!core) return;
+    const t0 = performance.now(), week = core.hs_count(COUNT.week);
+    core.hs_finish_week();
+    const ms = Math.round(performance.now() - t0);
+    refreshPeople(core); setStateHash(core.hs_state_hash());
+    logAction('finish_week', week);
+    logEvent('week_settled', { week, ms, draws: core.hs_count(COUNT.drawsWeek), wages: readGangs(core).map(g => g.wages),
+      state_hash: core.hs_state_hash() >>> 0 });
+    chime(sound, 523.25);
+  };
+  const showPerson = useCallback((p: number) => {
+    setPerson(p); setLot(-1);
+    if (p >= 0) { logAction('select_person', p); chime(sound, 587.33); }
+  }, [sound]);
+  const goToPerson = (p: number) => {
+    if (!core) return;
+    showPerson(p);
+    const who = readPerson(core, p);
+    if (who) { setView('street'); setFocus({ x: who.x, y: who.y, n: Date.now() }); }
+  };
+  const gangColours = useMemo(() => [0, ...gangs.map(g => g.colour)], [gangs]);
+  const selectedPerson = useMemo(() => (core && person >= 0 ? readPerson(core, person) : null),
+    // tickNo: the card follows him as he walks.
+    [core, person, tickNo]);
 
   useEffect(() => {
     loadCore(window.HS.wasm, s => { logError('last_chance', translate('en-GB', `err${s.code}` as Key), { ...s }); setStop(s); })
@@ -82,7 +176,7 @@ export function App() {
   }, []);
 
   const select = useCallback((id: number) => {
-    setLot(id);
+    setLot(id); setPerson(-1);
     if (id >= 0) { logAction('select_lot', id); chime(sound, 659.25); }
   }, [sound]);
 
@@ -94,9 +188,13 @@ export function App() {
       build_id: core?.hs_build_id() ?? null, core_load_error: loadError,
       city: city ? { w: city.w, h: city.h, seed: city.seed, city_hash: city.cityHash, structure_hash: city.structureHash,
         rng_after_city: city.rngAfter, counts: city.counts, matches_reference: cityReference(city) !== null } : null,
-      selected_lot: lot, view, step2: step2 ? step2Matches(step2) : null,
+      selected_lot: lot, selected_person: person, view, step2: step2 ? step2Matches(step2) : null,
+      week: clock, speed, gangs: gangs.map(g => ({ id: g.id, name: g.name, cash: g.cash, wages: g.wages, crew: g.crew.length, pool: g.pool.length })),
+      people: core ? { count: core.hs_count(COUNT.people), hashes: [1, 2, 3, 4].map(k => core.hs_population_hash(k) >>> 0),
+        rng_after_setup: (core.hs_count(COUNT.setupLow) | (core.hs_count(COUNT.setupHigh) << 16)) >>> 0,
+        rng_after_minute_1: (core.hs_count(COUNT.m1Low) | (core.hs_count(COUNT.m1High) << 16)) >>> 0 } : null,
     },
-  }), [lang, sound, city, stateHash, core, loadError, lot, view, step2]);
+  }), [lang, sound, city, stateHash, core, loadError, lot, person, view, step2, clock, speed, gangs]);
 
   const crash = () => {
     logAction('crash_test');
@@ -106,7 +204,8 @@ export function App() {
   const sizeLabel = city ? t(sizeOf(city)) : '';
   return (
     <div className="game-shell">
-      {city && <StreetView city={city} selected={lot} onSelect={select} turnSignal={turn} visible={view === 'street'} label={t('street')} />}
+      {city && <StreetView city={city} selected={lot} onSelect={select} turnSignal={turn} visible={view === 'street'} label={t('street')}
+        people={walkers} gangColours={gangColours} person={person} onPerson={showPerson} focus={focus} />}
       {city && view === 'plan' && <CityPlan city={city} selected={lot} onSelect={select} label={t('plan')} />}
 
       <header className="map-buttons">
@@ -133,13 +232,18 @@ export function App() {
         {city && <div className="city-line">{t('city_line', { seed: city.seed, size: sizeLabel, w: city.w, h: city.h, lots: city.counts.lots.toLocaleString(lang) })}</div>}
       </header>
 
-      <Journal t={t} />
-      {city && <BuildingCard city={city} lot={lot} t={t} onClose={() => setLot(-1)} />}
-      <WeekClock t={t} />
+      <Journal t={t} gangsOpen={gangsOpen} onGangs={() => { setGangsOpen(!gangsOpen); logAction('gangs', !gangsOpen); }} />
+      {city && !selectedPerson && <BuildingCard city={city} lot={lot} t={t} gangs={gangs} onClose={() => setLot(-1)} />}
+      {selectedPerson && <PersonCard person={selectedPerson} gangs={gangs} t={t} onClose={() => setPerson(-1)} />}
+      <WeekClock t={t} clock={clock} speed={speed} paused={paused}
+        onSpeed={s => { setSpeed(s); store('ahs.speed', String(s)); logAction('speed', s); }}
+        onPause={() => { setPaused(!paused); logAction('pause', !paused); }} onLaunch={launch} onFinish={finish} />
+      {gangsOpen && core && <GangPanel gangs={gangs} t={t} names={p => personName(core, p)} onPerson={goToPerson}
+        onClose={() => setGangsOpen(false)} />}
       <p className="view-help">{view === 'plan' ? t('plan_key') : t('view_help')}</p>
       {!city && <div className="loading">{loadError ? t('core_missing', { error: loadError }) : t('loading')}</div>}
 
-      {debug && <DebugDrawer t={t} stamp={STAMP} buildId={core?.hs_build_id() ?? null} stateHash={stateHash} step2={step2} city={city}
+      {debug && <DebugDrawer t={t} stamp={STAMP} buildId={core?.hs_build_id() ?? null} stateHash={stateHash} step2={step2} city={city} core={core}
         onClose={() => setDebug(false)} onSound={() => { logAction('test_sound'); chime(sound); }} onCrash={crash} />}
 
       {newGame && core && city && (

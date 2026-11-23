@@ -1,7 +1,7 @@
 // A read-only copy of the city the core generated: the two draw layers
 // (blocks and lots) copied out of linear memory, plus the few fields the
-// page needs beyond them.
-import { BLOCK_FIELD, BLOCK_STRIDE, COUNT, Exports, HQ_FIELD, LOT_STRIDE, TABLE, u32 } from './core';
+// page needs beyond them, and the gangs' offices (item 4).
+import { BLOCK_FIELD, BLOCK_STRIDE, BUILDING_FIELD, COUNT, Exports, GANG_FIELD, LOT_STRIDE, TABLE, u32 } from './core';
 
 export const CELL = 54;         // metres between street centre lines
 export const STREET = 14;       // street width
@@ -23,7 +23,8 @@ export interface Lot {
   id: number; block: number; index: number; x: number; y: number; w: number; h: number;
   face: number; type: number; cls: number; storeys: number;
 }
-export interface Headquarters { gang: number; block: number; fx: number; fy: number; frontAs: number }
+/** A gang's office (item 4): where its flag stands. */
+export interface Headquarters { gang: number; colour: number; block: number; lot: number; fx: number; fy: number }
 
 export interface City {
   seed: number; w: number; h: number; standard: boolean;
@@ -55,9 +56,13 @@ export function readCity(core: Exports, seed: number): City {
     });
   }
   const hq: Headquarters[] = [];
-  for (let g = 1; g <= core.hs_count(COUNT.hq); g++) {
-    hq.push({ gang: g, block: core.hs_get(TABLE.hq, g, HQ_FIELD.block), fx: core.hs_get(TABLE.hq, g, HQ_FIELD.fx),
-      fy: core.hs_get(TABLE.hq, g, HQ_FIELD.fy), frontAs: core.hs_get(TABLE.hq, g, HQ_FIELD.frontAs) });
+  for (let g = 1; g <= 4; g++) {
+    const office = core.hs_get(TABLE.gang, g, GANG_FIELD.office);
+    const lot = office >= 0 ? lots[core.hs_get(TABLE.building, office, BUILDING_FIELD.lot)] : undefined;
+    if (!lot) continue;
+    const cx = lot.x + lot.w / 2, cy = lot.y + lot.h / 2;
+    hq.push({ gang: g, colour: core.hs_get(TABLE.gang, g, GANG_FIELD.colour), block: lot.block, lot: lot.id,
+      fx: Math.floor(cx / (CELL / 5)), fy: Math.floor(cy / (CELL / 5)) });
   }
   const w = core.hs_count(COUNT.blocksX), h = core.hs_count(COUNT.blocksY);
   return {
@@ -67,8 +72,9 @@ export function readCity(core: Exports, seed: number): City {
     retries: core.hs_count(COUNT.retries), status: core.hs_count(COUNT.status),
     counts: {
       blocks: core.hs_count(COUNT.blocks), merged: core.hs_count(COUNT.merged), lots: core.hs_count(COUNT.lots),
-      buildings: core.hs_count(COUNT.buildings), typesUsed: core.hs_count(COUNT.typesUsed),
-      classes: CLASSES.map((_, k) => core.hs_count(COUNT.classBase + k)),
+      // As generated, before the gangs turned fronts and offices (item 4).
+      buildings: core.hs_count(COUNT.buildings), typesUsed: core.hs_count(COUNT.builtTypes),
+      classes: CLASSES.map((_, k) => core.hs_count(COUNT.builtClassBase + k)),
       districts: DISTRICTS.map((_, k) => core.hs_count(COUNT.districtBase + k)),
       uses: USES.map((_, k) => core.hs_count(COUNT.useBase + k)),
     },

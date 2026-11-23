@@ -86,6 +86,8 @@ package Hood.City with Preelaborate is
    Status_Plan_Failed : constant := 2;  --  the plan stuck on all 16 seeds
    Status_No_Site     : constant := 3;  --  no headquarters site
 
+   type Class_Counts is array (Hood.Tables.Building_Class) of Integer_32;
+
    type City_State is record
       W, H            : Integer_32;
       Standard        : Boolean;
@@ -103,6 +105,10 @@ package Hood.City with Preelaborate is
       City_Hash       : Unsigned_32;
       Structure_Hash  : Unsigned_32;
       Rng_After_City  : Unsigned_32;
+      --  Live buildings by class and types in use as generated, before the
+      --  people's setup turns fronts and offices (item 4).
+      Built_Class     : Class_Counts;
+      Built_Types     : Integer_32;
    end record;
 
    procedure Generate
@@ -162,5 +168,22 @@ package Hood.City with Preelaborate is
 
    function To_Units (V : Long_Float) return Hood.Units.Units;
    --  V metres in 1/256, rounded down.
+
+   --  Starting businesses of the Standard city (step 4).
+   Max_Starting_Sites : constant := 60;
+   type Building_Flags is array (Integer_32 range 0 .. Max_Buildings - 1) of Boolean;
+   type Starting_Site_List is array (1 .. Max_Starting_Sites) of Integer_32;
+
+   procedure Starting_Sites
+     (C     : City_State;
+      Gang  : Integer_32;
+      Taken : Building_Flags;
+      Sites : out Starting_Site_List;
+      Count : out Integer_32)
+     with Pre => C.Standard and then Gang in 1 .. 4 and then C.HQ (Gang).Block /= No_Id;
+   --  Business and tenement master cells in square-ring order from the
+   --  gang's front cell (1.2.91 gang bootstrap): up to 60 buildings
+   --  that are not Taken (owned, protected or an office) and not the
+   --  gang's own front.
 
 end Hood.City;

@@ -355,6 +355,8 @@ package body Hood.City.Standard is
    begin
       if Civic_Block then
          return Cls_Civic;
+      elsif T = T_Office then
+         return Cls_Office;  --  a gang office (step 4)
       elsif T = Empty_Land then
          return Cls_Lot;
       elsif Type_Class (T) = Tenement then
@@ -599,5 +601,69 @@ package body Hood.City.Standard is
          end loop;
       end loop;
    end Place_Headquarters;
+
+   procedure Starting_Sites
+     (C     : City_State;
+      Gang  : Integer_32;
+      Taken : Building_Flags;
+      Sites : out Starting_Site_List;
+      Count : out Integer_32)
+   is
+      X     : constant Integer_32 := C.HQ (Gang).FX;
+      Y     : constant Integer_32 := C.HQ (Gang).FY;
+      Front : constant Integer_32 := C.HQ (Gang).Front;
+      Full  : Boolean := False;
+      procedure Visit (TX, TY : Integer_32) is
+         F, B : Integer_32;
+         Seen : Boolean := False;
+      begin
+         if Full or else Count >= Max_Starting_Sites then
+            Full := True;
+            return;
+         end if;
+         F := At_Cell (TX, TY);
+         if F = No_Id or else not Fine_Master (F)
+           or else Fine_Cls (F) not in Cls_Business | Cls_Tenement
+         then
+            return;
+         end if;
+         B := Fine_Building (F);
+         for K in 1 .. Count loop
+            Seen := Seen or else Sites (Integer (K)) = B;
+         end loop;
+         if not Seen and then not Taken (B) and then B /= Front then
+            Count := Count + 1;
+            Sites (Integer (Count)) := B;
+         end if;
+      end Visit;
+      V : Integer_32 := 1;
+   begin
+      Sites := [others => No_Id];
+      Count := 0;
+      Fill_Fine_Grid (C);
+      Visit (X, Y);
+      while not Full loop
+         exit when X - V < 0 and then X + V >= FW and then Y + V >= FH and then Y - V < 0;
+         Visit (X, Y + V);
+         Visit (X, Y - V);
+         Visit (X + V, Y);
+         Visit (X - V, Y);
+         for K in Integer_32 range 1 .. V - 1 loop
+            Visit (X + K, Y + V);
+            Visit (X + K, Y - V);
+            Visit (X - K, Y + V);
+            Visit (X - K, Y - V);
+            Visit (X + V, Y + K);
+            Visit (X + V, Y - K);
+            Visit (X - V, Y + K);
+            Visit (X - V, Y - K);
+         end loop;
+         Visit (X + V, Y + V);
+         Visit (X + V, Y - V);
+         Visit (X - V, Y + V);
+         Visit (X - V, Y - V);
+         V := V + 1;
+      end loop;
+   end Starting_Sites;
 
 end Hood.City.Standard;

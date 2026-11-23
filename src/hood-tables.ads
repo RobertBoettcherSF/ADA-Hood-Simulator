@@ -627,4 +627,285 @@ package Hood.Tables with Pure is
       17, 18, 19, 20, 21, 22, 23, 24, 25, 32, 33, 26, 29, 30, 31, 27, 28, 51,
       52, 54, 53, 36, 40, 7, 37, 38, 39, 41];
 
+   --  People (step 4)
+   type Role is
+     (R_Boss, R_Lieutenant, R_Hood, R_Accountant, R_Lawyer, R_Citizen,
+      R_Owner, R_Police, R_Firefighter, R_Police_Chief, R_Fbi, R_Fbi_Head,
+      R_Judge, R_Da, R_Mayor, R_Reporter, R_Clergy, R_Snitch);
+   type Skill is
+     (Intelligence, Organization, Business, Firearms, Fists, Knives, Arson,
+      Explosives, Intimidation, Driving, Stealth);
+
+   Name_Count : constant := 526;
+   subtype Name_Id is Integer_32 range 0 .. Name_Count - 1;
+   No_Name : constant := -1;
+   Name_Text : constant String :=
+     "AlphonseVitoSalvatoreFrankJohnnyTommyAngeloRoccoCarmineDomin"
+     & "icEnzoGinoLuigiMarcoNicoPaulieSalTonyVinnieBugsyDutchLeftyMo"
+     & "eJakeAbeSamMeyerSollyHymieSeanDeclanPatrickLiamEamonRoryMick"
+     & "eyFergusBrendanWalterHaroldClarenceChesterHerbertRaymondErne"
+     & "stFloydOttoKlausHeinrichWilhelmStefanAntonLudwigAmosCyrusSil"
+     & "asHomerVirgilEmmettWilburElmerOrvilleRosaConcettaMariaAngeli"
+     & "naLuciaCarmelaGinaNinaSofiaBridgetMaureenNoraColleenKathleen"
+     & "SiobhanAileenRuthEstherSadieBellePearlMabelHazelEdnaVeraOpal"
+     & "DorothyGladysMildredBeatriceConstanceHarrietFlorenceGretaIls"
+     & "eAnnelieseHildeMarleneLillianWilmaNormaThelmaBessieMyrtleAda"
+     & "CaponeMorettiBelliniRicciCostaRinaldiMarinoGalloFontanaGenov"
+     & "eseLombardiBarbieriVitaleFerranteBrunoGrecoRizzoOConnellDoyl"
+     & "eKellySullivanMurphyFlanaganGallagherQuinnByrneDonnellyFitzg"
+     & "eraldRourkeMaguireBrennanRosenbergGoldsteinWeissKaplanLansky"
+     & "BernsteinShapiroRothSchmidtBraunWagnerKellerHoffmanZimmerKra"
+     & "useBauerKowalskiNowakWozniakZielinskiJankowskiWhitakerAshfor"
+     & "dCarmichaelBlackwoodHollisVanceSterlingMarshDoyleCraneHargro"
+     & "vePembertonLockeRadcliffeWinslowPetrovSokolovIvanovVolkovPap"
+     & "adakisStavrosKostasScarfaceThe EnforcerBugsBaby FacePretty B"
+     & "oyLuckyThe WaiterMachine GunThe ChinThree FingersThe CigarIc"
+     & "e PickKnucklesThe WeaselFatsSlimThe GhostNailsTriggerWhiteyD"
+     & "ocThe ButcherSleepyCricketHalf-MoonTick-TockSilkCurlyMoretti"
+     & "OConnellRosenbergVanettiDelgadoKowalskiBelliniDoyleMarchetti"
+     & "SullivanWeissCorvinoClarenceAmosFloydEllisJesseOtisRufusWill"
+     & "ieBookerLutherCalvinOdellPearlBessieHazelMattieViolaIdaLulaM"
+     & "innieWashingtonJeffersonColemanFreemanBanksTillmanHaywoodHol"
+     & "linsMosleyGainesPruittDawsonWalterClarenceChesterHaroldHerbe"
+     & "rtLeonardRaymondEverettHowardLloydRussellWesleyDorothyMildre"
+     & "dEdnaGladysIreneMyrtleAgnesVeraWhitakerCarmichaelPembertonAs"
+     & "hfordBlakelyHollisPrescottThorntonGrangerWhitfieldKendallHar"
+     & "tleyHenryWalterEddieTommyAlbertJohnnyFrankSamGeorgeHarryMaeL"
+     & "illianRoseRubyGraceAliceLeeWongChinChanFongLumYeeQuanMoyLoui"
+     & "eOttoHeinrichLudwigFritzHansKarlWernerMaxFranzWilhelmEmilGus"
+     & "tavGretaHildeIlseFriedaMartaKlaraLieslErnaSchmidtKellerBauer"
+     & "WagnerWeberHoffmannKrugerFischerBeckerSchulzVogelBraunNikosK"
+     & "ostasYannisDimitriSpirosChristosVasilisAndreasPetrosSteliosE"
+     & "leniSophiaKaterinaDespinaIriniAnastasiaPapadakisStavrosKosta"
+     & "sPappasKarrasDemosGalanisVlahosManosLykosDeclanBrendanMickey"
+     & "FergusSeamusLiamCormacDermotOwenPaddyKieranRonanBridgetMaure"
+     & "enNoraSiobhanKathleenPeggyEileenMollyDoyleFlanaganMaguireOCo"
+     & "nnellSullivanCallahanBrennanKeaneMurphyQuinlanDolanHennessyS"
+     & "alvatoreRoccoCarmineVitoAngeloEnzoLuigiMarcoPaoloDomenicoSal"
+     & "NunzioTonyFrankieGinoAldoConcettaRosaCarmelaLuciaGinaTeresaF"
+     & "ilomenaAngelaMorettiRinaldiFerranteVanettiCorvinoBelliniMarc"
+     & "hettiRicciCostaLombardiEspositoGrecoRussoRomanoSantoroMeyerA"
+     & "beSollyMoeIzzyBennyHymieSamLouMorrisIrvingNatEstherSadieRuth"
+     & "MiriamRivkaBellaFannyGoldieRosenbergKaplanShapiroWeissGoldbe"
+     & "rgLevineFeldmanSiegelAbramsHorowitzAdlerBernsteinMiguelRafae"
+     & "lErnestoJoseLuisRamonAlfonsoJoaquinArturoIgnacioGuadalupeRos"
+     & "aElenaConsueloDoloresLupitaCarmenJuanaDelgadoRamirezCastillo"
+     & "MoralesHerreraNavarroFuentesOrtegaSalazarMendozaStefanAntonK"
+     & "azimierzJanTadeuszWojciechJozefMarekLeonBronislawWandaHalina"
+     & "JadwigaZofiaIrenaStasiaKowalskiNowakZielinskiWisniewskiLewan"
+     & "dowskiKaminskiMazurSobczakPawlakDudek";
+   Name_Start : constant array (Name_Id) of Integer_32 :=
+     [1, 9, 13, 22, 27, 33, 38, 44, 49, 56, 63, 67, 71, 76, 81, 85, 91, 94,
+      98, 104, 109, 114, 119, 122, 126, 129, 132, 137, 142, 147, 151, 157,
+      164, 168, 173, 177, 183, 189, 196, 202, 208, 216, 223, 230, 237, 243,
+      248, 252, 257, 265, 272, 278, 283, 289, 293, 298, 303, 308, 314, 320,
+      326, 331, 338, 342, 350, 355, 363, 368, 375, 379, 383, 388, 395, 402,
+      406, 413, 421, 428, 434, 438, 444, 449, 454, 459, 464, 469, 473, 477,
+      481, 488, 494, 501, 509, 518, 525, 533, 538, 542, 551, 556, 563, 570,
+      575, 580, 586, 592, 598, 601, 607, 614, 621, 626, 631, 638, 644, 649,
+      656, 664, 672, 680, 686, 694, 699, 704, 709, 717, 722, 727, 735, 741,
+      749, 758, 763, 768, 776, 786, 792, 799, 806, 815, 824, 829, 835, 841,
+      850, 857, 861, 868, 873, 879, 885, 892, 898, 904, 909, 917, 922, 929,
+      938, 947, 955, 962, 972, 981, 987, 992, 1000, 1005, 1010, 1015, 1023,
+      1032, 1037, 1046, 1053, 1059, 1066, 1072, 1078, 1087, 1094, 1100, 1108,
+      1120, 1124, 1133, 1143, 1148, 1158, 1169, 1177, 1190, 1199, 1207, 1215,
+      1225, 1229, 1233, 1242, 1247, 1254, 1260, 1263, 1274, 1280, 1287, 1296,
+      1305, 1309, 1314, 1321, 1329, 1338, 1345, 1352, 1360, 1367, 1372, 1381,
+      1389, 1394, 1401, 1409, 1413, 1418, 1423, 1428, 1432, 1437, 1443, 1449,
+      1455, 1461, 1466, 1471, 1477, 1482, 1488, 1493, 1496, 1500, 1506, 1516,
+      1525, 1532, 1539, 1544, 1551, 1558, 1565, 1571, 1577, 1583, 1589, 1595,
+      1603, 1610, 1616, 1623, 1630, 1637, 1644, 1650, 1655, 1662, 1668, 1675,
+      1682, 1686, 1692, 1697, 1703, 1708, 1712, 1720, 1730, 1739, 1746, 1753,
+      1759, 1767, 1775, 1782, 1791, 1798, 1805, 1810, 1816, 1821, 1826, 1832,
+      1838, 1843, 1846, 1852, 1857, 1860, 1867, 1871, 1875, 1880, 1885, 1888,
+      1892, 1896, 1900, 1904, 1907, 1910, 1914, 1917, 1922, 1926, 1934, 1940,
+      1945, 1949, 1953, 1959, 1962, 1967, 1974, 1978, 1984, 1989, 1994, 1998,
+      2004, 2009, 2014, 2019, 2023, 2030, 2036, 2041, 2047, 2052, 2060, 2066,
+      2073, 2079, 2085, 2090, 2095, 2100, 2106, 2112, 2119, 2125, 2133, 2140,
+      2147, 2153, 2160, 2165, 2171, 2179, 2186, 2191, 2200, 2209, 2216, 2222,
+      2228, 2234, 2239, 2246, 2252, 2257, 2262, 2268, 2275, 2281, 2287, 2293,
+      2297, 2303, 2309, 2313, 2318, 2324, 2329, 2336, 2343, 2347, 2354, 2362,
+      2367, 2373, 2378, 2383, 2391, 2398, 2406, 2414, 2422, 2429, 2434, 2440,
+      2447, 2452, 2460, 2469, 2474, 2481, 2485, 2491, 2495, 2500, 2505, 2510,
+      2518, 2521, 2527, 2531, 2538, 2542, 2546, 2554, 2558, 2565, 2570, 2574,
+      2580, 2588, 2594, 2601, 2608, 2616, 2623, 2630, 2637, 2646, 2651, 2656,
+      2664, 2672, 2677, 2682, 2688, 2695, 2700, 2703, 2708, 2711, 2715, 2720,
+      2725, 2728, 2731, 2737, 2743, 2746, 2752, 2757, 2761, 2767, 2772, 2777,
+      2782, 2788, 2797, 2803, 2810, 2815, 2823, 2829, 2836, 2842, 2848, 2856,
+      2861, 2870, 2876, 2882, 2889, 2893, 2897, 2902, 2909, 2916, 2922, 2929,
+      2938, 2942, 2947, 2955, 2962, 2968, 2974, 2979, 2986, 2993, 3001, 3008,
+      3015, 3022, 3029, 3035, 3042, 3049, 3055, 3060, 3069, 3072, 3079, 3087,
+      3092, 3097, 3101, 3110, 3115, 3121, 3128, 3133, 3138, 3144, 3152, 3157,
+      3166, 3176, 3187, 3195, 3200, 3207, 3213];
+   Name_Length : constant array (Name_Id) of Integer_32 :=
+     [8, 4, 9, 5, 6, 5, 6, 5, 7, 7, 4, 4, 5, 5, 4, 6, 3, 4, 6, 5, 5, 5, 3, 4,
+      3, 3, 5, 5, 5, 4, 6, 7, 4, 5, 4, 6, 6, 7, 6, 6, 8, 7, 7, 7, 6, 5, 4, 5,
+      8, 7, 6, 5, 6, 4, 5, 5, 5, 6, 6, 6, 5, 7, 4, 8, 5, 8, 5, 7, 4, 4, 5, 7,
+      7, 4, 7, 8, 7, 6, 4, 6, 5, 5, 5, 5, 5, 4, 4, 4, 7, 6, 7, 8, 9, 7, 8, 5,
+      4, 9, 5, 7, 7, 5, 5, 6, 6, 6, 3, 6, 7, 7, 5, 5, 7, 6, 5, 7, 8, 8, 8, 6,
+      8, 5, 5, 5, 8, 5, 5, 8, 6, 8, 9, 5, 5, 8, 10, 6, 7, 7, 9, 9, 5, 6, 6,
+      9, 7, 4, 7, 5, 6, 6, 7, 6, 6, 5, 8, 5, 7, 9, 9, 8, 7, 10, 9, 6, 5, 8,
+      5, 5, 5, 8, 9, 5, 9, 7, 6, 7, 6, 6, 9, 7, 6, 8, 12, 4, 9, 10, 5, 10,
+      11, 8, 13, 9, 8, 8, 10, 4, 4, 9, 5, 7, 6, 3, 11, 6, 7, 9, 9, 4, 5, 7,
+      8, 9, 7, 7, 8, 7, 5, 9, 8, 5, 7, 8, 4, 5, 5, 5, 4, 5, 6, 6, 6, 6, 5, 5,
+      6, 5, 6, 5, 3, 4, 6, 10, 9, 7, 7, 5, 7, 7, 7, 6, 6, 6, 6, 6, 8, 7, 6,
+      7, 7, 7, 7, 6, 5, 7, 6, 7, 7, 4, 6, 5, 6, 5, 4, 8, 10, 9, 7, 7, 6, 8,
+      8, 7, 9, 7, 7, 5, 6, 5, 5, 6, 6, 5, 3, 6, 5, 3, 7, 4, 4, 5, 5, 3, 4, 4,
+      4, 4, 3, 3, 4, 3, 5, 4, 8, 6, 5, 4, 4, 6, 3, 5, 7, 4, 6, 5, 5, 4, 6, 5,
+      5, 5, 4, 7, 6, 5, 6, 5, 8, 6, 7, 6, 6, 5, 5, 5, 6, 6, 7, 6, 8, 7, 7, 6,
+      7, 5, 6, 8, 7, 5, 9, 9, 7, 6, 6, 6, 5, 7, 6, 5, 5, 6, 7, 6, 6, 6, 4, 6,
+      6, 4, 5, 6, 5, 7, 7, 4, 7, 8, 5, 6, 5, 5, 8, 7, 8, 8, 8, 7, 5, 6, 7, 5,
+      8, 9, 5, 7, 4, 6, 4, 5, 5, 5, 8, 3, 6, 4, 7, 4, 4, 8, 4, 7, 5, 4, 6, 8,
+      6, 7, 7, 8, 7, 7, 7, 9, 5, 5, 8, 8, 5, 5, 6, 7, 5, 3, 5, 3, 4, 5, 5, 3,
+      3, 6, 6, 3, 6, 5, 4, 6, 5, 5, 5, 6, 9, 6, 7, 5, 8, 6, 7, 6, 6, 8, 5, 9,
+      6, 6, 7, 4, 4, 5, 7, 7, 6, 7, 9, 4, 5, 8, 7, 6, 6, 5, 7, 7, 8, 7, 7, 7,
+      7, 6, 7, 7, 6, 5, 9, 3, 7, 8, 5, 5, 4, 9, 5, 6, 7, 5, 5, 6, 8, 5, 9,
+      10, 11, 8, 5, 7, 6, 5];
+   type Name_Pool is (Male_First, Female_First, Surnames, Nicknames, Gang_Surnames);
+   Pool_First : constant array (Name_Pool) of Name_Id :=
+     [0, 62, 107, 181, 209];
+   Pool_Length : constant array (Name_Pool) of Integer_32 :=
+     [62, 45, 74, 28, 12];
+   Heritage_Count : constant := 10;
+   subtype Heritage_Id is Integer_32 range 0 .. Heritage_Count - 1;
+   H_African_American : constant := 0;
+   H_Anglo : constant := 1;
+   H_Chinese : constant := 2;
+   H_German : constant := 3;
+   H_Greek : constant := 4;
+   H_Irish : constant := 5;
+   H_Italian : constant := 6;
+   H_Jewish : constant := 7;
+   H_Mexican : constant := 8;
+   H_Polish : constant := 9;
+   Heritage_Male_First : constant array (Heritage_Id) of Integer_32 :=
+     [221, 253, 285, 311, 343, 369, 401, 440, 472, 500];
+   Heritage_Male_Count : constant array (Heritage_Id) of Integer_32 :=
+     [12, 12, 10, 12, 10, 12, 16, 12, 10, 10];
+   Heritage_Female_First : constant array (Heritage_Id) of Integer_32 :=
+     [233, 265, 295, 323, 353, 381, 417, 452, 482, 510];
+   Heritage_Female_Count : constant array (Heritage_Id) of Integer_32 :=
+     [8, 8, 6, 8, 6, 8, 8, 8, 8, 6];
+   Heritage_Surname_First : constant array (Heritage_Id) of Integer_32 :=
+     [241, 273, 301, 331, 359, 389, 425, 460, 490, 516];
+   Heritage_Surname_Count : constant array (Heritage_Id) of Integer_32 :=
+     [12, 12, 10, 12, 10, 12, 15, 12, 10, 10];
+   --  The heritage of each gang surname (anglo when no heritage has it).
+   Gang_Surname_Heritage : constant array (Integer_32 range 0 .. 11) of Heritage_Id :=
+     [6, 5, 7, 6, 8, 9, 6, 5, 6, 5, 7, 6];
+   --  The player's boss (proposed, as 1.2.91's default new game).
+   Player_First : constant Name_Id := 4;
+   Player_Last : constant Name_Id := 108;
+   Player_Heritage : constant Heritage_Id := 6;
+   Player_Gang_Surname : constant Integer_32 := 0;  --  its twin among the gang surnames
+
+   Hood_Type_Count : constant := 18;
+   subtype Hood_Type is Integer_32 range 0 .. Hood_Type_Count - 1;
+   Hood_Weight : constant array (Hood_Type) of Integer_32 :=
+     [25, 25, 12, 12, 1, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5];
+   Hood_Business : constant array (Hood_Type) of Boolean :=
+     [False, False, False, False, False, False, True, True, False, False,
+      False, False, False, False, False, False, False, False];
+   type Skill_Row is array (Skill) of Integer_32;
+   Hood_Base : constant array (Hood_Type) of Skill_Row :=
+     [[64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [64, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [64, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16],
+      [128, 32, 16, 16, 16, 16, 16, 16, 16, 16, 16],
+      [160, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40],
+      [160, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32],
+      [96, 32, 32, 32, 0, 0, 0, 0, 0, 0, 32],
+      [128, 32, 32, 32, 0, 0, 0, 0, 0, 0, 32],
+      [96, 0, 0, 0, 0, 0, 0, 0, 32, 0, 32],
+      [128, 32, 0, 0, 0, 0, 0, 0, 32, 0, 32],
+      [96, 0, 0, 0, 0, 0, 32, 32, 0, 0, 32],
+      [128, 32, 0, 0, 0, 0, 32, 32, 0, 0, 32],
+      [96, 0, 0, 0, 0, 0, 32, 32, 0, 0, 32],
+      [128, 32, 0, 0, 0, 0, 32, 32, 0, 0, 32],
+      [96, 0, 0, 32, 0, 0, 0, 0, 0, 0, 32],
+      [128, 32, 0, 32, 0, 0, 0, 0, 0, 0, 32],
+      [96, 0, 0, 0, 32, 32, 0, 0, 0, 0, 32],
+      [128, 32, 0, 0, 32, 32, 0, 0, 0, 0, 32]];
+   Hood_Range : constant array (Hood_Type) of Skill_Row :=
+     [[64, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40],
+      [192, 32, 40, 40, 40, 40, 40, 40, 40, 40, 40],
+      [64, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32],
+      [128, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32],
+      [96, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24],
+      [96, 40, 40, 40, 40, 40, 40, 40, 40, 40, 32],
+      [64, 32, 32, 16, 40, 40, 40, 40, 40, 40, 16],
+      [128, 32, 32, 16, 40, 40, 40, 40, 40, 40, 16],
+      [64, 40, 40, 40, 40, 40, 40, 40, 32, 40, 16],
+      [128, 32, 40, 40, 40, 40, 40, 40, 32, 40, 16],
+      [64, 40, 40, 40, 40, 40, 32, 16, 40, 40, 32],
+      [128, 32, 40, 40, 40, 40, 32, 16, 40, 40, 32],
+      [64, 40, 40, 40, 40, 40, 16, 32, 40, 40, 32],
+      [128, 32, 40, 40, 40, 40, 16, 32, 40, 40, 32],
+      [64, 40, 40, 32, 40, 40, 40, 40, 40, 40, 32],
+      [128, 32, 40, 32, 40, 40, 40, 40, 40, 40, 32],
+      [64, 40, 40, 40, 32, 32, 40, 40, 40, 40, 32],
+      [128, 32, 40, 40, 32, 32, 40, 40, 40, 40, 32]];
+
+   type Attitude_Class is
+     (A_Owner, A_Civilian, A_Illegal_Person, A_Hood, A_Police,
+      A_Police_Chief, A_Fbi, A_Fbi_Head, A_Attorney, A_Judge, A_Mayor,
+      A_Reporter, A_Religious_Leader);
+   Hostility_Base : constant array (Attitude_Class) of Integer_32 :=
+     [20, 20, 0, 0, 0, 128, 0, 128, 128, 128, 128, 128, 128];
+   Hostility_Range : constant array (Attitude_Class) of Integer_32 :=
+     [130, 130, 256, 256, 256, 128, 256, 128, 128, 128, 128, 128, 128];
+   Fear_Base : constant array (Attitude_Class) of Integer_32 :=
+     [-20, -20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+   Fear_Range : constant array (Attitude_Class) of Integer_32 :=
+     [100, 100, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128];
+   Fear_Adds_Hostility : constant array (Attitude_Class) of Boolean :=
+     [True, True, False, False, False, False, False, False, False, False,
+      False, False, False];
+   Role_Class : constant array (Role) of Attitude_Class :=
+     [A_Hood, A_Hood, A_Hood, A_Illegal_Person, A_Illegal_Person, A_Civilian,
+      A_Owner, A_Police, A_Police, A_Police_Chief, A_Fbi, A_Fbi_Head,
+      A_Judge, A_Attorney, A_Mayor, A_Reporter, A_Religious_Leader,
+      A_Civilian];
+
+   Profile_Count : constant := 24;
+   type Profile_Row is array (Integer_32 range 0 .. 6) of Integer_32;
+   Rival_Profile : constant array (Integer_32 range 0 .. Profile_Count - 1) of Profile_Row :=
+     [[10, 2, 0, 191, 63, 63, 0], [10, 4, 2, 191, 126, 127, 0],
+      [10, 0, 1, 127, 80, 63, 0], [10, 12, 3, 191, 50, 127, 0],
+      [5, 2, 1, 63, 80, 191, 0], [5, 4, 3, 63, 126, 127, 0],
+      [5, 0, 0, 63, 126, 63, 0], [0, 12, 1, 63, 100, 255, 0],
+      [10, 0, 2, 191, 63, 127, 1], [10, 12, 1, 191, 192, 63, 1],
+      [5, 4, 0, 191, 126, 191, 1], [5, 8, 2, 63, 191, 63, 1],
+      [5, 0, 3, 127, 126, 63, 1], [5, 4, 2, 63, 63, 191, 1],
+      [0, 0, 0, 127, 192, 127, 1], [0, 8, 3, 63, 191, 127, 1],
+      [5, 2, 1, 127, 126, 127, 2], [5, 0, 1, 63, 192, 127, 2],
+      [0, 4, 1, 63, 192, 191, 2], [0, 8, 1, 0, 255, 0, 2],
+      [0, 12, 1, 127, 192, 127, 2], [0, 8, 1, 63, 192, 63, 2],
+      [0, 4, 1, 0, 255, 191, 2], [0, 0, 1, 63, 192, 127, 2]];
+
+   Quota_Count : constant := 8;
+   subtype Quota_Id is Integer_32 range 0 .. Quota_Count - 1;
+   Quota_Type : constant array (Quota_Id) of Listed_Type :=
+     [27, 33, 28, 18, 17, 42, 48, 53];
+   Quota_Role : constant array (Quota_Id) of Role :=
+     [R_Accountant, R_Accountant, R_Lawyer, R_Hood, R_Hood, R_Hood, R_Lawyer, R_Hood];
+   Quota_People : constant array (Quota_Id) of Integer_32 :=
+     [1, 5, 1, 2, 2, 5, 5, 5];
+
+   Type_Profit : constant array (Type_Id) of Integer_32 :=
+     [260, 280, 300, 710, 330, 360, 300, 400, 380, 720, 700, 350, 260, 300,
+      280, 270, 890, 340, 190, 430, 420, 190, 220, 250, 310, 450, 330, 560,
+      620, 700, 1500, 2100, 1250, 2800, 1650, 1650, 0, 780, 680, 1170, 520,
+      380, 1650, 1200, 200, 380, 640, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, -180, -100, 0, 3000, 0, 4200, 900, 820, 1600, 1750, 1050,
+      2500, 1900, 0, 1300, 0, 1100, 330, 510, 510, 670, 530, 230, 310, 240,
+      310, 530, 300, 240, 530, 300, 260, 300, 370, 280, 330, 310, 300, 460,
+      260, 710, 570, 300, 300, 260, 230, 300, 240, 280, 260, 300, 300, 810,
+      300, 240, 310, 510, 280, 300, 150, 300, 300, 280, 240, 300, 370, 310,
+      670, 260, 300, 300, 810, 240, 260, 300, 510, 310, 240, 230, 300, 260,
+      370, 260, 530, 230, 230, 260, 300, 300, 230, 240, 150, 260, 710, 230,
+      230, 260, 450, 230, 720, 960, 960, 960, 1190, 960, 1040, 960, 1190,
+      960, 1040, 960, 1190, 960, 580, 960, 960, 580, 720, 960, 960, 1040,
+      1040, 1190, 960, 960, 1040, 960, 960, 0];
+
 end Hood.Tables;
