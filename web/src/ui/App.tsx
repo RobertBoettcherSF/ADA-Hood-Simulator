@@ -49,7 +49,7 @@ export function App() {
   const [clock, setClock] = useState<Clock | null>(null);
   const [person, setPerson] = useState(-1);
   const [gangsOpen, setGangsOpen] = useState(false);
-  const [speed, setSpeed] = useState(() => Number(stored('ahs.speed', '1')) || 0);
+  const [speed, setSpeed] = useState(() => { const v = Number(stored('ahs.speed', '1')); return [1, 2, 4, 8, 0].includes(v) ? v : 1; });
   const [paused, setPaused] = useState(false);
   const [focus, setFocus] = useState<{ x: number; y: number; n: number } | null>(null);
   const [tickNo, setTickNo] = useState(0);
