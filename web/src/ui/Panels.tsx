@@ -44,7 +44,7 @@ export function BuildingCard({ city, lot, t, onClose, gangs }: { city: City; lot
 }
 
 const LATER: [Key, number][] = [
-  ['p_trams', 6], ['p_police', 7], ['p_money', 8], ['p_rivals', 9], ['p_reports', 10], ['p_auto', 11],
+  ['p_police', 7], ['p_money', 8], ['p_rivals', 9], ['p_reports', 10], ['p_auto', 11],
 ];
 
 export function Journal({ t, gangsOpen, onGangs, ordersOpen, onOrders }: {

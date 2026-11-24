@@ -924,6 +924,76 @@ procedure Smoke is
       New_Game (1932, 1932, 44, 35);
    end Order_Checks;
 
+   --  Item 6: gang cars and trams through the ABI. Seed 1932 Standard, Luigi
+   --  Romano's crew explores the far block 808 (1.2.91 under the same
+   --  script: estimate 610 and done at minute 885 with the crew's coupe;
+   --  475 and 687 after buying a speedster; the second speedster cannot
+   --  be afforded at $1,000). Also the first five minutes' kerbside
+   --  walkers and the tram counts.
+   procedure Vehicle_Checks is
+      use Hood.Population;
+      use Hood.Population.Commands;
+      function YK (K : Reply_Kind) return Integer_32 is (Reply_Kind'Pos (K));
+      Kerb_Ref : constant array (Integer_32 range 1 .. 5) of Integer_32 := [0, 0, 1, 5, 11];
+      Kerb_Ok : Boolean := True;
+
+      procedure Run (Buy : Boolean; Est_Ref, Done_Ref : Integer_32; Label : String) is
+         G, Crew, Est, Slot, Done_At, Got : Integer_32 := -1;
+      begin
+         New_Game (1932, 1932, 40, 32);
+         G := City_Count (Count_Player_Gang);
+         Crew := City_Get (Table_Gang_Crews, G, 1);
+         Check (City_Get (Table_Crews, Crew, F_C_Coupes) = 1 and then City_Get (Table_Crews, Crew, F_C_Speedsters) = 0,
+                "cars: the first crew starts with one coupe");
+         if Buy then
+            Got := Command (Cmd_Buy_Vehicle, Vehicle_Kind'Pos (V_Speedster), Crew);
+            Check (Got = YK (Y_Bought) and then City_Get (Table_Gang, G, F_G_Cash) = 1000
+                   and then City_Get (Table_Crews, Crew, F_C_Speedsters) = 1
+                   and then City_Get (Table_Gang, G, F_G_Speedsters) = 0,
+                   "cars: a speedster is bought for $5,000 straight into the crew (as 1.2.91)");
+            Got := Command (Cmd_Buy_Vehicle, Vehicle_Kind'Pos (V_Speedster), Crew);
+            Check (Got = YK (Y_Cannot_Afford_It) and then City_Get (Table_Gang, G, F_G_Cash) = 1000,
+                   "cars: a second one cannot be afforded at $1,000 (as 1.2.91)");
+            Check (Command (Cmd_Buy_Vehicle, 7, Crew) /= YK (Y_Bought), "cars: no such vehicle kind");
+         end if;
+         Order_Begin (Crew, Order_Kind'Pos (O_Explore), 1);
+         Order_Add (Add_Block, 808, 0);
+         Check (Order_Preview = 1, "cars " & Label & ": the explore order can be drafted");
+         Est := City_Get (Table_Preview, 0, F_O_Estimate);
+         Check (Order_Issue = YK (Y_Accepted), "cars " & Label & ": the order is accepted");
+         for S in Integer_32 range 0 .. Max_Orders - 1 loop
+            if City_Get (Table_Order, S, F_O_Gang) = G and then City_Get (Table_Order, S, F_O_Kind) = Order_Kind'Pos (O_Explore) then
+               Slot := S;
+            end if;
+         end loop;
+         Launch_Week;
+         Check (City_Count (Count_Trams) = 64, "trams: 64 on the Standard map");
+         while City_Count (Count_Phase) = 1 and then City_Count (Count_Minute) < 2400 loop
+            exit when Tick (1) /= 1;
+            if Done_At < 0 and then City_Get (Table_Order, Slot, F_O_State) = Order_State'Pos (Done) then
+               Done_At := City_Count (Count_Minute);
+            end if;
+            if not Buy and then City_Count (Count_Minute) in Kerb_Ref'Range then
+               Kerb_Ok := Kerb_Ok and then City_Count (Count_Kerb) = Kerb_Ref (City_Count (Count_Minute));
+            end if;
+            exit when Done_At >= 0;
+         end loop;
+         Put_Line ("  cars " & Label & ": estimate" & Est'Image & " (1.2.91" & Est_Ref'Image & "), done at minute"
+                   & Done_At'Image & " (1.2.91" & Done_Ref'Image & ")");
+         Check (Est = Est_Ref, "cars " & Label & ": estimate matches 1.2.91");
+         Check (Done_At = Done_Ref, "cars " & Label & ": done minute matches 1.2.91");
+         Finish_Week;
+      end Run;
+   begin
+      Run (False, 610, 885, "coupe");
+      Check (Kerb_Ok, "cars: kerbside walkers in minutes 1-5 match 1.2.91 (0, 0, 1, 5, 11)");
+      Run (True, 475, 687, "speedster");
+      New_Game (1932, 1932, 44, 35);
+      Launch_Week;
+      Check (City_Count (Count_Trams) = 16, "trams: 16 on the Large map");
+      Finish_Week;
+   end Vehicle_Checks;
+
    procedure World_Checks is
       type World_Ref is access Hood.World.World_State;
       Small : constant World_Ref := new Hood.World.World_State;  --  8 MB: on the heap, not the stack
@@ -957,6 +1027,7 @@ begin
    City_Checks;
    People_Checks;
    Order_Checks;
+   Vehicle_Checks;
    Random_Checks;
    Number_Checks;
    Trig_Checks;
