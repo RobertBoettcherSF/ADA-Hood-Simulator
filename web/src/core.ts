@@ -25,6 +25,12 @@ export interface Exports {
   hs_launch_week(): void;
   hs_tick(minutes: number): number;
   hs_finish_week(): void;
+  hs_order_begin(crew: number, kind: number, manpower: number): void;
+  hs_order_add(what: number, a: number, b: number): void;
+  hs_order_preview(): number;
+  hs_order_issue(): number;
+  hs_command(cmd: number, a: number, b: number): number;
+  hs_reply(field: number): number;
 }
 
 /** Numbers shared with src/hood-host_abi.ads (all proposed there). */

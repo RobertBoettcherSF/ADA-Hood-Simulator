@@ -4,6 +4,7 @@ import React from 'react';
 import { City } from '../city';
 import { COUNT, Exports, hex, u32 } from '../core';
 import { Key } from '../i18n';
+import { CheckResult } from '../orderCheck';
 import { CITY_REFS, EXPECTED_CHECKS, PEOPLE_REFS, REF_INT, REF_MAIN, REF_PLAN } from '../references';
 
 type T = (key: Key, vars?: Record<string, string | number>) => string;
@@ -30,9 +31,10 @@ const Cell = ({ v, expect }: { v: number; expect: number }) => <td className={v 
 interface Props {
   t: T; stamp: string; buildId: number | null; stateHash: number | null; step2: Step2 | null; city: City | null; core: Exports | null;
   onClose: () => void; onSound: () => void; onCrash: () => void;
+  orderCheck: CheckResult | null; onOrderCheck: () => void;
 }
 
-export function DebugDrawer({ t, stamp, buildId, stateHash, step2, city, core, onClose, onSound, onCrash }: Props) {
+export function DebugDrawer({ t, stamp, buildId, stateHash, step2, city, core, onClose, onSound, onCrash, orderCheck, onOrderCheck }: Props) {
   const pref = city ? PEOPLE_REFS.find(r => r.w === city.w && r.h === city.h && r.seed === city.seed) ?? null : null;
   const joined = (lo: number, hi: number) => core ? u32(core.hs_count(lo) | (core.hs_count(hi) << 16)) : 0;
   const peopleRows: [string, number, number | null][] = core && city ? [
@@ -65,6 +67,22 @@ export function DebugDrawer({ t, stamp, buildId, stateHash, step2, city, core, o
   return (
     <aside className="drawer" aria-label={t('d_title')}>
       <header><h2>{t('d_title')}</h2><button className="close" onClick={onClose} aria-label={t('d_close')}>×</button></header>
+
+      <section>
+        <h3>{t('d_step5')}</h3>
+        <p className="sum">{t('d_order_note')}</p>
+        <div className="row"><button className="main" disabled={!core || !city} onClick={onOrderCheck}>{t('d_order_check')}</button></div>
+        {orderCheck && <>
+          <p className="sum">{t('d_order_sum', { n: orderCheck.passed, m: orderCheck.rows.length, ms: orderCheck.weekMs.join(', ') })}</p>
+          <div className="scroll"><table className="checks">
+            <thead><tr><th>{t('col_check')}</th><th>{t('col_ada')}</th><th>1.2.91</th><th></th></tr></thead>
+            <tbody>{orderCheck.rows.map((r, i) => (
+              <tr key={i}><th>{r.label}</th><td className={r.mode === 'info' ? '' : r.ok ? 'ok' : 'bad'}>{r.got}</td>
+                <td>{r.want}</td><td>{r.mode === '20%' ? '±20 %' : r.mode === 'info' ? 'info' : '='}</td></tr>
+            ))}</tbody>
+          </table></div>
+        </>}
+      </section>
 
       {core && city && (
         <section>

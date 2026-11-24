@@ -116,6 +116,54 @@ button { font: inherit; }
 .box .row { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
 .box .where { font: 14px ui-monospace, Menlo, Consolas, monospace; color: #ffb4a8; }
 
+/* Item 5: crews drawer, job card, toast and the start menu */
+.crews-panel section { border-top: 1px solid #3a2f1f; margin-top: 10px; }
+.crews-panel h3 small { color: #c9b48a; font-weight: normal; }
+.crews-panel h4 { margin: .6em 0 .2em; color: #c9b48a; font-size: .9rem; font-weight: normal; }
+.crews-panel ul { list-style: none; margin: 0; padding: 0; }
+.crews-panel li { padding: 2px 0; border-bottom: 1px solid #2c241a; font-size: .9rem; }
+.crews-panel .man { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.crews-panel .man .pay { color: #c9b48a; font-variant-numeric: tabular-nums; }
+.crews-panel .acts { margin-left: auto; display: flex; flex-wrap: wrap; gap: 3px; }
+.crews-panel .order-line .where, .crews-panel .order-line .state { color: #c9b48a; }
+.crews-panel .order-line .fail { color: #ffb4a8; font-size: .85rem; }
+.crews-panel .results, .crews-panel .messages { font-size: .85rem; color: #e7d8b8; }
+.crews-panel .results li { border: none; padding-left: 1em; }
+.crews-panel li.again { border: none; text-align: right; }
+.st-failed > .link { color: #ffb4a8; } .st-done > .link { color: #9fd49a; }
+.mini { padding: 0 .45em; min-width: 1.6em; border-radius: 3px; border: 1px solid var(--brass); background: #3a2f1fe6; color: #f3e6c8; cursor: pointer; font-size: .8rem; }
+.mini.wide { padding: 0 .6em; }
+.mini:disabled { opacity: .45; cursor: default; }
+.job-card { position: absolute; z-index: 7; left: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); width: min(380px, calc(100vw - 24px));
+  max-height: calc(100vh - 120px); overflow: auto; padding: 0 12px 10px; }
+.job-card header { display: flex; align-items: center; border-bottom: 1px dotted #6e5a3c; padding: 8px 0 4px; }
+.job-card h3 { margin: 0; font-size: 1.1rem; }
+.job-card .close { margin-left: auto; border: none; background: none; font-size: 1.4rem; cursor: pointer; color: var(--ink); }
+.job-card .fields { display: grid; gap: 4px; margin-top: 6px; }
+.job-card label { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; }
+.job-card label.check { justify-content: flex-start; }
+.job-card select, .job-card input[type=number] { font: inherit; max-width: 14em; }
+.job-card small { color: #5b4a30; flex-basis: 100%; text-align: right; }
+.job-card .hint { margin: 6px 0 4px; font-size: .85rem; font-style: italic; }
+.job-card .pickrow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 4px 0; }
+.job-card .targets { margin: 4px 0; padding-left: 1.1em; font-size: .9rem; }
+.job-card .estimate { margin: 6px 0; font-weight: bold; }
+.job-card .reply { margin: 6px 0; } .job-card .reply.ok { color: #1f5a1a; } .job-card .reply.bad { color: #7a2b20; }
+.job-card .row { display: flex; gap: 8px; justify-content: flex-end; }
+.toast { position: absolute; z-index: 9; left: 50%; transform: translateX(-50%); top: calc(110px + env(safe-area-inset-top)); margin: 0;
+  max-width: min(560px, 90vw); padding: 6px 12px; background: #201a12f2; border: 1px solid var(--brass); border-radius: 5px; color: var(--gold); cursor: pointer; }
+.start-menu { background: #120f0bf2; }
+.start-menu .box { max-width: 24em; text-align: center; }
+.start-menu h2 { font-size: 1.8rem; letter-spacing: .05em; margin-bottom: 0; }
+.start-menu .menu-sub { margin: .2em 0 1em; font-style: italic; color: #d6c49b; }
+.menu-list { display: flex; flex-direction: column; gap: 6px; }
+.menu-item { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: .45em .9em; border-radius: 5px;
+  border: 1px solid #5c4a2b; background: #2a2217; color: #a99a7c; font-size: 1rem; cursor: default; }
+.menu-item.live:not(:disabled) { border-color: var(--brass); color: #f3e6c8; cursor: pointer; }
+.menu-item.live:not(:disabled):hover, .menu-item.live:focus-visible { background: #4b3c26; }
+.menu-item small { color: #8c7c5d; font-size: .8rem; }
+.drawer table.checks td, .drawer table.checks th { font-size: 11px; }
+
 @media (max-width: 720px) {
   .journal { display: none; }
   .map-buttons .title span { display: none; }

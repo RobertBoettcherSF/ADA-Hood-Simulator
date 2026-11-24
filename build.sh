@@ -13,7 +13,7 @@
 set -e
 cd "$(dirname "$0")"
 
-VERSION=0.4.0   # proposed
+VERSION=0.5.0   # proposed
 
 A=${ADAWEBPACK:-$HOME/toolchains/adawebpack-24}
 T=$A/usr
@@ -80,6 +80,8 @@ $LD --no-entry --allow-undefined --strip-all \
   --export=hs_city_hash --export=hs_structure_hash \
   --export=hs_name_char --export=hs_population_hash \
   --export=hs_launch_week --export=hs_tick --export=hs_finish_week \
+  --export=hs_order_begin --export=hs_order_add --export=hs_order_preview \
+  --export=hs_order_issue --export=hs_command --export=hs_reply \
   -z stack-size=1048576 --initial-memory=33554432 \
   -o hood.wasm ./*.o
 cd ../..

@@ -35,6 +35,7 @@ export class StreetScene {
   private personOfInstance: number[] = [];
   private gangColour: number[] = [0, 0, 1, 2, 3];
   private ring: THREE.Mesh;
+  private markers: THREE.InstancedMesh | null = null;
   private raycaster = new THREE.Raycaster();
   view: CameraState = { x: 0, z: 0, zoom: ZOOM_START, turned: false };
   private frame = 0;
@@ -61,6 +62,8 @@ export class StreetScene {
   }
 
   setCity(city: City) {
+    // The same city again (a building changed): keep the view.
+    const same = !!this.city && this.city.seed === city.seed && this.city.w === city.w && this.city.h === city.h;
     this.city = city;
     for (const child of [...this.group.children]) {
       this.group.remove(child);
@@ -113,8 +116,25 @@ export class StreetScene {
     this.walkers = null;
     this.ring.visible = false;
     this.outline.visible = false;
-    this.view = { x: width / 2, z: depth / 2, zoom: ZOOM_START, turned: false };
+    if (!same) this.view = { x: width / 2, z: depth / 2, zoom: ZOOM_START, turned: false };
     this.update();
+  }
+
+  /** Item 5: pins over order sites (metres; the job card's in gold, given orders in the gang's colour). */
+  setMarkers(marks: { x: number; y: number; colour: string }[]) {
+    if (this.markers) { this.scene.remove(this.markers); this.markers.geometry.dispose(); (this.markers.material as THREE.Material).dispose(); this.markers = null; }
+    if (marks.length) {
+      const pins = new THREE.InstancedMesh(new THREE.ConeGeometry(2.2, 7, 10).rotateX(Math.PI), new THREE.MeshBasicMaterial(), marks.length);
+      const m = new THREE.Matrix4(), colour = new THREE.Color();
+      marks.forEach((k, i) => {
+        m.makeTranslation(k.x, 34, k.y);
+        pins.setMatrixAt(i, m);
+        pins.setColorAt(i, colour.set(k.colour));
+      });
+      this.markers = pins;
+      this.scene.add(pins);
+    }
+    this.render();
   }
 
   /** The people layer (x, y, role, gang, indoors per person): figures for

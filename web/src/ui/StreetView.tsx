@@ -7,9 +7,10 @@ interface Props {
   city: City; selected: number; onSelect: (lot: number) => void; turnSignal: number; visible: boolean; label: string;
   people: Int32Array | null; gangColours: number[]; person: number; onPerson: (person: number) => void;
   focus: { x: number; y: number; n: number } | null;
+  markers: { x: number; y: number; colour: string }[];
 }
 
-export function StreetView({ city, selected, onSelect, turnSignal, visible, label, people, gangColours, person, onPerson, focus }: Props) {
+export function StreetView({ city, selected, onSelect, turnSignal, visible, label, people, gangColours, person, onPerson, focus, markers }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const scene = useRef<StreetScene | null>(null);
 
@@ -26,6 +27,7 @@ export function StreetView({ city, selected, onSelect, turnSignal, visible, labe
   useEffect(() => { if (turnSignal) scene.current?.turn(); }, [turnSignal]);
   useEffect(() => { if (people) scene.current?.setPeople(people, gangColours, person); }, [people, gangColours, person, city]);
   useEffect(() => { if (focus) scene.current?.lookAt(focus.x, focus.y); }, [focus]);
+  useEffect(() => { scene.current?.setMarkers(markers); }, [markers, city]);
   useEffect(() => { if (visible) scene.current?.update(); }, [visible]);
 
   // Dragging pans; a press that does not move selects. Two pointers pinch.

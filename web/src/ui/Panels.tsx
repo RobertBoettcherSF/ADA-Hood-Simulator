@@ -44,13 +44,16 @@ export function BuildingCard({ city, lot, t, onClose, gangs }: { city: City; lot
 }
 
 const LATER: [Key, number][] = [
-  ['p_orders', 5], ['p_trams', 6], ['p_police', 7], ['p_money', 8], ['p_rivals', 9], ['p_reports', 10], ['p_auto', 11],
+  ['p_trams', 6], ['p_police', 7], ['p_money', 8], ['p_rivals', 9], ['p_reports', 10], ['p_auto', 11],
 ];
 
-export function Journal({ t, gangsOpen, onGangs }: { t: T; gangsOpen: boolean; onGangs: () => void }) {
+export function Journal({ t, gangsOpen, onGangs, ordersOpen, onOrders }: {
+  t: T; gangsOpen: boolean; onGangs: () => void; ordersOpen: boolean; onOrders: () => void;
+}) {
   return (
     <nav className="journal" aria-label="Journal">
       <button className="live" aria-pressed={gangsOpen} onClick={onGangs}><span>{t('p_gangs')}</span></button>
+      <button className="live" aria-pressed={ordersOpen} onClick={onOrders}><span>{t('p_orders')}</span></button>
       {LATER.map(([k, n]) => (
         <button key={k} disabled title={t('later_title', { n })}>
           <span>{t(k)}</span><small>{t('later', { n })}</small>

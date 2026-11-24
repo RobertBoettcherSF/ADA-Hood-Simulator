@@ -8,9 +8,9 @@ import { CLASS_COLOURS, GANG_COLOURS } from '../street/scene';
 const DISTRICT_TINTS = ['#d8c59a', '#cdbf9f', '#a9a49a', '#c8b9a0', '#bfc3c7'];
 const PARK = '#7d9a5d', WATER = '#5f86a3', AVENUE = '#8f8a80', PLAZA = '#d6ccb4', PAPER = '#e9dfc6', STREET = '#b9ad93';
 
-interface Props { city: City; selected: number; onSelect: (lot: number) => void; label: string }
+interface Props { city: City; selected: number; onSelect: (lot: number) => void; label: string; markers: { x: number; y: number; colour: string }[] }
 
-export function CityPlan({ city, selected, onSelect, label }: Props) {
+export function CityPlan({ city, selected, onSelect, label, markers }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const fit = useRef({ scale: 1, ox: 0, oy: 0 });
 
@@ -47,6 +47,10 @@ export function CityPlan({ city, selected, onSelect, label }: Props) {
         g.strokeStyle = '#1b1208'; g.lineWidth = 2.5 / scale;
         g.strokeRect(sel.x - 1, sel.y - 1, sel.w + 2, sel.h + 2);
       }
+      for (const k of markers) {
+        g.fillStyle = k.colour; g.strokeStyle = '#1b1208'; g.lineWidth = 1 / scale;
+        g.beginPath(); g.arc(k.x, k.y, 6 / scale, 0, Math.PI * 2); g.fill(); g.stroke();
+      }
       for (const hq of city.hq) {
         const x = (hq.fx + 0.5) * (CELL / 5), y = (hq.fy + 0.5) * (CELL / 5), s = 9 / scale;
         g.fillStyle = '#1b1208'; g.fillRect(x - 0.6 / scale, y - 2.2 * s, 1.2 / scale, 2.2 * s);
@@ -58,7 +62,7 @@ export function CityPlan({ city, selected, onSelect, label }: Props) {
     const observer = new ResizeObserver(draw);
     observer.observe(c);
     return () => observer.disconnect();
-  }, [city, selected]);
+  }, [city, selected, markers]);
 
   const click = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const rect = e.currentTarget.getBoundingClientRect(), f = fit.current;

@@ -14,6 +14,14 @@ import { Clock, Gang, countProtected, personName, readClock, readGangs, readPers
 import { COUNT } from '../core';
 import { StreetView } from './StreetView';
 import { Flag } from './Flags';
+import { CrewsPanel, JobCard, OrdersView, readOrdersView } from './Orders';
+import { StartMenu } from './StartMenu';
+import { CREW_FIELD, Draft, ORDER_TABLE, Order, Reply, buildingName, buildingOfLot, cityVersion, crewName, newDraft,
+  placeName, playerGang, readMessages, readStreets } from '../orders';
+import { TextContext, replyText } from '../orderText';
+import { CheckResult, runOrderCheck } from '../orderCheck';
+import { TYPE_NAMES } from '../tables';
+import { GANG_COLOURS } from '../street/scene';
 
 declare global { interface Window { HS: { stamp: string; wasm: string } } }
 
@@ -54,6 +62,15 @@ export function App() {
   const [focus, setFocus] = useState<{ x: number; y: number; n: number } | null>(null);
   const [tickNo, setTickNo] = useState(0);
   const carry = useRef(0);
+  // Item 5: the start menu, the crews drawer, the job card and the city's version.
+  const [menu, setMenu] = useState(true);
+  const [started, setStarted] = useState(false);
+  const [ordersOpen, setOrdersOpen] = useState(false);
+  const [ordersView, setOrdersView] = useState<OrdersView | null>(null);
+  const [job, setJob] = useState<Draft | null>(null);
+  const [toast, setToast] = useState('');
+  const [orderCheck, setOrderCheck] = useState<CheckResult | null>(null);
+  const cityVer = useRef(-1);
   const t = useCallback((k: Key, v?: Record<string, string | number>) => translate(lang, k, v), [lang]);
 
   // Everything the page shows of the people, read after each step of the core.
@@ -65,6 +82,14 @@ export function App() {
     countProtected(c, c.hs_count(COUNT.lots) * 2, g);
     setGangs(g);
     setClock(readClock(c));
+    const me = playerGang(c);
+    setOrdersView(me > 0 ? readOrdersView(c, me, g[me - 1]?.pool ?? [], readMessages(c)) : null);
+    // A bought or opened business changes the city: read its lots again.
+    const v = cityVersion(c);
+    if (v !== cityVer.current) {
+      if (cityVer.current >= 0) setCity(old => old ? readCity(c, old.seed) : old);
+      cityVer.current = v;
+    }
     setTickNo(n => n + 1);
   }, []);
 
@@ -74,6 +99,7 @@ export function App() {
     c.hs_new_game(seed, seed, w, h);
     const next = readCity(c, seed);
     setCity(next); setLot(-1); setPerson(-1); setStateHash(c.hs_state_hash());
+    cityVer.current = cityVersion(c); setJob(null); setToast(''); setStarted(true);
     refreshPeople(c);
     logEvent('new_game', { seed, size, ms: Math.round(performance.now() - t0), city_hash: next.cityHash,
       structure_hash: next.structureHash, lots: next.counts.lots, status: next.status });
@@ -82,7 +108,7 @@ export function App() {
   // The running week: whole minutes at the chosen speed; Max runs as many
   // as fit in a frame's budget. hs_tick runs the week's end at minute 2,400.
   useEffect(() => {
-    if (!core || !clock?.running || paused) return;
+    if (!core || !clock?.running || paused || menu) return;
     let frame = 0, last = performance.now();
     const step = (now: number) => {
       let minutes = 0;
@@ -110,7 +136,7 @@ export function App() {
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [core, clock?.running, paused, speed, refreshPeople, sound]);
+  }, [core, clock?.running, paused, menu, speed, refreshPeople, sound]);
 
   const launch = () => {
     if (!core) return;
@@ -158,7 +184,6 @@ export function App() {
         setStep2(s2);
         logEvent('core_loaded', { build_id: c.hs_build_id(), ...step2Matches(s2) });
         setCore(c);
-        start(c, 1932, 'standard');
       })
       .catch(e => { if (!(e instanceof HostStop)) { setLoadError(String(e)); logError('wasm_load', String(e)); } });
   }, [start]);
@@ -178,7 +203,80 @@ export function App() {
   const select = useCallback((id: number) => {
     setLot(id); setPerson(-1);
     if (id >= 0) { logAction('select_lot', id); chime(sound, 659.25); }
-  }, [sound]);
+    // With the job card open, a click picks the order's site (or its point).
+    if (id >= 0 && core && city) {
+      setJob(d => {
+        if (!d) return d;
+        const l = city.lots[id];
+        if (!l) return d;
+        if (d.kind === 'goTo') return { ...d, point: { x: Math.round((l.x + l.w / 2) * 256), y: Math.round((l.y + l.h / 2) * 256) } };
+        const b = buildingOfLot(core, city, id);
+        if (b < 0) return d;
+        if (['buy', 'setUp', 'run', 'donate', 'guard'].includes(d.kind)) return { ...d, buildings: [b] };
+        return d.buildings.includes(b) ? { ...d, buildings: d.buildings.filter(v => v !== b) } : { ...d, buildings: [...d.buildings, b] };
+      });
+    }
+  }, [sound, core, city]);
+
+  const streets = useMemo(() => (core && city ? readStreets(core) : { cols: [], rows: [] }), [core, city]);
+  const x: TextContext = useMemo(() => ({
+    lang, me: core ? playerGang(core) : 0,
+    place: b => (core && city ? placeName(core, city, streets, b) : String(b)),
+    building: b => (core ? buildingName(core, b) : String(b)),
+    person: p => (core && p >= 0 ? personName(core, p) : '—'),
+    gang: g => t('g_name', { name: gangs[g - 1]?.name ?? String(g) }),
+    crew: s => (core ? crewName({ nameFirst: core.hs_get(ORDER_TABLE.crews, s, CREW_FIELD.nameFirst) }) : String(s)),
+    type: k => TYPE_NAMES[k] ?? '?',
+  }), [lang, core, city, streets, gangs, t]);
+  const lotCentre = useCallback((b: number) => {
+    if (!core || !city) return null;
+    const l = city.lots[core.hs_get(3, b, 0)];
+    return l ? { x: l.x + l.w / 2, y: l.y + l.h / 2 } : null;
+  }, [core, city]);
+  const markers = useMemo(() => {
+    const out: { x: number; y: number; colour: string }[] = [];
+    if (!city) return out;
+    const me = gangs.find(g => g.player);
+    const mine = me ? GANG_COLOURS[me.colour % 4] : '#f1d58f';
+    for (const o of ordersView?.orders ?? []) {
+      if (['done', 'failed', 'cancelled'].includes(o.state)) continue;
+      for (const b of o.targets) { const c = lotCentre(b); if (c) out.push({ ...c, colour: mine }); }
+      if (o.point) out.push({ x: o.point.x / 256, y: o.point.y / 256, colour: mine });
+    }
+    if (job) {
+      for (const b of job.buildings) { const c = lotCentre(b); if (c) out.push({ ...c, colour: '#f1d58f' }); }
+      for (const k of job.blocks) {
+        for (const l of city.lots) if (l.block === k) out.push({ x: l.x + l.w / 2, y: l.y + l.h / 2, colour: '#f1d58f' });
+      }
+      if (job.point) out.push({ x: job.point.x / 256, y: job.point.y / 256, colour: '#f1d58f' });
+    }
+    return out;
+  }, [city, gangs, ordersView, job, lotCentre]);
+  const showOrder = (o: Order) => {
+    const c = o.targets.length ? lotCentre(o.targets[0]) : o.point ? { x: o.point.x / 256, y: o.point.y / 256 } : null;
+    if (c) { setView('street'); setFocus({ ...c, n: Date.now() }); }
+  };
+  const changed = (r: Reply) => {
+    const text = replyText(x, r);
+    setToast(text);
+    logAction('command', { reply: r.kind, a: r.a, b: r.b });
+    if (core) refreshPeople(core);
+  };
+  const runCheck = () => {
+    if (!core || !city) return;
+    const seed = city.seed, size = sizeOf(city);
+    logAction('order_check');
+    const r = runOrderCheck(core);
+    setOrderCheck(r);
+    logEvent('order_check', { passed: r.passed, failed: r.failed, week_ms: r.weekMs });
+    start(core, seed, size);
+  };
+  const openMenu = () => { setMenu(true); logAction('menu'); };
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(''), 6000);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   const reportContext = useMemo(() => ({
     stamp: STAMP, lang, sound, reducedMotion: reducedMotion.matches,
@@ -205,8 +303,8 @@ export function App() {
   return (
     <div className="game-shell">
       {city && <StreetView city={city} selected={lot} onSelect={select} turnSignal={turn} visible={view === 'street'} label={t('street')}
-        people={walkers} gangColours={gangColours} person={person} onPerson={showPerson} focus={focus} />}
-      {city && view === 'plan' && <CityPlan city={city} selected={lot} onSelect={select} label={t('plan')} />}
+        people={walkers} gangColours={gangColours} person={person} onPerson={showPerson} focus={focus} markers={markers} />}
+      {city && view === 'plan' && <CityPlan city={city} selected={lot} onSelect={select} label={t('plan')} markers={markers} />}
 
       <header className="map-buttons">
         <div className="title"><strong>{t('title')}</strong><span>{t('subtitle')}</span></div>
@@ -215,7 +313,8 @@ export function App() {
             {view === 'plan' ? t('street') : t('plan')}
           </button>
           <button className="hud-btn" disabled={view !== 'street'} onClick={() => { setTurn(n => n + 1); logAction('turn_view'); }}>{t('turn_view')}</button>
-          <button className="hud-btn" disabled={!core} onClick={() => { setNewGame(true); logAction('new_game_opened'); }}>{t('new_game')}</button>
+          <button className="hud-btn" onClick={openMenu}>{t('m_menu')}</button>
+          <button className="hud-btn" disabled={!core || !city} onClick={() => { setNewGame(true); logAction('new_game_opened'); }}>{t('new_game')}</button>
           <button className="hud-btn" onClick={() => { const s = !sound; setSound(s); store('ahs.sound', s ? 'on' : 'off'); logAction('sound', s ? 'on' : 'off'); chime(s); }}>
             {t(sound ? 'sound_on' : 'sound_off')}
           </button>
@@ -232,19 +331,38 @@ export function App() {
         {city && <div className="city-line">{t('city_line', { seed: city.seed, size: sizeLabel, w: city.w, h: city.h, lots: city.counts.lots.toLocaleString(lang) })}</div>}
       </header>
 
-      <Journal t={t} gangsOpen={gangsOpen} onGangs={() => { setGangsOpen(!gangsOpen); logAction('gangs', !gangsOpen); }} />
-      {city && !selectedPerson && <BuildingCard city={city} lot={lot} t={t} gangs={gangs} onClose={() => setLot(-1)} />}
+      <Journal t={t} gangsOpen={gangsOpen} onGangs={() => { setGangsOpen(!gangsOpen); setOrdersOpen(false); logAction('gangs', !gangsOpen); }}
+        ordersOpen={ordersOpen} onOrders={() => { setOrdersOpen(!ordersOpen); setGangsOpen(false); logAction('orders', !ordersOpen); }} />
+      {city && !selectedPerson && !job && <BuildingCard city={city} lot={lot} t={t} gangs={gangs} onClose={() => setLot(-1)} />}
+      {job && core && city && ordersView && (
+        <JobCard t={t} x={x} core={core} crews={ordersView.crews} draft={job} setDraft={setJob}
+          selectedBuilding={lot >= 0 ? buildingOfLot(core, city, lot) : -1} selectedBlock={city.lots[lot]?.block ?? -1}
+          onIssued={r => { changed(r); setJob(null); }} onClose={() => setJob(null)} />
+      )}
+      {toast && <p className="toast" role="status" onClick={() => setToast('')}>{toast}</p>}
       {selectedPerson && <PersonCard person={selectedPerson} gangs={gangs} t={t} onClose={() => setPerson(-1)} />}
       <WeekClock t={t} clock={clock} speed={speed} paused={paused}
         onSpeed={s => { setSpeed(s); store('ahs.speed', String(s)); logAction('speed', s); }}
         onPause={() => { setPaused(!paused); logAction('pause', !paused); }} onLaunch={launch} onFinish={finish} />
+      {ordersOpen && core && ordersView && (
+        <CrewsPanel t={t} x={x} core={core} view={ordersView} running={!!clock?.running} onPerson={goToPerson}
+          onNewOrder={c => { setJob(newDraft(c, 'collect')); logAction('job_card', c); }} onChanged={changed}
+          onClose={() => setOrdersOpen(false)} onShow={showOrder} />
+      )}
       {gangsOpen && core && <GangPanel gangs={gangs} t={t} names={p => personName(core, p)} onPerson={goToPerson}
         onClose={() => setGangsOpen(false)} />}
       <p className="view-help">{view === 'plan' ? t('plan_key') : t('view_help')}</p>
-      {!city && <div className="loading">{loadError ? t('core_missing', { error: loadError }) : t('loading')}</div>}
+      {!city && !menu && <div className="loading">{loadError ? t('core_missing', { error: loadError }) : t('loading')}</div>}
 
       {debug && <DebugDrawer t={t} stamp={STAMP} buildId={core?.hs_build_id() ?? null} stateHash={stateHash} step2={step2} city={city} core={core}
-        onClose={() => setDebug(false)} onSound={() => { logAction('test_sound'); chime(sound); }} onCrash={crash} />}
+        onClose={() => setDebug(false)} onSound={() => { logAction('test_sound'); chime(sound); }} onCrash={crash}
+        orderCheck={orderCheck} onOrderCheck={runCheck} />}
+
+      {menu && (
+        <StartMenu t={t} canContinue={started && !!city} ready={!!core}
+          onContinue={() => { setMenu(false); logAction('continue'); }}
+          onNew={() => { if (core) { setMenu(false); setPaused(false); logAction('new_game', { seed: 1932, size: 'standard', from: 'menu' }); start(core, 1932, 'standard'); chime(sound, 392); } }} />
+      )}
 
       {newGame && core && city && (
         <NewGameBox lang={lang} seed={city.seed} size={sizeOf(city)} onCancel={() => setNewGame(false)}
