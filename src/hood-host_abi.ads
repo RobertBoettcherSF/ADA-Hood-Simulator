@@ -112,6 +112,13 @@ package Hood.Host_ABI is
    Count_Player_Gang : constant := 68;
    Count_Avenue_Col  : constant := 100; --  + 0 .. 3: avenue columns (street names), -1 none
    Count_Avenue_Row  : constant := 104; --  + 0 .. 3: avenue rows
+   --  Item 6
+   Count_Cars        : constant := 108; --  the city's cars this minute
+   Count_Fleet       : constant := 109; --  gang cars out of the garage
+   Count_Trams       : constant := 110;
+   Count_Cars_Halted : constant := 111;
+   Count_Kerb        : constant := 112; --  walkers waiting at a kerb
+   Count_Boardings   : constant := 113; --  gang-car boardings so far (a check)
 
    function City_Count (What : Integer_32) return Integer_32
      with Export, Convention => C, External_Name => "hs_count";
@@ -176,6 +183,7 @@ package Hood.Host_ABI is
    F_G_Crew_Total : constant := 30;  F_G_Purchases : constant := 31;
    F_G_Protection : constant := 32;  F_G_Last_Purchases : constant := 33;
    F_G_Last_Protection : constant := 34;  F_G_Committed : constant := 35;
+   F_G_Speedsters : constant := 36;  F_G_Trucks : constant := 37;  --  item 6: in the gang's garage
    F_Pr_Owner_Gang : constant := 0;  F_Pr_Owner_Person : constant := 1;
    F_Pr_Manager : constant := 2;  F_Pr_Protect_Gang : constant := 3;
    F_Pr_Protect_Weekly : constant := 4;  F_Pr_Front_Of : constant := 5;
@@ -186,6 +194,7 @@ package Hood.Host_ABI is
    F_C_Count : constant := 3;  F_C_Pistols : constant := 4;  F_C_Coupes : constant := 5;
    F_C_Order_Count : constant := 6;  F_C_Time_Used : constant := 7;
    F_C_Name_First : constant := 8;  F_C_Men : constant := 9;  F_C_Members : constant := 10;
+   F_C_Speedsters : constant := 11;  F_C_Trucks : constant := 12;  --  item 6
    F_C_Member : constant := 20;  --  + 1 .. 9
    F_C_Order : constant := 40;   --  + 1 .. 24, order slots
    --  Order fields
@@ -216,13 +225,24 @@ package Hood.Host_ABI is
    Layer_Blocks : constant := 1;  --  Block_Stride integers per block
    Layer_Lots   : constant := 2;  --  Lot_Stride integers per lot
    Layer_People : constant := 3;  --  People_Stride integers per person
+   Layer_Cars   : constant := 4;  --  Car_Stride integers per city car (item 6)
+   Layer_Fleet  : constant := 5;  --  Fleet_Stride integers per gang car
+   Layer_Trams  : constant := 6;  --  Tram_Stride integers per tram
+   Car_Stride   : constant := 6;
+   --  x, y (1/256 m), heading (0 east, 1 south, 2 west, 3 north), truck,
+   --  colour, halted
+   Fleet_Stride : constant := 7;
+   --  x, y (1/256 m), kind (0 speedster, 1 coupe, 2 truck), gang, crew
+   --  slot, riders, heading (-1 standing)
+   Tram_Stride  : constant := 6;
+   --  x, y (1/256 m), direction x and y (1/256), whole body on the map, line
    Block_Stride : constant := 12;
    --  gx, gy, district, use, span x, span y, merged into, land value,
    --  squalor, content, rail, landmark
    Lot_Stride   : constant := 10;
    --  block, index, x, y, w, h (1/256 m), face, type, class, storeys
    People_Stride : constant := 5;
-   --  x, y (1/256 m), role, gang (0 none), indoors (1 inside a building
+   --  x, y (1/256 m), role, gang (0 none), indoors (1 inside a building, 2 in a car
    --  and not walking); refreshed by hs_new_game, hs_tick and
    --  hs_finish_week
 

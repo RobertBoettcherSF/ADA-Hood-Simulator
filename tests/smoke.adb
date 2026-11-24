@@ -925,7 +925,8 @@ procedure Smoke is
    end Order_Checks;
 
    procedure World_Checks is
-      Small : Hood.World.World_State;
+      type World_Ref is access Hood.World.World_State;
+      Small : constant World_Ref := new Hood.World.World_State;  --  8 MB: on the heap, not the stack
       First : Unsigned_32;
    begin
       Check (State_Hash = 0 and then Grid_W = 0 and then Cell_Kind (0, 0) = -1,
@@ -941,8 +942,8 @@ procedure Smoke is
       Check (State_Hash /= First, "another seed gives another hash");
       New_Game (1932, 1932, 99, 1);
       Check (Grid_W = 220 and then Grid_H = 40, "sizes are clamped to 8 .. 44 by 8 .. 35");
-      Hood.World.New_Game (Small, 1932, 1932, 8, 8);
-      Check (Hood.World.Hash (Small) /= First, "a small world hashes differently");
+      Hood.World.New_Game (Small.all, 1932, 1932, 8, 8);
+      Check (Hood.World.Hash (Small.all) /= First, "a small world hashes differently");
       New_Game (16#80AB_CD71#, 1932, 44, 35);
       Check (Rng_Value (Stream_Main, 1) /= 0, "a seed above 2**31 is accepted");
       New_Game (1932, 1932, 44, 35);

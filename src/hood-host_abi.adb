@@ -1,3 +1,7 @@
+with Hood.Population.Walk;
+with Hood.Population.Transport;
+with Hood.Population.Traffic;
+with Hood.Trams;
 with Hood.Floats;
 with System.Storage_Elements;
 with Hood.City;
@@ -40,6 +44,78 @@ package body Hood.Host_ABI is
 
    function B2I (B : Boolean) return Integer_32 is (if B then 1 else 0);
 
+   Car_Layer : array (Integer_32 range 0 .. 320 * Car_Stride - 1) of Integer_32 := [others => 0];
+   Fleet_Layer : array (Integer_32 range 0 .. Hood.Population.Max_Vehicles * Fleet_Stride - 1) of Integer_32 :=
+     [others => 0];
+   Tram_Layer : array (Integer_32 range 0 .. Hood.Trams.Max_Trams * Tram_Stride - 1) of Integer_32 := [others => 0];
+   Cars_N, Trams_N : Integer_32 := 0;
+   Trams : Hood.Trams.Tram_List;
+
+   --  Item 6: the traffic, the gang cars and the trams for the page.
+   procedure Fill_Vehicles is
+      S : Hood.Population.Population_State renames World.People;
+      package T renames Hood.Population.Traffic;
+      use type Hood.Population.Phase_Kind;
+      K : Integer_32;
+   begin
+      Cars_N := (if S.Phase = Hood.Population.Week_Running then Integer_32'Min (T.Car_Count, 320) else 0);
+      for I in 0 .. Cars_N - 1 loop
+         K := I * Car_Stride;
+         Car_Layer (K) := Hood.Floats.Units_Of (T.Car_X (I));
+         Car_Layer (K + 1) := Hood.Floats.Units_Of (T.Car_Y (I));
+         Car_Layer (K + 2) := T.Car_Head (I);
+         Car_Layer (K + 3) := B2I (T.Car_Truck (I));
+         Car_Layer (K + 4) := T.Car_Colour (I);
+         Car_Layer (K + 5) := B2I (T.Car_Halted (I));
+      end loop;
+      for V in 0 .. S.Fleet_Count - 1 loop
+         K := V * Fleet_Stride;
+         declare
+            F : Hood.Population.Vehicle_Rec renames S.Fleet (V);
+            H : Integer_32 := -1;
+         begin
+            if F.Driver /= Hood.City.No_Id and then S.People (F.Driver).In_Vehicle
+              and then S.People (F.Driver).Walking
+            then
+               declare
+                  P : Hood.Population.Person_Rec renames S.People (F.Driver);
+                  NX, NY : Long_Float;
+               begin
+                  if P.Path_Len > 0 then
+                     NX := Hood.Population.Walk.Point_Of (S, F.Driver, 0).X;
+                     NY := Hood.Population.Walk.Point_Of (S, F.Driver, 0).Y;
+                  else
+                     NX := P.DX;
+                     NY := P.DY;
+                  end if;
+                  if abs (NX - P.X) >= abs (NY - P.Y) then
+                     H := (if NX >= P.X then 0 else 2);
+                  else
+                     H := (if NY >= P.Y then 1 else 3);
+                  end if;
+               end;
+            end if;
+            Fleet_Layer (K) := Hood.Floats.Units_Of (F.X);
+            Fleet_Layer (K + 1) := Hood.Floats.Units_Of (F.Y);
+            Fleet_Layer (K + 2) := Hood.Population.Vehicle_Kind'Pos (F.Kind);
+            Fleet_Layer (K + 3) := Integer_32 (F.Gang);
+            Fleet_Layer (K + 4) := F.Crew;
+            Fleet_Layer (K + 5) := F.Occ_Count;
+            Fleet_Layer (K + 6) := H;
+         end;
+      end loop;
+      Hood.Trams.At_Time (World.City, S.Week, Long_Float (S.Minute), Trams, Trams_N);
+      for I in 0 .. Trams_N - 1 loop
+         K := I * Tram_Stride;
+         Tram_Layer (K) := Hood.Floats.Units_Of (Trams (I).X);
+         Tram_Layer (K + 1) := Hood.Floats.Units_Of (Trams (I).Y);
+         Tram_Layer (K + 2) := Hood.Floats.Units_Of (Trams (I).DX);
+         Tram_Layer (K + 3) := Hood.Floats.Units_Of (Trams (I).DY);
+         Tram_Layer (K + 4) := B2I (Trams (I).Visible);
+         Tram_Layer (K + 5) := Trams (I).Line;
+      end loop;
+   end Fill_Vehicles;
+
    procedure Fill_People is
       S : Hood.Population.Population_State renames World.People;
       K : Integer_32;
@@ -51,8 +127,10 @@ package body Hood.Host_ABI is
          People_Layer (K + 2) := Hood.Tables.Role'Pos (S.People (I).Kind);
          People_Layer (K + 3) := Integer_32 (S.People (I).Gang);
          People_Layer (K + 4) :=
-           B2I (S.People (I).Building /= Hood.City.No_Id and then not S.People (I).Walking);
+           (if S.People (I).In_Vehicle then 2
+            else B2I (S.People (I).Building /= Hood.City.No_Id and then not S.People (I).Walking));
       end loop;
+      Fill_Vehicles;
    end Fill_People;
 
    function Class_Of (T : Hood.Tables.Type_Id) return Integer_32 is
@@ -352,6 +430,15 @@ package body Hood.Host_ABI is
          when Count_Player_Gang => return Player_Gang;
          when Count_Avenue_Col .. Count_Avenue_Col + 3 => return C.Avenue_Cols (What - Count_Avenue_Col);
          when Count_Avenue_Row .. Count_Avenue_Row + 3 => return C.Avenue_Rows (What - Count_Avenue_Row);
+         when Count_Cars => return Cars_N;
+         when Count_Fleet => return World.People.Fleet_Count;
+         when Count_Trams => return Trams_N;
+         when Count_Cars_Halted => return Hood.Population.Traffic.Halted_Count;
+         when Count_Kerb =>
+            for I in 0 .. World.People.Count - 1 loop
+               N := N + B2I (World.People.People (I).Halted and then not World.People.People (I).In_Vehicle);
+            end loop;
+         when Count_Boardings => return Hood.Population.Transport.Sync_Count;
          when Count_Walking =>
             for I in 0 .. World.People.Count - 1 loop
                N := N + B2I (World.People.People (I).Walking);
@@ -542,6 +629,8 @@ package body Hood.Host_ABI is
                   when F_G_Pool_Count  => return G.Pool_Count;
                   when F_G_Pistols     => return G.Pistols;
                   when F_G_Coupes      => return G.Coupes;
+                  when F_G_Speedsters  => return G.Speedsters;
+                  when F_G_Trucks      => return G.Trucks;
                   when F_G_Crew_Pistols | F_G_Crew_Coupes => return Crew_Field (Field);
                   when F_G_Crew_Total  => return G.Crew_Total;
                   when F_G_Purchases   => return G.Purchases;
@@ -593,6 +682,8 @@ package body Hood.Host_ABI is
                   when F_C_Count       => return R.Count;
                   when F_C_Pistols     => return R.Pistols;
                   when F_C_Coupes      => return R.Coupes;
+                  when F_C_Speedsters  => return R.Speedsters;
+                  when F_C_Trucks      => return R.Trucks;
                   when F_C_Order_Count => return R.Order_Count;
                   when F_C_Time_Used   => return R.Time_Used;
                   when F_C_Name_First  => return R.Name_First;
@@ -810,6 +901,9 @@ package body Hood.Host_ABI is
          when Layer_Blocks => return Unsigned_32'Mod (To_Integer (Block_Layer'Address));
          when Layer_Lots   => return Unsigned_32'Mod (To_Integer (Lot_Layer'Address));
          when Layer_People => return Unsigned_32'Mod (To_Integer (People_Layer'Address));
+         when Layer_Cars   => return Unsigned_32'Mod (To_Integer (Car_Layer'Address));
+         when Layer_Fleet  => return Unsigned_32'Mod (To_Integer (Fleet_Layer'Address));
+         when Layer_Trams  => return Unsigned_32'Mod (To_Integer (Tram_Layer'Address));
          when others       => return 0;
       end case;
    end Draw_Ptr;
@@ -820,6 +914,9 @@ package body Hood.Host_ABI is
                when Layer_Blocks => World.City.Block_Count * Block_Stride,
                when Layer_Lots   => World.City.Lot_Count * Lot_Stride,
                when Layer_People => World.People.Count * People_Stride,
+               when Layer_Cars   => Cars_N * Car_Stride,
+               when Layer_Fleet  => World.People.Fleet_Count * Fleet_Stride,
+               when Layer_Trams  => Trams_N * Tram_Stride,
                when others       => 0));
 
    function Rng_Value (Stream, Index : Integer_32) return Unsigned_32 is
