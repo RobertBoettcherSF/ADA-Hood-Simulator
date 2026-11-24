@@ -1,3 +1,4 @@
+with Hood.Floats;
 with System.Storage_Elements;
 with Hood.City;
 with Hood.Grid;
@@ -45,8 +46,8 @@ package body Hood.Host_ABI is
    begin
       for I in 0 .. S.Count - 1 loop
          K := I * People_Stride;
-         People_Layer (K) := Integer_32 (S.People (I).X);
-         People_Layer (K + 1) := Integer_32 (S.People (I).Y);
+         People_Layer (K) := Hood.Floats.Units_Of (S.People (I).X);
+         People_Layer (K + 1) := Hood.Floats.Units_Of (S.People (I).Y);
          People_Layer (K + 2) := Hood.Tables.Role'Pos (S.People (I).Kind);
          People_Layer (K + 3) := Integer_32 (S.People (I).Gang);
          People_Layer (K + 4) :=
@@ -486,8 +487,8 @@ package body Hood.Host_ABI is
                   when F_P_Loyalty     => return P.Loyalty;
                   when F_P_Team        => return P.Team;
                   when F_P_Building    => return P.Building;
-                  when F_P_X           => return Integer_32 (P.X);
-                  when F_P_Y           => return Integer_32 (P.Y);
+                  when F_P_X           => return Hood.Floats.Units_Of (P.X);
+                  when F_P_Y           => return Hood.Floats.Units_Of (P.Y);
                   when F_P_Walking     => return B2I (P.Walking);
                   when F_P_Status      => return Hood.Population.Status_Kind'Pos (P.Status);
                   when F_P_Hostility   =>
@@ -751,6 +752,12 @@ package body Hood.Host_ABI is
          when Cmd_Demote       => Demote (World.People, G, A, Last_Reply);
          when Cmd_Move_To_Crew => Move_To_Crew (World.People, World.City, G, A, B, Last_Reply);
          when Cmd_Move_To_Pool => Move_To_Pool (World.People, World.City, G, A, Last_Reply);
+         when Cmd_Buy_Vehicle =>
+            if A not in 0 .. 2 then
+               Last_Reply := (Y_None, 0, 0, 0, 0);
+            else
+               Buy_Vehicle (World.People, World.City, G, Hood.Population.Vehicle_Kind'Val (A), B, Last_Reply);
+            end if;
          when Cmd_Repeat =>
             if A not in 0 .. World.People.Last_Count - 1 then
                Last_Reply := (Y_No_Order, 0, 0, 0, 0);

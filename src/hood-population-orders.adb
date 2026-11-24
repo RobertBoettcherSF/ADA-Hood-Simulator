@@ -1,18 +1,19 @@
+with Hood.Floats;
 with Hood.Population.Crews;
+with Hood.Population.Walk;
+with Hood.Population.Transport;
 
 package body Hood.Population.Orders is
 
-   use type Hood.Units.Units;
    use Hood.Population.Crews;
+   use Hood.Floats;
 
-   Six_Metres  : constant := 6 * Hood.Units.Scale;
-   Five_Metres : constant := 5 * Hood.Units.Scale;
-
+   --  Item 6: places in metres as 1.2.91 holds them (doubles).
    type Pos is record
-      X, Y : Hood.Units.Units;
+      X, Y : Long_Float;
       Has  : Boolean;
    end record;
-   No_Pos : constant Pos := (0, 0, False);
+   No_Pos : constant Pos := (0.0, 0.0, False);
 
    ---------------------------------------------------------------------
    --  Draws (counted with the walking's, for the +/-20 % check)
@@ -39,19 +40,31 @@ package body Hood.Population.Orders is
    ---------------------------------------------------------------------
 
    function Centre (C : Hood.City.City_State; B : Integer_32) return Pos is
-     ((C.Lots (C.Buildings (B).Lot).Center_X, C.Lots (C.Buildings (B).Lot).Center_Y, True));
+     ((C.Lots (C.Buildings (B).Lot).CX, C.Lots (C.Buildings (B).Lot).CY, True));
 
-   function Dist2 (A, B : Pos) return Integer_64 is
-     ((Integer_64 (A.X) - Integer_64 (B.X)) ** 2 + (Integer_64 (A.Y) - Integer_64 (B.Y)) ** 2);
+   function Block_Centre (C : Hood.City.City_State; B : Integer_32) return Pos is
+     ((Long_Float (C.Blocks (B).Center_X) / 256.0, Long_Float (C.Blocks (B).Center_Y) / 256.0, True));
 
-   --  The distance in 1/65536 m, rounded down.
-   function Dist_Fine (A, B : Pos) return Integer_64 is
-     (Integer_64 (Hood.Units.Isqrt (Unsigned_64 (Dist2 (A, B)) * 65_536)));
+   function Door_Of (S : Population_State; C : Hood.City.City_State; B : Integer_32) return Pos is
+      X, Y : Long_Float;
+   begin
+      Walk.Door (S, C, B, X, Y);
+      return (X, Y, True);
+   end Door_Of;
 
-   --  Walking time in micro-minutes for a distance in 1/65536 m: 1.2.91
-   --  walks 0.54 m a minute.
-   function Walk_Micro (Fine : Integer_64) return Integer_64 is
-     (Fine * 100_000_000 / 3_538_944);
+   function Point_Of (O : Order_Rec) return Pos is
+     ((Long_Float (O.PX) / 256.0, Long_Float (O.PY) / 256.0, True));
+
+   --  world.ts dist.
+   function Dist (A, B : Pos) return Long_Float is
+      DX : constant Long_Float := A.X - B.X;
+      DY : constant Long_Float := A.Y - B.Y;
+   begin
+      return Sqrt (DX * DX + DY * DY);
+   end Dist;
+
+   --  routing.ts d.
+   function Hyp (A, B : Pos) return Long_Float is (Hypot (A.X - B.X, A.Y - B.Y));
 
    function Person_Pos (S : Population_State; P : Integer_32) return Pos is
      ((S.People (P).X, S.People (P).Y, True));
@@ -61,18 +74,20 @@ package body Hood.Population.Orders is
      (B /= No_Id and then G /= 0 and then Live (C, B)
       and then C.Buildings (B).Kind_Of = T_Office and then S.Extra (B).Owner_Gang = G);
 
+   --  execution.ts nearestOffice: by lot centre.
    function Nearest_Office
      (S : Population_State; C : Hood.City.City_State; G : Gang_Ref; Near : Pos) return Integer_32
    is
       Best : Integer_32 := No_Id;
-      Best_D, D : Integer_64 := 0;
+      Best_D : Long_Float := Infinity;
+      D : Long_Float;
    begin
       if G = 0 then
          return No_Id;
       end if;
       for B in Integer_32 range 0 .. C.Building_Count - 1 loop
          if Is_Office_Of (S, C, B, G) then
-            D := Dist2 (Centre (C, B), Near);
+            D := Dist (Centre (C, B), Near);
             if Best = No_Id or else D < Best_D then
                Best := B;
                Best_D := D;
@@ -82,66 +97,58 @@ package body Hood.Population.Orders is
       return Best;
    end Nearest_Office;
 
-   procedure Set_Dest (S : in out Population_State; P : Integer_32; To : Pos) is
+   --  transport.ts base: the nearest office door (the first on a tie).
+   function Base
+     (S : Population_State; C : Hood.City.City_State; G : Gang_Ref; Near : Pos) return Pos
+   is
+      Best : Pos := No_Pos;
+      Best_D : Long_Float := Infinity;
+      D : Long_Float;
+      Door : Pos;
    begin
-      S.People (P).DX := To.X;
-      S.People (P).DY := To.Y;
-      S.People (P).Walking := True;
+      if G /= 0 then
+         for B in Integer_32 range 0 .. C.Building_Count - 1 loop
+            if Is_Office_Of (S, C, B, G) then
+               Door := Door_Of (S, C, B);
+               D := Dist (Door, Near);
+               if not Best.Has or else D < Best_D then
+                  Best := Door;
+                  Best_D := D;
+               end if;
+            end if;
+         end loop;
+      end if;
+      return (if Best.Has then Best else Near);
+   end Base;
+
+   procedure Set_Dest
+     (S : in out Population_State; C : Hood.City.City_State; P : Integer_32; To : Pos) is
+   begin
+      Transport.Set_Destination (S, C, P, To.X, To.Y);
    end Set_Dest;
 
    procedure Clear_Dest (S : in out Population_State; P : Integer_32) is
    begin
-      S.People (P).DX := S.People (P).X;
-      S.People (P).DY := S.People (P).Y;
-      S.People (P).Walking := False;
+      Walk.Clear_Destination (S, P);
    end Clear_Dest;
 
-   --  One minute's walk on the L of Hood.Population.Week (stepPerson):
-   --  True on arrival, or when he has nowhere to go.
-   function Step (S : in out Population_State; I : Integer_32) return Boolean is
-      P    : Person_Rec renames S.People (I);
-      Left : Hood.Units.Units := 138;  --  Hood.Population.Week.Walk_Step
-      D    : Hood.Units.Units;
-   begin
-      if not P.Walking then
-         return True;
-      end if;
-      D := P.DX - P.X;
-      if D /= 0 then
-         if abs D <= Left then
-            P.X := P.DX;
-            Left := Left - abs D;
-         else
-            P.X := P.X + (if D > 0 then Left else -Left);
-            Left := 0;
-         end if;
-      end if;
-      D := P.DY - P.Y;
-      if D /= 0 and then Left > 0 then
-         if abs D <= Left then
-            P.Y := P.DY;
-         else
-            P.Y := P.Y + (if D > 0 then Left else -Left);
-         end if;
-      end if;
-      if P.X = P.DX and then P.Y = P.DY then
-         P.Walking := False;
-         return True;
-      end if;
-      return False;
-   end Step;
+   --  stepPerson with the minute's traffic: True on arrival, or when he
+   --  has nowhere to go.
+   function Step
+     (S : in out Population_State; C : Hood.City.City_State; I : Integer_32) return Boolean is
+     (Transport.Step_Person (S, C, I, Traffic => True));
 
    procedure Send_Home (S : in out Population_State; C : Hood.City.City_State; P : Integer_32) is
-      Office : Integer_32;
    begin
       if S.People (P).Status /= Active or else S.People (P).Gang = 0 then
          return;
       end if;
-      Office := Nearest_Office (S, C, S.People (P).Gang, Person_Pos (S, P));
       S.People (P).Building := No_Id;
-      if Office /= No_Id then
-         Set_Dest (S, P, Centre (C, Office));
-      end if;
+      declare
+         Home : constant Pos := Base (S, C, S.People (P).Gang, Person_Pos (S, P));
+      begin
+         Transport.Send_Home (S, C, P, Home.X, Home.Y);
+      end;
    end Send_Home;
 
    ---------------------------------------------------------------------
@@ -167,9 +174,6 @@ package body Hood.Population.Orders is
 
    --  starFactor (skillAvg (lieutenant, organization, intelligence)):
    --  stars (o + i) / 4, factor ((o + i) / 4 - 1/4) / 4.75 = (o + i - 1) / 19.
-   function Leader_Factor (P : Person_Rec) return Fraction is
-     (Clamp_Factor ((Integer_64 (P.Skills (Organization)) + Integer_64 (P.Skills (Intelligence)) - 1, 19)));
-
    --  starFactor (actorSkill (actors, skills)): best x 0.7 + mean x 0.3 in
    --  stars, each actor's skillAvg = half stars / (2 n).
    function Actor_Factor (S : Population_State; K : Order_Kind; Actors : Assigned_List; N : Integer_32)
@@ -577,8 +581,8 @@ package body Hood.Population.Orders is
 
    function First_Pos (C : Hood.City.City_State; O : Order_Rec) return Pos is
      (if O.Target_Count > 0 then Centre (C, O.Targets (1))
-      elsif O.Has_Point then (O.PX, O.PY, True)
-      elsif O.Block_Count > 0 then (C.Blocks (O.Blocks (1)).Center_X, C.Blocks (O.Blocks (1)).Center_Y, True)
+      elsif O.Has_Point then Point_Of (O)
+      elsif O.Block_Count > 0 then Block_Centre (C, O.Blocks (1))
       else No_Pos);
 
    function End_Pos (C : Hood.City.City_State; O : Order_Rec) return Pos is
@@ -629,54 +633,77 @@ package body Hood.Population.Orders is
       end if;
       if not Near.Has then
          Near := (if Crew.Lieutenant /= No_Id then Person_Pos (S, Crew.Lieutenant)
-                  else (C.Blocks (0).Center_X, C.Blocks (0).Center_Y, True));
+                  else Block_Centre (C, 0));
       end if;
       Office := Nearest_Office (S, C, Crew.Gang, Near);
       return (if Office /= No_Id then Centre (C, Office) else No_Pos);
    end Start_For;
 
+   procedure Planned_Travel
+     (S : Population_State; C : Hood.City.City_State; Slot : Integer_32;
+      O : Order_Rec; From, To : Pos; Speed, Walk_Minutes : out Long_Float)
+   is
+      St : constant Staffing := Staff (S, C, Slot, O.Kind, O.Manpower, S.Phase = Planning);
+      People : Transport.People_List := [others => No_Id];
+   begin
+      for K in 1 .. Integer (St.Count) loop
+         People (K) := St.Chosen (K);
+      end loop;
+      Transport.Planned_Travel
+        (S, C, Slot, People, St.Count, From.Has, From.X, From.Y, To.Has, To.X, To.Y,
+         Speed, Walk_Minutes);
+   end Planned_Travel;
+
+   --  execution.ts estimateMinutes, in doubles as 1.2.91 adds it up: the
+   --  work, then the march from the start through the targets at the
+   --  crew's planned pace (plannedTravel), plus the walk to the car.
    function Estimate
      (S : Population_State; C : Hood.City.City_State; Slot : Integer_32;
       O : Order_Rec; Self : Integer_32) return Integer_32
    is
       Crew : Crew_Rec renames S.Crews (Slot);
       D    : Def_Rec renames Defs (O.Kind);
-      Bodies, Mp, Targets : Integer_64;
-      F    : Fraction;
-      Eff_Num, Eff_Den : Integer_64;
-      Work, Fine : Integer_64 := 0;
-      Cur  : Pos;
+      Bodies, Mp : Integer_32;
+      Efficiency, Work, Travel : Long_Float := 0.0;
+      Speed, Walk_Minutes : Long_Float;
+      Targets : Integer_32;
+      Start, Cur : Pos;
       Last : Integer_32;
    begin
       if D.Whole_Week then
-         Bodies := Integer_64'Max (1, Integer_64 (Crew_Men (S, C, Slot)));
-         Mp := Integer_64'Max (1, Integer_64 (O.Manpower));
-         return Integer_32 ((2 * Minutes_Per_Week * Mp + Bodies) / (2 * Bodies));
+         Bodies := Integer_32'Max (1, Crew_Men (S, C, Slot));
+         Mp := Integer_32'Max (1, O.Manpower);
+         return Round_Int (Long_Float (Minutes_Per_Week * Mp) / Long_Float (Bodies));
       end if;
-      Mp := Integer_64'Max (1, Integer_64 (O.Manpower));
-      Cur := Start_For (S, C, Slot, First_Pos (C, O), Self);
-      --  efficiency = 1.35 - factor x 0.4, as Eff_Num / Eff_Den millionths
+      Mp := Integer_32'Max (1, O.Manpower);
+      Start := Start_For (S, C, Slot, First_Pos (C, O), Self);
+      Planned_Travel (S, C, Slot, O, Start, First_Pos (C, O), Speed, Walk_Minutes);
       if Crew.Lieutenant /= No_Id then
-         F := Leader_Factor (S.People (Crew.Lieutenant));
-         Eff_Num := 1_350_000 * F.Den - 400_000 * F.Num;
-         Eff_Den := F.Den;
+         declare
+            P : Person_Rec renames S.People (Crew.Lieutenant);
+            T : Long_Float := 0.0;
+         begin
+            T := T + Long_Float (P.Skills (Organization)) / 2.0;
+            T := T + Long_Float (P.Skills (Intelligence)) / 2.0;
+            Efficiency := 1.35 - Max (0.05, Min (1.0, (T / 2.0 - 0.25) / 4.75)) * 0.4;
+         end;
       else
-         Eff_Num := 1_200_000;
-         Eff_Den := 1;
+         Efficiency := 1.2;
       end if;
-      Targets := (if D.Target = On_Area then Integer_64'Max (1, Integer_64 (O.Target_Count)) else 1);
-      Work := Integer_64 (D.Minutes) * Targets * Eff_Num / (Eff_Den * Mp);
+      Targets := (if D.Target = On_Area then Integer_32'Max (1, O.Target_Count) else 1);
+      Work := Long_Float (D.Minutes) * Long_Float (Targets) * Efficiency;
+      Cur := Start;
       Last := (if D.Target = On_Area then O.Target_Count else Integer_32'Min (1, O.Target_Count));
       for K in 1 .. Integer (Last) loop
          if Cur.Has then
-            Fine := Fine + Dist_Fine (Cur, Centre (C, O.Targets (K)));
+            Travel := Travel + Dist (Cur, Centre (C, O.Targets (K)));
          end if;
          Cur := Centre (C, O.Targets (K));
       end loop;
       if D.Target = On_Point and then O.Has_Point and then Cur.Has then
-         Fine := Fine + Dist_Fine (Cur, (O.PX, O.PY, True));
+         Travel := Travel + Dist (Cur, Point_Of (O));
       end if;
-      return Integer_32 ((Work + Walk_Micro (Fine) + Work_Scale / 2) / Work_Scale);
+      return Round_Int (Work / Long_Float (Mp) + Travel / Speed + Walk_Minutes + 0.0);
    end Estimate;
 
    ---------------------------------------------------------------------
@@ -754,14 +781,14 @@ package body Hood.Population.Orders is
    is
       G     : constant Gang_Ref := S.Crews (Slot).Gang;
       First : Pos := No_Pos;
-      Best, D : Integer_64 := Integer_64'Last;
+      Best, D : Long_Float := Infinity;
       Office : Integer_32;
       P     : Pos;
    begin
       for K in 1 .. Integer (N) loop
          P := Centre (C, Ids (K));
          Office := Nearest_Office (S, C, G, P);
-         D := (if Office /= No_Id then Dist_Fine (Centre (C, Office), P) else 0);
+         D := (if Office /= No_Id then Dist (Centre (C, Office), P) else 0.0);
          if D < Best then
             Best := D;
             First := P;
@@ -785,13 +812,13 @@ package body Hood.Population.Orders is
       Pass  : Integer := 0;
       function P_Of (K : Integer) return Pos is (Centre (C, Route (K)));
       A, B, Cc, E : Pos;
-      Before, After : Integer_64;
+      Before, After : Long_Float;
       Tmp : Target_List;
    begin
       for R in 1 .. Integer (N) loop
          Best := 1;
          for K in 2 .. L_N loop
-            if Dist_Fine (At_P, Centre (C, Left (K))) < Dist_Fine (At_P, Centre (C, Left (Best))) then
+            if Hyp (At_P, Centre (C, Left (K))) < Hyp (At_P, Centre (C, Left (Best))) then
                Best := K;
             end if;
          end loop;
@@ -810,9 +837,9 @@ package body Hood.Population.Orders is
                B := P_Of (I);
                Cc := P_Of (J);
                E := (if J < Integer (N) then P_Of (J + 1) else No_Pos);
-               Before := Dist_Fine (A, B) + (if E.Has then Dist_Fine (Cc, E) else 0);
-               After := Dist_Fine (A, Cc) + (if E.Has then Dist_Fine (B, E) else 0);
-               if After < Before then
+               Before := Hyp (A, B) + (if E.Has then Hyp (Cc, E) else 0.0);
+               After := Hyp (A, Cc) + (if E.Has then Hyp (B, E) else 0.0);
+               if After < Before - 1.0E-6 then
                   Tmp := Route;
                   for K in I .. J loop
                      Route (K) := Tmp (J - (K - I));
@@ -874,7 +901,7 @@ package body Hood.Population.Orders is
       Ids   : Target_List := O.Targets;
       N     : Integer_32 := O.Target_Count;
       Worst : Integer;
-      Saving, Sv : Integer_64;
+      Saving, Sv : Long_Float;
       Prev, Here, Next : Pos;
 
       function Fits return Boolean is
@@ -889,15 +916,15 @@ package body Hood.Population.Orders is
    begin
       while N > 1 loop
          Worst := Integer (N);
-         Saving := Integer_64'First;
+         Saving := -Infinity;
          for I in 1 .. Integer (N) loop
             Prev := (if I = 1 then Start else Centre (C, Ids (I - 1)));
             Here := Centre (C, Ids (I));
             Next := (if I < Integer (N) then Centre (C, Ids (I + 1)) else No_Pos);
-            Sv := (if Prev.Has then Dist_Fine (Prev, Here) else 0)
+            Sv := (if Prev.Has then Dist (Prev, Here) else 0.0)
               + (if Next.Has
-                 then Dist_Fine (Here, Next) - (if Prev.Has then Dist_Fine (Prev, Next) else 0)
-                 else 0);
+                 then Dist (Here, Next) - (if Prev.Has then Dist (Prev, Next) else 0.0)
+                 else 0.0);
             if Sv > Saving then
                Saving := Sv;
                Worst := I;
@@ -978,7 +1005,8 @@ package body Hood.Population.Orders is
             Assigned_Count => 0, Assigned => [others => No_Id], Cursor => 0, Completed => 0,
             Work_Left => 0, Estimate => 0, Worked => -1, Started => -1, Finished => -1,
             Crew_Size => -1, Fail | Last_Miss | Waiting_For => No_Line,
-            Result_Count => 0, Results => [others => No_Line]);
+            Result_Count => 0, Results => [others => No_Line],
+            No_Car_Count => 0, No_Car => [others => No_Id]);
       if Input.Kind = O_Donate and then Input.Amount < 0 and then N > 0
         and then Type_Charity (C.Buildings (Ids (1)).Kind_Of)
       then
@@ -1037,6 +1065,7 @@ package body Hood.Population.Orders is
       Partly : constant Boolean := Is_Failed and then O.Completed > 0;
       P      : Integer_32;
    begin
+      Transport.Release_Order (S, Id);
       O.State := (if Is_Failed and then not Partly then Failed else Done);
       O.Fail := Fail;
       O.Finished := S.Minute;
@@ -1092,14 +1121,13 @@ package body Hood.Population.Orders is
 
    --  targetPos: where the men must stand for the current target.
    function Target_Pos (S : Population_State; C : Hood.City.City_State; O : Order_Rec) return Pos is
-      pragma Unreferenced (S);
       Blk : Integer_32;
       N   : Integer_32;
-      X, Y : Hood.Units.Units;
+      X, Y : Long_Float;
    begin
       case Defs (O.Kind).Target is
          when On_Point =>
-            return (if O.Has_Point then (O.PX, O.PY, True) else No_Pos);
+            return (if O.Has_Point then Point_Of (O) else No_Pos);
          when On_Area =>
             if Defs (O.Kind).Whole_Week then
                N := Standing_Block_Count (C, O, O.Cursor, Blk);
@@ -1115,8 +1143,61 @@ package body Hood.Population.Orders is
       if O.Cursor >= O.Target_Count or else not Live (C, O.Targets (Integer (O.Cursor) + 1)) then
          return No_Pos;
       end if;
-      return Centre (C, O.Targets (Integer (O.Cursor) + 1));
+      return Door_Of (S, C, O.Targets (Integer (O.Cursor) + 1));
    end Target_Pos;
+
+   --  transport.ts allocateTransport: the men going further than a drive
+   --  take the crew's free cars where that is quicker; the rest walk.
+   procedure Allocate
+     (S : in out Population_State; C : Hood.City.City_State; Slot, Id : Integer_32;
+      Chosen : Assigned_List; N : Integer_32; To : Pos)
+   is
+      Drivers : Transport.People_List := [others => No_Id];
+      ND : Integer_32 := 0;
+      P : Transport.Plan;
+      In_Car : array (1 .. 10) of Boolean := [others => False];
+   begin
+      Transport.Reconcile (S, C);
+      for K in 1 .. Integer (N) loop
+         if Dist (Person_Pos (S, Chosen (K)), To) > Transport.Drive_Min_Distance
+           and then not Transport.No_Car (S, Id, Chosen (K))
+         then
+            ND := ND + 1;
+            Drivers (Integer (ND)) := Chosen (K);
+         end if;
+      end loop;
+      Transport.Crew_Plan (S, C, Slot, Drivers, ND, False, 0.0, 0.0, True, To.X, To.Y, P);
+      for K in 1 .. Integer (P.Car_Count) loop
+         Transport.Reserve_Crew_Car (S, C, Slot, Id, P.Cars (K), To.X, To.Y);
+         for R in 1 .. Integer (P.Cars (K).Count) loop
+            for J in 1 .. Integer (N) loop
+               if Chosen (J) = P.Cars (K).Riders (R) then
+                  In_Car (J) := True;
+               end if;
+            end loop;
+         end loop;
+      end loop;
+      --  plan.walkers, then the men not going far enough to drive.
+      for K in 1 .. Integer (P.Walker_Count) loop
+         S.People (P.Walkers (K)).In_Vehicle := False;
+         S.People (P.Walkers (K)).Vehicle := No_Id;
+         Set_Dest (S, C, P.Walkers (K), To);
+      end loop;
+      for J in 1 .. Integer (N) loop
+         declare
+            Driver : Boolean := False;
+         begin
+            for K in 1 .. Integer (ND) loop
+               Driver := Driver or else Drivers (K) = Chosen (J);
+            end loop;
+            if not Driver and then not In_Car (J) then
+               S.People (Chosen (J)).In_Vehicle := False;
+               S.People (Chosen (J)).Vehicle := No_Id;
+               Set_Dest (S, C, Chosen (J), To);
+            end if;
+         end;
+      end loop;
+   end Allocate;
 
    function Assign
      (S : in out Population_State; C : Hood.City.City_State; Slot, Id : Integer_32;
@@ -1138,11 +1219,17 @@ package body Hood.Population.Orders is
          O.Waiting_For := St.Reason;
          return False;
       end if;
+      --  A man riding home in a crew car gets out where he is and goes.
+      for K in 1 .. Integer (St.Count) loop
+         if S.People (St.Chosen (K)).Vehicle /= No_Id then
+            Transport.Alight (S, C, St.Chosen (K));
+         end if;
+      end loop;
       for K in 1 .. Integer (St.Count) loop
          P := St.Chosen (K);
          if Waiting_Inside (S, C, P) then
             declare
-               Door : constant Pos := Centre (C, S.People (P).Building);
+               Door : constant Pos := Door_Of (S, C, S.People (P).Building);
             begin
                S.People (P).Building := No_Id;
                S.People (P).X := Door.X;
@@ -1173,10 +1260,13 @@ package body Hood.Population.Orders is
          if Office /= No_Id then
             for K in 1 .. Integer (St.Count) loop
                P := St.Chosen (K);
-               S.People (P).X := Centre (C, Office).X;
-               S.People (P).Y := Centre (C, Office).Y;
+               S.People (P).X := Door_Of (S, C, Office).X;
+               S.People (P).Y := Door_Of (S, C, Office).Y;
             end loop;
          end if;
+      end if;
+      if Tp.Has then
+         Allocate (S, C, Slot, Id, St.Chosen, St.Count, Tp);
       end if;
       return True;
    end Assign;
@@ -1208,11 +1298,13 @@ package body Hood.Population.Orders is
       Ok   : Boolean;
       pragma Unreferenced (Ok);
    begin
+      Transport.Reset_Week (S, C);
       for P in Integer_32 range 0 .. S.Count - 1 loop
          if S.People (P).Gang /= 0 and then S.People (P).Kind in R_Hood | R_Lieutenant
-           and then S.People (P).Building = No_Id
+           and then S.People (P).Building = No_Id and then S.People (P).Vehicle = No_Id
          then
             Clear_Dest (S, P);
+            S.People (P).In_Vehicle := False;
          end if;
       end loop;
       Crews_By_Number (S, List, N);
@@ -1270,6 +1362,7 @@ package body Hood.Population.Orders is
       S.People (Best).Team := No_Id;
       S.People (Best).Order := No_Id;
       S.People (Best).Building := B;
+      Transport.Dismount (S, Best);
       S.People (Best).X := Centre (C, B).X;
       S.People (Best).Y := Centre (C, B).Y;
       Clear_Dest (S, Best);
@@ -1438,8 +1531,8 @@ package body Hood.Population.Orders is
                begin
                   if Old /= No_Id then
                      S.People (Old).Building := No_Id;
-                     S.People (Old).X := Centre (C, B).X;
-                     S.People (Old).Y := Centre (C, B).Y;
+                     S.People (Old).X := Door_Of (S, C, B).X;
+                     S.People (Old).Y := Door_Of (S, C, B).Y;
                      Send_Home (S, C, Old);
                      if S.Crews (Slot).Count < Max_Crew_Members then
                         Add_Member (S, Slot, Old);
@@ -1556,7 +1649,7 @@ package body Hood.Population.Orders is
                Total : Integer_32 := 0;
                Take  : Integer_32 := 1;
                Else_B : Integer_32 := No_Id;
-               Else_D, D : Integer_64 := 0;
+               Else_D, D : Long_Float := 0.0;
                Joined : Boolean;
                function Seeking (P, At_B : Integer_32) return Boolean is
                  (S.People (P).Gang = 0 and then S.People (P).Status = Active
@@ -1576,7 +1669,7 @@ package body Hood.Population.Orders is
                      if Other /= B and then Live (C, Other)
                        and then Type_Recruit_As (C.Buildings (Other).Kind_Of) = Role'Pos (R_Hood)
                      then
-                        D := Dist2 (Centre (C, Other), Centre (C, B));
+                        D := Dist (Centre (C, Other), Centre (C, B));
                         if Else_B = No_Id or else D < Else_D then
                            for P in Integer_32 range 0 .. S.Count - 1 loop
                               if Seeking (P, Other) then
@@ -1644,7 +1737,7 @@ package body Hood.Population.Orders is
       Arrived, Hit : Boolean;
       pragma Unreferenced (Arrived);
       Blk, Count, Spot : Integer_32;
-      X, Y : Hood.Units.Units;
+      X, Y : Long_Float;
    begin
       case O.Kind is
          when O_Patrol =>
@@ -1655,10 +1748,10 @@ package body Hood.Population.Orders is
                   if Count > 0 then
                      Int (S, Main, 0, 100_000, Spot);
                      Pavement (C.Blocks (Blk), Spot, X, Y);
-                     Set_Dest (S, Actors (K), (X, Y, True));
+                     Set_Dest (S, C, Actors (K), (X, Y, True));
                   end if;
                else
-                  Arrived := Step (S, Actors (K));
+                  Arrived := Step (S, C, Actors (K));
                end if;
             end loop;
             --  Visible protection reassures the neighbourhood (heat and
@@ -1673,18 +1766,24 @@ package body Hood.Population.Orders is
                   return;
                end if;
                for K in 1 .. Integer (N) loop
-                  if Dist2 (Person_Pos (S, Actors (K)), Centre (C, B)) > Integer_64 (Five_Metres) ** 2 then
+                  --  The car stops on the road beside the shop; the guard
+                  --  walks the rest of the way to the door.
+                  if S.People (Actors (K)).In_Vehicle then
+                     Transport.Dismount (S, Actors (K));
+                     Clear_Dest (S, Actors (K));
+                  end if;
+                  if Dist (Person_Pos (S, Actors (K)), Door_Of (S, C, B)) > 5.0 then
                      if not S.People (Actors (K)).Walking then
-                        Set_Dest (S, Actors (K), Centre (C, B));
+                        Set_Dest (S, C, Actors (K), Door_Of (S, C, B));
                      end if;
-                     Arrived := Step (S, Actors (K));
+                     Arrived := Step (S, C, Actors (K));
                   end if;
                end loop;
             end;
          when O_Go_To =>
             for K in 1 .. Integer (N) loop
                if S.People (Actors (K)).Walking then
-                  Arrived := Step (S, Actors (K));
+                  Arrived := Step (S, C, Actors (K));
                end if;
             end loop;
          when others =>
@@ -1708,6 +1807,7 @@ package body Hood.Population.Orders is
       Tp : Pos;
       Missed : Line_Rec;
    begin
+      Transport.Reconcile (S, C);
       Crews_By_Number (S, List, Ncrew);
       for Ck in 1 .. Integer (Ncrew) loop
          Slot := List (Ck);
@@ -1741,14 +1841,18 @@ package body Hood.Population.Orders is
                            for K in 1 .. Integer (N) loop
                               declare
                                  A : constant Integer_32 := Actors (K);
+                                 Boarding : constant Boolean :=
+                                   S.People (A).Vehicle /= No_Id
+                                   and then S.Fleet (S.People (A).Vehicle).Boarding;
                               begin
-                                 if not S.People (A).Walking
-                                   and then Dist2 (Person_Pos (S, A), Tp) > Integer_64 (Six_Metres) ** 2
+                                 if not Boarding and then not S.People (A).Walking
+                                   and then Dist (Person_Pos (S, A), Tp) > 6.0
                                  then
-                                    Set_Dest (S, A, Tp);
+                                    Set_Dest (S, C, A, Tp);
                                  end if;
-                                 if Step (S, A)
-                                   or else Dist2 (Person_Pos (S, A), Tp) <= Integer_64 (Six_Metres) ** 2
+                                 if Step (S, C, A)
+                                   or else (not Boarding and then not S.People (A).In_Vehicle
+                                            and then Dist (Person_Pos (S, A), Tp) <= 6.0)
                                  then
                                     Arrived := Arrived + 1;
                                  end if;
@@ -1757,7 +1861,9 @@ package body Hood.Population.Orders is
                            if Arrived = N then
                               if not D.Whole_Week then
                                  for K in 1 .. Integer (N) loop
-                                    if S.People (Actors (K)).Walking then
+                                    if not S.People (Actors (K)).In_Vehicle
+                                      and then S.People (Actors (K)).Walking
+                                    then
                                        Clear_Dest (S, Actors (K));
                                     end if;
                                  end loop;
@@ -1790,7 +1896,7 @@ package body Hood.Population.Orders is
                                  Tp := Target_Pos (S, C, O);
                                  if Tp.Has then
                                     for K in 1 .. Integer (N) loop
-                                       Set_Dest (S, Actors (K), Tp);
+                                       Set_Dest (S, C, Actors (K), Tp);
                                     end loop;
                                  end if;
                               elsif O.State = Executing then

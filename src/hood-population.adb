@@ -1,3 +1,4 @@
+with Hood.Floats;
 with Hood.Random;
 
 package body Hood.Population is
@@ -223,8 +224,8 @@ package body Hood.Population is
    begin
       for I in Integer_32 range 0 .. S.Count - 1 loop
          Add (H, S.People (I).Id);
-         Add (H, Integer_32 (S.People (I).X));
-         Add (H, Integer_32 (S.People (I).Y));
+         Add (H, Hood.Floats.Units_Of (S.People (I).X));
+         Add (H, Hood.Floats.Units_Of (S.People (I).Y));
       end loop;
       return H;
    end Position_Hash;
@@ -264,7 +265,7 @@ package body Hood.Population is
    --  Places
    ---------------------------------------------------------------------
 
-   procedure Pavement (B : Hood.City.Block_Rec; N : Integer_32; X, Y : out Hood.Units.Units) is
+   procedure Pavement (B : Hood.City.Block_Rec; N : Integer_32; X, Y : out Long_Float) is
       RX : constant Long_Float := Long_Float (Block_Rect_X (B));
       RY : constant Long_Float := Long_Float (Block_Rect_Y (B));
       RW : constant Long_Float := Long_Float (Block_Rect_W (B));
@@ -274,11 +275,11 @@ package body Hood.Population is
       Kerb  : constant Long_Float := 1.6;
    begin
       if Side = 0 or else Side = 2 then
-         X := Hood.City.To_Units (RX + Along * RW);
-         Y := Hood.City.To_Units (RY + (if Side = 0 then -Kerb else RH + Kerb));
+         X := RX + Along * RW;
+         Y := RY + (if Side = 0 then -Kerb else RH + Kerb);
       else
-         X := Hood.City.To_Units (RX + (if Side = 1 then RW + Kerb else -Kerb));
-         Y := Hood.City.To_Units (RY + Along * RH);
+         X := RX + (if Side = 1 then RW + Kerb else -Kerb);
+         Y := RY + Along * RH;
       end if;
    end Pavement;
 

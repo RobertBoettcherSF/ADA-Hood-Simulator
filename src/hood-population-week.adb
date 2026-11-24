@@ -1,12 +1,16 @@
+with Hood.Population.Transport;
+with Hood.Floats;
 with Hood.Population.Crews;
 with Hood.Population.Orders;
 with Hood.Population.Setup;
+with Hood.Population.Traffic;
+with Hood.Population.Walk;
 
 package body Hood.Population.Week is
 
-   use type Hood.Units.Units;
+   use Hood.Floats;
 
-   Cell : constant := 54 * Hood.Units.Scale;  --  one block cell, in units
+   Cell : constant Long_Float := 54.0;  --  one block cell
    Slices : constant := 6;                    --  sim.ts:55 AMBIENT_SLICES
 
    --  The people in 1.2.91's walking order: slice by slice (id mod 6), each
@@ -69,8 +73,8 @@ package body Hood.Population.Week is
       Main : in out Hood.Random.Mulberry; I : Integer_32; Radius : Integer_32)
    is
       P  : Person_Rec renames S.People (I);
-      GX : constant Integer_32 := Integer_32 (P.X / Cell);
-      GY : constant Integer_32 := Integer_32 (P.Y / Cell);
+      GX : constant Integer_32 := Floor_Int (P.X / Cell);
+      GY : constant Integer_32 := Floor_Int (P.Y / Cell);
       Found : Integer_32 := 0;
       Best  : Integer_32 := No_Id;
       NX, NY, Cand, Spot : Integer_32;
@@ -94,40 +98,13 @@ package body Hood.Population.Week is
          return;
       end if;
       Int (S, Main, 0, 100_000, Spot);
-      Pavement (C.Blocks (Best), Spot, P.DX, P.DY);
-      P.Walking := True;
+      declare
+         X, Y : Long_Float;
+      begin
+         Pavement (C.Blocks (Best), Spot, X, Y);
+         Walk.Set_Destination (S, C, I, X, Y);
+      end;
    end Wander;
-
-   --  One minute's walk: along x, then along y (proposed; 1.2.91 follows
-   --  pavement routes, item 6). True on arrival.
-   function Step (P : in out Person_Rec) return Boolean is
-      Left : Hood.Units.Units := Walk_Step;
-      D    : Hood.Units.Units;
-   begin
-      D := P.DX - P.X;
-      if D /= 0 then
-         if abs D <= Left then
-            P.X := P.DX;
-            Left := Left - abs D;
-         else
-            P.X := P.X + (if D > 0 then Left else -Left);
-            Left := 0;
-         end if;
-      end if;
-      D := P.DY - P.Y;
-      if D /= 0 and then Left > 0 then
-         if abs D <= Left then
-            P.Y := P.DY;
-         else
-            P.Y := P.Y + (if D > 0 then Left else -Left);
-         end if;
-      end if;
-      if P.X = P.DX and then P.Y = P.DY then
-         P.Walking := False;
-         return True;
-      end if;
-      return False;
-   end Step;
 
    procedure Go_Inside
      (S : in out Population_State; C : Hood.City.City_State;
@@ -135,11 +112,50 @@ package body Hood.Population.Week is
    is
       L : constant Integer_32 := C.Buildings (B).Lot;
    begin
+      S.People (I).In_Vehicle := False;
       S.People (I).Building := B;
-      S.People (I).X := C.Lots (L).Center_X;
-      S.People (I).Y := C.Lots (L).Center_Y;
-      S.People (I).Walking := False;
+      S.People (I).X := C.Lots (L).CX;
+      S.People (I).Y := C.Lots (L).CY;
    end Go_Inside;
+
+   function Gang_Office (S : Population_State; C : Hood.City.City_State; B : Integer_32; G : Gang_Ref)
+     return Boolean is
+     (G /= 0 and then Live (C, B) and then S.Extra (B).Owner_Gang = G
+      and then (S.Extra (B).Is_HQ or else C.Buildings (B).Kind_Of = T_Office));
+
+   --  ambient.ts officeNear: the first office of his gang, in building
+   --  order, whose door is within 24 m.
+   function Office_Near (S : Population_State; C : Hood.City.City_State; I : Integer_32)
+     return Integer_32
+   is
+      G : constant Gang_Ref := S.People (I).Gang;
+      X, Y, DX, DY : Long_Float;
+   begin
+      if G = 0 then
+         return No_Id;
+      end if;
+      for B in Integer_32 range 0 .. C.Building_Count - 1 loop
+         if Gang_Office (S, C, B, G) then
+            Walk.Door (S, C, B, X, Y);
+            DX := X - S.People (I).X;
+            DY := Y - S.People (I).Y;
+            if Sqrt (DX * DX + DY * DY) < 24.0 then
+               return B;
+            end if;
+         end if;
+      end loop;
+      return No_Id;
+   end Office_Near;
+
+   function Has_Office (S : Population_State; C : Hood.City.City_State; G : Gang_Ref) return Boolean is
+   begin
+      for B in Integer_32 range 0 .. C.Building_Count - 1 loop
+         if Gang_Office (S, C, B, G) then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Has_Office;
 
    --  ambient.ts ambientPerson, for the people of item 4 (nobody is on an
    --  order, in a car, a tram, a meeting or an FBI case yet).
@@ -154,29 +170,24 @@ package body Hood.Population.Week is
       if S.People (I).Status /= Active or else S.People (I).Order /= No_Id then
          return;  --  item 5: one on an order is moved by it
       end if;
-      --  An idle hood or lieutenant waits inside his gang's office. 1.2.91
-      --  first checks he stands within 24 m of its door; at the start every
-      --  one stands on the office lot (unproven for later items).
+      --  An idle hood or lieutenant waits inside an office of his gang
+      --  whose door he stands within 24 m of; away from them he walks home.
       if S.People (I).Gang /= 0 and then not S.People (I).Walking
+        and then not S.People (I).In_Vehicle
         and then Kind in R_Hood | R_Lieutenant
         and then S.People (I).Building = No_Id
-        and then S.Gangs (S.People (I).Gang).Office /= No_Id
       then
-         --  Item 5: one back from an order far from the office walks home
-         --  first (the door is the lot's centre, proposed).
          declare
-            Office : constant Integer_32 := S.Gangs (S.People (I).Gang).Office;
-            L      : constant Integer_32 := C.Buildings (Office).Lot;
-            DX     : constant Integer_64 := Integer_64 (C.Lots (L).Center_X - S.People (I).X);
-            DY     : constant Integer_64 := Integer_64 (C.Lots (L).Center_Y - S.People (I).Y);
+            Home : constant Integer_32 := Office_Near (S, C, I);
          begin
-            if DX * DX + DY * DY < Integer_64 (24 * Hood.Units.Scale) ** 2 then
-               Go_Inside (S, C, I, Office);
-            else
+            if Home /= No_Id then
+               Go_Inside (S, C, I, Home);
+               return;
+            elsif Has_Office (S, C, S.People (I).Gang) then
                Hood.Population.Orders.Send_Home (S, C, I);
+               return;
             end if;
          end;
-         return;
       end if;
       if S.People (I).Building /= No_Id
         and then Kind not in R_Police | R_Fbi | R_Snitch | R_Reporter
@@ -186,7 +197,7 @@ package body Hood.Population.Week is
       case Kind is
          when R_Citizen | R_Snitch =>
             if S.People (I).Walking then
-               Arrived := Step (S.People (I));
+               Arrived := Transport.Step_Person (S, C, I, Traffic => True);
             else
                Chance (S, Main, 1, 1, Go);  --  min (1, 3 x 1 minute)
                if Go then
@@ -201,7 +212,7 @@ package body Hood.Population.Week is
                S.People (I).Building := No_Id;
             end if;
             if S.People (I).Walking then
-               Arrived := Step (S.People (I));
+               Arrived := Transport.Step_Person (S, C, I, Traffic => True);
             else
                Chance (S, Main, 2, 25, Go);  --  0.08
                if Go then
@@ -210,7 +221,7 @@ package body Hood.Population.Week is
             end if;
          when R_Judge | R_Da | R_Mayor | R_Police_Chief | R_Fbi_Head =>
             if S.People (I).Walking then
-               Arrived := Step (S.People (I));
+               Arrived := Transport.Step_Person (S, C, I, Traffic => True);
             else
                Chance (S, Main, 3, 100, Go);  --  0.03
                if Go then
@@ -219,7 +230,7 @@ package body Hood.Population.Week is
             end if;
          when R_Police =>
             if S.People (I).Walking then
-               Arrived := Step (S.People (I));
+               Arrived := Transport.Step_Person (S, C, I, Traffic => True);
             else
                Chance (S, Main, 1, 1, Go);  --  min (1, 1 x 1 minute)
                if Go then
@@ -228,7 +239,7 @@ package body Hood.Population.Week is
             end if;
          when R_Fbi =>
             if S.People (I).Walking then
-               Arrived := Step (S.People (I));
+               Arrived := Transport.Step_Person (S, C, I, Traffic => True);
             else
                Chance (S, Main, 1, 25, Go);  --  0.04
                if Go then
@@ -237,17 +248,20 @@ package body Hood.Population.Week is
             end if;
          when R_Hood | R_Lieutenant | R_Boss | R_Accountant | R_Lawyer =>
             if S.People (I).Walking then
-               Arrived := Step (S.People (I));
-               if Arrived and then Kind in R_Hood | R_Lieutenant
-                 and then S.People (I).Gang /= 0
-                 and then S.Gangs (S.People (I).Gang).Office /= No_Id
-               then
-                  Go_Inside (S, C, I, S.Gangs (S.People (I).Gang).Office);
+               Arrived := Transport.Step_Person (S, C, I, Traffic => True);
+               if Arrived and then Kind in R_Hood | R_Lieutenant then
+                  declare
+                     Home : constant Integer_32 := Office_Near (S, C, I);
+                  begin
+                     if Home /= No_Id then
+                        Go_Inside (S, C, I, Home);
+                     end if;
+                  end;
                end if;
             end if;
          when others =>
             if S.People (I).Walking then
-               Arrived := Step (S.People (I));
+               Arrived := Transport.Step_Person (S, C, I, Traffic => True);
             end if;
       end case;
    end Ambient;
@@ -263,6 +277,7 @@ package body Hood.Population.Week is
       S.Draws_This_Week := 0;
       S.Message_Count := 0;
       Hood.Population.Orders.Begin_Week (S, C);
+      Hood.Population.Traffic.Open_Week (S, C);
    end Launch;
 
    procedure Tick
@@ -276,10 +291,14 @@ package body Hood.Population.Week is
          Build_Order (S);
       end if;
       S.Minute := S.Minute + 1;
+      Hood.Population.Traffic.Begin_Scan;
       for K in Integer_32 range 0 .. S.Count - 1 loop
          Ambient (S, C, Main, Order (K));
+         Hood.Population.Traffic.Scan_Person (S, Order (K));
       end loop;
+      Hood.Population.Traffic.Tick (S, C);
       Hood.Population.Orders.Tick (S, C, Main);
+      Transport.Reconcile (S, C);
       if S.Week = 1 and then S.Minute = 1 then
          S.Rng_After_Minute_1 := Hood.Random.State (Main);
       end if;

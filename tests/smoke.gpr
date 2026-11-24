@@ -7,7 +7,7 @@ project Smoke is
    for Main use ("smoke.adb");
    package Compiler is
       for Default_Switches ("Ada") use
-        ("-gnat2022", "-gnata", "-gnatwa", "-gnatwe", "-O2");
+        ("-gnat2022", "-gnata", "-gnatwa", "-gnatwe", "-O2", "-ffp-contract=off");
    end Compiler;
    package Binder is
       for Default_Switches ("Ada") use ("-static");

@@ -130,7 +130,7 @@ package body Hood.Population.Setup is
      (S        : in out Population_State;
       Main     : in out Hood.Random.Mulberry;
       Kind     : Role;
-      X, Y     : Hood.Units.Units;
+      X, Y     : Long_Float;
       Index    : out Integer_32;
       Female   : Integer_32 := -1;
       Origin   : Integer_32 := -1;
@@ -225,7 +225,13 @@ package body Hood.Population.Setup is
          P.DX := X;
          P.DY := Y;
          P.Walking := False;
+         P.Halted := False;
+         P.Path_Head := No_Id;
+         P.Path_Off := 0;
+         P.Path_Len := 0;
          P.Order := No_Id;
+         P.In_Vehicle := False;
+         P.Vehicle := No_Id;
       end;
    end Create;
 
@@ -255,8 +261,8 @@ package body Hood.Population.Setup is
       Want_Business : Boolean := True;
       Idle_Count : Integer := 0;
       Q, N, Need, Best, Index : Integer_32;
-      LX, LY : Hood.Units.Units;
-      Best_D, D : Integer_64;
+      LX, LY : Long_Float;
+      Best_D, D : Long_Float;
    begin
       for B in Integer_32 range 0 .. C.Building_Count - 1 loop
          Present (B) := 0;
@@ -287,16 +293,15 @@ package body Hood.Population.Setup is
             if Q >= 0 then
                N := Present (B);
                Need := Quota_People (Q);
-               LX := C.Lots (C.Buildings (B).Lot).Center_X;
-               LY := C.Lots (C.Buildings (B).Lot).Center_Y;
+               LX := C.Lots (C.Buildings (B).Lot).CX;
+               LY := C.Lots (C.Buildings (B).Lot).CY;
                if N < Need then
                   --  One idle man of the kind, the nearest, moves here.
                   Best := 0;
-                  Best_D := 0;
+                  Best_D := 0.0;
                   for K in 1 .. Idle_Count loop
                      if Idle (K) /= No_Id and then S.People (Idle (K)).Kind = Quota_Role (Q) then
-                        D := (Integer_64 (S.People (Idle (K)).X) - Integer_64 (LX)) ** 2
-                          + (Integer_64 (S.People (Idle (K)).Y) - Integer_64 (LY)) ** 2;
+                        D := (S.People (Idle (K)).X - LX) ** 2 + (S.People (Idle (K)).Y - LY) ** 2;
                         if Best = 0 or else D < Best_D then
                            Best := Integer_32 (K);
                            Best_D := D;
@@ -452,7 +457,7 @@ package body Hood.Population.Setup is
             Purchases | Protection | Last_Purchases | Last_Protection => 0,
             Crews => [others => No_Id],
             Pool => [others => No_Id], Sites => [others => No_Id],
-            Pistols => 2, Coupes => 1,
+            Pistols => 2, Coupes => 1, Speedsters | Trucks => 0,
             Offered | Known => [others => Peace], Eliminated => False);
       end loop;
 
@@ -507,7 +512,7 @@ package body Hood.Population.Setup is
             --  The boss.
             if Gang.Player then
                Is_Female := False;
-               Create (S, Main, R_Boss, C.Blocks (Block).Center_X, C.Blocks (Block).Center_Y, Boss,
+               Create (S, Main, R_Boss, Long_Float (C.Blocks (Block).Center_X) / 256.0, Long_Float (C.Blocks (Block).Center_Y) / 256.0, Boss,
                        Female => 0, First => Player_First, Last => Player_Last, Portrait => 0,
                        Quality => 1.3, Gang => G);
             else
@@ -520,7 +525,7 @@ package body Hood.Population.Setup is
                end if;
                Nick := Pool_First (Nicknames) + Pick (Main, Pool_Length (Nicknames));
                Index := Int (Main, 0, 23);
-               Create (S, Main, R_Boss, C.Blocks (Block).Center_X, C.Blocks (Block).Center_Y, Boss,
+               Create (S, Main, R_Boss, Long_Float (C.Blocks (Block).Center_X) / 256.0, Long_Float (C.Blocks (Block).Center_Y) / 256.0, Boss,
                        Female => Boolean'Pos (Is_Female), First => First_Name, Last => Gang.Surname,
                        Nick => Nick, Portrait => Index, Quality => 1.3, Gang => G);
                --  A Normal rival's profile: rows 8 .. 15 (aiStance.ts:95-99).
@@ -570,6 +575,7 @@ package body Hood.Population.Setup is
             end loop;
             Hood.City.Replace_Building (C, Centre_Lot, T_Office, Office);
             exit when Office = No_Id;
+            C.Buildings (Office).Id := S.Next_Id;
             S.Next_Id := S.Next_Id + 1;  --  the office takes the next number
             S.Extra (Office) := (Owner_Gang => G, Owner_Person | Manager | Hides => No_Id,
                                  Protect_Gang => 0, Protect_Weekly | Protect_Base => 0,
@@ -586,12 +592,12 @@ package body Hood.Population.Setup is
                C.HQ_Count := G;
             end if;
             S.People (Boss).Building := Office;
-            S.People (Boss).X := C.Lots (Centre_Lot).Center_X;
-            S.People (Boss).Y := C.Lots (Centre_Lot).Center_Y;
+            S.People (Boss).X := C.Lots (Centre_Lot).CX;
+            S.People (Boss).Y := C.Lots (Centre_Lot).CY;
 
             --  Five hoods and a lieutenant, all of the boss's heritage.
             for K in Hoods'Range loop
-               Create (S, Main, R_Hood, C.Lots (Centre_Lot).Center_X, C.Lots (Centre_Lot).Center_Y,
+               Create (S, Main, R_Hood, C.Lots (Centre_Lot).CX, C.Lots (Centre_Lot).CY,
                        Hoods (K), Origin => Gang.Heritage, Business => K = 1, Gang => G);
                exit when Hoods (K) = No_Id;
                S.People (Hoods (K)).Demand := Pay_Demand (S.People (Hoods (K)), R_Hood);
@@ -602,8 +608,8 @@ package body Hood.Population.Setup is
             Gang.Manager := Hoods (1);
             S.Extra (Front).Manager := Hoods (1);
             S.People (Hoods (1)).Building := Front;
-            S.People (Hoods (1)).X := C.Lots (Front_Lot).Center_X;
-            S.People (Hoods (1)).Y := C.Lots (Front_Lot).Center_Y;
+            S.People (Hoods (1)).X := C.Lots (Front_Lot).CX;
+            S.People (Hoods (1)).Y := C.Lots (Front_Lot).CY;
             --  The best organiser of the rest is lieutenant (a stable sort on
             --  organisation plus intelligence, best first).
             for K in 3 .. 6 loop
@@ -753,7 +759,7 @@ package body Hood.Population.Setup is
    is
       Streets, Civics, Index, Blk, Other, Officers, Walkers : Integer_32;
       Blocks : constant Integer_32 := C.W * C.H;
-      X, Y : Hood.Units.Units;
+      X, Y : Long_Float;
 
       procedure Civic_Spot is
          K : Integer_32;
@@ -768,8 +774,8 @@ package body Hood.Population.Setup is
 
       procedure At_Lot (Building : Integer_32) is
       begin
-         X := C.Lots (C.Buildings (Building).Lot).Center_X;
-         Y := C.Lots (C.Buildings (Building).Lot).Center_Y;
+         X := C.Lots (C.Buildings (Building).Lot).CX;
+         Y := C.Lots (C.Buildings (Building).Lot).CY;
       end At_Lot;
 
    begin
@@ -788,6 +794,10 @@ package body Hood.Population.Setup is
                          Is_HQ => False);
       end loop;
       S.Building_Count := C.Building_Count;
+      S.Fleet_Count := 0;
+      for K in S.Fleet'Range loop
+         S.Fleet (K).Used := False;
+      end loop;
       for K in S.Crews'Range loop
          S.Crews (K).Gang := 0;
          S.Crews (K).Count := 0;

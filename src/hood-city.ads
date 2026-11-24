@@ -58,6 +58,12 @@ package Hood.City with Preelaborate is
       Center_Y    : Hood.Units.Units;
       Face        : Facing;
       Building    : Integer_32;  --  index into Buildings, or No_Id
+      --  Item 6: 1.2.91's number for the lot and its bounds and centre as
+      --  1.2.91 holds them (doubles), for doors and walking.
+      Id          : Integer_32;
+      FX, FY      : Long_Float;
+      FW, FH      : Long_Float;
+      CX, CY      : Long_Float;
    end record;
 
    type Building_Rec is record
@@ -66,6 +72,7 @@ package Hood.City with Preelaborate is
       Kind_Of : Type_Id;
       Trade   : Integer_32;  --  Standard: business kind, or No_Kind
       Removed : Boolean;     --  replaced by a landmark (citygen.ts:503-504)
+      Id      : Integer_32;  --  item 6: 1.2.91's number (the shared counter)
    end record;
 
    type Headquarters is record
@@ -113,6 +120,9 @@ package Hood.City with Preelaborate is
       --  Item 5: the Standard plan's four avenue columns and rows (street
       --  names: an avenue's two flanking lines share one), -1 elsewhere.
       Avenue_Cols, Avenue_Rows : Avenue_Lines;
+      --  Item 6: 1.2.91's shared number counter after the city (lots and
+      --  buildings take it in creation order).
+      Next_Id         : Integer_32;
    end record;
 
    procedure Generate

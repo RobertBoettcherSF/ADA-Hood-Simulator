@@ -268,6 +268,7 @@ package Hood.Host_ABI is
    Cmd_Cancel : constant := 1;  Cmd_Set_Pay : constant := 2;  Cmd_Sack : constant := 3;
    Cmd_Promote : constant := 4;  Cmd_Demote : constant := 5;  Cmd_Move_To_Crew : constant := 6;
    Cmd_Move_To_Pool : constant := 7;  Cmd_Repeat : constant := 8;
+   Cmd_Buy_Vehicle : constant := 9;  --  A kind (0 speedster, 1 coupe, 2 truck), B crew slot or -1
    function Command (Cmd, A, B : Integer_32) return Integer_32
      with Export, Convention => C, External_Name => "hs_command";
    --  Cancel (order slot), Set_Pay (person, pay), Sack (person), Promote

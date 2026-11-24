@@ -388,4 +388,38 @@ package body Hood.Population.Commands is
       R := Y (Y_Done);
    end Move_To_Pool;
 
+   procedure Buy_Vehicle
+     (S : in out Population_State; C : Hood.City.City_State; G : Gang_Id;
+      Kind : Vehicle_Kind; Crew : Integer_32; R : out Reply)
+   is
+      Cost : constant Integer_32 :=
+        (case Kind is when V_Speedster => 5_000, when V_Coupe | V_Truck => 3_000);
+   begin
+      if Crew /= No_Id and then (Crew not in S.Crews'Range or else S.Crews (Crew).Gang /= G) then
+         R := Y (Y_No_Crew);
+         return;
+      end if;
+      if S.Gangs (G).Cash < Cost then
+         R := Y (Y_Cannot_Afford_It);
+         return;
+      end if;
+      S.Gangs (G).Cash := S.Gangs (G).Cash - Cost;
+      S.Gangs (G).Purchases := S.Gangs (G).Purchases + Cost;
+      if Crew /= No_Id then
+         case Kind is
+            when V_Speedster => S.Crews (Crew).Speedsters := S.Crews (Crew).Speedsters + 1;
+            when V_Coupe     => S.Crews (Crew).Coupes := S.Crews (Crew).Coupes + 1;
+            when V_Truck     => S.Crews (Crew).Trucks := S.Crews (Crew).Trucks + 1;
+         end case;
+         Retime (S, C, Crew);
+      else
+         case Kind is
+            when V_Speedster => S.Gangs (G).Speedsters := S.Gangs (G).Speedsters + 1;
+            when V_Coupe     => S.Gangs (G).Coupes := S.Gangs (G).Coupes + 1;
+            when V_Truck     => S.Gangs (G).Trucks := S.Gangs (G).Trucks + 1;
+         end case;
+      end if;
+      R := Y (Y_Bought, Vehicle_Kind'Pos (Kind));
+   end Buy_Vehicle;
+
 end Hood.Population.Commands;

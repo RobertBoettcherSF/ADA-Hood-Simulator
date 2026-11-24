@@ -52,6 +52,7 @@ package body Hood.City is
       C.Block_Count := 0;
       C.Lot_Count := 0;
       C.Building_Count := 0;
+      C.Next_Id := 1;
       C.HQ_Count := 0;
       C.HQ := [others => (Block | Front | Front_As | FX | FY => No_Id)];
       C.City_Hash := 0;
@@ -204,7 +205,15 @@ package body Hood.City is
          Center_X => To_Units (X + W / 2.0),
          Center_Y => To_Units (Y + H / 2.0),
          Face     => Face,
-         Building => No_Id);
+         Building => No_Id,
+         Id       => C.Next_Id,
+         FX       => X,
+         FY       => Y,
+         FW       => W,
+         FH       => H,
+         CX       => X + W / 2.0,
+         CY       => Y + H / 2.0);
+      C.Next_Id := C.Next_Id + 1;
       if C.Blocks (Block).Lots = 0 then
          C.Blocks (Block).First_Lot := Lot;
       end if;
@@ -227,7 +236,8 @@ package body Hood.City is
       C.Building_Count := C.Building_Count + 1;
       C.Buildings (B) :=
         (Lot => Lot, Block => C.Lots (Lot).Block, Kind_Of => Kind_Of,
-         Trade => Trade, Removed => False);
+         Trade => Trade, Removed => False, Id => C.Next_Id);
+      C.Next_Id := C.Next_Id + 1;
       C.Lots (Lot).Building := B;
    end Add_Building;
 

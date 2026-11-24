@@ -27,7 +27,7 @@ package Hood.Population.Setup with Preelaborate is
      (S        : in out Population_State;
       Main     : in out Hood.Random.Mulberry;
       Kind     : Role;
-      X, Y     : Hood.Units.Units;
+      X, Y     : Long_Float;
       Index    : out Integer_32;
       Female   : Integer_32 := -1;       --  0 or 1 given, -1 rolled
       Origin   : Integer_32 := -1;       --  heritage of both names

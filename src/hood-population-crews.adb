@@ -1,3 +1,4 @@
+with Hood.Population.Transport;
 package body Hood.Population.Crews is
 
    function Slot_Of (S : Population_State; Id : Integer_32) return Integer_32 is
@@ -93,7 +94,7 @@ package body Hood.Population.Crews is
       Leave_Everything (S, G, Lieutenant);
       S.Crews (Slot) := (Id => S.Next_Id, Gang => G, Lieutenant => Lieutenant,
                          Name_First => Integer_32 (S.People (Lieutenant).First),
-                         Count | Pistols | Coupes | Order_Count | Time_Used => 0,
+                         Count | Pistols | Coupes | Speedsters | Trucks | Order_Count | Time_Used => 0,
                          Members => [others => No_Id], Orders => [others => No_Id]);
       S.Next_Id := S.Next_Id + 1;
       S.Gangs (G).Crew_Total := S.Gangs (G).Crew_Total + 1;
@@ -109,7 +110,10 @@ package body Hood.Population.Crews is
       G    : constant Gang_Id := Crew.Gang;
       N    : Integer_32 := 0;
    begin
+      Hood.Population.Transport.Drop_Crew (S, Slot);
       S.Gangs (G).Coupes := S.Gangs (G).Coupes + Crew.Coupes;
+      S.Gangs (G).Speedsters := S.Gangs (G).Speedsters + Crew.Speedsters;
+      S.Gangs (G).Trucks := S.Gangs (G).Trucks + Crew.Trucks;
       S.Gangs (G).Pistols := S.Gangs (G).Pistols + Crew.Pistols;
       for K in 1 .. Integer (Crew.Order_Count) loop
          declare

@@ -1,5 +1,8 @@
 with Hood.Population.Setup;
+with Hood.Population.Traffic;
+with Hood.Population.Walk;
 with Hood.Population.Week;
+with Hood.Streets;
 
 package body Hood.World is
 
@@ -21,7 +24,10 @@ package body Hood.World is
       Hood.City.Generate (W.City, W.Main, City_Seed, Blocks_X, Blocks_Y);
       W.People.Count := 0;
       W.People.Status := Hood.Population.Status_Ok;
+      Hood.Population.Walk.Reset;
       if W.City.Status = Hood.City.Status_Ok then
+         Hood.Streets.Build (W.City);
+         Hood.Population.Traffic.Build (W.City);
          Hood.Population.Setup.Populate (W.People, W.City, W.Main);
       end if;
    end New_Game;

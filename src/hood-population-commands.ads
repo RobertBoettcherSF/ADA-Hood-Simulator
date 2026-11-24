@@ -16,6 +16,7 @@ package Hood.Population.Commands with Preelaborate is
       Y_Broken_Up,
       Y_Joined,            --  A person, B crew slot
       Y_Already_In,        --  A person, B crew slot
+      Y_Bought,            --  A vehicle kind (item 6)
       Y_Done,              --  no text
       --  refused
       Y_No_Crew,
@@ -46,7 +47,8 @@ package Hood.Population.Commands with Preelaborate is
       Y_Could_Not_Promote,
       Y_Choose_Hood_Crew,
       Y_Crew_Full,
-      Y_Choose_Crew_Hood);
+      Y_Choose_Crew_Hood,
+      Y_Cannot_Afford_It); --  item 6: a car
 
    subtype Accepted_Reply is Reply_Kind range Y_Accepted .. Y_Done;
 
@@ -80,5 +82,11 @@ package Hood.Population.Commands with Preelaborate is
                            Person, Crew : Integer_32; R : out Reply);
    procedure Move_To_Pool (S : in out Population_State; C : Hood.City.City_State; G : Gang_Id;
                            Person : Integer_32; R : out Reply);
+
+   procedure Buy_Vehicle
+     (S : in out Population_State; C : Hood.City.City_State; G : Gang_Id;
+      Kind : Vehicle_Kind; Crew : Integer_32; R : out Reply);
+   --  api.ts buyVehicle: paid from the safe; for the crew (Crew a slot)
+   --  or the gang (Crew = No_Id). Its orders are timed again.
 
 end Hood.Population.Commands;

@@ -67,10 +67,16 @@ package Hood.Population with Preelaborate is
       First     : Integer_16;       --  Name_Id
       Last      : Integer_16;
       Nick      : Integer_16;       --  Name_Id or No_Name
-      X, Y      : Hood.Units.Units; --  1/256 m
-      DX, DY    : Hood.Units.Units; --  where he is walking to
-      Walking   : Boolean;
+      X, Y      : Long_Float;       --  item 6: metres, as 1.2.91 holds them
+      DX, DY    : Long_Float;       --  where he is walking to
+      Walking   : Boolean;          --  he has a destination (1.2.91 dest)
+      Halted    : Boolean;          --  item 6: waiting at a kerb or behind a car
+      Path_Head : Integer_32;       --  item 6: first chunk of his route, or No_Id
+      Path_Off  : Integer_32;       --  points already walked in that chunk
+      Path_Len  : Integer_32;       --  points still ahead
       Order     : Integer_32;       --  item 5: the order slot he works, or No_Id
+      In_Vehicle : Boolean;         --  item 6: riding in a gang car
+      Vehicle   : Integer_32;       --  item 6: the fleet slot he rides in, or No_Id
    end record;
 
    type Person_Array is array (Integer_32 range 0 .. Max_People - 1) of Person_Rec;
@@ -98,6 +104,8 @@ package Hood.Population with Preelaborate is
       Pool        : Member_List;
       Pistols     : Integer_32;   --  in the office
       Coupes      : Integer_32;
+      Speedsters  : Integer_32;   --  item 6
+      Trucks      : Integer_32;
       Offered     : Stance_Set;
       Known       : Stance_Set;
       Site_Count  : Integer_32;
@@ -147,6 +155,8 @@ package Hood.Population with Preelaborate is
       Members     : Crew_Member_List;
       Pistols     : Integer_32;
       Coupes      : Integer_32;
+      Speedsters  : Integer_32;   --  item 6: bought for the crew
+      Trucks      : Integer_32;
       Order_Count : Integer_32;
       Orders      : Crew_Order_List;  --  order slots, in the order given
       Time_Used   : Integer_32;   --  booked man-minutes (crewTime.ts)
@@ -253,12 +263,47 @@ package Hood.Population with Preelaborate is
       Waiting_For : Line_Rec;     --  dispatch wait reason
       Result_Count : Integer_32;
       Results     : Line_List;
+      No_Car_Count : Integer_32;  --  item 6: men who gave up their seat
+      No_Car      : Assigned_List;  --  (person indexes; transport.ts noCarIds)
    end record;
 
    type Order_Array is array (Integer_32 range 0 .. Max_Orders - 1) of Order_Rec;
    type Message_Array is array (1 .. Max_Messages) of Line_Rec;
 
    Work_Scale : constant := 1_000_000;  --  micro-minutes in a minute
+
+   ---------------------------------------------------------------------
+   --  Item 6: the gangs' cars (1.2.91 vehicleFleet)
+   ---------------------------------------------------------------------
+
+   Max_Vehicles  : constant := 96;  --  every gang's cars at once (proposed)
+   Max_Occupants : constant := 10;  --  the truck's seats
+
+   type Vehicle_Kind is (V_Speedster, V_Coupe, V_Truck);
+   type Occupant_List is array (1 .. Max_Occupants) of Integer_32;
+
+   type Vehicle_Rec is record
+      Used       : Boolean;
+      Kind       : Vehicle_Kind;
+      Gang       : Gang_Ref;
+      Crew       : Integer_32;   --  crew slot, or No_Id
+      Slot       : Integer_32;   --  the crew's car of that kind, 0 ..
+      Key_Order  : Integer_32;   --  where 1.2.91's fleet record keeps it
+      X, Y       : Long_Float;
+      Driver     : Integer_32;   --  person index, or No_Id
+      Occ_Count  : Integer_32;
+      Occupants  : Occupant_List;
+      Order      : Integer_32;   --  order slot, or No_Id
+      Has_Dest   : Boolean;
+      Dest_X, Dest_Y : Long_Float;
+      Boarding   : Boolean;
+      Returning  : Boolean;
+      Idle_Since : Integer_32;   --  absolute minute, or -1
+      Board_Since : Integer_32;  --  absolute minute, or -1
+      Board_Wait : Integer_32;   --  minutes, or -1
+   end record;
+
+   type Vehicle_Array is array (Integer_32 range 0 .. Max_Vehicles - 1) of Vehicle_Rec;
 
    type Population_State is record
       Count     : Integer_32;
@@ -284,6 +329,9 @@ package Hood.Population with Preelaborate is
       Message_Count  : Integer_32;
       Messages       : Message_Array;  --  the player's, this week
       City_Changed   : Boolean;     --  a building or block changed: the page refills its lots
+      --  Item 6
+      Fleet_Count    : Integer_32;  --  slots in use or once used
+      Fleet          : Vehicle_Array;
    end record;
 
    Status_Ok   : constant := 0;
@@ -332,7 +380,7 @@ package Hood.Population with Preelaborate is
    --  The block inside its streets: 54 m cells, 14 m streets, 3 m inset
    --  (cityLayout.ts:20-25), in whole metres.
 
-   procedure Pavement (B : Hood.City.Block_Rec; N : Integer_32; X, Y : out Hood.Units.Units);
+   procedure Pavement (B : Hood.City.Block_Rec; N : Integer_32; X, Y : out Long_Float);
    --  The spot number N on the pavement round B (cityLayout.ts:36-41).
 
    function Block_At (C : Hood.City.City_State; GX, GY : Integer_32) return Integer_32;
