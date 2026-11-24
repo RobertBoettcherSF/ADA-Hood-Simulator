@@ -29,7 +29,7 @@ package body Hood.Trams is
    end Fmod;
 
    Dwell : constant Long_Float := 12.0;  --  TRAM_STOP_DWELL, minutes at a stop
-   Max_Points : constant := 160;
+   Max_Points : constant := 160;  --  points of one line (proposed)
    type Coords is array (Integer_32 range 0 .. Max_Points - 1) of Long_Float;
 
    procedure At_Time

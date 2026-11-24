@@ -44,7 +44,7 @@ package body Hood.Host_ABI is
 
    function B2I (B : Boolean) return Integer_32 is (if B then 1 else 0);
 
-   Car_Layer : array (Integer_32 range 0 .. 320 * Car_Stride - 1) of Integer_32 := [others => 0];
+   Car_Layer : array (Integer_32 range 0 .. 320 * Car_Stride - 1) of Integer_32 := [others => 0];  --  320 cars (proposed)
    Fleet_Layer : array (Integer_32 range 0 .. Hood.Population.Max_Vehicles * Fleet_Stride - 1) of Integer_32 :=
      [others => 0];
    Tram_Layer : array (Integer_32 range 0 .. Hood.Trams.Max_Trams * Tram_Stride - 1) of Integer_32 := [others => 0];

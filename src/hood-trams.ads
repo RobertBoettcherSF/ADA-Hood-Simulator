@@ -9,8 +9,8 @@ package Hood.Trams with Preelaborate is
 
    use Interfaces;
 
-   Per_Line  : constant := 8;
-   Max_Lines : constant := 8;
+   Per_Line  : constant := 8;  --  trams on one line at most (proposed)
+   Max_Lines : constant := 8;  --  proposed
    Max_Trams : constant := Per_Line * Max_Lines;
    Track     : constant Long_Float := 1.55;  --  off the line's middle
    Length    : constant Long_Float := 11.0;  --  a tram, metres
