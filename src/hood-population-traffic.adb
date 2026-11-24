@@ -101,7 +101,7 @@ package body Hood.Population.Traffic is
    Delay_M : Int_Cars;
    Waited  : Int_Cars;
    Halted  : Bool_Cars;
-   Original : Boolean := False;
+   Grid_Plan : Boolean := False;
    Grid_W, Grid_H, Width : Integer_32 := 0;
 
    --  Trip table (traffic.ts tripTable).
@@ -218,7 +218,7 @@ package body Hood.Population.Traffic is
       Grid_W := C.W;
       Grid_H := C.H;
       Width := C.W + 1;
-      Original := C.Standard;
+      Grid_Plan := C.Standard;
       for I in 0 .. St.Node_Count - 1 loop
          Ends := Ends + St.Ways (I);
          for D in Integer_32 range 0 .. 3 loop
@@ -532,7 +532,7 @@ package body Hood.Population.Traffic is
       end;
    end Trip_Route;
 
-   procedure Original_Trip
+   procedure Grid_Trip
      (K, Trip, Node, D : Integer_32; Ways : out Plan_List; N : out Integer_32)
    is
       NX : constant Integer_32 := Node mod Width;
@@ -563,7 +563,7 @@ package body Hood.Population.Traffic is
             end;
          end;
       end loop;
-   end Original_Trip;
+   end Grid_Trip;
 
    ---------------------------------------------------------------------
    --  Drives
@@ -651,10 +651,10 @@ package body Hood.Population.Traffic is
          NW := 1;
       end if;
       T := Ways (Integer_32 (H2 (K * 131 + Dr.Turns, 103) mod Unsigned_32 (NW)));
-      if Original then
+      if Grid_Plan then
          if Dr.Plan_Len = 0 then
             Dr.Trips := Dr.Trips + 1;
-            Original_Trip (K, Dr.Trips, Node, D, Dr.Plan, Dr.Plan_Len);
+            Grid_Trip (K, Dr.Trips, Node, D, Dr.Plan, Dr.Plan_Len);
             Dr.Plan_Off := 0;
          end if;
          if Dr.Plan_Len > 0 then
