@@ -1,5 +1,5 @@
-import * as C from "./vendor/three.module.min.js?v=v0.5.0%20b20261124-0940%20a5213cd";
-const t = window.React, { createElement: Co, Fragment: No, useCallback: ke, useEffect: V, useMemo: ye, useReducer: Lo, useRef: Le, useState: x } = t, Qn = window.ReactDOM, { createRoot: Xn } = Qn, M = {
+import * as C from "./vendor/three.module.min.js?v=v0.6.0%20b20261124-1826%208720a29";
+const t = window.React, { createElement: zo, Fragment: Do, useCallback: ve, useEffect: U, useMemo: Se, useReducer: jo, useRef: Pe, useState: B } = t, oa = window.ReactDOM, { createRoot: ra } = oa, F = {
   blocks: 1,
   merged: 2,
   lots: 3,
@@ -25,7 +25,7 @@ const t = window.React, { createElement: Co, Fragment: No, useCallback: ke, useE
   walking: 62,
   builtClassBase: 90,
   builtTypes: 99
-}, Y = { block: 1, lot: 2, building: 3, person: 5, gang: 6, crew: 7, pool: 8, premises: 9 }, $ = {
+}, Y = { block: 1, lot: 2, building: 3, person: 5, gang: 6, crew: 7, pool: 8, premises: 9 }, q = {
   id: 0,
   role: 1,
   gang: 2,
@@ -62,10 +62,10 @@ const t = window.React, { createElement: Co, Fragment: No, useCallback: ke, useE
   wages: 17,
   eliminated: 18,
   offered: 20
-}, ea = { protectGang: 3 }, Me = { lot: 0, type: 2 }, gt = 480, lt = 2400, Kt = { name: 12, plan: 19 }, Zt = 12, Jt = 10;
-class Ct extends Error {
+}, sa = { protectGang: 3 }, Ae = { lot: 0, type: 2 }, bt = { cars: 4, fleet: 5, trams: 6 }, wt = 480, it = 2400, Jt = { name: 12, plan: 19 }, Qt = 12, Xt = 10;
+class Mt extends Error {
 }
-async function ta(e, n) {
+async function la(e, n) {
   let o = null;
   const r = () => {
     if (!o) return "";
@@ -77,19 +77,19 @@ async function ta(e, n) {
     env: {
       hs_host_error(i, d) {
         const p = { code: i, file: r(), line: d };
-        throw n(p), new Ct(`Ada core stopped: ${p.file}:${d}`);
+        throw n(p), new Mt(`Ada core stopped: ${p.file}:${d}`);
       }
     }
   });
   return o = s.exports, o;
 }
-const H = (e) => e >>> 0, Qt = (e) => "0x" + H(e).toString(16).padStart(8, "0"), q = 54, Je = 14, Qe = 3, Se = 256, hn = ["downtown", "commercial", "industrial", "residential", "civic"], na = ["urban", "park", "civic", "plaza", "avenue", "water"], pn = ["empty", "residential", "tenement", "commercial", "industrial", "municipal", "charity", "illegal"], aa = ["north", "east", "south", "west"], oa = 192;
-function Nt(e, n) {
-  const o = (m) => new Int32Array(e.memory.buffer, e.hs_draw_ptr(m), e.hs_draw_len(m)), r = o(1), a = o(2), s = [];
-  for (let m = 0; m * Zt < r.length; m++) {
-    const u = m * Zt;
+const H = (e) => e >>> 0, en = (e) => "0x" + H(e).toString(16).padStart(8, "0"), K = 54, Qe = 14, Xe = 3, Ne = 256, wn = ["downtown", "commercial", "industrial", "residential", "civic"], ia = ["urban", "park", "civic", "plaza", "avenue", "water"], kn = ["empty", "residential", "tenement", "commercial", "industrial", "municipal", "charity", "illegal"], ca = ["north", "east", "south", "west"], da = 192;
+function Ft(e, n) {
+  const o = (_) => new Int32Array(e.memory.buffer, e.hs_draw_ptr(_), e.hs_draw_len(_)), r = o(1), a = o(2), s = [];
+  for (let _ = 0; _ * Qt < r.length; _++) {
+    const u = _ * Qt;
     s.push({
-      id: m,
+      id: _,
       gx: r[u],
       gy: r[u + 1],
       district: r[u + 2],
@@ -102,21 +102,21 @@ function Nt(e, n) {
       content: r[u + 9],
       rail: r[u + 10] === 1,
       landmark: r[u + 11],
-      name: e.hs_get(Y.block, m, Kt.name),
-      plan: e.hs_get(Y.block, m, Kt.plan)
+      name: e.hs_get(Y.block, _, Jt.name),
+      plan: e.hs_get(Y.block, _, Jt.plan)
     });
   }
   const i = [];
-  for (let m = 0; m * Jt < a.length; m++) {
-    const u = m * Jt;
+  for (let _ = 0; _ * Xt < a.length; _++) {
+    const u = _ * Xt;
     i.push({
-      id: m,
+      id: _,
       block: a[u],
       index: a[u + 1],
-      x: a[u + 2] / Se,
-      y: a[u + 3] / Se,
-      w: a[u + 4] / Se,
-      h: a[u + 5] / Se,
+      x: a[u + 2] / Ne,
+      y: a[u + 3] / Ne,
+      w: a[u + 4] / Ne,
+      h: a[u + 5] / Ne,
       face: a[u + 6],
       type: a[u + 7],
       cls: a[u + 8],
@@ -124,56 +124,56 @@ function Nt(e, n) {
     });
   }
   const d = [];
-  for (let m = 1; m <= 4; m++) {
-    const u = e.hs_get(Y.gang, m, D.office), c = u >= 0 ? i[e.hs_get(Y.building, u, Me.lot)] : void 0;
+  for (let _ = 1; _ <= 4; _++) {
+    const u = e.hs_get(Y.gang, _, D.office), c = u >= 0 ? i[e.hs_get(Y.building, u, Ae.lot)] : void 0;
     if (!c) continue;
-    const _ = c.x + c.w / 2, h = c.y + c.h / 2;
+    const h = c.x + c.w / 2, m = c.y + c.h / 2;
     d.push({
-      gang: m,
-      colour: e.hs_get(Y.gang, m, D.colour),
+      gang: _,
+      colour: e.hs_get(Y.gang, _, D.colour),
       block: c.block,
       lot: c.id,
-      fx: Math.floor(_ / (q / 5)),
-      fy: Math.floor(h / (q / 5))
+      fx: Math.floor(h / (K / 5)),
+      fy: Math.floor(m / (K / 5))
     });
   }
-  const p = e.hs_count(M.blocksX), f = e.hs_count(M.blocksY);
+  const p = e.hs_count(F.blocksX), k = e.hs_count(F.blocksY);
   return {
     seed: n,
     w: p,
-    h: f,
-    standard: p === 40 && f === 32,
+    h: k,
+    standard: p === 40 && k === 32,
     blocks: s,
     lots: i,
     hq: d,
     cityHash: H(e.hs_city_hash()),
     structureHash: H(e.hs_structure_hash()),
-    rngAfter: H(e.hs_count(M.rngLow) | e.hs_count(M.rngHigh) << 16),
-    retries: e.hs_count(M.retries),
-    status: e.hs_count(M.status),
+    rngAfter: H(e.hs_count(F.rngLow) | e.hs_count(F.rngHigh) << 16),
+    retries: e.hs_count(F.retries),
+    status: e.hs_count(F.status),
     counts: {
-      blocks: e.hs_count(M.blocks),
-      merged: e.hs_count(M.merged),
-      lots: e.hs_count(M.lots),
+      blocks: e.hs_count(F.blocks),
+      merged: e.hs_count(F.merged),
+      lots: e.hs_count(F.lots),
       // As generated, before the gangs turned fronts and offices (item 4).
-      buildings: e.hs_count(M.buildings),
-      typesUsed: e.hs_count(M.builtTypes),
-      classes: pn.map((m, u) => e.hs_count(M.builtClassBase + u)),
-      districts: hn.map((m, u) => e.hs_count(M.districtBase + u)),
-      uses: na.map((m, u) => e.hs_count(M.useBase + u))
+      buildings: e.hs_count(F.buildings),
+      typesUsed: e.hs_count(F.builtTypes),
+      classes: kn.map((_, u) => e.hs_count(F.builtClassBase + u)),
+      districts: wn.map((_, u) => e.hs_count(F.districtBase + u)),
+      uses: ia.map((_, u) => e.hs_count(F.useBase + u))
     }
   };
 }
-function gn(e) {
+function yn(e) {
   return {
-    x: e.gx * q + Je / 2 + Qe,
-    y: e.gy * q + Je / 2 + Qe,
-    w: e.spanX * q - Je - 2 * Qe,
-    h: e.spanY * q - Je - 2 * Qe
+    x: e.gx * K + Qe / 2 + Xe,
+    y: e.gy * K + Qe / 2 + Xe,
+    w: e.spanX * K - Qe - 2 * Xe,
+    h: e.spanY * K - Qe - 2 * Xe
   };
 }
-function ra(e, n, o) {
-  const r = Math.floor(n / q), a = Math.floor(o / q);
+function ua(e, n, o) {
+  const r = Math.floor(n / K), a = Math.floor(o / K);
   if (r < 0 || a < 0 || r >= e.w || a >= e.h) return -1;
   let s = e.blocks[a * e.w + r];
   s.merged >= 0 && (s = e.blocks[s.merged]);
@@ -181,7 +181,7 @@ function ra(e, n, o) {
     if (i.block === s.id && n >= i.x && n <= i.x + i.w && o >= i.y && o <= i.y + i.h) return i.id;
   return -1;
 }
-const Xt = ["en-GB", "de", "es", "fr"], sa = {
+const tn = ["en-GB", "de", "es", "fr"], _a = {
   title: "Hood Simulator",
   subtitle: "Saint Volstead, 1932",
   loading: "Loading the Ada core…",
@@ -370,6 +370,9 @@ const Xt = ["en-GB", "de", "es", "fr"], sa = {
   o_orders: "Orders this week",
   o_new: "New order",
   o_demote: "Break up the crew",
+  o_cars: "Cars: speedsters {s}, coupés {c}, trucks {t}",
+  o_buy: "Buy a {name} ({cost})",
+  o_buy_confirm: "Buy a {name} for {cost} and give it to {team}? Cash in the safe: {cash}.",
   o_pool: "The pool",
   o_last: "Last week's orders",
   o_again: "Give again",
@@ -448,7 +451,7 @@ const Xt = ["en-GB", "de", "es", "fr"], sa = {
   sk_intimidation: "Intimidation",
   sk_driving: "Driving",
   sk_stealth: "Stealth"
-}, la = {
+}, ma = {
   title: "Hood Simulator",
   subtitle: "Saint Volstead, 1932",
   loading: "Ada-Kern wird geladen …",
@@ -637,6 +640,9 @@ const Xt = ["en-GB", "de", "es", "fr"], sa = {
   o_orders: "Befehle dieser Woche",
   o_new: "Neuer Befehl",
   o_demote: "Trupp auflösen",
+  o_cars: "Wagen: Speedster {s}, Coupés {c}, Lastwagen {t}",
+  o_buy: "{name} kaufen ({cost})",
+  o_buy_confirm: "Einen {name} für {cost} kaufen und {team} geben? Bargeld im Safe: {cash}.",
   o_pool: "Der Pool",
   o_last: "Befehle der letzten Woche",
   o_again: "Noch einmal geben",
@@ -715,7 +721,7 @@ const Xt = ["en-GB", "de", "es", "fr"], sa = {
   sk_intimidation: "Einschüchterung",
   sk_driving: "Fahren",
   sk_stealth: "Heimlichkeit"
-}, ia = {
+}, ha = {
   title: "Hood Simulator",
   subtitle: "Saint Volstead, 1932",
   loading: "Cargando el núcleo Ada…",
@@ -904,6 +910,9 @@ const Xt = ["en-GB", "de", "es", "fr"], sa = {
   o_orders: "Órdenes de esta semana",
   o_new: "Nueva orden",
   o_demote: "Disolver la cuadrilla",
+  o_cars: "Coches: deportivos {s}, cupés {c}, camiones {t}",
+  o_buy: "Comprar un {name} ({cost})",
+  o_buy_confirm: "¿Comprar un {name} por {cost} y dárselo a {team}? Dinero en la caja fuerte: {cash}.",
   o_pool: "La reserva",
   o_last: "Órdenes de la semana pasada",
   o_again: "Dar otra vez",
@@ -982,7 +991,7 @@ const Xt = ["en-GB", "de", "es", "fr"], sa = {
   sk_intimidation: "Intimidación",
   sk_driving: "Conducción",
   sk_stealth: "Sigilo"
-}, ca = {
+}, pa = {
   title: "Hood Simulator",
   subtitle: "Saint Volstead, 1932",
   loading: "Chargement du noyau Ada…",
@@ -1171,6 +1180,9 @@ const Xt = ["en-GB", "de", "es", "fr"], sa = {
   o_orders: "Ordres de la semaine",
   o_new: "Nouvel ordre",
   o_demote: "Dissoudre l'équipe",
+  o_cars: "Voitures : sport {s}, coupés {c}, camionnettes {t}",
+  o_buy: "Acheter : {name} ({cost})",
+  o_buy_confirm: "Acheter : {name} pour {cost}, pour {team} ? Argent dans le coffre : {cash}.",
   o_pool: "La réserve",
   o_last: "Ordres de la semaine dernière",
   o_again: "Redonner",
@@ -1249,24 +1261,24 @@ const Xt = ["en-GB", "de", "es", "fr"], sa = {
   sk_intimidation: "Intimidation",
   sk_driving: "Conduite",
   sk_stealth: "Discrétion"
-}, da = { "en-GB": sa, de: la, es: ia, fr: ca };
-function Lt(e, n, o = {}) {
-  return da[e][n].replace(/\{(\w+)\}/g, (r, a) => String(o[a] ?? ""));
+}, ga = { "en-GB": _a, de: ma, es: ha, fr: pa };
+function Pt(e, n, o = {}) {
+  return ga[e][n].replace(/\{(\w+)\}/g, (r, a) => String(o[a] ?? ""));
 }
-const ua = performance.now(), Tt = 500, Bt = () => Math.round(performance.now() - ua), at = [], ot = [], rt = [];
-let fn = 0, bn = 0;
-function O(e, n) {
-  at.length >= Tt && (at.shift(), fn++), at.push({ t_ms: Bt(), action: e, ...n === void 0 ? {} : { detail: n } });
+const fa = performance.now(), Yt = 500, xt = () => Math.round(performance.now() - fa), ot = [], rt = [], st = [];
+let En = 0, vn = 0;
+function z(e, n) {
+  ot.length >= Yt && (ot.shift(), En++), ot.push({ t_ms: xt(), action: e, ...n === void 0 ? {} : { detail: n } });
 }
-function Ee(e, n) {
-  ot.length >= Tt && (ot.shift(), bn++), ot.push({ t_ms: Bt(), event: e, ...n === void 0 ? {} : { detail: n } });
+function Ce(e, n) {
+  rt.length >= Yt && (rt.shift(), vn++), rt.push({ t_ms: xt(), event: e, ...n === void 0 ? {} : { detail: n } });
 }
-function Ye(e, n, o = {}) {
-  rt.length >= Tt && rt.shift(), rt.push({ t_ms: Bt(), kind: e, message: n, ...o });
+function ze(e, n, o = {}) {
+  st.length >= Yt && st.shift(), st.push({ t_ms: xt(), kind: e, message: n, ...o });
 }
-window.addEventListener("error", (e) => Ye("javascript", String(e.message), { file: e.filename, line: e.lineno }));
-window.addEventListener("unhandledrejection", (e) => Ye("javascript", String(e.reason)));
-function en(e, n, o) {
+window.addEventListener("error", (e) => ze("javascript", String(e.message), { file: e.filename, line: e.lineno }));
+window.addEventListener("unhandledrejection", (e) => ze("javascript", String(e.reason)));
+function nn(e, n, o) {
   const r = {
     schema: "poncelet-report",
     schema_version: 1,
@@ -1277,11 +1289,11 @@ function en(e, n, o) {
     test_key: null,
     expected: n,
     state_hash: o.stateHash,
-    action_log: at,
-    actions_dropped: fn,
-    events: ot,
-    events_dropped: bn,
-    errors: rt,
+    action_log: ot,
+    actions_dropped: En,
+    events: rt,
+    events_dropped: vn,
+    errors: st,
     environment: {
       user_agent: navigator.userAgent,
       browser_language: navigator.language,
@@ -1294,52 +1306,52 @@ function en(e, n, o) {
     },
     custom: o.custom
   }, a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(r, null, 2)], { type: "application/json" })), a.download = `hood-report-${o.stamp.split(" ")[1] ?? "dev"}-${Date.now()}.json`, document.body.appendChild(a), a.click(), a.remove(), setTimeout(() => URL.revokeObjectURL(a.href), 1e3), O("report_downloaded", e);
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(r, null, 2)], { type: "application/json" })), a.download = `hood-report-${o.stamp.split(" ")[1] ?? "dev"}-${Date.now()}.json`, document.body.appendChild(a), a.click(), a.remove(), setTimeout(() => URL.revokeObjectURL(a.href), 1e3), z("report_downloaded", e);
 }
-let Be = null;
-function re(e, n = 523.25) {
+let xe = null;
+function se(e, n = 523.25) {
   if (!e) return;
-  Be ??= new AudioContext();
-  const o = Be.createOscillator(), r = Be.createGain(), a = Be.currentTime;
-  o.type = "sine", o.frequency.value = n, r.gain.setValueAtTime(0, a), r.gain.linearRampToValueAtTime(0.05, a + 0.02), r.gain.exponentialRampToValueAtTime(1e-4, a + 0.3), o.connect(r).connect(Be.destination), o.start(a), o.stop(a + 0.35);
+  xe ??= new AudioContext();
+  const o = xe.createOscillator(), r = xe.createGain(), a = xe.currentTime;
+  o.type = "sine", o.frequency.value = n, r.gain.setValueAtTime(0, a), r.gain.linearRampToValueAtTime(0.05, a + 0.02), r.gain.exponentialRampToValueAtTime(1e-4, a + 0.3), o.connect(r).connect(xe.destination), o.start(a), o.stop(a + 0.35);
 }
-function ft(e, n) {
+function kt(e, n) {
   try {
     return localStorage.getItem(e) ?? n;
   } catch {
     return n;
   }
 }
-function bt(e, n) {
+function yt(e, n) {
   try {
     localStorage.setItem(e, n);
   } catch {
   }
 }
-const _a = 0.55, ma = 11, tn = 1.5, xe = 900, ha = 240, xt = Math.SQRT2 * Math.tan(Math.PI / 6), st = Math.hypot(1, xt, 1), wn = xt / st;
-function Rt(e) {
-  return ha / e;
+const ba = 0.55, wa = 11, an = 1.5, Re = 900, ka = 240, Rt = Math.SQRT2 * Math.tan(Math.PI / 6), lt = Math.hypot(1, Rt, 1), Sn = Rt / lt;
+function Ot(e) {
+  return ka / e;
 }
-function pa(e) {
+function ya(e) {
   const n = e ? -1 : 1;
-  return [n / st, xt / st, n / st];
+  return [n / lt, Rt / lt, n / lt];
 }
-function ga(e) {
-  return Math.min(ma, Math.max(_a, e));
+function Ea(e) {
+  return Math.min(wa, Math.max(ba, e));
 }
-function fa(e, n, o, r) {
-  const a = Rt(e.zoom), s = a * n, i = a * Math.SQRT1_2 / (2 * wn) + s * Math.SQRT1_2 / 2, d = (p, f) => f - i < i ? f / 2 : Math.min(f - i, Math.max(i, p));
+function va(e, n, o, r) {
+  const a = Ot(e.zoom), s = a * n, i = a * Math.SQRT1_2 / (2 * Sn) + s * Math.SQRT1_2 / 2, d = (p, k) => k - i < i ? k / 2 : Math.min(k - i, Math.max(i, p));
   return { ...e, x: d(e.x, o), z: d(e.z, r) };
 }
-function ba(e, n, o, r) {
-  const a = Rt(e.zoom) / r, s = e.turned ? -1 : 1, i = -n * a, d = o * a / wn;
+function Sa(e, n, o, r) {
+  const a = Ot(e.zoom) / r, s = e.turned ? -1 : 1, i = -n * a, d = o * a / Sn;
   return {
     ...e,
     x: e.x + (i * s - d * s) * Math.SQRT1_2,
     z: e.z + (-i * s - d * s) * Math.SQRT1_2
   };
 }
-const it = ["#5d5240", "#c49a6c", "#9b5a48", "#5f8fa8", "#7c7a74", "#e0d9c6", "#a08cc0", "#7a3b3b"], nn = ["#8a8478", "#4f6e3a", "#9b9688", "#a99f8a", "#47474a", "#2e4f66"], Fe = ["#c0392b", "#2e8b57", "#2f5fb3", "#d9822b"], wa = "#3a3937", an = 2830392, on = 4.2, ve = 0.3, rn = 0.8, se = q / 5, wt = 1.8, sn = 0.9, ka = [
+const ct = ["#5d5240", "#c49a6c", "#9b5a48", "#5f8fa8", "#7c7a74", "#e0d9c6", "#a08cc0", "#7a3b3b"], on = ["#8a8478", "#4f6e3a", "#9b9688", "#a99f8a", "#47474a", "#2e4f66"], pe = ["#c0392b", "#2e8b57", "#2f5fb3", "#d9822b"], Ca = "#3a3937", rn = 2830392, sn = 4.2, me = 0.3, ln = 0.8, le = K / 5, Et = 1.8, cn = 0.9, dn = [4.4, 1.9, 1.5], Na = [6.5, 2.3, 2.6], La = [11, 2.4, 3.2], Ma = [[4, 1.8, 1.3], [4.4, 1.9, 1.5], [6.5, 2.3, 2.6]], un = ["#2b2b2b", "#5a2a27", "#2f3e57", "#44513a", "#6b6155", "#8a7f6a", "#3d3d45", "#7a6040"], Fa = "#5b4a35", Pa = "#9b5143", Aa = [
   "#f1d58f",
   "#f1d58f",
   "#f1d58f",
@@ -1359,7 +1371,7 @@ const it = ["#5d5240", "#c49a6c", "#9b5a48", "#5f8fa8", "#7c7a74", "#e0d9c6", "#
   "#f4f0e6",
   "#6f8f6a"
 ];
-class ya {
+class Ta {
   renderer;
   scene = new C.Scene();
   camera = new C.OrthographicCamera(-1, 1, 1, -1, 1, 4e3);
@@ -1369,15 +1381,18 @@ class ya {
   lotOfInstance = [];
   outline;
   walkers = null;
+  cars = null;
+  fleet = null;
+  trams = null;
   personOfInstance = [];
   gangColour = [0, 0, 1, 2, 3];
   ring;
   markers = null;
   raycaster = new C.Raycaster();
-  view = { x: 0, z: 0, zoom: tn, turned: !1 };
+  view = { x: 0, z: 0, zoom: an, turned: !1 };
   frame = 0;
   constructor(n) {
-    this.renderer = new C.WebGLRenderer({ canvas: n, antialias: !0 }), this.renderer.setPixelRatio(Math.min(2, devicePixelRatio)), this.scene.background = new C.Color(an), this.scene.fog = new C.Fog(an, xe + 300, xe + 2600), this.scene.add(new C.HemisphereLight(15262420, 3814184, 1.6));
+    this.renderer = new C.WebGLRenderer({ canvas: n, antialias: !0 }), this.renderer.setPixelRatio(Math.min(2, devicePixelRatio)), this.scene.background = new C.Color(rn), this.scene.fog = new C.Fog(rn, Re + 300, Re + 2600), this.scene.add(new C.HemisphereLight(15262420, 3814184, 1.6));
     const o = new C.DirectionalLight(16773852, 1.8);
     o.position.set(-300, 600, -150), this.scene.add(o), this.scene.add(this.group), this.outline = new C.LineSegments(
       new C.EdgesGeometry(new C.BoxGeometry(1, 1, 1)),
@@ -1389,28 +1404,28 @@ class ya {
     this.city = n;
     for (const u of [...this.group.children])
       this.group.remove(u), u instanceof C.Mesh && (u.geometry.dispose(), u.material.dispose());
-    const r = n.w * q, a = n.h * q, s = new C.Mesh(
+    const r = n.w * K, a = n.h * K, s = new C.Mesh(
       new C.PlaneGeometry(r + 400, a + 400),
-      new C.MeshLambertMaterial({ color: wa })
+      new C.MeshLambertMaterial({ color: Ca })
     );
     s.rotation.x = -Math.PI / 2, s.position.set(r / 2, 0, a / 2), this.group.add(s);
-    const i = n.blocks.filter((u) => u.merged < 0), d = new C.InstancedMesh(new C.BoxGeometry(1, 1, 1), new C.MeshLambertMaterial(), i.length), p = new C.Matrix4(), f = new C.Color();
+    const i = n.blocks.filter((u) => u.merged < 0), d = new C.InstancedMesh(new C.BoxGeometry(1, 1, 1), new C.MeshLambertMaterial(), i.length), p = new C.Matrix4(), k = new C.Color();
     i.forEach((u, c) => {
-      const _ = gn(u), y = u.use === 4 || u.use === 5 ? 0.05 : ve;
-      p.makeScale(_.w, y, _.h).setPosition(_.x + _.w / 2, y / 2, _.y + _.h / 2), d.setMatrixAt(c, p), d.setColorAt(c, f.set(nn[u.use] ?? nn[0]));
+      const h = yn(u), N = u.use === 4 || u.use === 5 ? 0.05 : me;
+      p.makeScale(h.w, N, h.h).setPosition(h.x + h.w / 2, N / 2, h.y + h.h / 2), d.setMatrixAt(c, p), d.setColorAt(c, k.set(on[u.use] ?? on[0]));
     }), this.group.add(d), this.lotOfInstance = n.lots.map((u) => u.id);
-    const m = new C.InstancedMesh(new C.BoxGeometry(1, 1, 1), new C.MeshLambertMaterial(), n.lots.length);
+    const _ = new C.InstancedMesh(new C.BoxGeometry(1, 1, 1), new C.MeshLambertMaterial(), n.lots.length);
     n.lots.forEach((u, c) => {
-      const h = u.cls === 0 ? 0.25 : Math.max(1, u.storeys) * on, y = Math.max(0.5, u.w - 2 * rn), k = Math.max(0.5, u.h - 2 * rn);
-      p.makeScale(y, h, k).setPosition(u.x + u.w / 2, ve + h / 2, u.y + u.h / 2), m.setMatrixAt(c, p), m.setColorAt(c, f.set(it[u.cls] ?? it[0]));
-    }), this.buildings = m, this.group.add(m);
+      const m = u.cls === 0 ? 0.25 : Math.max(1, u.storeys) * sn, N = Math.max(0.5, u.w - 2 * ln), g = Math.max(0.5, u.h - 2 * ln);
+      p.makeScale(N, m, g).setPosition(u.x + u.w / 2, me + m / 2, u.y + u.h / 2), _.setMatrixAt(c, p), _.setColorAt(c, k.set(ct[u.cls] ?? ct[0]));
+    }), this.buildings = _, this.group.add(_);
     for (const u of n.hq) {
-      const c = new C.MeshLambertMaterial({ color: Fe[u.colour % 4] }), _ = new C.Mesh(new C.CylinderGeometry(0.6, 0.6, 40, 8), c);
-      _.position.set(u.fx * se + se / 2, 20, u.fy * se + se / 2), this.group.add(_);
-      const h = new C.Mesh(new C.BoxGeometry(12, 7, 0.4), c.clone());
-      h.position.set(u.fx * se + se / 2 + 6.5, 36, u.fy * se + se / 2), this.group.add(h);
+      const c = new C.MeshLambertMaterial({ color: pe[u.colour % 4] }), h = new C.Mesh(new C.CylinderGeometry(0.6, 0.6, 40, 8), c);
+      h.position.set(u.fx * le + le / 2, 20, u.fy * le + le / 2), this.group.add(h);
+      const m = new C.Mesh(new C.BoxGeometry(12, 7, 0.4), c.clone());
+      m.position.set(u.fx * le + le / 2 + 6.5, 36, u.fy * le + le / 2), this.group.add(m);
     }
-    this.walkers = null, this.ring.visible = !1, this.outline.visible = !1, o || (this.view = { x: r / 2, z: a / 2, zoom: tn, turned: !1 }), this.update();
+    this.walkers = null, this.cars = this.fleet = this.trams = null, this.ring.visible = !1, this.outline.visible = !1, o || (this.view = { x: r / 2, z: a / 2, zoom: an, turned: !1 }), this.update();
   }
   /** Item 5: pins over order sites (metres; the job card's in gold, given orders in the gang's colour). */
   setMarkers(n) {
@@ -1428,21 +1443,78 @@ class ya {
     const a = n.length / 5;
     if (!this.walkers || this.walkers.instanceMatrix.count < a) {
       this.walkers && (this.group.remove(this.walkers), this.walkers.geometry.dispose(), this.walkers.material.dispose());
-      const p = new C.CylinderGeometry(sn / 2, sn / 2, wt, 6);
-      p.translate(0, wt / 2 + ve, 0), this.walkers = new C.InstancedMesh(p, new C.MeshLambertMaterial(), Math.max(a, 1)), this.walkers.frustumCulled = !1, this.group.add(this.walkers);
+      const p = new C.CylinderGeometry(cn / 2, cn / 2, Et, 6);
+      p.translate(0, Et / 2 + me, 0), this.walkers = new C.InstancedMesh(p, new C.MeshLambertMaterial(), Math.max(a, 1)), this.walkers.frustumCulled = !1, this.group.add(this.walkers);
     }
     this.gangColour = o;
     const s = new C.Matrix4(), i = new C.Color();
     let d = 0;
     this.personOfInstance.length = 0;
     for (let p = 0; p < a; p++) {
-      const f = p * 5;
-      if (n[f + 4] === 1) continue;
-      s.makeTranslation(n[f] / 256, 0, n[f + 1] / 256), this.walkers.setMatrixAt(d, s);
-      const m = n[f + 3];
-      this.walkers.setColorAt(d++, i.set(m > 0 ? Fe[(this.gangColour[m] ?? 0) % 4] : ka[n[f + 2]] ?? "#ffffff")), this.personOfInstance.push(p), p === r && this.ring.position.set(n[f] / 256, ve + 0.05, n[f + 1] / 256);
+      const k = p * 5;
+      if (n[k + 4] !== 0) continue;
+      s.makeTranslation(n[k] / 256, 0, n[k + 1] / 256), this.walkers.setMatrixAt(d, s);
+      const _ = n[k + 3];
+      this.walkers.setColorAt(d++, i.set(_ > 0 ? pe[(this.gangColour[_] ?? 0) % 4] : Aa[n[k + 2]] ?? "#ffffff")), this.personOfInstance.push(p), p === r && this.ring.position.set(n[k] / 256, me + 0.05, n[k + 1] / 256);
     }
-    return this.ring.visible = r >= 0 && r < a && n[r * 5 + 4] !== 1, this.walkers.count = d, this.walkers.instanceMatrix.needsUpdate = !0, this.walkers.instanceColor && (this.walkers.instanceColor.needsUpdate = !0), this.walkers.computeBoundingSphere(), this.render(), d;
+    return this.ring.visible = r >= 0 && r < a && n[r * 5 + 4] === 0, this.walkers.count = d, this.walkers.instanceMatrix.needsUpdate = !0, this.walkers.instanceColor && (this.walkers.instanceColor.needsUpdate = !0), this.walkers.computeBoundingSphere(), this.render(), d;
+  }
+  /** Item 6: one instanced box layer, grown as needed. */
+  boxes(n, o) {
+    if (n && n.instanceMatrix.count >= o) return n;
+    n && (this.group.remove(n), n.geometry.dispose(), n.material.dispose());
+    const r = new C.BoxGeometry(1, 1, 1);
+    r.translate(0, 0.5, 0);
+    const a = new C.InstancedMesh(r, new C.MeshLambertMaterial(), Math.max(o, 1) + 16);
+    return a.frustumCulled = !1, this.group.add(a), a;
+  }
+  /** Item 6: the city's cars (x, y, heading, truck, colour, halted), the gang
+   * cars (x, y, kind, gang, crew, riders, heading) and the trams (x, y,
+   * direction x, y, on the map, line), positions in 1/256 m. */
+  setVehicles(n, o, r, a) {
+    const s = new C.Matrix4(), i = new C.Quaternion(), d = new C.Vector3(), p = new C.Vector3(), k = new C.Vector3(0, 1, 0), _ = new C.Color(), u = (y, w, f, $, S, b, v) => {
+      i.setFromAxisAngle(k, S), d.set(b[0], b[2], b[1]), p.set(f, me, $), y.setMatrixAt(w, s.compose(p, i, d)), y.setColorAt(w, _.set(v));
+    }, c = (y) => -y * Math.PI / 2, h = n.length / 6;
+    this.cars = this.boxes(this.cars, h);
+    for (let y = 0; y < h; y++) {
+      const w = y * 6, f = n[w + 3] === 1;
+      u(
+        this.cars,
+        y,
+        n[w] / 256,
+        n[w + 1] / 256,
+        c(n[w + 2]),
+        f ? Na : dn,
+        f ? Fa : un[n[w + 4] % un.length]
+      );
+    }
+    this.cars.count = h;
+    const m = o.length / 7;
+    this.fleet = this.boxes(this.fleet, m);
+    for (let y = 0; y < m; y++) {
+      const w = y * 7, f = o[w + 6];
+      u(
+        this.fleet,
+        y,
+        o[w] / 256,
+        o[w + 1] / 256,
+        c(f < 0 ? 0 : f),
+        Ma[o[w + 2]] ?? dn,
+        pe[(a[o[w + 3]] ?? 0) % 4]
+      );
+    }
+    this.fleet.count = m;
+    const N = r.length / 6;
+    this.trams = this.boxes(this.trams, N);
+    let g = 0;
+    for (let y = 0; y < N; y++) {
+      const w = y * 6;
+      r[w + 4] === 1 && u(this.trams, g++, r[w] / 256, r[w + 1] / 256, -Math.atan2(r[w + 3], r[w + 2]), La, Pa);
+    }
+    this.trams.count = g;
+    for (const y of [this.cars, this.fleet, this.trams])
+      y.instanceMatrix.needsUpdate = !0, y.instanceColor && (y.instanceColor.needsUpdate = !0);
+    this.render();
   }
   select(n) {
     const o = this.city?.lots[n];
@@ -1450,8 +1522,8 @@ class ya {
       this.outline.visible = !1, this.render();
       return;
     }
-    const r = o.cls === 0 ? 0.6 : Math.max(1, o.storeys) * on + 0.4;
-    this.outline.scale.set(o.w, r, o.h), this.outline.position.set(o.x + o.w / 2, ve + r / 2, o.y + o.h / 2), this.outline.visible = !0, this.render();
+    const r = o.cls === 0 ? 0.6 : Math.max(1, o.storeys) * sn + 0.4;
+    this.outline.scale.set(o.w, r, o.h), this.outline.position.set(o.x + o.w / 2, me + r / 2, o.y + o.h / 2), this.outline.visible = !0, this.render();
   }
   size() {
     const n = this.renderer.domElement;
@@ -1461,17 +1533,17 @@ class ya {
   update() {
     if (!this.city) return;
     const { w: n, h: o } = this.size();
-    this.renderer.setSize(n, o, !1), this.view = fa({ ...this.view, zoom: ga(this.view.zoom) }, n / o, this.city.w * q, this.city.h * q);
-    const r = Rt(this.view.zoom), a = r * (n / o);
+    this.renderer.setSize(n, o, !1), this.view = va({ ...this.view, zoom: Ea(this.view.zoom) }, n / o, this.city.w * K, this.city.h * K);
+    const r = Ot(this.view.zoom), a = r * (n / o);
     Object.assign(this.camera, { left: -a / 2, right: a / 2, top: r / 2, bottom: -r / 2 }), this.camera.updateProjectionMatrix();
-    const [s, i, d] = pa(this.view.turned);
-    this.camera.position.set(this.view.x + s * xe, i * xe, this.view.z + d * xe), this.camera.lookAt(this.view.x, 0, this.view.z), this.render();
+    const [s, i, d] = ya(this.view.turned);
+    this.camera.position.set(this.view.x + s * Re, i * Re, this.view.z + d * Re), this.camera.lookAt(this.view.x, 0, this.view.z), this.render();
   }
   render() {
     cancelAnimationFrame(this.frame), this.frame = requestAnimationFrame(() => this.renderer.render(this.scene, this.camera));
   }
   drag(n, o) {
-    this.view = ba(this.view, n, o, this.size().h), this.update();
+    this.view = Sa(this.view, n, o, this.size().h), this.update();
   }
   zoomBy(n) {
     this.view = { ...this.view, zoom: this.view.zoom * n }, this.update();
@@ -1489,11 +1561,11 @@ class ya {
     const r = this.renderer.domElement.getBoundingClientRect(), a = new C.Vector2((n - r.left) / r.width * 2 - 1, -((o - r.top) / r.height) * 2 + 1);
     if (this.walkers && this.walkers.count > 0) {
       const i = new C.Matrix4(), d = new C.Vector3();
-      let p = -1, f = 64;
-      for (let m = 0; m < this.walkers.count; m++) {
-        this.walkers.getMatrixAt(m, i), d.setFromMatrixPosition(i).setY(ve + wt / 2).project(this.camera);
-        const u = (d.x - a.x) * r.width / 2, c = (d.y - a.y) * r.height / 2, _ = u * u + c * c;
-        _ < f && (f = _, p = m);
+      let p = -1, k = 64;
+      for (let _ = 0; _ < this.walkers.count; _++) {
+        this.walkers.getMatrixAt(_, i), d.setFromMatrixPosition(i).setY(me + Et / 2).project(this.camera);
+        const u = (d.x - a.x) * r.width / 2, c = (d.y - a.y) * r.height / 2, h = u * u + c * c;
+        h < k && (k = h, p = _);
       }
       if (p >= 0) return { person: this.personOfInstance[p], lot: -1 };
     }
@@ -1505,47 +1577,47 @@ class ya {
     cancelAnimationFrame(this.frame), this.renderer.dispose();
   }
 }
-const Ea = ["#d8c59a", "#cdbf9f", "#a9a49a", "#c8b9a0", "#bfc3c7"], va = "#7d9a5d", Sa = "#5f86a3", Ca = "#8f8a80", Na = "#d6ccb4", La = "#e9dfc6", Ma = "#b9ad93";
-function Fa({ city: e, selected: n, onSelect: o, label: r, markers: a }) {
-  const s = Le(null), i = Le({ scale: 1, ox: 0, oy: 0 });
-  V(() => {
+const Ba = ["#d8c59a", "#cdbf9f", "#a9a49a", "#c8b9a0", "#bfc3c7"], Ya = "#7d9a5d", xa = "#5f86a3", Ra = "#8f8a80", Oa = "#d6ccb4", za = "#e9dfc6", Da = "#b9ad93";
+function ja({ city: e, selected: n, onSelect: o, label: r, markers: a }) {
+  const s = Pe(null), i = Pe({ scale: 1, ox: 0, oy: 0 });
+  U(() => {
     const p = s.current;
     if (!p) return;
-    const f = () => {
-      const u = Math.min(2, devicePixelRatio), c = p.clientWidth, _ = p.clientHeight;
-      p.width = Math.round(c * u), p.height = Math.round(_ * u);
-      const h = p.getContext("2d");
-      if (!h) return;
-      const y = e.w * q, k = e.h * q, F = 24, N = Math.min((c - 2 * F) / y, (_ - 2 * F) / k), b = (c - y * N) / 2, I = (_ - k * N) / 2;
-      i.current = { scale: N, ox: b, oy: I }, h.setTransform(u * N, 0, 0, u * N, u * b, u * I), h.fillStyle = La, h.fillRect(-F / N, -F / N, y + 2 * F / N, k + 2 * F / N), h.fillStyle = Ma, h.fillRect(0, 0, y, k);
-      for (const g of e.blocks) {
-        if (g.merged >= 0) continue;
-        const S = gn(g);
-        h.fillStyle = g.use === 1 ? va : g.use === 5 ? Sa : g.use === 4 ? Ca : g.use === 3 ? Na : Ea[g.district], h.fillRect(S.x - 2, S.y - 2, S.w + 4, S.h + 4);
+    const k = () => {
+      const u = Math.min(2, devicePixelRatio), c = p.clientWidth, h = p.clientHeight;
+      p.width = Math.round(c * u), p.height = Math.round(h * u);
+      const m = p.getContext("2d");
+      if (!m) return;
+      const N = e.w * K, g = e.h * K, y = 24, w = Math.min((c - 2 * y) / N, (h - 2 * y) / g), f = (c - N * w) / 2, $ = (h - g * w) / 2;
+      i.current = { scale: w, ox: f, oy: $ }, m.setTransform(u * w, 0, 0, u * w, u * f, u * $), m.fillStyle = za, m.fillRect(-y / w, -y / w, N + 2 * y / w, g + 2 * y / w), m.fillStyle = Da, m.fillRect(0, 0, N, g);
+      for (const b of e.blocks) {
+        if (b.merged >= 0) continue;
+        const v = yn(b);
+        m.fillStyle = b.use === 1 ? Ya : b.use === 5 ? xa : b.use === 4 ? Ra : b.use === 3 ? Oa : Ba[b.district], m.fillRect(v.x - 2, v.y - 2, v.w + 4, v.h + 4);
       }
-      for (const g of e.lots)
-        h.fillStyle = it[g.cls] ?? it[0], h.globalAlpha = g.cls === 0 ? 0.35 : 0.9, h.fillRect(g.x + 0.6, g.y + 0.6, Math.max(0.5, g.w - 1.2), Math.max(0.5, g.h - 1.2));
-      h.globalAlpha = 1;
-      const E = e.lots[n];
-      E && (h.strokeStyle = "#1b1208", h.lineWidth = 2.5 / N, h.strokeRect(E.x - 1, E.y - 1, E.w + 2, E.h + 2));
-      for (const g of a)
-        h.fillStyle = g.colour, h.strokeStyle = "#1b1208", h.lineWidth = 1 / N, h.beginPath(), h.arc(g.x, g.y, 6 / N, 0, Math.PI * 2), h.fill(), h.stroke();
-      for (const g of e.hq) {
-        const S = (g.fx + 0.5) * (q / 5), G = (g.fy + 0.5) * (q / 5), U = 9 / N;
-        h.fillStyle = "#1b1208", h.fillRect(S - 0.6 / N, G - 2.2 * U, 1.2 / N, 2.2 * U), h.fillStyle = Fe[g.colour % 4], h.beginPath(), h.moveTo(S, G - 2.2 * U), h.lineTo(S + 1.6 * U, G - 1.7 * U), h.lineTo(S, G - 1.2 * U), h.fill();
+      for (const b of e.lots)
+        m.fillStyle = ct[b.cls] ?? ct[0], m.globalAlpha = b.cls === 0 ? 0.35 : 0.9, m.fillRect(b.x + 0.6, b.y + 0.6, Math.max(0.5, b.w - 1.2), Math.max(0.5, b.h - 1.2));
+      m.globalAlpha = 1;
+      const S = e.lots[n];
+      S && (m.strokeStyle = "#1b1208", m.lineWidth = 2.5 / w, m.strokeRect(S.x - 1, S.y - 1, S.w + 2, S.h + 2));
+      for (const b of a)
+        m.fillStyle = b.colour, m.strokeStyle = "#1b1208", m.lineWidth = 1 / w, m.beginPath(), m.arc(b.x, b.y, 6 / w, 0, Math.PI * 2), m.fill(), m.stroke();
+      for (const b of e.hq) {
+        const v = (b.fx + 0.5) * (K / 5), O = (b.fy + 0.5) * (K / 5), I = 9 / w;
+        m.fillStyle = "#1b1208", m.fillRect(v - 0.6 / w, O - 2.2 * I, 1.2 / w, 2.2 * I), m.fillStyle = pe[b.colour % 4], m.beginPath(), m.moveTo(v, O - 2.2 * I), m.lineTo(v + 1.6 * I, O - 1.7 * I), m.lineTo(v, O - 1.2 * I), m.fill();
       }
     };
-    f();
-    const m = new ResizeObserver(f);
-    return m.observe(p), () => m.disconnect();
+    k();
+    const _ = new ResizeObserver(k);
+    return _.observe(p), () => _.disconnect();
   }, [e, n, a]);
   const d = (p) => {
-    const f = p.currentTarget.getBoundingClientRect(), m = i.current;
-    o(ra(e, (p.clientX - f.left - m.ox) / m.scale, (p.clientY - f.top - m.oy) / m.scale));
+    const k = p.currentTarget.getBoundingClientRect(), _ = i.current;
+    o(ua(e, (p.clientX - k.left - _.ox) / _.scale, (p.clientY - k.top - _.oy) / _.scale));
   };
   return /* @__PURE__ */ t.createElement("canvas", { className: "city-plan", ref: s, onClick: d, "aria-label": r });
 }
-const Mt = [
+const At = [
   2087000994,
   1345216982,
   2537227108,
@@ -1566,7 +1638,7 @@ const Mt = [
   2227219457,
   2140019606,
   4173634592
-], kn = [48, 31, 59, 54, 80, 33, 22, 63, 76, 45, 72, 89, 91, 73, 21, 13, 95, 51, 49, 97], yn = [
+], Cn = [48, 31, 59, 54, 80, 33, 22, 63, 76, 45, 72, 89, 91, 73, 21, 13, 95, 51, 49, 97], Nn = [
   6347,
   31496,
   30113,
@@ -1587,115 +1659,114 @@ const Mt = [
   5001,
   1002,
   15126
-], Ft = [13824, 2764, 1280, 362, 46341, 65536, 128, 5, 38500], Pa = [
+], Tt = [13824, 2764, 1280, 362, 46341, 65536, 128, 5, 38500], Ga = [
   { w: 36, h: 28, seed: 1932, rng: 787968811, city: 130389902, structure: 2172434479, blocks: 1008, merged: 140, lots: 8769, buildings: 8769, types: 164, hq: [] },
   { w: 40, h: 32, seed: 1932, rng: 1183664769, city: 162525796, structure: 3010893233, blocks: 1280, merged: 22, lots: 4580, buildings: 4580, types: 170, hq: [[13, 10], [31, 4], [7, 20], [36, 25]] },
   { w: 44, h: 35, seed: 1932, rng: 214220379, city: 1231309806, structure: 2436981367, blocks: 1540, merged: 209, lots: 13488, buildings: 13488, types: 166, hq: [] },
   { w: 40, h: 32, seed: 187, rng: 1183663024, city: 2335500783, structure: 2753879728, blocks: 1280, merged: 20, lots: 4733, buildings: 4733, types: 170, hq: [[11, 9], [29, 4], [9, 17], [25, 23]] }
-], Aa = [
+], Ha = [
   { w: 40, h: 32, seed: 1932, people: 8479, rngSetup: 532198006, rngMinute1: 3184470837, hashes: [762905189, 59061474, 867735307, 2325457386] },
   { w: 44, h: 35, seed: 1932, people: 20879, rngSetup: 3696518514, rngMinute1: 2775660613, hashes: [4085821087, 1945027344, 3513816520, 825993883] }
-], Ce = { seed: 1932, auto: 1932, w: 44, h: 35 };
-function Pt(e) {
-  const n = [Mt, kn, yn];
+], Le = { seed: 1932, auto: 1932, w: 44, h: 35 };
+function Bt(e) {
+  const n = [At, Cn, Nn];
   return {
     random: e.streams.reduce((o, r, a) => o + r.filter((s, i) => s === n[a][i]).length, 0),
-    checks: e.checks.filter((o, r) => o === Ft[r]).length
+    checks: e.checks.filter((o, r) => o === Tt[r]).length
   };
 }
-function En(e) {
-  return Pa.find((n) => n.w === e.w && n.h === e.h && n.seed === e.seed) ?? null;
+function Ln(e) {
+  return Ga.find((n) => n.w === e.w && n.h === e.h && n.seed === e.seed) ?? null;
 }
-const Xe = ({ v: e, expect: n }) => /* @__PURE__ */ t.createElement("td", { className: e === n ? "ok" : "bad" }, e);
-function Ta({ t: e, stamp: n, buildId: o, stateHash: r, step2: a, city: s, core: i, onClose: d, onSound: p, onCrash: f, orderCheck: m, onOrderCheck: u }) {
-  const c = s ? Aa.find((E) => E.w === s.w && E.h === s.h && E.seed === s.seed) ?? null : null, _ = (E, g) => i ? H(i.hs_count(E) | i.hs_count(g) << 16) : 0, h = i && s ? [
-    [e("d_people"), i.hs_count(M.people), c?.people ?? null],
-    [e("d_rng"), _(M.setupLow, M.setupHigh), c?.rngSetup ?? null],
-    ...["people", "positions", "opinions", "names"].map((E, g) => [`${E} hash`, H(i.hs_population_hash(g + 1)), c?.hashes[g] ?? null]),
+const et = ({ v: e, expect: n }) => /* @__PURE__ */ t.createElement("td", { className: e === n ? "ok" : "bad" }, e);
+function Ia({ t: e, stamp: n, buildId: o, stateHash: r, step2: a, city: s, core: i, onClose: d, onSound: p, onCrash: k, orderCheck: _, onOrderCheck: u }) {
+  const c = s ? Ha.find((S) => S.w === s.w && S.h === s.h && S.seed === s.seed) ?? null : null, h = (S, b) => i ? H(i.hs_count(S) | i.hs_count(b) << 16) : 0, m = i && s ? [
+    [e("d_people"), i.hs_count(F.people), c?.people ?? null],
+    [e("d_rng"), h(F.setupLow, F.setupHigh), c?.rngSetup ?? null],
+    ...["people", "positions", "opinions", "names"].map((S, b) => [`${S} hash`, H(i.hs_population_hash(b + 1)), c?.hashes[b] ?? null]),
     // Shown once week 1 has run its first minute (0 before).
-    [e("d_minute1"), _(M.m1Low, M.m1High), c?.rngMinute1 ?? null]
-  ] : [], y = h.filter(([, E, g]) => g !== null && H(E) === H(g)).length, k = s ? En(s) : null, F = s ? [
-    [e("d_rng"), s.rngAfter, k?.rng ?? null],
-    [e("d_city"), s.cityHash, k?.city ?? null],
-    [e("d_structure"), s.structureHash, k?.structure ?? null],
-    ["blocks", s.counts.blocks, k?.blocks ?? null],
-    ["merged", s.counts.merged, k?.merged ?? null],
-    ["lots", s.counts.lots, k?.lots ?? null],
-    ["buildings", s.counts.buildings, k?.buildings ?? null],
-    ["types", s.counts.typesUsed, k?.types ?? null],
-    ...k?.hq.length ? k.hq.map((E, g) => {
-      const S = s.hq[g] ? s.blocks[s.hq[g].block] : null;
-      return [`HQ ${g + 1} (gx·100 + gy)`, S ? S.gx * 100 + S.gy : -1, E[0] * 100 + E[1]];
+    [e("d_minute1"), h(F.m1Low, F.m1High), c?.rngMinute1 ?? null]
+  ] : [], N = m.filter(([, S, b]) => b !== null && H(S) === H(b)).length, g = s ? Ln(s) : null, y = s ? [
+    [e("d_rng"), s.rngAfter, g?.rng ?? null],
+    [e("d_city"), s.cityHash, g?.city ?? null],
+    [e("d_structure"), s.structureHash, g?.structure ?? null],
+    ["blocks", s.counts.blocks, g?.blocks ?? null],
+    ["merged", s.counts.merged, g?.merged ?? null],
+    ["lots", s.counts.lots, g?.lots ?? null],
+    ["buildings", s.counts.buildings, g?.buildings ?? null],
+    ["types", s.counts.typesUsed, g?.types ?? null],
+    ...g?.hq.length ? g.hq.map((S, b) => {
+      const v = s.hq[b] ? s.blocks[s.hq[b].block] : null;
+      return [`HQ ${b + 1} (gx·100 + gy)`, v ? v.gx * 100 + v.gy : -1, S[0] * 100 + S[1]];
     }) : []
-  ] : [], N = F.filter(([, E, g]) => g !== null && H(E) === H(g)).length, b = a ? Pt(a) : null, I = [Mt, kn, yn];
-  return /* @__PURE__ */ t.createElement("aside", { className: "drawer", "aria-label": e("d_title") }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("h2", null, e("d_title")), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: d, "aria-label": e("d_close") }, "×")), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step5")), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("d_order_note")), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", disabled: !i || !s, onClick: u }, e("d_order_check"))), m && /* @__PURE__ */ t.createElement(t.Fragment, null, /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("d_order_sum", { n: m.passed, m: m.rows.length, ms: m.weekMs.join(", ") })), /* @__PURE__ */ t.createElement("div", { className: "scroll" }, /* @__PURE__ */ t.createElement("table", { className: "checks" }, /* @__PURE__ */ t.createElement("thead", null, /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("col_check")), /* @__PURE__ */ t.createElement("th", null, e("col_ada")), /* @__PURE__ */ t.createElement("th", null, "1.2.91"), /* @__PURE__ */ t.createElement("th", null))), /* @__PURE__ */ t.createElement("tbody", null, m.rows.map((E, g) => /* @__PURE__ */ t.createElement("tr", { key: g }, /* @__PURE__ */ t.createElement("th", null, E.label), /* @__PURE__ */ t.createElement("td", { className: E.mode === "info" ? "" : E.ok ? "ok" : "bad" }, E.got), /* @__PURE__ */ t.createElement("td", null, E.want), /* @__PURE__ */ t.createElement("td", null, E.mode === "20%" ? "±20 %" : E.mode === "info" ? "info" : "=")))))))), i && s && /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step4")), /* @__PURE__ */ t.createElement("p", { className: "sum" }, c ? e("d_match", { n: y, m: h.length }) : e("d_no_ref")), /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("tbody", null, h.map(([E, g, S]) => /* @__PURE__ */ t.createElement("tr", { key: E }, /* @__PURE__ */ t.createElement("th", null, E), S === null ? /* @__PURE__ */ t.createElement("td", null, H(g)) : /* @__PURE__ */ t.createElement(Xe, { v: H(g), expect: H(S) }), /* @__PURE__ */ t.createElement("td", null, S === null ? "" : H(S))))))), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step3")), s && /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("d_counts", {
+  ] : [], w = y.filter(([, S, b]) => b !== null && H(S) === H(b)).length, f = a ? Bt(a) : null, $ = [At, Cn, Nn];
+  return /* @__PURE__ */ t.createElement("aside", { className: "drawer", "aria-label": e("d_title") }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("h2", null, e("d_title")), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: d, "aria-label": e("d_close") }, "×")), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step5")), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("d_order_note")), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", disabled: !i || !s, onClick: u }, e("d_order_check"))), _ && /* @__PURE__ */ t.createElement(t.Fragment, null, /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("d_order_sum", { n: _.passed, m: _.rows.length, ms: _.weekMs.join(", ") })), /* @__PURE__ */ t.createElement("div", { className: "scroll" }, /* @__PURE__ */ t.createElement("table", { className: "checks" }, /* @__PURE__ */ t.createElement("thead", null, /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("col_check")), /* @__PURE__ */ t.createElement("th", null, e("col_ada")), /* @__PURE__ */ t.createElement("th", null, "1.2.91"), /* @__PURE__ */ t.createElement("th", null))), /* @__PURE__ */ t.createElement("tbody", null, _.rows.map((S, b) => /* @__PURE__ */ t.createElement("tr", { key: b }, /* @__PURE__ */ t.createElement("th", null, S.label), /* @__PURE__ */ t.createElement("td", { className: S.mode === "info" ? "" : S.ok ? "ok" : "bad" }, S.got), /* @__PURE__ */ t.createElement("td", null, S.want), /* @__PURE__ */ t.createElement("td", null, S.mode === "20%" ? "±20 %" : S.mode === "info" ? "info" : "=")))))))), i && s && /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step4")), /* @__PURE__ */ t.createElement("p", { className: "sum" }, c ? e("d_match", { n: N, m: m.length }) : e("d_no_ref")), /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("tbody", null, m.map(([S, b, v]) => /* @__PURE__ */ t.createElement("tr", { key: S }, /* @__PURE__ */ t.createElement("th", null, S), v === null ? /* @__PURE__ */ t.createElement("td", null, H(b)) : /* @__PURE__ */ t.createElement(et, { v: H(b), expect: H(v) }), /* @__PURE__ */ t.createElement("td", null, v === null ? "" : H(v))))))), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step3")), s && /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("d_counts", {
     b: s.counts.blocks,
     m: s.counts.merged,
     l: s.counts.lots,
     n: s.counts.buildings,
     t: s.counts.typesUsed,
     r: s.retries
-  })), /* @__PURE__ */ t.createElement("p", { className: "sum" }, k ? e("d_match", { n: N, m: F.length }) : e("d_no_ref")), /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("tbody", null, F.map(([E, g, S]) => /* @__PURE__ */ t.createElement("tr", { key: E }, /* @__PURE__ */ t.createElement("th", null, E), S === null ? /* @__PURE__ */ t.createElement("td", null, H(g)) : /* @__PURE__ */ t.createElement(Xe, { v: H(g), expect: H(S) }), /* @__PURE__ */ t.createElement("td", null, S === null ? "" : H(S))))))), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step1")), /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("tbody", null, /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("d_stamp")), /* @__PURE__ */ t.createElement("td", null, n)), /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("d_build_id")), /* @__PURE__ */ t.createElement("td", null, o ?? "…")), /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("d_state")), /* @__PURE__ */ t.createElement("td", null, r === null ? "…" : `${Qt(r)} (${H(r)})`)))), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: p }, e("test_sound")), /* @__PURE__ */ t.createElement("button", { className: "main danger", onClick: f }, e("crash_test")))), a && b && /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step2")), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("random_sum", { n: b.random, m: 60 })), /* @__PURE__ */ t.createElement("div", { className: "scroll" }, /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("thead", null, /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("col_i")), /* @__PURE__ */ t.createElement("th", null, e("col_main")), /* @__PURE__ */ t.createElement("th", null, e("col_ref")), /* @__PURE__ */ t.createElement("th", null, e("col_int")), /* @__PURE__ */ t.createElement("th", null, e("col_ref")), /* @__PURE__ */ t.createElement("th", null, e("col_plan")), /* @__PURE__ */ t.createElement("th", null, e("col_ref")))), /* @__PURE__ */ t.createElement("tbody", null, Mt.map((E, g) => /* @__PURE__ */ t.createElement("tr", { key: g }, /* @__PURE__ */ t.createElement("td", null, g + 1), [0, 1, 2].map((S) => /* @__PURE__ */ t.createElement(t.Fragment, { key: S }, /* @__PURE__ */ t.createElement(Xe, { v: a.streams[S][g], expect: I[S][g] }), /* @__PURE__ */ t.createElement("td", null, I[S][g])))))))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("numbers_sum", { n: b.checks, m: a.checks.length })), /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("thead", null, /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("col_check")), /* @__PURE__ */ t.createElement("th", null, e("col_ada")), /* @__PURE__ */ t.createElement("th", null, e("col_exp")))), /* @__PURE__ */ t.createElement("tbody", null, a.checks.map((E, g) => /* @__PURE__ */ t.createElement("tr", { key: g }, /* @__PURE__ */ t.createElement("th", null, e(`c${g + 1}`)), /* @__PURE__ */ t.createElement(Xe, { v: E, expect: Ft[g] }), /* @__PURE__ */ t.createElement("td", null, Ft[g]))))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("grid_sum", { w: a.gw, h: a.gh, n: a.gw * a.gh })), /* @__PURE__ */ t.createElement("div", { className: "grid-sample", "aria-hidden": "true" }, a.pattern.map((E, g) => /* @__PURE__ */ t.createElement("i", { key: g, className: E === 1 ? "b" : E === 0 ? "s" : "x" }))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("grid_legend")), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("world_sum", {
-    seed: Ce.seed,
-    auto: Ce.auto,
+  })), /* @__PURE__ */ t.createElement("p", { className: "sum" }, g ? e("d_match", { n: w, m: y.length }) : e("d_no_ref")), /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("tbody", null, y.map(([S, b, v]) => /* @__PURE__ */ t.createElement("tr", { key: S }, /* @__PURE__ */ t.createElement("th", null, S), v === null ? /* @__PURE__ */ t.createElement("td", null, H(b)) : /* @__PURE__ */ t.createElement(et, { v: H(b), expect: H(v) }), /* @__PURE__ */ t.createElement("td", null, v === null ? "" : H(v))))))), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step1")), /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("tbody", null, /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("d_stamp")), /* @__PURE__ */ t.createElement("td", null, n)), /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("d_build_id")), /* @__PURE__ */ t.createElement("td", null, o ?? "…")), /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("d_state")), /* @__PURE__ */ t.createElement("td", null, r === null ? "…" : `${en(r)} (${H(r)})`)))), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: p }, e("test_sound")), /* @__PURE__ */ t.createElement("button", { className: "main danger", onClick: k }, e("crash_test")))), a && f && /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step2")), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("random_sum", { n: f.random, m: 60 })), /* @__PURE__ */ t.createElement("div", { className: "scroll" }, /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("thead", null, /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("col_i")), /* @__PURE__ */ t.createElement("th", null, e("col_main")), /* @__PURE__ */ t.createElement("th", null, e("col_ref")), /* @__PURE__ */ t.createElement("th", null, e("col_int")), /* @__PURE__ */ t.createElement("th", null, e("col_ref")), /* @__PURE__ */ t.createElement("th", null, e("col_plan")), /* @__PURE__ */ t.createElement("th", null, e("col_ref")))), /* @__PURE__ */ t.createElement("tbody", null, At.map((S, b) => /* @__PURE__ */ t.createElement("tr", { key: b }, /* @__PURE__ */ t.createElement("td", null, b + 1), [0, 1, 2].map((v) => /* @__PURE__ */ t.createElement(t.Fragment, { key: v }, /* @__PURE__ */ t.createElement(et, { v: a.streams[v][b], expect: $[v][b] }), /* @__PURE__ */ t.createElement("td", null, $[v][b])))))))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("numbers_sum", { n: f.checks, m: a.checks.length })), /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("thead", null, /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("col_check")), /* @__PURE__ */ t.createElement("th", null, e("col_ada")), /* @__PURE__ */ t.createElement("th", null, e("col_exp")))), /* @__PURE__ */ t.createElement("tbody", null, a.checks.map((S, b) => /* @__PURE__ */ t.createElement("tr", { key: b }, /* @__PURE__ */ t.createElement("th", null, e(`c${b + 1}`)), /* @__PURE__ */ t.createElement(et, { v: S, expect: Tt[b] }), /* @__PURE__ */ t.createElement("td", null, Tt[b]))))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("grid_sum", { w: a.gw, h: a.gh, n: a.gw * a.gh })), /* @__PURE__ */ t.createElement("div", { className: "grid-sample", "aria-hidden": "true" }, a.pattern.map((S, b) => /* @__PURE__ */ t.createElement("i", { key: b, className: S === 1 ? "b" : S === 0 ? "s" : "x" }))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("grid_legend")), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("world_sum", {
+    seed: Le.seed,
+    auto: Le.auto,
     w: a.gw,
     h: a.gh,
-    hash: `${Qt(a.worldHash)} (${H(a.worldHash)})`
+    hash: `${en(a.worldHash)} (${H(a.worldHash)})`
   }))));
 }
-const ie = ["Bakers", "Butchers", "Grocers", "Convenience Store", "Shoe Store", "Tailors", "Book Store", "Printers", "Pawnbrokers", "Jewellers", "Furrier", "Drug Store", "Plumbers", "Cafe", "Milk Bar", "Breakfast Bar", "Restaurant", "Pool Hall", "Gymnasium", "Health Center", "Massage Parlor", "Dance Studio", "Barbers", "Laundry", "Hardware Store", "Auto Shop", "Finance Company", "Accountancy Firm", "Law Offices", "Hotel", "Hotel (Large)", "Department Store", "Bank", "Main Bank", "Newspaper Offices", "Radio Station", "Warehouse", "Foundry", "Mill", "Cannery", "Garage Depot", "Trade Union", "Docks", "Railroad Terminal", "Tenement Block", "Apartment Block", "Residences", "City Hall", "Courthouse", "Police Headquarters", "Hospital", "School", "Library", "Labour Exchange", "Fire House", "F.B.I. Headquarters", "Museum", "Public Baths", "US Post", "Power Plant", "Water Plant", "Residences", "Church", "Orphanage", "Soup Kitchen", "Clothing Bank", "Office", "Speakeasy", "Moonshine Still", "Casino", "Card Games", "Dice Game", "Gambling Den", "Prizefight Ring", "Grifters", "Insider Trading", "Loan Shark", "Counterfeit Press", "Numbers Racket", "Rented Rooms", "Teamsters", "Acupuncture Clinic", "Antiques Dealer", "Art Gallery", "Auction Rooms", "Auto Dealers", "Bailiffs", "Beauty Parlor", "Blacksmiths", "Bridal Parlor", "Cab Company", "Cake Store", "Candy Store", "Carpet Store", "Catering Suppliers", "Cheese Store", "China Store", "Chiropodists", "Clothiers", "Coffin Makers", "Cosmetics Store", "Delicatessen", "Orthodontists", "Detective Agency", "Diamond Merchant", "Doctors", "Dressmakers", "Electrical Suppliers", "Electricians", "Costume Store", "Fishmongers", "Florists", "Fortune Tellers", "French Polishers", "Fruit and Veg. Store", "Funeral Directors", "Furniture Store", "Gardening Suppliers", "Gas Station/Mechanic", "Gift Store", "Gold Merchants", "Golf Store", "Gramophone Store", "Glassware", "Haberdashery", "Hair Salon", "Wig Makers", "Ice Store", "Ice Cream Parlor", "Ladieswear", "Lingerie Store", "Local Store", "Locksmiths", "Lumber Merchant", "Milliners", "Movie Theater", "Music Store", "News Agency", "Nursery Store", "Optometrist", "Perfume Store", "Pest Controllers", "Pet Store", "Photographers", "Piano Store", "Real Estate", "Record Store", "Removals Company", "Saddlers", "Shoe Repairs", "Sign Writers", "Soda Fountain", "Sports Equipment", "Stamp and Coin Dealers", "Stationers", "Tattoo Parlor", "Telegraph Office", "Theater", "Tobacconists", "Toy Store", "Upholsterers", "Watchmakers", "Window Cleaners", "Abattoir", "Builders", "Cement Factory", "Ceramics", "Chandler", "Leather Curers", "Engineers", "Excavators", "Fabricators", "Factory", "Food Processors", "Freight Forwarding", "Furriers", "Glaziers", "Ice House", "Ironmongers", "Joiners", "Junk Yard", "Lumber Yard", "Milk Yard", "Packaging Plant", "Paper Mill", "Sheet Workers", "Steel Mill", "Stone Masons", "Tanners", "Textiles", "Weavers", "Wheelwrights", "Empty land"], Ba = ["bakers", "butchers", "grocers", "convenienceStore", "shoeStore", "tailors", "bookStore", "printers", "pawnbroker", "jewellers", "furrier", "drugStore", "plumbers", "cafe", "milkBar", "breakfastBar", "restaurant", "poolHall", "gym", "healthCenter", "massageParlor", "danceStudio", "barbers", "laundry", "hardwareStore", "autoShop", "financeCompany", "accountancy", "lawFirm", "hotelSmall", "hotelLarge", "departmentStore", "bankSmall", "bankLarge", "newspaper", "radioStation", "warehouse", "foundry", "mill", "cannery", "garageDepot", "tradeUnion", "docks", "railroad", "tenementPoor", "tenementMid", "tenementRich", "cityHall", "courthouse", "policeHQ", "hospital", "school", "library", "labourExchange", "firehouse", "fbiHQ", "museum", "publicBaths", "usPost", "powerPlant", "waterPlant", "residence", "church", "orphanage", "soupKitchen", "clothingBank", "office", "speakeasy", "moonshineStill", "casino", "cardGames", "diceGame", "gamblingDen", "prizeFight", "grifters", "insiderTrading", "loanShark", "counterfeitPress", "numbersRacket", "rentedRooms", "teamsters", "acupunctureClinic", "antiquesDealer", "artGallery", "auctionRooms", "autoDealers", "bailiffs", "beautyParlor", "blacksmiths", "bridalParlor", "cabCompany", "cakeStore", "candyStore", "carpetStore", "cateringSuppliers", "cheeseStore", "chinaStore", "chiropodists", "clothiers", "coffinMakers", "cosmeticsStore", "delicatessen", "orthodontists", "detectiveAgency", "diamondMerchant", "doctors", "dressmakers", "electricalSuppliers", "electricians", "costumeStore", "fishmongers", "florists", "fortuneTellers", "frenchPolishers", "fruitAndVegStore", "funeralDirectors", "furnitureStore", "gardeningSuppliers", "gasStationMechanic", "giftStore", "goldMerchants", "golfStore", "gramophoneStore", "glassware", "haberdashery", "hairSalon", "wigMakers", "iceStore", "iceCreamParlor", "ladieswear", "lingerieStore", "localStore", "locksmiths", "lumberMerchant", "milliners", "movieTheater", "musicStore", "newsAgency", "nurseryStore", "optometrist", "perfumeStore", "pestControllers", "petStore", "photographers", "pianoStore", "realEstate", "recordStore", "removalsCompany", "saddlers", "shoeRepairs", "signWriters", "sodaFountain", "sportsEquipment", "stampAndCoinDealers", "stationers", "tattooParlor", "telegraphOffice", "theater", "tobacconists", "toyStore", "upholsterers", "watchmakers", "windowCleaners", "abattoir", "builders", "cementFactory", "ceramics", "chandler", "leatherCurers", "engineers", "excavators", "fabricators", "factory", "foodProcessors", "freightForwarding", "furriers", "glaziers", "iceHouse", "ironmongers", "joiners", "junkYard", "lumberYard", "milkYard", "packagingPlant", "paperMill", "sheetWorkers", "steelMill", "stoneMasons", "tanners", "textiles", "weavers", "wheelwrights", "emptyLand"], xa = ["commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "tenement", "tenement", "tenement", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "residential", "charity", "charity", "charity", "charity", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "empty"], Ra = [5200, 5600, 6e3, 14200, 6800, 7200, 6600, 8200, 7e3, 12500, 12e3, 7400, 5800, 6200, 5800, 5600, 16800, 7600, 4500, 9e3, 8400, 3800, 4800, 5400, 6600, 9200, 5900, 11e3, 12e3, 13e3, 26e3, 34e3, 22e3, 46e3, 44e3, 44e3, 9e3, 16e3, 14e3, 23800, 11e3, 12e3, 41200, 3e4, 4200, 7e3, 12e3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3e3, 2e3, 6e3, 8e3, 4500, 18e3, 4e3, 3600, 6500, 7e3, 4200, 12e3, 7500, 9500, 5e3, 11e3, 8500, 5800, 8100, 8100, 13900, 10400, 4100, 7e3, 4400, 7e3, 10400, 5800, 4400, 10400, 5800, 5500, 8100, 8100, 5500, 5800, 7e3, 5800, 8100, 5500, 11600, 8100, 8100, 5800, 5500, 4100, 5800, 4400, 4600, 5500, 5800, 5800, 11600, 5800, 4400, 7e3, 8100, 4600, 5800, 2900, 5800, 5800, 4600, 4400, 5800, 8100, 7e3, 13900, 5500, 5800, 5800, 11600, 4400, 5500, 5800, 8100, 7e3, 4400, 4100, 5800, 5500, 8100, 5500, 10400, 4100, 4100, 5500, 5800, 5800, 4100, 4400, 2900, 5500, 9300, 4100, 4100, 5500, 10400, 4100, 5800, 16200, 16200, 16200, 31900, 16200, 20900, 16200, 31900, 16200, 20900, 16200, 31900, 16200, 2300, 16200, 16200, 2300, 5800, 16200, 16200, 20900, 20900, 31900, 16200, 16200, 20900, 16200, 16200, 0], Ya = ["Volstead Green", "Hinge Oak", "Lantern Park", "Cinder Gardens"], Oa = ["St. Michael’s", "St. Mary’s", "St. Joseph’s", "St. Patrick’s"], et = ["Wabash", "Clark", "Dearborn", "State", "Halsted", "Ashland", "Racine", "Morgan", "Sangamon", "Peoria", "Carpenter", "Laflin", "Wood", "Paulina", "Hermitage", "Wolcott", "Damen", "Leavitt", "Oakley", "Claremont"], tt = ["Madison", "Monroe", "Adams", "Jackson", "Van Buren", "Harrison", "Polk", "Taylor", "Roosevelt", "Maxwell", "Cermak", "Archer", "Pershing", "Garfield", "Lawrence", "Belmont", "Fullerton", "Diversey", "Addison", "Irving"], Yt = ["Alphonse", "Vito", "Salvatore", "Frank", "Johnny", "Tommy", "Angelo", "Rocco", "Carmine", "Dominic", "Enzo", "Gino", "Luigi", "Marco", "Nico", "Paulie", "Sal", "Tony", "Vinnie", "Bugsy", "Dutch", "Lefty", "Moe", "Jake", "Abe", "Sam", "Meyer", "Solly", "Hymie", "Sean", "Declan", "Patrick", "Liam", "Eamon", "Rory", "Mickey", "Fergus", "Brendan", "Walter", "Harold", "Clarence", "Chester", "Herbert", "Raymond", "Ernest", "Floyd", "Otto", "Klaus", "Heinrich", "Wilhelm", "Stefan", "Anton", "Ludwig", "Amos", "Cyrus", "Silas", "Homer", "Virgil", "Emmett", "Wilbur", "Elmer", "Orville", "Rosa", "Concetta", "Maria", "Angelina", "Lucia", "Carmela", "Gina", "Nina", "Sofia", "Bridget", "Maureen", "Nora", "Colleen", "Kathleen", "Siobhan", "Aileen", "Ruth", "Esther", "Sadie", "Belle", "Pearl", "Mabel", "Hazel", "Edna", "Vera", "Opal", "Dorothy", "Gladys", "Mildred", "Beatrice", "Constance", "Harriet", "Florence", "Greta", "Ilse", "Anneliese", "Hilde", "Marlene", "Lillian", "Wilma", "Norma", "Thelma", "Bessie", "Myrtle", "Ada", "Capone", "Moretti", "Bellini", "Ricci", "Costa", "Rinaldi", "Marino", "Gallo", "Fontana", "Genovese", "Lombardi", "Barbieri", "Vitale", "Ferrante", "Bruno", "Greco", "Rizzo", "OConnell", "Doyle", "Kelly", "Sullivan", "Murphy", "Flanagan", "Gallagher", "Quinn", "Byrne", "Donnelly", "Fitzgerald", "Rourke", "Maguire", "Brennan", "Rosenberg", "Goldstein", "Weiss", "Kaplan", "Lansky", "Bernstein", "Shapiro", "Roth", "Schmidt", "Braun", "Wagner", "Keller", "Hoffman", "Zimmer", "Krause", "Bauer", "Kowalski", "Nowak", "Wozniak", "Zielinski", "Jankowski", "Whitaker", "Ashford", "Carmichael", "Blackwood", "Hollis", "Vance", "Sterling", "Marsh", "Doyle", "Crane", "Hargrove", "Pemberton", "Locke", "Radcliffe", "Winslow", "Petrov", "Sokolov", "Ivanov", "Volkov", "Papadakis", "Stavros", "Kostas", "Scarface", "The Enforcer", "Bugs", "Baby Face", "Pretty Boy", "Lucky", "The Waiter", "Machine Gun", "The Chin", "Three Fingers", "The Cigar", "Ice Pick", "Knuckles", "The Weasel", "Fats", "Slim", "The Ghost", "Nails", "Trigger", "Whitey", "Doc", "The Butcher", "Sleepy", "Cricket", "Half-Moon", "Tick-Tock", "Silk", "Curly", "Moretti", "OConnell", "Rosenberg", "Vanetti", "Delgado", "Kowalski", "Bellini", "Doyle", "Marchetti", "Sullivan", "Weiss", "Corvino", "Clarence", "Amos", "Floyd", "Ellis", "Jesse", "Otis", "Rufus", "Willie", "Booker", "Luther", "Calvin", "Odell", "Pearl", "Bessie", "Hazel", "Mattie", "Viola", "Ida", "Lula", "Minnie", "Washington", "Jefferson", "Coleman", "Freeman", "Banks", "Tillman", "Haywood", "Hollins", "Mosley", "Gaines", "Pruitt", "Dawson", "Walter", "Clarence", "Chester", "Harold", "Herbert", "Leonard", "Raymond", "Everett", "Howard", "Lloyd", "Russell", "Wesley", "Dorothy", "Mildred", "Edna", "Gladys", "Irene", "Myrtle", "Agnes", "Vera", "Whitaker", "Carmichael", "Pemberton", "Ashford", "Blakely", "Hollis", "Prescott", "Thornton", "Granger", "Whitfield", "Kendall", "Hartley", "Henry", "Walter", "Eddie", "Tommy", "Albert", "Johnny", "Frank", "Sam", "George", "Harry", "Mae", "Lillian", "Rose", "Ruby", "Grace", "Alice", "Lee", "Wong", "Chin", "Chan", "Fong", "Lum", "Yee", "Quan", "Moy", "Louie", "Otto", "Heinrich", "Ludwig", "Fritz", "Hans", "Karl", "Werner", "Max", "Franz", "Wilhelm", "Emil", "Gustav", "Greta", "Hilde", "Ilse", "Frieda", "Marta", "Klara", "Liesl", "Erna", "Schmidt", "Keller", "Bauer", "Wagner", "Weber", "Hoffmann", "Kruger", "Fischer", "Becker", "Schulz", "Vogel", "Braun", "Nikos", "Kostas", "Yannis", "Dimitri", "Spiros", "Christos", "Vasilis", "Andreas", "Petros", "Stelios", "Eleni", "Sophia", "Katerina", "Despina", "Irini", "Anastasia", "Papadakis", "Stavros", "Kostas", "Pappas", "Karras", "Demos", "Galanis", "Vlahos", "Manos", "Lykos", "Declan", "Brendan", "Mickey", "Fergus", "Seamus", "Liam", "Cormac", "Dermot", "Owen", "Paddy", "Kieran", "Ronan", "Bridget", "Maureen", "Nora", "Siobhan", "Kathleen", "Peggy", "Eileen", "Molly", "Doyle", "Flanagan", "Maguire", "OConnell", "Sullivan", "Callahan", "Brennan", "Keane", "Murphy", "Quinlan", "Dolan", "Hennessy", "Salvatore", "Rocco", "Carmine", "Vito", "Angelo", "Enzo", "Luigi", "Marco", "Paolo", "Domenico", "Sal", "Nunzio", "Tony", "Frankie", "Gino", "Aldo", "Concetta", "Rosa", "Carmela", "Lucia", "Gina", "Teresa", "Filomena", "Angela", "Moretti", "Rinaldi", "Ferrante", "Vanetti", "Corvino", "Bellini", "Marchetti", "Ricci", "Costa", "Lombardi", "Esposito", "Greco", "Russo", "Romano", "Santoro", "Meyer", "Abe", "Solly", "Moe", "Izzy", "Benny", "Hymie", "Sam", "Lou", "Morris", "Irving", "Nat", "Esther", "Sadie", "Ruth", "Miriam", "Rivka", "Bella", "Fanny", "Goldie", "Rosenberg", "Kaplan", "Shapiro", "Weiss", "Goldberg", "Levine", "Feldman", "Siegel", "Abrams", "Horowitz", "Adler", "Bernstein", "Miguel", "Rafael", "Ernesto", "Jose", "Luis", "Ramon", "Alfonso", "Joaquin", "Arturo", "Ignacio", "Guadalupe", "Rosa", "Elena", "Consuelo", "Dolores", "Lupita", "Carmen", "Juana", "Delgado", "Ramirez", "Castillo", "Morales", "Herrera", "Navarro", "Fuentes", "Ortega", "Salazar", "Mendoza", "Stefan", "Anton", "Kazimierz", "Jan", "Tadeusz", "Wojciech", "Jozef", "Marek", "Leon", "Bronislaw", "Wanda", "Halina", "Jadwiga", "Zofia", "Irena", "Stasia", "Kowalski", "Nowak", "Zielinski", "Wisniewski", "Lewandowski", "Kaminski", "Mazur", "Sobczak", "Pawlak", "Dudek"], za = ["boss", "lieutenant", "hood", "accountant", "lawyer", "citizen", "owner", "police", "firefighter", "policeChief", "fbi", "fbiHead", "judge", "da", "mayor", "reporter", "clergy", "snitch"], vn = ["intelligence", "organization", "business", "firearms", "fists", "knives", "arson", "explosives", "intimidation", "driving", "stealth"];
-function Da({ city: e, lot: n, t: o, onClose: r, gangs: a }) {
+const ce = ["Bakers", "Butchers", "Grocers", "Convenience Store", "Shoe Store", "Tailors", "Book Store", "Printers", "Pawnbrokers", "Jewellers", "Furrier", "Drug Store", "Plumbers", "Cafe", "Milk Bar", "Breakfast Bar", "Restaurant", "Pool Hall", "Gymnasium", "Health Center", "Massage Parlor", "Dance Studio", "Barbers", "Laundry", "Hardware Store", "Auto Shop", "Finance Company", "Accountancy Firm", "Law Offices", "Hotel", "Hotel (Large)", "Department Store", "Bank", "Main Bank", "Newspaper Offices", "Radio Station", "Warehouse", "Foundry", "Mill", "Cannery", "Garage Depot", "Trade Union", "Docks", "Railroad Terminal", "Tenement Block", "Apartment Block", "Residences", "City Hall", "Courthouse", "Police Headquarters", "Hospital", "School", "Library", "Labour Exchange", "Fire House", "F.B.I. Headquarters", "Museum", "Public Baths", "US Post", "Power Plant", "Water Plant", "Residences", "Church", "Orphanage", "Soup Kitchen", "Clothing Bank", "Office", "Speakeasy", "Moonshine Still", "Casino", "Card Games", "Dice Game", "Gambling Den", "Prizefight Ring", "Grifters", "Insider Trading", "Loan Shark", "Counterfeit Press", "Numbers Racket", "Rented Rooms", "Teamsters", "Acupuncture Clinic", "Antiques Dealer", "Art Gallery", "Auction Rooms", "Auto Dealers", "Bailiffs", "Beauty Parlor", "Blacksmiths", "Bridal Parlor", "Cab Company", "Cake Store", "Candy Store", "Carpet Store", "Catering Suppliers", "Cheese Store", "China Store", "Chiropodists", "Clothiers", "Coffin Makers", "Cosmetics Store", "Delicatessen", "Orthodontists", "Detective Agency", "Diamond Merchant", "Doctors", "Dressmakers", "Electrical Suppliers", "Electricians", "Costume Store", "Fishmongers", "Florists", "Fortune Tellers", "French Polishers", "Fruit and Veg. Store", "Funeral Directors", "Furniture Store", "Gardening Suppliers", "Gas Station/Mechanic", "Gift Store", "Gold Merchants", "Golf Store", "Gramophone Store", "Glassware", "Haberdashery", "Hair Salon", "Wig Makers", "Ice Store", "Ice Cream Parlor", "Ladieswear", "Lingerie Store", "Local Store", "Locksmiths", "Lumber Merchant", "Milliners", "Movie Theater", "Music Store", "News Agency", "Nursery Store", "Optometrist", "Perfume Store", "Pest Controllers", "Pet Store", "Photographers", "Piano Store", "Real Estate", "Record Store", "Removals Company", "Saddlers", "Shoe Repairs", "Sign Writers", "Soda Fountain", "Sports Equipment", "Stamp and Coin Dealers", "Stationers", "Tattoo Parlor", "Telegraph Office", "Theater", "Tobacconists", "Toy Store", "Upholsterers", "Watchmakers", "Window Cleaners", "Abattoir", "Builders", "Cement Factory", "Ceramics", "Chandler", "Leather Curers", "Engineers", "Excavators", "Fabricators", "Factory", "Food Processors", "Freight Forwarding", "Furriers", "Glaziers", "Ice House", "Ironmongers", "Joiners", "Junk Yard", "Lumber Yard", "Milk Yard", "Packaging Plant", "Paper Mill", "Sheet Workers", "Steel Mill", "Stone Masons", "Tanners", "Textiles", "Weavers", "Wheelwrights", "Empty land"], Wa = ["bakers", "butchers", "grocers", "convenienceStore", "shoeStore", "tailors", "bookStore", "printers", "pawnbroker", "jewellers", "furrier", "drugStore", "plumbers", "cafe", "milkBar", "breakfastBar", "restaurant", "poolHall", "gym", "healthCenter", "massageParlor", "danceStudio", "barbers", "laundry", "hardwareStore", "autoShop", "financeCompany", "accountancy", "lawFirm", "hotelSmall", "hotelLarge", "departmentStore", "bankSmall", "bankLarge", "newspaper", "radioStation", "warehouse", "foundry", "mill", "cannery", "garageDepot", "tradeUnion", "docks", "railroad", "tenementPoor", "tenementMid", "tenementRich", "cityHall", "courthouse", "policeHQ", "hospital", "school", "library", "labourExchange", "firehouse", "fbiHQ", "museum", "publicBaths", "usPost", "powerPlant", "waterPlant", "residence", "church", "orphanage", "soupKitchen", "clothingBank", "office", "speakeasy", "moonshineStill", "casino", "cardGames", "diceGame", "gamblingDen", "prizeFight", "grifters", "insiderTrading", "loanShark", "counterfeitPress", "numbersRacket", "rentedRooms", "teamsters", "acupunctureClinic", "antiquesDealer", "artGallery", "auctionRooms", "autoDealers", "bailiffs", "beautyParlor", "blacksmiths", "bridalParlor", "cabCompany", "cakeStore", "candyStore", "carpetStore", "cateringSuppliers", "cheeseStore", "chinaStore", "chiropodists", "clothiers", "coffinMakers", "cosmeticsStore", "delicatessen", "orthodontists", "detectiveAgency", "diamondMerchant", "doctors", "dressmakers", "electricalSuppliers", "electricians", "costumeStore", "fishmongers", "florists", "fortuneTellers", "frenchPolishers", "fruitAndVegStore", "funeralDirectors", "furnitureStore", "gardeningSuppliers", "gasStationMechanic", "giftStore", "goldMerchants", "golfStore", "gramophoneStore", "glassware", "haberdashery", "hairSalon", "wigMakers", "iceStore", "iceCreamParlor", "ladieswear", "lingerieStore", "localStore", "locksmiths", "lumberMerchant", "milliners", "movieTheater", "musicStore", "newsAgency", "nurseryStore", "optometrist", "perfumeStore", "pestControllers", "petStore", "photographers", "pianoStore", "realEstate", "recordStore", "removalsCompany", "saddlers", "shoeRepairs", "signWriters", "sodaFountain", "sportsEquipment", "stampAndCoinDealers", "stationers", "tattooParlor", "telegraphOffice", "theater", "tobacconists", "toyStore", "upholsterers", "watchmakers", "windowCleaners", "abattoir", "builders", "cementFactory", "ceramics", "chandler", "leatherCurers", "engineers", "excavators", "fabricators", "factory", "foodProcessors", "freightForwarding", "furriers", "glaziers", "iceHouse", "ironmongers", "joiners", "junkYard", "lumberYard", "milkYard", "packagingPlant", "paperMill", "sheetWorkers", "steelMill", "stoneMasons", "tanners", "textiles", "weavers", "wheelwrights", "emptyLand"], $a = ["commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "tenement", "tenement", "tenement", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "residential", "charity", "charity", "charity", "charity", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "empty"], Va = [5200, 5600, 6e3, 14200, 6800, 7200, 6600, 8200, 7e3, 12500, 12e3, 7400, 5800, 6200, 5800, 5600, 16800, 7600, 4500, 9e3, 8400, 3800, 4800, 5400, 6600, 9200, 5900, 11e3, 12e3, 13e3, 26e3, 34e3, 22e3, 46e3, 44e3, 44e3, 9e3, 16e3, 14e3, 23800, 11e3, 12e3, 41200, 3e4, 4200, 7e3, 12e3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3e3, 2e3, 6e3, 8e3, 4500, 18e3, 4e3, 3600, 6500, 7e3, 4200, 12e3, 7500, 9500, 5e3, 11e3, 8500, 5800, 8100, 8100, 13900, 10400, 4100, 7e3, 4400, 7e3, 10400, 5800, 4400, 10400, 5800, 5500, 8100, 8100, 5500, 5800, 7e3, 5800, 8100, 5500, 11600, 8100, 8100, 5800, 5500, 4100, 5800, 4400, 4600, 5500, 5800, 5800, 11600, 5800, 4400, 7e3, 8100, 4600, 5800, 2900, 5800, 5800, 4600, 4400, 5800, 8100, 7e3, 13900, 5500, 5800, 5800, 11600, 4400, 5500, 5800, 8100, 7e3, 4400, 4100, 5800, 5500, 8100, 5500, 10400, 4100, 4100, 5500, 5800, 5800, 4100, 4400, 2900, 5500, 9300, 4100, 4100, 5500, 10400, 4100, 5800, 16200, 16200, 16200, 31900, 16200, 20900, 16200, 31900, 16200, 20900, 16200, 31900, 16200, 2300, 16200, 16200, 2300, 5800, 16200, 16200, 20900, 20900, 31900, 16200, 16200, 20900, 16200, 16200, 0], qa = ["Volstead Green", "Hinge Oak", "Lantern Park", "Cinder Gardens"], Ua = ["St. Michael’s", "St. Mary’s", "St. Joseph’s", "St. Patrick’s"], tt = ["Wabash", "Clark", "Dearborn", "State", "Halsted", "Ashland", "Racine", "Morgan", "Sangamon", "Peoria", "Carpenter", "Laflin", "Wood", "Paulina", "Hermitage", "Wolcott", "Damen", "Leavitt", "Oakley", "Claremont"], nt = ["Madison", "Monroe", "Adams", "Jackson", "Van Buren", "Harrison", "Polk", "Taylor", "Roosevelt", "Maxwell", "Cermak", "Archer", "Pershing", "Garfield", "Lawrence", "Belmont", "Fullerton", "Diversey", "Addison", "Irving"], zt = ["Alphonse", "Vito", "Salvatore", "Frank", "Johnny", "Tommy", "Angelo", "Rocco", "Carmine", "Dominic", "Enzo", "Gino", "Luigi", "Marco", "Nico", "Paulie", "Sal", "Tony", "Vinnie", "Bugsy", "Dutch", "Lefty", "Moe", "Jake", "Abe", "Sam", "Meyer", "Solly", "Hymie", "Sean", "Declan", "Patrick", "Liam", "Eamon", "Rory", "Mickey", "Fergus", "Brendan", "Walter", "Harold", "Clarence", "Chester", "Herbert", "Raymond", "Ernest", "Floyd", "Otto", "Klaus", "Heinrich", "Wilhelm", "Stefan", "Anton", "Ludwig", "Amos", "Cyrus", "Silas", "Homer", "Virgil", "Emmett", "Wilbur", "Elmer", "Orville", "Rosa", "Concetta", "Maria", "Angelina", "Lucia", "Carmela", "Gina", "Nina", "Sofia", "Bridget", "Maureen", "Nora", "Colleen", "Kathleen", "Siobhan", "Aileen", "Ruth", "Esther", "Sadie", "Belle", "Pearl", "Mabel", "Hazel", "Edna", "Vera", "Opal", "Dorothy", "Gladys", "Mildred", "Beatrice", "Constance", "Harriet", "Florence", "Greta", "Ilse", "Anneliese", "Hilde", "Marlene", "Lillian", "Wilma", "Norma", "Thelma", "Bessie", "Myrtle", "Ada", "Capone", "Moretti", "Bellini", "Ricci", "Costa", "Rinaldi", "Marino", "Gallo", "Fontana", "Genovese", "Lombardi", "Barbieri", "Vitale", "Ferrante", "Bruno", "Greco", "Rizzo", "OConnell", "Doyle", "Kelly", "Sullivan", "Murphy", "Flanagan", "Gallagher", "Quinn", "Byrne", "Donnelly", "Fitzgerald", "Rourke", "Maguire", "Brennan", "Rosenberg", "Goldstein", "Weiss", "Kaplan", "Lansky", "Bernstein", "Shapiro", "Roth", "Schmidt", "Braun", "Wagner", "Keller", "Hoffman", "Zimmer", "Krause", "Bauer", "Kowalski", "Nowak", "Wozniak", "Zielinski", "Jankowski", "Whitaker", "Ashford", "Carmichael", "Blackwood", "Hollis", "Vance", "Sterling", "Marsh", "Doyle", "Crane", "Hargrove", "Pemberton", "Locke", "Radcliffe", "Winslow", "Petrov", "Sokolov", "Ivanov", "Volkov", "Papadakis", "Stavros", "Kostas", "Scarface", "The Enforcer", "Bugs", "Baby Face", "Pretty Boy", "Lucky", "The Waiter", "Machine Gun", "The Chin", "Three Fingers", "The Cigar", "Ice Pick", "Knuckles", "The Weasel", "Fats", "Slim", "The Ghost", "Nails", "Trigger", "Whitey", "Doc", "The Butcher", "Sleepy", "Cricket", "Half-Moon", "Tick-Tock", "Silk", "Curly", "Moretti", "OConnell", "Rosenberg", "Vanetti", "Delgado", "Kowalski", "Bellini", "Doyle", "Marchetti", "Sullivan", "Weiss", "Corvino", "Clarence", "Amos", "Floyd", "Ellis", "Jesse", "Otis", "Rufus", "Willie", "Booker", "Luther", "Calvin", "Odell", "Pearl", "Bessie", "Hazel", "Mattie", "Viola", "Ida", "Lula", "Minnie", "Washington", "Jefferson", "Coleman", "Freeman", "Banks", "Tillman", "Haywood", "Hollins", "Mosley", "Gaines", "Pruitt", "Dawson", "Walter", "Clarence", "Chester", "Harold", "Herbert", "Leonard", "Raymond", "Everett", "Howard", "Lloyd", "Russell", "Wesley", "Dorothy", "Mildred", "Edna", "Gladys", "Irene", "Myrtle", "Agnes", "Vera", "Whitaker", "Carmichael", "Pemberton", "Ashford", "Blakely", "Hollis", "Prescott", "Thornton", "Granger", "Whitfield", "Kendall", "Hartley", "Henry", "Walter", "Eddie", "Tommy", "Albert", "Johnny", "Frank", "Sam", "George", "Harry", "Mae", "Lillian", "Rose", "Ruby", "Grace", "Alice", "Lee", "Wong", "Chin", "Chan", "Fong", "Lum", "Yee", "Quan", "Moy", "Louie", "Otto", "Heinrich", "Ludwig", "Fritz", "Hans", "Karl", "Werner", "Max", "Franz", "Wilhelm", "Emil", "Gustav", "Greta", "Hilde", "Ilse", "Frieda", "Marta", "Klara", "Liesl", "Erna", "Schmidt", "Keller", "Bauer", "Wagner", "Weber", "Hoffmann", "Kruger", "Fischer", "Becker", "Schulz", "Vogel", "Braun", "Nikos", "Kostas", "Yannis", "Dimitri", "Spiros", "Christos", "Vasilis", "Andreas", "Petros", "Stelios", "Eleni", "Sophia", "Katerina", "Despina", "Irini", "Anastasia", "Papadakis", "Stavros", "Kostas", "Pappas", "Karras", "Demos", "Galanis", "Vlahos", "Manos", "Lykos", "Declan", "Brendan", "Mickey", "Fergus", "Seamus", "Liam", "Cormac", "Dermot", "Owen", "Paddy", "Kieran", "Ronan", "Bridget", "Maureen", "Nora", "Siobhan", "Kathleen", "Peggy", "Eileen", "Molly", "Doyle", "Flanagan", "Maguire", "OConnell", "Sullivan", "Callahan", "Brennan", "Keane", "Murphy", "Quinlan", "Dolan", "Hennessy", "Salvatore", "Rocco", "Carmine", "Vito", "Angelo", "Enzo", "Luigi", "Marco", "Paolo", "Domenico", "Sal", "Nunzio", "Tony", "Frankie", "Gino", "Aldo", "Concetta", "Rosa", "Carmela", "Lucia", "Gina", "Teresa", "Filomena", "Angela", "Moretti", "Rinaldi", "Ferrante", "Vanetti", "Corvino", "Bellini", "Marchetti", "Ricci", "Costa", "Lombardi", "Esposito", "Greco", "Russo", "Romano", "Santoro", "Meyer", "Abe", "Solly", "Moe", "Izzy", "Benny", "Hymie", "Sam", "Lou", "Morris", "Irving", "Nat", "Esther", "Sadie", "Ruth", "Miriam", "Rivka", "Bella", "Fanny", "Goldie", "Rosenberg", "Kaplan", "Shapiro", "Weiss", "Goldberg", "Levine", "Feldman", "Siegel", "Abrams", "Horowitz", "Adler", "Bernstein", "Miguel", "Rafael", "Ernesto", "Jose", "Luis", "Ramon", "Alfonso", "Joaquin", "Arturo", "Ignacio", "Guadalupe", "Rosa", "Elena", "Consuelo", "Dolores", "Lupita", "Carmen", "Juana", "Delgado", "Ramirez", "Castillo", "Morales", "Herrera", "Navarro", "Fuentes", "Ortega", "Salazar", "Mendoza", "Stefan", "Anton", "Kazimierz", "Jan", "Tadeusz", "Wojciech", "Jozef", "Marek", "Leon", "Bronislaw", "Wanda", "Halina", "Jadwiga", "Zofia", "Irena", "Stasia", "Kowalski", "Nowak", "Zielinski", "Wisniewski", "Lewandowski", "Kaminski", "Mazur", "Sobczak", "Pawlak", "Dudek"], Ka = ["boss", "lieutenant", "hood", "accountant", "lawyer", "citizen", "owner", "police", "firefighter", "policeChief", "fbi", "fbiHead", "judge", "da", "mayor", "reporter", "clergy", "snitch"], Mn = ["intelligence", "organization", "business", "firearms", "fists", "knives", "arson", "explosives", "intimidation", "driving", "stealth"];
+function Za({ city: e, lot: n, t: o, onClose: r, gangs: a }) {
   const s = e.lots[n];
   if (!s) return /* @__PURE__ */ t.createElement("aside", { className: "card building-card idle" }, /* @__PURE__ */ t.createElement("p", null, o("card_none")));
-  const i = e.blocks[s.block], d = e.hq.find((u) => u.lot === s.id), f = (s.type === ie.indexOf("Church") && i.name >= 0 ? Oa[i.name] : null) ?? ie[s.type] ?? ie[oa], m = (u, c) => /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, o(u)), /* @__PURE__ */ t.createElement("dd", null, c));
-  return /* @__PURE__ */ t.createElement("aside", { className: "card building-card", "aria-live": "polite" }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("span", { className: "swatch", "data-cls": s.cls }), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("h3", null, f), /* @__PURE__ */ t.createElement("div", { className: "sub" }, o(`cls_${pn[s.cls]}`), " · ", o(`dist_${hn[i.district]}`))), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: r, "aria-label": o("card_close") }, "×")), /* @__PURE__ */ t.createElement("dl", null, m("card_value", i.landValue), m("card_squalor", i.squalor), m("card_block", `${i.gx}, ${i.gy}${i.spanX * i.spanY > 1 ? ` (${i.spanX} × ${i.spanY})` : ""}`), m("card_plot", s.index), m("card_storeys", s.storeys), m("card_faces", o(`face_${aa[s.face]}`))), d && /* @__PURE__ */ t.createElement("p", { className: "note" }, o("card_hq", { name: a[d.gang - 1]?.name ?? d.gang })), i.use === 1 && i.name >= 0 && /* @__PURE__ */ t.createElement("p", { className: "note" }, Ya[i.name]));
+  const i = e.blocks[s.block], d = e.hq.find((u) => u.lot === s.id), k = (s.type === ce.indexOf("Church") && i.name >= 0 ? Ua[i.name] : null) ?? ce[s.type] ?? ce[da], _ = (u, c) => /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, o(u)), /* @__PURE__ */ t.createElement("dd", null, c));
+  return /* @__PURE__ */ t.createElement("aside", { className: "card building-card", "aria-live": "polite" }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("span", { className: "swatch", "data-cls": s.cls }), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("h3", null, k), /* @__PURE__ */ t.createElement("div", { className: "sub" }, o(`cls_${kn[s.cls]}`), " · ", o(`dist_${wn[i.district]}`))), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: r, "aria-label": o("card_close") }, "×")), /* @__PURE__ */ t.createElement("dl", null, _("card_value", i.landValue), _("card_squalor", i.squalor), _("card_block", `${i.gx}, ${i.gy}${i.spanX * i.spanY > 1 ? ` (${i.spanX} × ${i.spanY})` : ""}`), _("card_plot", s.index), _("card_storeys", s.storeys), _("card_faces", o(`face_${ca[s.face]}`))), d && /* @__PURE__ */ t.createElement("p", { className: "note" }, o("card_hq", { name: a[d.gang - 1]?.name ?? d.gang })), i.use === 1 && i.name >= 0 && /* @__PURE__ */ t.createElement("p", { className: "note" }, qa[i.name]));
 }
-const ja = [
-  ["p_trams", 6],
+const Ja = [
   ["p_police", 7],
   ["p_money", 8],
   ["p_rivals", 9],
   ["p_reports", 10],
   ["p_auto", 11]
 ];
-function Ga({ t: e, gangsOpen: n, onGangs: o, ordersOpen: r, onOrders: a }) {
-  return /* @__PURE__ */ t.createElement("nav", { className: "journal", "aria-label": "Journal" }, /* @__PURE__ */ t.createElement("button", { className: "live", "aria-pressed": n, onClick: o }, /* @__PURE__ */ t.createElement("span", null, e("p_gangs"))), /* @__PURE__ */ t.createElement("button", { className: "live", "aria-pressed": r, onClick: a }, /* @__PURE__ */ t.createElement("span", null, e("p_orders"))), ja.map(([s, i]) => /* @__PURE__ */ t.createElement("button", { key: s, disabled: !0, title: e("later_title", { n: i }) }, /* @__PURE__ */ t.createElement("span", null, e(s)), /* @__PURE__ */ t.createElement("small", null, e("later", { n: i })))));
+function Qa({ t: e, gangsOpen: n, onGangs: o, ordersOpen: r, onOrders: a }) {
+  return /* @__PURE__ */ t.createElement("nav", { className: "journal", "aria-label": "Journal" }, /* @__PURE__ */ t.createElement("button", { className: "live", "aria-pressed": n, onClick: o }, /* @__PURE__ */ t.createElement("span", null, e("p_gangs"))), /* @__PURE__ */ t.createElement("button", { className: "live", "aria-pressed": r, onClick: a }, /* @__PURE__ */ t.createElement("span", null, e("p_orders"))), Ja.map(([s, i]) => /* @__PURE__ */ t.createElement("button", { key: s, disabled: !0, title: e("later_title", { n: i }) }, /* @__PURE__ */ t.createElement("span", null, e(s)), /* @__PURE__ */ t.createElement("small", null, e("later", { n: i })))));
 }
-const Ha = [1, 2, 4, 8, 0];
-function Sn(e, n) {
-  const o = Math.min(n, lt - 1), r = Math.floor(o / gt), a = n >= lt ? gt : o % gt, s = 8 + Math.floor(a / 60), i = a % 60;
+const Xa = [1, 2, 4, 8, 0];
+function Fn(e, n) {
+  const o = Math.min(n, it - 1), r = Math.floor(o / wt), a = n >= it ? wt : o % wt, s = 8 + Math.floor(a / 60), i = a % 60;
   return { day: e(`day${r}`), time: `${s}:${String(i).padStart(2, "0")}` };
 }
-function Ia({ t: e, clock: n, speed: o, onSpeed: r, onLaunch: a, onFinish: s, paused: i, onPause: d }) {
+function eo({ t: e, clock: n, speed: o, onSpeed: r, onLaunch: a, onFinish: s, paused: i, onPause: d }) {
   if (!n) return null;
-  const { day: p, time: f } = Sn(e, n.minute), m = Math.floor(n.minute * 100 / lt);
-  return /* @__PURE__ */ t.createElement("div", { className: "card week-clock", "aria-live": "off" }, /* @__PURE__ */ t.createElement("div", { className: "clock-line" }, /* @__PURE__ */ t.createElement("strong", null, e("clock_line", { w: n.week, day: n.running ? p : e("planning"), time: n.running ? f : "" })), /* @__PURE__ */ t.createElement("small", null, e("walking_now", { n: n.walking.toLocaleString() }))), /* @__PURE__ */ t.createElement(
+  const { day: p, time: k } = Fn(e, n.minute), _ = Math.floor(n.minute * 100 / it);
+  return /* @__PURE__ */ t.createElement("div", { className: "card week-clock", "aria-live": "off" }, /* @__PURE__ */ t.createElement("div", { className: "clock-line" }, /* @__PURE__ */ t.createElement("strong", null, e("clock_line", { w: n.week, day: n.running ? p : e("planning"), time: n.running ? k : "" })), /* @__PURE__ */ t.createElement("small", null, e("walking_now", { n: n.walking.toLocaleString() }))), /* @__PURE__ */ t.createElement(
     "div",
     {
       className: "week-bar",
       role: "progressbar",
       "aria-valuemin": 0,
       "aria-valuemax": 100,
-      "aria-valuenow": m,
-      "aria-label": e("week_bar", { w: n.week, pct: m }),
-      title: e("week_bar", { w: n.week, pct: m })
+      "aria-valuenow": _,
+      "aria-label": e("week_bar", { w: n.week, pct: _ }),
+      title: e("week_bar", { w: n.week, pct: _ })
     },
     [0, 1, 2, 3, 4].map((u) => /* @__PURE__ */ t.createElement("i", { key: u })),
-    /* @__PURE__ */ t.createElement("b", { style: { width: `${m}%` } })
-  ), n.gameOver ? /* @__PURE__ */ t.createElement("p", { className: "note" }, e("game_over")) : /* @__PURE__ */ t.createElement("div", { className: "clock-buttons" }, n.running ? /* @__PURE__ */ t.createElement(t.Fragment, null, /* @__PURE__ */ t.createElement("button", { className: "main", "aria-pressed": i, onClick: d }, e("pause")), /* @__PURE__ */ t.createElement("button", { className: "main", onClick: s }, e("finish"))) : /* @__PURE__ */ t.createElement("button", { className: "main", onClick: a }, e("launch")), /* @__PURE__ */ t.createElement("span", { className: "speeds", "aria-label": e("speed") }, Ha.map((u) => /* @__PURE__ */ t.createElement("button", { key: u, "aria-pressed": o === u, onClick: () => r(u) }, u === 0 ? e("speed_max") : `${u}×`)))));
+    /* @__PURE__ */ t.createElement("b", { style: { width: `${_}%` } })
+  ), n.gameOver ? /* @__PURE__ */ t.createElement("p", { className: "note" }, e("game_over")) : /* @__PURE__ */ t.createElement("div", { className: "clock-buttons" }, n.running ? /* @__PURE__ */ t.createElement(t.Fragment, null, /* @__PURE__ */ t.createElement("button", { className: "main", "aria-pressed": i, onClick: d }, e("pause")), /* @__PURE__ */ t.createElement("button", { className: "main", onClick: s }, e("finish"))) : /* @__PURE__ */ t.createElement("button", { className: "main", onClick: a }, e("launch")), /* @__PURE__ */ t.createElement("span", { className: "speeds", "aria-label": e("speed") }, Xa.map((u) => /* @__PURE__ */ t.createElement("button", { key: u, "aria-pressed": o === u, onClick: () => r(u) }, u === 0 ? e("speed_max") : `${u}×`)))));
 }
-const Wa = (e) => "★".repeat(Math.floor(e / 2)) + (e % 2 ? "½" : "");
-function $a({ person: e, gangs: n, t: o, onClose: r }) {
+const to = (e) => "★".repeat(Math.floor(e / 2)) + (e % 2 ? "½" : "");
+function no({ person: e, gangs: n, t: o, onClose: r }) {
   const a = e.gang > 0 ? n[e.gang - 1] : null, s = (d, p) => /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, o(d)), /* @__PURE__ */ t.createElement("dd", null, p)), i = e.walking ? o("pc_walking") : e.building >= 0 ? o("pc_inside") : o("pc_standing");
-  return /* @__PURE__ */ t.createElement("aside", { className: "card building-card person-card", "aria-live": "polite" }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("span", { className: "swatch", style: { background: a ? Fe[a.colour % 4] : "#b9ab8f", borderRadius: "50%" } }), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("h3", null, e.name), /* @__PURE__ */ t.createElement("div", { className: "sub" }, o(`role_${e.role}`), " · #", e.id)), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: r, "aria-label": o("pc_close") }, "×")), /* @__PURE__ */ t.createElement("dl", null, s("pc_gang", a ? o("g_name", { name: a.name }) : o("pc_none")), s("pc_where", i), a && e.role !== "boss" && s("pc_pay", `$${e.pay}`), a && e.role !== "boss" && s("pc_demand", `$${e.demand}`), a && s("pc_loyalty", `${e.loyalty.toFixed(2)} %`), a && s("pc_attitude", `${e.hostility} / ${e.fear}`)), /* @__PURE__ */ t.createElement("h4", null, o("pc_skills")), /* @__PURE__ */ t.createElement("dl", { className: "skills" }, vn.map((d, p) => /* @__PURE__ */ t.createElement("div", { key: d }, /* @__PURE__ */ t.createElement("dt", null, o(`sk_${d}`)), /* @__PURE__ */ t.createElement("dd", null, Wa(e.skills[p]))))));
+  return /* @__PURE__ */ t.createElement("aside", { className: "card building-card person-card", "aria-live": "polite" }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("span", { className: "swatch", style: { background: a ? pe[a.colour % 4] : "#b9ab8f", borderRadius: "50%" } }), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("h3", null, e.name), /* @__PURE__ */ t.createElement("div", { className: "sub" }, o(`role_${e.role}`), " · #", e.id)), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: r, "aria-label": o("pc_close") }, "×")), /* @__PURE__ */ t.createElement("dl", null, s("pc_gang", a ? o("g_name", { name: a.name }) : o("pc_none")), s("pc_where", i), a && e.role !== "boss" && s("pc_pay", `$${e.pay}`), a && e.role !== "boss" && s("pc_demand", `$${e.demand}`), a && s("pc_loyalty", `${e.loyalty.toFixed(2)} %`), a && s("pc_attitude", `${e.hostility} / ${e.fear}`)), /* @__PURE__ */ t.createElement("h4", null, o("pc_skills")), /* @__PURE__ */ t.createElement("dl", { className: "skills" }, Mn.map((d, p) => /* @__PURE__ */ t.createElement("div", { key: d }, /* @__PURE__ */ t.createElement("dt", null, o(`sk_${d}`)), /* @__PURE__ */ t.createElement("dd", null, to(e.skills[p]))))));
 }
-function qa({ gangs: e, t: n, names: o, onPerson: r, onClose: a }) {
+function ao({ gangs: e, t: n, names: o, onPerson: r, onClose: a }) {
   const s = (d) => d >= 0 ? /* @__PURE__ */ t.createElement("button", { className: "link", key: d, onClick: () => r(d) }, o(d)) : /* @__PURE__ */ t.createElement("span", { key: "none" }, "—"), i = e.findIndex((d) => d.player);
-  return /* @__PURE__ */ t.createElement("aside", { className: "drawer gang-panel", "aria-label": n("g_title") }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("h2", null, n("g_title")), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: a, "aria-label": n("pc_close") }, "×")), e.map((d) => /* @__PURE__ */ t.createElement("section", { key: d.id }, /* @__PURE__ */ t.createElement("h3", null, /* @__PURE__ */ t.createElement("span", { className: "swatch", style: { background: Fe[d.colour % 4] } }), " ", n("g_name", { name: d.name }), /* @__PURE__ */ t.createElement("small", null, " · ", d.player ? n("g_player") : n("g_rival", { p: d.profile }), d.eliminated ? ` · ${n("g_out")}` : "")), /* @__PURE__ */ t.createElement("dl", null, /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_boss")), /* @__PURE__ */ t.createElement("dd", null, s(d.boss))), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_lt")), /* @__PURE__ */ t.createElement("dd", null, s(d.lieutenant))), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_crew")), /* @__PURE__ */ t.createElement("dd", null, d.crew.length ? d.crew.map(s) : "—")), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_pool")), /* @__PURE__ */ t.createElement("dd", null, d.pool.length ? d.pool.map(s) : "—")), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_manager")), /* @__PURE__ */ t.createElement("dd", null, s(d.manager))), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_front")), /* @__PURE__ */ t.createElement("dd", null, ie[d.frontType] ?? "—")), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_cash")), /* @__PURE__ */ t.createElement("dd", null, "$", d.cash.toLocaleString())), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_wages")), /* @__PURE__ */ t.createElement("dd", null, "$", d.wages.toLocaleString()))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, n("g_kit", { p: d.pistols, c: d.coupes, cp: d.crewPistols, cc: d.crewCoupes })), /* @__PURE__ */ t.createElement("p", { className: "sum" }, n("g_protects", { n: d.protectedCount })), !d.player && i >= 0 && /* @__PURE__ */ t.createElement("p", { className: "sum" }, n("g_offers", { s: n(`st_${d.offered[i]}`) })))));
+  return /* @__PURE__ */ t.createElement("aside", { className: "drawer gang-panel", "aria-label": n("g_title") }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("h2", null, n("g_title")), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: a, "aria-label": n("pc_close") }, "×")), e.map((d) => /* @__PURE__ */ t.createElement("section", { key: d.id }, /* @__PURE__ */ t.createElement("h3", null, /* @__PURE__ */ t.createElement("span", { className: "swatch", style: { background: pe[d.colour % 4] } }), " ", n("g_name", { name: d.name }), /* @__PURE__ */ t.createElement("small", null, " · ", d.player ? n("g_player") : n("g_rival", { p: d.profile }), d.eliminated ? ` · ${n("g_out")}` : "")), /* @__PURE__ */ t.createElement("dl", null, /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_boss")), /* @__PURE__ */ t.createElement("dd", null, s(d.boss))), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_lt")), /* @__PURE__ */ t.createElement("dd", null, s(d.lieutenant))), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_crew")), /* @__PURE__ */ t.createElement("dd", null, d.crew.length ? d.crew.map(s) : "—")), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_pool")), /* @__PURE__ */ t.createElement("dd", null, d.pool.length ? d.pool.map(s) : "—")), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_manager")), /* @__PURE__ */ t.createElement("dd", null, s(d.manager))), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_front")), /* @__PURE__ */ t.createElement("dd", null, ce[d.frontType] ?? "—")), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_cash")), /* @__PURE__ */ t.createElement("dd", null, "$", d.cash.toLocaleString())), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_wages")), /* @__PURE__ */ t.createElement("dd", null, "$", d.wages.toLocaleString()))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, n("g_kit", { p: d.pistols, c: d.coupes, cp: d.crewPistols, cc: d.crewCoupes })), /* @__PURE__ */ t.createElement("p", { className: "sum" }, n("g_protects", { n: d.protectedCount })), !d.player && i >= 0 && /* @__PURE__ */ t.createElement("p", { className: "sum" }, n("g_offers", { s: n(`st_${d.offered[i]}`) })))));
 }
-const he = { small: [36, 28], standard: [40, 32], large: [44, 35] };
-function Ua({ lang: e, seed: n, size: o, onStart: r, onCancel: a }) {
-  const s = (c, _) => Lt(e, c, _), [i, d] = t.useState(String(n)), [p, f] = t.useState(o), m = /^\d{1,10}$/.test(i.trim()) ? Number(i.trim()) : NaN, u = Number.isInteger(m) && m <= 4294967295;
+const ge = { small: [36, 28], standard: [40, 32], large: [44, 35] };
+function oo({ lang: e, seed: n, size: o, onStart: r, onCancel: a }) {
+  const s = (c, h) => Pt(e, c, h), [i, d] = t.useState(String(n)), [p, k] = t.useState(o), _ = /^\d{1,10}$/.test(i.trim()) ? Number(i.trim()) : NaN, u = Number.isInteger(_) && _ <= 4294967295;
   return /* @__PURE__ */ t.createElement(
     "div",
     {
@@ -1708,44 +1779,48 @@ function Ua({ lang: e, seed: n, size: o, onStart: r, onCancel: a }) {
       }
     },
     /* @__PURE__ */ t.createElement("form", { className: "box", onSubmit: (c) => {
-      c.preventDefault(), u && r(m, p);
-    } }, /* @__PURE__ */ t.createElement("h2", { id: "ng-title" }, s("ng_title")), /* @__PURE__ */ t.createElement("label", null, s("ng_seed"), /* @__PURE__ */ t.createElement("input", { autoFocus: !0, inputMode: "numeric", value: i, onChange: (c) => d(c.target.value), "aria-invalid": !u })), !u && /* @__PURE__ */ t.createElement("p", { className: "warn" }, s("seed_bad")), /* @__PURE__ */ t.createElement("fieldset", null, /* @__PURE__ */ t.createElement("legend", null, s("ng_size")), Object.keys(he).map((c) => /* @__PURE__ */ t.createElement("label", { key: c, className: "choice" }, /* @__PURE__ */ t.createElement("input", { type: "radio", name: "size", checked: p === c, onChange: () => f(c) }), s(c), " ", /* @__PURE__ */ t.createElement("small", null, s("size_note", { w: he[c][0], h: he[c][1] }))))), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { type: "button", className: "main", onClick: a }, s("cancel")), /* @__PURE__ */ t.createElement("button", { type: "submit", className: "main", disabled: !u }, s("ng_start"))))
+      c.preventDefault(), u && r(_, p);
+    } }, /* @__PURE__ */ t.createElement("h2", { id: "ng-title" }, s("ng_title")), /* @__PURE__ */ t.createElement("label", null, s("ng_seed"), /* @__PURE__ */ t.createElement("input", { autoFocus: !0, inputMode: "numeric", value: i, onChange: (c) => d(c.target.value), "aria-invalid": !u })), !u && /* @__PURE__ */ t.createElement("p", { className: "warn" }, s("seed_bad")), /* @__PURE__ */ t.createElement("fieldset", null, /* @__PURE__ */ t.createElement("legend", null, s("ng_size")), Object.keys(ge).map((c) => /* @__PURE__ */ t.createElement("label", { key: c, className: "choice" }, /* @__PURE__ */ t.createElement("input", { type: "radio", name: "size", checked: p === c, onChange: () => k(c) }), s(c), " ", /* @__PURE__ */ t.createElement("small", null, s("size_note", { w: ge[c][0], h: ge[c][1] }))))), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { type: "button", className: "main", onClick: a }, s("cancel")), /* @__PURE__ */ t.createElement("button", { type: "submit", className: "main", disabled: !u }, s("ng_start"))))
   );
 }
-const Va = ["alliance", "peace", "ceasefire", "aggression", "war"], Ka = 255;
-function Za(e) {
+const ro = ["alliance", "peace", "ceasefire", "aggression", "war"], so = 255;
+function lo(e) {
   return new Int32Array(e.memory.buffer, e.hs_draw_ptr(3), e.hs_draw_len(3)).slice();
 }
-function me(e, n) {
-  const o = e.hs_get(Y.person, n, $.nameLength);
+function io(e) {
+  const n = (o) => new Int32Array(e.memory.buffer, e.hs_draw_ptr(o), e.hs_draw_len(o)).slice();
+  return { cars: n(bt.cars), fleet: n(bt.fleet), trams: n(bt.trams) };
+}
+function he(e, n) {
+  const o = e.hs_get(Y.person, n, q.nameLength);
   let r = "";
   for (let a = 1; a <= o; a++) r += String.fromCharCode(e.hs_name_char(n, a));
   return r;
 }
-function ln(e, n) {
-  if (n < 0 || n >= e.hs_count(M.people)) return null;
+function _n(e, n) {
+  if (n < 0 || n >= e.hs_count(F.people)) return null;
   const o = (r) => e.hs_get(Y.person, n, r);
   return {
     index: n,
-    id: o($.id),
-    name: me(e, n),
-    role: za[o($.role)],
-    gang: o($.gang),
-    female: o($.female) === 1,
-    skills: vn.map((r, a) => o($.skill + a)),
-    pay: o($.pay),
-    demand: o($.demand),
-    loyalty: o($.loyalty) / Ka,
-    building: o($.building),
-    x: o($.x) / Se,
-    y: o($.y) / Se,
-    walking: o($.walking) === 1,
-    hostility: o($.hostility),
-    fear: o($.fear),
-    opinion: [1, 2, 3, 4].map((r) => o($.opinion + r))
+    id: o(q.id),
+    name: he(e, n),
+    role: Ka[o(q.role)],
+    gang: o(q.gang),
+    female: o(q.female) === 1,
+    skills: Mn.map((r, a) => o(q.skill + a)),
+    pay: o(q.pay),
+    demand: o(q.demand),
+    loyalty: o(q.loyalty) / so,
+    building: o(q.building),
+    x: o(q.x) / Ne,
+    y: o(q.y) / Ne,
+    walking: o(q.walking) === 1,
+    hostility: o(q.hostility),
+    fear: o(q.fear),
+    opinion: [1, 2, 3, 4].map((r) => o(q.opinion + r))
   };
 }
-function kt(e) {
+function vt(e) {
   const n = [];
   for (let o = 1; o <= 4; o++) {
     const r = (p) => e.hs_get(Y.gang, o, p), a = r(D.office), s = r(D.front), i = [], d = [];
@@ -1754,15 +1829,15 @@ function kt(e) {
     n.push({
       id: o,
       colour: r(D.colour),
-      name: Yt[r(D.surname)] ?? "?",
+      name: zt[r(D.surname)] ?? "?",
       player: r(D.player) === 1,
       profile: r(D.profile),
       boss: r(D.boss),
       cash: r(D.cash),
       office: a,
-      officeLot: a >= 0 ? e.hs_get(Y.building, a, Me.lot) : -1,
+      officeLot: a >= 0 ? e.hs_get(Y.building, a, Ae.lot) : -1,
       front: s,
-      frontType: s >= 0 ? e.hs_get(Y.building, s, Me.type) : -1,
+      frontType: s >= 0 ? e.hs_get(Y.building, s, Ae.type) : -1,
       manager: r(D.manager),
       lieutenant: r(D.lieutenant),
       crew: i,
@@ -1773,89 +1848,91 @@ function kt(e) {
       crewCoupes: r(D.crewCoupes),
       wages: r(D.wages),
       eliminated: r(D.eliminated) === 1,
-      offered: [1, 2, 3, 4].map((p) => Va[r(D.offered + p)] ?? "peace"),
+      offered: [1, 2, 3, 4].map((p) => ro[r(D.offered + p)] ?? "peace"),
       protectedCount: 0
     });
   }
   return n;
 }
-function Ja(e, n, o) {
+function co(e, n, o) {
   for (let r = 0; r < n; r++) {
-    const a = e.hs_get(Y.premises, r, ea.protectGang);
+    const a = e.hs_get(Y.premises, r, sa.protectGang);
     a >= 1 && a <= 4 && o[a - 1].protectedCount++;
   }
 }
-function Qa(e) {
+function uo(e) {
   return {
-    week: e.hs_count(M.week),
-    minute: e.hs_count(M.minute),
-    running: e.hs_count(M.phase) === 1,
-    gameOver: e.hs_count(M.gameOver) === 1,
-    walking: e.hs_count(M.walking)
+    week: e.hs_count(F.week),
+    minute: e.hs_count(F.minute),
+    running: e.hs_count(F.phase) === 1,
+    gameOver: e.hs_count(F.gameOver) === 1,
+    walking: e.hs_count(F.walking)
   };
 }
-function Xa({ city: e, selected: n, onSelect: o, turnSignal: r, visible: a, label: s, people: i, gangColours: d, person: p, onPerson: f, focus: m, markers: u }) {
-  const c = Le(null), _ = Le(null);
-  return V(() => {
-    if (!c.current) return;
-    const h = new ya(c.current);
-    _.current = h;
-    const y = new ResizeObserver(() => h.update());
-    return y.observe(c.current), () => {
-      y.disconnect(), h.dispose(), _.current = null;
+function _o({ city: e, selected: n, onSelect: o, turnSignal: r, visible: a, label: s, people: i, gangColours: d, person: p, onPerson: k, focus: _, markers: u, vehicles: c }) {
+  const h = Pe(null), m = Pe(null);
+  return U(() => {
+    if (!h.current) return;
+    const N = new Ta(h.current);
+    m.current = N;
+    const g = new ResizeObserver(() => N.update());
+    return g.observe(h.current), () => {
+      g.disconnect(), N.dispose(), m.current = null;
     };
-  }, []), V(() => {
-    _.current?.setCity(e);
-  }, [e]), V(() => {
-    _.current?.select(n);
-  }, [n, e]), V(() => {
-    r && _.current?.turn();
-  }, [r]), V(() => {
-    i && _.current?.setPeople(i, d, p);
-  }, [i, d, p, e]), V(() => {
-    m && _.current?.lookAt(m.x, m.y);
-  }, [m]), V(() => {
-    _.current?.setMarkers(u);
-  }, [u, e]), V(() => {
-    a && _.current?.update();
-  }, [a]), V(() => {
-    const h = c.current;
-    if (!h) return;
-    const y = /* @__PURE__ */ new Map();
-    let k = 0, F = 0;
+  }, []), U(() => {
+    m.current?.setCity(e);
+  }, [e]), U(() => {
+    m.current?.select(n);
+  }, [n, e]), U(() => {
+    r && m.current?.turn();
+  }, [r]), U(() => {
+    i && m.current?.setPeople(i, d, p);
+  }, [i, d, p, e]), U(() => {
+    c && m.current?.setVehicles(c.cars, c.fleet, c.trams, d);
+  }, [c, d, e]), U(() => {
+    _ && m.current?.lookAt(_.x, _.y);
+  }, [_]), U(() => {
+    m.current?.setMarkers(u);
+  }, [u, e]), U(() => {
+    a && m.current?.update();
+  }, [a]), U(() => {
+    const N = h.current;
+    if (!N) return;
+    const g = /* @__PURE__ */ new Map();
+    let y = 0, w = 0;
+    const f = (v) => {
+      if (N.setPointerCapture(v.pointerId), g.set(v.pointerId, { x: v.clientX, y: v.clientY }), y = 0, g.size === 2) {
+        const [O, I] = [...g.values()];
+        w = Math.hypot(O.x - I.x, O.y - I.y);
+      }
+    }, $ = (v) => {
+      const O = g.get(v.pointerId);
+      if (!(!O || !m.current) && (g.size === 1 && (m.current.drag(v.clientX - O.x, v.clientY - O.y), y += Math.abs(v.clientX - O.x) + Math.abs(v.clientY - O.y)), g.set(v.pointerId, { x: v.clientX, y: v.clientY }), g.size === 2)) {
+        const [I, ue] = [...g.values()], X = Math.hypot(I.x - ue.x, I.y - ue.y);
+        w > 0 && m.current.zoomBy(X / w), w = X, y = 99;
+      }
+    }, S = (v) => {
+      if (g.size === 1 && y < 4 && m.current) {
+        const O = m.current.pick(v.clientX, v.clientY);
+        O.person >= 0 ? k(O.person) : o(O.lot);
+      }
+      g.delete(v.pointerId), g.size < 2 && (w = 0);
+    }, b = (v) => {
+      v.preventDefault(), m.current?.zoomBy(Math.exp(-v.deltaY * 15e-4));
+    };
+    return N.addEventListener("pointerdown", f), N.addEventListener("pointermove", $), N.addEventListener("pointerup", S), N.addEventListener("pointercancel", S), N.addEventListener("wheel", b, { passive: !1 }), () => {
+      N.removeEventListener("pointerdown", f), N.removeEventListener("pointermove", $), N.removeEventListener("pointerup", S), N.removeEventListener("pointercancel", S), N.removeEventListener("wheel", b);
+    };
+  }, [o, k]), U(() => {
     const N = (g) => {
-      if (h.setPointerCapture(g.pointerId), y.set(g.pointerId, { x: g.clientX, y: g.clientY }), k = 0, y.size === 2) {
-        const [S, G] = [...y.values()];
-        F = Math.hypot(S.x - G.x, S.y - G.y);
-      }
-    }, b = (g) => {
-      const S = y.get(g.pointerId);
-      if (!(!S || !_.current) && (y.size === 1 && (_.current.drag(g.clientX - S.x, g.clientY - S.y), k += Math.abs(g.clientX - S.x) + Math.abs(g.clientY - S.y)), y.set(g.pointerId, { x: g.clientX, y: g.clientY }), y.size === 2)) {
-        const [G, U] = [...y.values()], ue = Math.hypot(G.x - U.x, G.y - U.y);
-        F > 0 && _.current.zoomBy(ue / F), F = ue, k = 99;
-      }
-    }, I = (g) => {
-      if (y.size === 1 && k < 4 && _.current) {
-        const S = _.current.pick(g.clientX, g.clientY);
-        S.person >= 0 ? f(S.person) : o(S.lot);
-      }
-      y.delete(g.pointerId), y.size < 2 && (F = 0);
-    }, E = (g) => {
-      g.preventDefault(), _.current?.zoomBy(Math.exp(-g.deltaY * 15e-4));
+      if (!a || !m.current || g.target instanceof HTMLElement && g.target.closest("input, textarea")) return;
+      const y = 60, w = { ArrowLeft: [y, 0], ArrowRight: [-y, 0], ArrowUp: [0, y], ArrowDown: [0, -y] };
+      w[g.key] ? (g.preventDefault(), m.current.drag(...w[g.key])) : g.key === "+" || g.key === "=" ? m.current.zoomBy(1.25) : g.key === "-" && m.current.zoomBy(0.8);
     };
-    return h.addEventListener("pointerdown", N), h.addEventListener("pointermove", b), h.addEventListener("pointerup", I), h.addEventListener("pointercancel", I), h.addEventListener("wheel", E, { passive: !1 }), () => {
-      h.removeEventListener("pointerdown", N), h.removeEventListener("pointermove", b), h.removeEventListener("pointerup", I), h.removeEventListener("pointercancel", I), h.removeEventListener("wheel", E);
-    };
-  }, [o, f]), V(() => {
-    const h = (y) => {
-      if (!a || !_.current || y.target instanceof HTMLElement && y.target.closest("input, textarea")) return;
-      const k = 60, F = { ArrowLeft: [k, 0], ArrowRight: [-k, 0], ArrowUp: [0, k], ArrowDown: [0, -k] };
-      F[y.key] ? (y.preventDefault(), _.current.drag(...F[y.key])) : y.key === "+" || y.key === "=" ? _.current.zoomBy(1.25) : y.key === "-" && _.current.zoomBy(0.8);
-    };
-    return window.addEventListener("keydown", h), () => window.removeEventListener("keydown", h);
-  }, [a]), /* @__PURE__ */ t.createElement("canvas", { className: "street-view", ref: c, "aria-label": s, style: { visibility: a ? "visible" : "hidden" } });
+    return window.addEventListener("keydown", N), () => window.removeEventListener("keydown", N);
+  }, [a]), /* @__PURE__ */ t.createElement("canvas", { className: "street-view", ref: h, "aria-label": s, style: { visibility: a ? "visible" : "hidden" } });
 }
-function eo({ lang: e }) {
+function mo({ lang: e }) {
   switch (e) {
     case "de":
       return /* @__PURE__ */ t.createElement("svg", { viewBox: "0 0 5 3", "aria-hidden": "true" }, /* @__PURE__ */ t.createElement("path", { fill: "#000", d: "M0 0h5v1H0z" }), /* @__PURE__ */ t.createElement("path", { fill: "#D00", d: "M0 1h5v1H0z" }), /* @__PURE__ */ t.createElement("path", { fill: "#FFCE00", d: "M0 2h5v1H0z" }));
@@ -1867,7 +1944,7 @@ function eo({ lang: e }) {
       return /* @__PURE__ */ t.createElement("svg", { viewBox: "0 0 60 30", "aria-hidden": "true" }, /* @__PURE__ */ t.createElement("clipPath", { id: "gb-a" }, /* @__PURE__ */ t.createElement("path", { d: "M0,0v30h60V0z" })), /* @__PURE__ */ t.createElement("clipPath", { id: "gb-b" }, /* @__PURE__ */ t.createElement("path", { d: "M30,15h30v15zv15H0zH0V0zV0h30z" })), /* @__PURE__ */ t.createElement("g", { clipPath: "url(#gb-a)" }, /* @__PURE__ */ t.createElement("path", { d: "M0,0v30h60V0z", fill: "#012169" }), /* @__PURE__ */ t.createElement("path", { d: "M0,0L60,30M60,0L0,30", stroke: "#fff", strokeWidth: "6" }), /* @__PURE__ */ t.createElement("path", { d: "M0,0L60,30M60,0L0,30", clipPath: "url(#gb-b)", stroke: "#C8102E", strokeWidth: "4" }), /* @__PURE__ */ t.createElement("path", { d: "M30,0v30M0,15h60", stroke: "#fff", strokeWidth: "10" }), /* @__PURE__ */ t.createElement("path", { d: "M30,0v30M0,15h60", stroke: "#C8102E", strokeWidth: "6" })));
   }
 }
-const Pe = { last: 64, messages: 65, cityVersion: 66, playerGang: 68, avenueCol: 100, avenueRow: 104 }, J = { crews: 10, gangCrews: 11, order: 12, last: 13, message: 14, preview: 15 }, Z = {
+const Te = { last: 64, messages: 65, cityVersion: 66, playerGang: 68, avenueCol: 100, avenueRow: 104 }, Q = { crews: 10, gangCrews: 11, order: 12, last: 13, message: 14, preview: 15 }, Z = {
   id: 0,
   lieutenant: 2,
   count: 3,
@@ -1877,9 +1954,11 @@ const Pe = { last: 64, messages: 65, cityVersion: 66, playerGang: 68, avenueCol:
   timeUsed: 7,
   nameFirst: 8,
   men: 9,
+  speedsters: 11,
+  trucks: 12,
   member: 20,
   order: 40
-}, T = {
+}, A = {
   id: 0,
   gang: 1,
   crew: 2,
@@ -1912,7 +1991,7 @@ const Pe = { last: 64, messages: 65, cityVersion: 66, playerGang: 68, avenueCol:
   block: 200,
   person: 220,
   result: 300
-}, le = { building: 1, block: 2, point: 3, amount: 4, level: 5, business: 6, front: 7, repeat: 8 }, X = { cancel: 1, setPay: 2, sack: 3, promote: 4, demote: 5, moveToCrew: 6, moveToPool: 7, repeat: 8 }, to = 3, no = 13, pe = [
+}, ie = { building: 1, block: 2, point: 3, amount: 4, level: 5, business: 6, front: 7, repeat: 8 }, J = { cancel: 1, setPay: 2, sack: 3, promote: 4, demote: 5, moveToCrew: 6, moveToPool: 7, repeat: 8, buyVehicle: 9 }, ho = [{ kind: 0, cost: 5e3, seats: 2 }, { kind: 1, cost: 3e3, seats: 4 }, { kind: 2, cost: 3e3, seats: 10 }], po = 3, go = 13, fe = [
   "buy",
   "setUp",
   "run",
@@ -1926,7 +2005,7 @@ const Pe = { last: 64, messages: 65, cityVersion: 66, playerGang: 68, avenueCol:
   "explore",
   "recruit",
   "goTo"
-], cn = {
+], mn = {
   buy: { target: "building", max: 2, group: "business" },
   setUp: { target: "building", max: 2, group: "business" },
   run: { target: "building", max: 2, group: "business" },
@@ -1940,7 +2019,7 @@ const Pe = { last: 64, messages: 65, cityVersion: 66, playerGang: 68, avenueCol:
   explore: { target: "area", max: 10, group: "personnel" },
   recruit: { target: "area", max: 10, group: "personnel" },
   goTo: { target: "point", max: 4, group: "personnel" }
-}, ao = ["queued", "travelling", "waiting", "executing", "done", "failed", "cancelled"], Ot = [
+}, fo = ["queued", "travelling", "waiting", "executing", "done", "failed", "cancelled"], Dt = [
   "L_None",
   "L_Bought",
   "L_Opened",
@@ -1997,7 +2076,7 @@ const Pe = { last: 64, messages: 65, cityVersion: 66, playerGang: 68, avenueCol:
   "M_Order_Failed",
   "M_Order_Cut_Short",
   "M_Queued_Waiting"
-], Cn = [
+], Pn = [
   "Y_None",
   "Y_Accepted",
   "Y_Cancelled",
@@ -2006,6 +2085,7 @@ const Pe = { last: 64, messages: 65, cityVersion: 66, playerGang: 68, avenueCol:
   "Y_Broken_Up",
   "Y_Joined",
   "Y_Already_In",
+  "Y_Bought",
   "Y_Done",
   "Y_No_Crew",
   "Y_Lt_Unavailable",
@@ -2035,78 +2115,81 @@ const Pe = { last: 64, messages: 65, cityVersion: 66, playerGang: 68, avenueCol:
   "Y_Could_Not_Promote",
   "Y_Choose_Hood_Crew",
   "Y_Crew_Full",
-  "Y_Choose_Crew_Hood"
-], oo = Cn.indexOf("Y_Done"), Oe = (e, n) => ({
-  kind: Ot[e(n)] ?? "L_None",
+  "Y_Choose_Crew_Hood",
+  "Y_Cannot_Afford_It"
+], bo = Pn.indexOf("Y_Done"), De = (e, n) => ({
+  kind: Dt[e(n)] ?? "L_None",
   a: e(n + 1),
   b: e(n + 2),
   c: e(n + 3),
   d: e(n + 4)
-}), At = (e) => e.hs_count(Pe.playerGang);
-function Re(e, n) {
-  const o = [], r = e.hs_get(J.gangCrews, n, 0);
+}), dt = (e) => e.hs_count(Te.playerGang);
+function Oe(e, n) {
+  const o = [], r = e.hs_get(Q.gangCrews, n, 0);
   for (let a = 1; a <= r; a++) {
-    const s = e.hs_get(J.gangCrews, n, a);
+    const s = e.hs_get(Q.gangCrews, n, a);
     if (s < 0) continue;
-    const i = (f) => e.hs_get(J.crews, s, f), d = i(Z.count), p = i(Z.orderCount);
+    const i = (k) => e.hs_get(Q.crews, s, k), d = i(Z.count), p = i(Z.orderCount);
     o.push({
       slot: s,
       id: i(Z.id),
       lieutenant: i(Z.lieutenant),
       nameFirst: i(Z.nameFirst),
-      members: Array.from({ length: d }, (f, m) => i(Z.member + m + 1)),
-      orders: Array.from({ length: p }, (f, m) => i(Z.order + m + 1)),
+      members: Array.from({ length: d }, (k, _) => i(Z.member + _ + 1)),
+      orders: Array.from({ length: p }, (k, _) => i(Z.order + _ + 1)),
       timeUsed: i(Z.timeUsed),
       men: i(Z.men),
       pistols: i(Z.pistols),
-      coupes: i(Z.coupes)
+      coupes: i(Z.coupes),
+      speedsters: i(Z.speedsters),
+      trucks: i(Z.trucks)
     });
   }
   return o;
 }
-function De(e) {
-  return `${Yt[e.nameFirst] ?? "?"}'s Crew`;
+function Fe(e) {
+  return `${zt[e.nameFirst] ?? "?"}'s Crew`;
 }
-function zt(e, n, o) {
+function jt(e, n, o) {
   const r = (s) => e.hs_get(n, o, s), a = (s, i) => Array.from({ length: i }, (d, p) => r(s + p));
   return {
     slot: o,
-    id: r(T.id),
-    crew: r(T.crew),
-    kind: pe[r(T.kind)],
-    state: ao[r(T.state)],
-    manpower: r(T.manpower),
-    repeat: r(T.repeat) === 1,
-    amount: r(T.amount),
-    level: r(T.level),
-    business: r(T.business),
-    front: r(T.front),
-    point: r(T.hasPoint) === 1 ? { x: r(T.px), y: r(T.py) } : null,
-    targets: a(T.target, r(T.targets)),
-    blocks: a(T.block, r(T.blocks)),
-    assigned: a(T.person, r(T.assigned)),
-    completed: r(T.completed),
-    estimate: r(T.estimate),
-    worked: r(T.worked),
-    started: r(T.started),
-    finished: r(T.finished),
-    cost: r(T.cost),
-    fail: Oe(r, T.fail),
-    waiting: Oe(r, T.waiting),
-    results: Array.from({ length: r(T.results) }, (s, i) => Oe(r, T.result + 5 * i))
+    id: r(A.id),
+    crew: r(A.crew),
+    kind: fe[r(A.kind)],
+    state: fo[r(A.state)],
+    manpower: r(A.manpower),
+    repeat: r(A.repeat) === 1,
+    amount: r(A.amount),
+    level: r(A.level),
+    business: r(A.business),
+    front: r(A.front),
+    point: r(A.hasPoint) === 1 ? { x: r(A.px), y: r(A.py) } : null,
+    targets: a(A.target, r(A.targets)),
+    blocks: a(A.block, r(A.blocks)),
+    assigned: a(A.person, r(A.assigned)),
+    completed: r(A.completed),
+    estimate: r(A.estimate),
+    worked: r(A.worked),
+    started: r(A.started),
+    finished: r(A.finished),
+    cost: r(A.cost),
+    fail: De(r, A.fail),
+    waiting: De(r, A.waiting),
+    results: Array.from({ length: r(A.results) }, (s, i) => De(r, A.result + 5 * i))
   };
 }
-const Nn = (e, n) => zt(e, J.order, n);
-function Ln(e, n) {
+const An = (e, n) => jt(e, Q.order, n);
+function Tn(e, n) {
   const o = [];
-  for (let r = 0; r < e.hs_count(Pe.last); r++)
-    e.hs_get(J.last, r, T.gang) === n && o.push(zt(e, J.last, r));
+  for (let r = 0; r < e.hs_count(Te.last); r++)
+    e.hs_get(Q.last, r, A.gang) === n && o.push(jt(e, Q.last, r));
   return o;
 }
-function ro(e) {
-  return Array.from({ length: e.hs_count(Pe.messages) }, (n, o) => Oe((r) => e.hs_get(J.message, o + 1, r), 0));
+function wo(e) {
+  return Array.from({ length: e.hs_count(Te.messages) }, (n, o) => De((r) => e.hs_get(Q.message, o + 1, r), 0));
 }
-const Dt = (e, n) => ({
+const Gt = (e, n) => ({
   crew: e,
   kind: n,
   manpower: 1,
@@ -2119,22 +2202,22 @@ const Dt = (e, n) => ({
   front: -1,
   repeat: !1
 });
-function Mn(e, n) {
-  e.hs_order_begin(n.crew, pe.indexOf(n.kind), n.manpower);
-  for (const o of n.buildings) e.hs_order_add(le.building, o, 0);
-  for (const o of n.blocks) e.hs_order_add(le.block, o, 0);
-  n.point && e.hs_order_add(le.point, n.point.x, n.point.y), n.amount !== -1 && e.hs_order_add(le.amount, n.amount, 0), n.level !== -1 && e.hs_order_add(le.level, n.level, 0), n.business !== -1 && e.hs_order_add(le.business, n.business, 0), n.front !== -1 && e.hs_order_add(le.front, n.front, 0), n.repeat && e.hs_order_add(le.repeat, 1, 0);
+function Bn(e, n) {
+  e.hs_order_begin(n.crew, fe.indexOf(n.kind), n.manpower);
+  for (const o of n.buildings) e.hs_order_add(ie.building, o, 0);
+  for (const o of n.blocks) e.hs_order_add(ie.block, o, 0);
+  n.point && e.hs_order_add(ie.point, n.point.x, n.point.y), n.amount !== -1 && e.hs_order_add(ie.amount, n.amount, 0), n.level !== -1 && e.hs_order_add(ie.level, n.level, 0), n.business !== -1 && e.hs_order_add(ie.business, n.business, 0), n.front !== -1 && e.hs_order_add(ie.front, n.front, 0), n.repeat && e.hs_order_add(ie.repeat, 1, 0);
 }
-function Fn(e, n) {
-  if (Mn(e, n), e.hs_order_preview() !== 1) return null;
-  const o = (r) => e.hs_get(J.preview, 0, r);
-  return { order: zt(e, J.preview, 0), hasTime: o(T.hasTime) === 1, staffing: Oe(o, T.staffing) };
+function Yn(e, n) {
+  if (Bn(e, n), e.hs_order_preview() !== 1) return null;
+  const o = (r) => e.hs_get(Q.preview, 0, r);
+  return { order: jt(e, Q.preview, 0), hasTime: o(A.hasTime) === 1, staffing: De(o, A.staffing) };
 }
-function Pn(e, n) {
+function xn(e, n) {
   const o = e.hs_reply(5);
   return {
-    kind: Cn[n] ?? "Y_None",
-    ok: n >= 1 && n <= oo,
+    kind: Pn[n] ?? "Y_None",
+    ok: n >= 1 && n <= bo,
     a: e.hs_reply(1),
     b: e.hs_reply(2),
     c: e.hs_reply(3),
@@ -2143,46 +2226,46 @@ function Pn(e, n) {
     slot: e.hs_reply(6)
   };
 }
-function An(e, n) {
-  return Mn(e, n), Pn(e, e.hs_order_issue());
+function Rn(e, n) {
+  return Bn(e, n), xn(e, e.hs_order_issue());
 }
-function ze(e, n, o, r = 0) {
-  return Pn(e, e.hs_command(n, o, r));
+function je(e, n, o, r = 0) {
+  return xn(e, e.hs_command(n, o, r));
 }
-function Tn(e) {
+function On(e) {
   const n = (o) => [0, 1, 2, 3].map((r) => e.hs_count(o + r)).filter((r) => r >= 0);
-  return { cols: n(Pe.avenueCol), rows: n(Pe.avenueRow) };
+  return { cols: n(Te.avenueCol), rows: n(Te.avenueRow) };
 }
-function yt(e, n) {
+function St(e, n) {
   const o = e.cols.includes(n - 1) ? n - 1 : n;
-  return `${et[(o % et.length + et.length) % et.length]} Ave`;
+  return `${tt[(o % tt.length + tt.length) % tt.length]} Ave`;
 }
-function Et(e, n) {
+function Ct(e, n) {
   const o = e.rows.includes(n - 1) ? n - 1 : n;
-  return `${tt[(o % tt.length + tt.length) % tt.length]} St`;
+  return `${nt[(o % nt.length + nt.length) % nt.length]} St`;
 }
-function jt(e, n) {
-  return n < 0 ? "nowhere" : e.hs_get(Y.building, n, to) === 0 ? "Empty land" : ie[e.hs_get(Y.building, n, Me.type)] ?? "unknown";
+function Ht(e, n) {
+  return n < 0 ? "nowhere" : e.hs_get(Y.building, n, po) === 0 ? "Empty land" : ce[e.hs_get(Y.building, n, Ae.type)] ?? "unknown";
 }
-function Bn(e, n, o, r) {
-  const a = jt(e, r), s = n.lots[e.hs_get(Y.building, r, Me.lot)], i = s ? n.blocks[s.block] : void 0;
+function zn(e, n, o, r) {
+  const a = Ht(e, r), s = n.lots[e.hs_get(Y.building, r, Ae.lot)], i = s ? n.blocks[s.block] : void 0;
   if (!s || !i) return a;
-  if (!n.standard && (i.use === 2 || e.hs_get(Y.block, i.id, no) >= 0)) {
-    const c = ["north", "east", "south", "west"][s.face], _ = i.gx + (c === "east" ? i.spanX : 0), h = i.gy + (c === "south" ? i.spanY : 0);
-    return `${a} on ${c === "east" || c === "west" ? yt(o, _) : Et(o, h)}`;
+  if (!n.standard && (i.use === 2 || e.hs_get(Y.block, i.id, go) >= 0)) {
+    const c = ["north", "east", "south", "west"][s.face], h = i.gx + (c === "east" ? i.spanX : 0), m = i.gy + (c === "south" ? i.spanY : 0);
+    return `${a} on ${c === "east" || c === "west" ? St(o, h) : Ct(o, m)}`;
   }
-  const p = s.index % 3, f = Math.floor(s.index / 3), m = p === 2 ? i.gx + 1 : i.gx, u = f === 2 ? i.gy + 1 : i.gy;
-  return f === 1 && p !== 1 ? `${a} on ${yt(o, m)} at ${Et(o, u)}` : `${a} on ${Et(o, u)} at ${yt(o, m)}`;
+  const p = s.index % 3, k = Math.floor(s.index / 3), _ = p === 2 ? i.gx + 1 : i.gx, u = k === 2 ? i.gy + 1 : i.gy;
+  return k === 1 && p !== 1 ? `${a} on ${St(o, _)} at ${Ct(o, u)}` : `${a} on ${Ct(o, u)} at ${St(o, _)}`;
 }
-function dn(e, n, o) {
+function hn(e, n, o) {
   return o >= 0 && o < n.lots.length ? e.hs_get(Y.lot, o, 7) : -1;
 }
-const un = (e) => e.hs_count(Pe.cityVersion), so = { "en-GB": "en-US", de: "de-DE", es: "es-ES", fr: "fr-FR" }, ce = (e, n) => "$" + n.toLocaleString(so[e]);
-function ct(e) {
+const pn = (e) => e.hs_count(Te.cityVersion), ko = { "en-GB": "en-US", de: "de-DE", es: "es-ES", fr: "fr-FR" }, ae = (e, n) => "$" + n.toLocaleString(ko[e]);
+function ut(e) {
   const n = Math.round(e), o = Math.abs(n), r = Math.floor(o / 60), a = o % 60, s = n < 0 ? "−" : "";
   return r ? `${s}${r}h ${a}m` : `${s}${a}m`;
 }
-const lo = {
+const yo = {
   "en-GB": {
     buy: "Buy Premises",
     setUp: "Set Up Business",
@@ -2243,7 +2326,7 @@ const lo = {
     recruit: "Recruter",
     goTo: "Aller à"
   }
-}, je = (e, n) => lo[e][n], xn = {
+}, Ge = (e, n) => yo[e][n], Dn = {
   L_Bought: "Bought {place} for {b$}.",
   L_Opened: "Opened a {type}.",
   L_New_Management: "New management installed at {place}.",
@@ -2346,8 +2429,13 @@ const lo = {
   Y_Could_Not_Promote: "Could not promote.",
   Y_Choose_Hood_Crew: "Choose one of your hoods and one of your crews.",
   Y_Crew_Full: "That crew is full.",
-  Y_Choose_Crew_Hood: "Choose one of your crew hoods."
-}, io = {
+  Y_Choose_Crew_Hood: "Choose one of your crew hoods.",
+  Y_Bought: "Bought a {vehicle}.",
+  Y_Cannot_Afford_It: "You cannot afford it.",
+  V_0: "Speedster",
+  V_1: "Coupe",
+  V_2: "Truck"
+}, Eo = {
   L_Bought: "{place} für {b$} gekauft.",
   L_Opened: "{type} eröffnet.",
   L_New_Management: "Neue Leitung in {place} eingesetzt.",
@@ -2450,8 +2538,13 @@ const lo = {
   Y_Could_Not_Promote: "Beförderung nicht möglich.",
   Y_Choose_Hood_Crew: "Wähle einen deiner Männer und einen deiner Trupps.",
   Y_Crew_Full: "Dieser Trupp ist voll.",
-  Y_Choose_Crew_Hood: "Wähle einen Mann aus einem deiner Trupps."
-}, co = {
+  Y_Choose_Crew_Hood: "Wähle einen Mann aus einem deiner Trupps.",
+  Y_Bought: "Gekauft: ein {vehicle}.",
+  Y_Cannot_Afford_It: "Das kannst du dir nicht leisten.",
+  V_0: "Speedster",
+  V_1: "Coupé",
+  V_2: "Lastwagen"
+}, vo = {
   L_Bought: "Comprado {place} por {b$}.",
   L_Opened: "Abierto: {type}.",
   L_New_Management: "Nueva gerencia en {place}.",
@@ -2554,8 +2647,13 @@ const lo = {
   Y_Could_Not_Promote: "No se pudo ascender.",
   Y_Choose_Hood_Crew: "Elige a uno de tus matones y una de tus cuadrillas.",
   Y_Crew_Full: "Esa cuadrilla está llena.",
-  Y_Choose_Crew_Hood: "Elige a un matón de tus cuadrillas."
-}, uo = {
+  Y_Choose_Crew_Hood: "Elige a un matón de tus cuadrillas.",
+  Y_Bought: "Compraste un {vehicle}.",
+  Y_Cannot_Afford_It: "No te lo puedes permitir.",
+  V_0: "deportivo",
+  V_1: "cupé",
+  V_2: "camión"
+}, So = {
   L_Bought: "Acheté {place} pour {b$}.",
   L_Opened: "Ouvert : {type}.",
   L_New_Management: "Nouvelle gérance installée à {place}.",
@@ -2658,143 +2756,164 @@ const lo = {
   Y_Could_Not_Promote: "Promotion impossible.",
   Y_Choose_Hood_Crew: "Choisissez un de vos hommes et une de vos équipes.",
   Y_Crew_Full: "Cette équipe est complète.",
-  Y_Choose_Crew_Hood: "Choisissez un homme de vos équipes."
-}, _o = { "en-GB": xn, de: io, es: co, fr: uo };
-function j(e, n, o) {
-  return (_o[e][n] ?? xn[n] ?? n).replace(/\{(\w+\$?)\}/g, (a, s) => String(o[s] ?? ""));
+  Y_Choose_Crew_Hood: "Choisissez un homme de vos équipes.",
+  Y_Bought: "Vous avez acheté une {vehicle}.",
+  Y_Cannot_Afford_It: "Vous n’en avez pas les moyens.",
+  V_0: "voiture de sport",
+  V_1: "coupé",
+  V_2: "camionnette"
+}, Co = { "en-GB": Dn, de: Eo, es: vo, fr: So };
+function R(e, n, o) {
+  return (Co[e][n] ?? Dn[n] ?? n).replace(/\{(\w+\$?)\}/g, (a, s) => String(o[s] ?? ""));
 }
 function de(e, n) {
-  const { lang: o } = e, r = (i) => Ot[i] ?? "L_None", a = {
+  const { lang: o } = e, r = (i) => Dt[i] ?? "L_None", a = {
     a: n.a,
     b: n.b,
     c: n.c,
     d: n.d,
-    a$: ce(o, n.a),
-    b$: ce(o, n.b),
-    d$: ce(o, n.d),
-    bhm: ct(n.b),
-    chm: ct(n.c)
+    a$: ae(o, n.a),
+    b$: ae(o, n.b),
+    d$: ae(o, n.d),
+    bhm: ut(n.b),
+    chm: ut(n.c)
   }, s = () => e.place(n.a);
   switch (n.kind) {
     case "L_None":
       return "";
     case "L_Opened":
     case "M_Opened":
-      return j(o, n.kind, { type: e.type(n.a) });
+      return R(o, n.kind, { type: e.type(n.a) });
     case "L_Refused_Pay":
-      return j(o, n.kind, { owner: n.b >= 0 ? e.person(n.b) : j(o, "the_owner", {}) });
+      return R(o, n.kind, { owner: n.b >= 0 ? e.person(n.b) : R(o, "the_owner", {}) });
     case "L_Looked_Over": {
-      const i = (p) => p === e.me ? j(o, "you", {}) : e.gang(p), d = n.b > 0 ? j(o, "owned_by", { who: i(n.b) }) : n.c > 0 ? j(o, "paying_to", { ...a, who: i(n.c) }) : j(o, "paying_nobody", {});
-      return j(o, n.kind, { place: s(), standing: d });
+      const i = (p) => p === e.me ? R(o, "you", {}) : e.gang(p), d = n.b > 0 ? R(o, "owned_by", { who: i(n.b) }) : n.c > 0 ? R(o, "paying_to", { ...a, who: i(n.c) }) : R(o, "paying_nobody", {});
+      return R(o, n.kind, { place: s(), standing: d });
     }
     case "L_Found_Hidden":
-      return j(o, n.kind, { place: s(), hidden: e.building(n.b) });
+      return R(o, n.kind, { place: s(), hidden: e.building(n.b) });
     case "L_Nobody_Hiring":
-      return n.b >= 0 ? j(o, "L_Nobody_Hiring_Else", { place: s(), else: e.place(n.b) }) : j(o, n.kind, { place: s() });
+      return n.b >= 0 ? R(o, "L_Nobody_Hiring_Else", { place: s(), else: e.place(n.b) }) : R(o, n.kind, { place: s() });
     case "L_Signed_On":
-      return j(o, n.b === 1 ? "L_Signed_On_1" : "L_Signed_On_n", a);
+      return R(o, n.b === 1 ? "L_Signed_On_1" : "L_Signed_On_n", a);
     case "L_Patrolled":
-      return j(o, n.b === 1 ? "L_Patrolled_1" : "L_Patrolled_n", a);
+      return R(o, n.b === 1 ? "L_Patrolled_1" : "L_Patrolled_n", a);
     case "L_Continuing":
-      return j(o, n.kind, { ...a, order: je(o, pe[n.a]) });
+      return R(o, n.kind, { ...a, order: Ge(o, fe[n.a]) });
     case "F_Needs_Free":
-      return j(o, n.b === 1 ? "F_Needs_Free_1" : "F_Needs_Free_n", { ...a, free: j(o, n.c === 1 ? "available" : "free", {}) });
+      return R(o, n.b === 1 ? "F_Needs_Free_1" : "F_Needs_Free_n", { ...a, free: R(o, n.c === 1 ? "available" : "free", {}) });
     case "F_Never_Started":
-      return j(o, n.kind, { inner: de(e, { kind: r(n.a), a: n.b, b: n.c, c: n.d, d: 0 }) });
+      return R(o, n.kind, { inner: de(e, { kind: r(n.a), a: n.b, b: n.c, c: n.d, d: 0 }) });
     case "M_Uncovered":
-      return j(o, n.kind, { hiddenB: e.building(n.b) });
+      return R(o, n.kind, { hiddenB: e.building(n.b) });
     case "M_Order_Failed":
     case "M_Order_Cut_Short":
     case "M_Queued_Waiting":
-      return j(o, n.kind, {
-        order: je(o, pe[n.a]),
+      return R(o, n.kind, {
+        order: Ge(o, fe[n.a]),
         inner: de(e, { kind: r(n.b), a: n.c, b: n.d, c: 0, d: 0 })
       });
     default:
-      return j(o, n.kind, { ...a, place: n.a >= 0 ? s() : "" });
+      return R(o, n.kind, { ...a, place: n.a >= 0 ? s() : "" });
   }
 }
-function Ne(e, n) {
-  const { lang: o } = e, r = { a: n.a, b: n.b, c: n.c, d: n.d, a$: ce(o, n.a), b$: ce(o, n.b) }, a = n.kind;
+function Me(e, n) {
+  const { lang: o } = e, r = { a: n.a, b: n.b, c: n.c, d: n.d, a$: ae(o, n.a), b$: ae(o, n.b) }, a = n.kind;
   switch (a) {
     case "Y_Accepted":
     case "Y_Only_People":
     case "Y_No_Time_Trim":
     case "Y_No_Time":
-      return j(o, a, { ...r, lt: e.person(n.a) });
+      return R(o, a, { ...r, lt: e.person(n.a) });
     case "Y_Back_On_Street":
     case "Y_Promoted":
-      return j(o, a, { pa: e.person(n.a) });
+      return R(o, a, { pa: e.person(n.a) });
     case "Y_Joined":
     case "Y_Already_In":
-      return j(o, a, { pa: e.person(n.a), crewB: e.crew(n.b) });
+      return R(o, a, { pa: e.person(n.a), crewB: e.crew(n.b) });
     case "Y_At_Most":
-      return j(o, n.b === 1 ? "Y_At_Most_1" : "Y_At_Most_n", { ...r, order: je(o, pe[n.a]) });
+      return R(o, n.b === 1 ? "Y_At_Most_1" : "Y_At_Most_n", { ...r, order: Ge(o, fe[n.a]) });
+    case "Y_Bought":
+      return R(o, a, { vehicle: R(o, `V_${n.a}`, {}) });
     case "Y_Staffing":
-      return de(e, { kind: Ot[n.a] ?? "L_None", a: n.b, b: n.c, c: n.d, d: 0 });
+      return de(e, { kind: Dt[n.a] ?? "L_None", a: n.b, b: n.c, c: n.d, d: 0 });
     default:
-      return j(o, a, r);
+      return R(o, a, r);
   }
 }
-const _n = 10;
-function mo(e, n, o, r) {
-  const a = Re(e, n);
-  return { crews: a, orders: a.flatMap((s) => s.orders.map((i) => Nn(e, i))), last: Ln(e, n), pool: o, messages: r };
+function gn(e, n) {
+  return R(e, `V_${n}`, {});
 }
-function mn({ t: e, x: n, o, onCancel: r, onShow: a }) {
-  const s = o.targets.length === 1 ? n.place(o.targets[0]) : o.point ? e("o_point") : e("o_sites", { n: o.targets.length }), i = o.finished >= 0 ? Sn(e, o.finished) : null;
-  return /* @__PURE__ */ t.createElement("li", { className: `order-line st-${o.state}` }, /* @__PURE__ */ t.createElement("button", { className: "link", onClick: a }, je(n.lang, o.kind)), /* @__PURE__ */ t.createElement("span", { className: "where" }, " · ", s), /* @__PURE__ */ t.createElement("span", { className: "state" }, " · ", e(`st_${o.state}`), o.estimate > 0 && o.state === "queued" ? ` · ${ct(o.estimate)}` : "", i ? ` · ${e("o_done_at", { day: i.day, time: i.time })}` : "", o.assigned.length ? ` · ${o.assigned.map((d) => n.person(d)).join(", ")}` : ""), r && /* @__PURE__ */ t.createElement("button", { className: "mini", onClick: r, title: e("o_cancel"), "aria-label": e("o_cancel") }, "×"), o.fail.kind !== "L_None" && /* @__PURE__ */ t.createElement("div", { className: "fail" }, de(n, o.fail)), o.results.length > 0 && /* @__PURE__ */ t.createElement("ul", { className: "results" }, o.results.map((d, p) => /* @__PURE__ */ t.createElement("li", { key: p }, de(n, d)))));
+const fn = 10;
+function No(e, n, o, r) {
+  const a = Oe(e, n);
+  return { crews: a, orders: a.flatMap((s) => s.orders.map((i) => An(e, i))), last: Tn(e, n), pool: o, messages: r };
 }
-function ho({ t: e, x: n, core: o, view: r, running: a, onPerson: s, onNewOrder: i, onChanged: d, onClose: p, onShow: f }) {
-  const m = (_, h, y = 0) => d(ze(o, _, h, y)), u = (_) => o.hs_get(Y.person, _, $.pay), c = (_, h) => /* @__PURE__ */ t.createElement("li", { key: _, className: "man" }, /* @__PURE__ */ t.createElement("button", { className: "link", onClick: () => s(_) }, n.person(_)), /* @__PURE__ */ t.createElement("span", { className: "pay" }, " ", ce(n.lang, u(_))), /* @__PURE__ */ t.createElement("span", { className: "acts" }, /* @__PURE__ */ t.createElement("button", { className: "mini", title: e("o_pay_down"), "aria-label": e("o_pay_down"), onClick: () => m(X.setPay, _, Math.max(0, u(_) - _n)) }, "−"), /* @__PURE__ */ t.createElement("button", { className: "mini", title: e("o_pay_up"), "aria-label": e("o_pay_up"), onClick: () => m(X.setPay, _, u(_) + _n) }, "+"), h ? /* @__PURE__ */ t.createElement("button", { className: "mini wide", onClick: () => m(X.moveToPool, _) }, e("o_to_pool")) : r.crews.map((y) => /* @__PURE__ */ t.createElement("button", { key: y.slot, className: "mini wide", onClick: () => m(X.moveToCrew, _, y.slot) }, e("o_to_crew", { crew: De(y) }))), /* @__PURE__ */ t.createElement("button", { className: "mini wide", onClick: () => m(X.promote, _) }, e("o_promote")), /* @__PURE__ */ t.createElement("button", { className: "mini wide danger", onClick: () => m(X.sack, _) }, e("o_sack"))));
-  return /* @__PURE__ */ t.createElement("aside", { className: "drawer crews-panel", "aria-label": e("o_title") }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("h2", null, e("o_title")), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: p, "aria-label": e("pc_close") }, "×")), r.crews.map((_) => {
-    const h = r.orders.filter((k) => k.crew === _.slot), y = Math.max(1, _.men) * lt;
-    return /* @__PURE__ */ t.createElement("section", { key: _.slot }, /* @__PURE__ */ t.createElement("h3", null, De(_), " ", /* @__PURE__ */ t.createElement("small", null, "· ", e("o_lt"), " ", /* @__PURE__ */ t.createElement("button", { className: "link", onClick: () => s(_.lieutenant) }, n.person(_.lieutenant)))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("o_crew_time", { used: _.timeUsed.toLocaleString(), cap: y.toLocaleString(), men: _.men })), /* @__PURE__ */ t.createElement("ul", { className: "men" }, _.members.length ? _.members.map((k) => c(k, _)) : /* @__PURE__ */ t.createElement("li", null, e("o_none"))), /* @__PURE__ */ t.createElement("h4", null, e("o_orders")), /* @__PURE__ */ t.createElement("ul", { className: "orders" }, h.length ? h.map((k) => /* @__PURE__ */ t.createElement(
-      mn,
+function bn({ t: e, x: n, o, onCancel: r, onShow: a }) {
+  const s = o.targets.length === 1 ? n.place(o.targets[0]) : o.point ? e("o_point") : e("o_sites", { n: o.targets.length }), i = o.finished >= 0 ? Fn(e, o.finished) : null;
+  return /* @__PURE__ */ t.createElement("li", { className: `order-line st-${o.state}` }, /* @__PURE__ */ t.createElement("button", { className: "link", onClick: a }, Ge(n.lang, o.kind)), /* @__PURE__ */ t.createElement("span", { className: "where" }, " · ", s), /* @__PURE__ */ t.createElement("span", { className: "state" }, " · ", e(`st_${o.state}`), o.estimate > 0 && o.state === "queued" ? ` · ${ut(o.estimate)}` : "", i ? ` · ${e("o_done_at", { day: i.day, time: i.time })}` : "", o.assigned.length ? ` · ${o.assigned.map((d) => n.person(d)).join(", ")}` : ""), r && /* @__PURE__ */ t.createElement("button", { className: "mini", onClick: r, title: e("o_cancel"), "aria-label": e("o_cancel") }, "×"), o.fail.kind !== "L_None" && /* @__PURE__ */ t.createElement("div", { className: "fail" }, de(n, o.fail)), o.results.length > 0 && /* @__PURE__ */ t.createElement("ul", { className: "results" }, o.results.map((d, p) => /* @__PURE__ */ t.createElement("li", { key: p }, de(n, d)))));
+}
+function Lo({ t: e, x: n, core: o, view: r, running: a, onPerson: s, onNewOrder: i, onChanged: d, onClose: p, onShow: k }) {
+  const _ = (h, m, N = 0) => d(je(o, h, m, N)), u = (h) => o.hs_get(Y.person, h, q.pay), c = (h, m) => /* @__PURE__ */ t.createElement("li", { key: h, className: "man" }, /* @__PURE__ */ t.createElement("button", { className: "link", onClick: () => s(h) }, n.person(h)), /* @__PURE__ */ t.createElement("span", { className: "pay" }, " ", ae(n.lang, u(h))), /* @__PURE__ */ t.createElement("span", { className: "acts" }, /* @__PURE__ */ t.createElement("button", { className: "mini", title: e("o_pay_down"), "aria-label": e("o_pay_down"), onClick: () => _(J.setPay, h, Math.max(0, u(h) - fn)) }, "−"), /* @__PURE__ */ t.createElement("button", { className: "mini", title: e("o_pay_up"), "aria-label": e("o_pay_up"), onClick: () => _(J.setPay, h, u(h) + fn) }, "+"), m ? /* @__PURE__ */ t.createElement("button", { className: "mini wide", onClick: () => _(J.moveToPool, h) }, e("o_to_pool")) : r.crews.map((N) => /* @__PURE__ */ t.createElement("button", { key: N.slot, className: "mini wide", onClick: () => _(J.moveToCrew, h, N.slot) }, e("o_to_crew", { crew: Fe(N) }))), /* @__PURE__ */ t.createElement("button", { className: "mini wide", onClick: () => _(J.promote, h) }, e("o_promote")), /* @__PURE__ */ t.createElement("button", { className: "mini wide danger", onClick: () => _(J.sack, h) }, e("o_sack"))));
+  return /* @__PURE__ */ t.createElement("aside", { className: "drawer crews-panel", "aria-label": e("o_title") }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("h2", null, e("o_title")), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: p, "aria-label": e("pc_close") }, "×")), r.crews.map((h) => {
+    const m = r.orders.filter((g) => g.crew === h.slot), N = Math.max(1, h.men) * it;
+    return /* @__PURE__ */ t.createElement("section", { key: h.slot }, /* @__PURE__ */ t.createElement("h3", null, Fe(h), " ", /* @__PURE__ */ t.createElement("small", null, "· ", e("o_lt"), " ", /* @__PURE__ */ t.createElement("button", { className: "link", onClick: () => s(h.lieutenant) }, n.person(h.lieutenant)))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("o_crew_time", { used: h.timeUsed.toLocaleString(), cap: N.toLocaleString(), men: h.men })), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("o_cars", { s: h.speedsters, c: h.coupes, t: h.trucks })), /* @__PURE__ */ t.createElement("div", { className: "row cars" }, ho.map((g) => /* @__PURE__ */ t.createElement(
+      "button",
       {
-        key: k.slot,
+        key: g.kind,
+        className: "mini wide",
+        onClick: () => {
+          const y = o.hs_get(Y.gang, dt(o), D.cash);
+          window.confirm(e("o_buy_confirm", { name: gn(n.lang, g.kind), cost: ae(n.lang, g.cost), team: Fe(h), cash: ae(n.lang, y) })) && _(J.buyVehicle, g.kind, h.slot);
+        }
+      },
+      e("o_buy", { name: gn(n.lang, g.kind), cost: ae(n.lang, g.cost) })
+    ))), /* @__PURE__ */ t.createElement("ul", { className: "men" }, h.members.length ? h.members.map((g) => c(g, h)) : /* @__PURE__ */ t.createElement("li", null, e("o_none"))), /* @__PURE__ */ t.createElement("h4", null, e("o_orders")), /* @__PURE__ */ t.createElement("ul", { className: "orders" }, m.length ? m.map((g) => /* @__PURE__ */ t.createElement(
+      bn,
+      {
+        key: g.slot,
         t: e,
         x: n,
-        o: k,
-        onShow: () => f(k),
-        onCancel: ["done", "failed", "cancelled"].includes(k.state) ? void 0 : () => m(X.cancel, k.slot)
+        o: g,
+        onShow: () => k(g),
+        onCancel: ["done", "failed", "cancelled"].includes(g.state) ? void 0 : () => _(J.cancel, g.slot)
       }
-    )) : /* @__PURE__ */ t.createElement("li", null, e("o_none"))), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: () => i(_.slot) }, e("o_new")), /* @__PURE__ */ t.createElement("button", { className: "main danger", onClick: () => m(X.demote, _.slot) }, e("o_demote"))));
-  }), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("o_pool")), /* @__PURE__ */ t.createElement("ul", { className: "men" }, r.pool.length ? r.pool.map((_) => c(_, null)) : /* @__PURE__ */ t.createElement("li", null, e("o_none")))), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("o_last")), /* @__PURE__ */ t.createElement("ul", { className: "orders" }, r.last.length ? r.last.map((_, h) => /* @__PURE__ */ t.createElement(t.Fragment, { key: h }, /* @__PURE__ */ t.createElement(mn, { t: e, x: n, o: _, onShow: () => f(_) }), /* @__PURE__ */ t.createElement("li", { className: "again" }, /* @__PURE__ */ t.createElement(
+    )) : /* @__PURE__ */ t.createElement("li", null, e("o_none"))), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: () => i(h.slot) }, e("o_new")), /* @__PURE__ */ t.createElement("button", { className: "main danger", onClick: () => _(J.demote, h.slot) }, e("o_demote"))));
+  }), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("o_pool")), /* @__PURE__ */ t.createElement("ul", { className: "men" }, r.pool.length ? r.pool.map((h) => c(h, null)) : /* @__PURE__ */ t.createElement("li", null, e("o_none")))), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("o_last")), /* @__PURE__ */ t.createElement("ul", { className: "orders" }, r.last.length ? r.last.map((h, m) => /* @__PURE__ */ t.createElement(t.Fragment, { key: m }, /* @__PURE__ */ t.createElement(bn, { t: e, x: n, o: h, onShow: () => k(h) }), /* @__PURE__ */ t.createElement("li", { className: "again" }, /* @__PURE__ */ t.createElement(
     "button",
     {
       className: "mini wide",
       disabled: a,
-      onClick: () => d(ze(o, X.repeat, _.slot))
+      onClick: () => d(je(o, J.repeat, h.slot))
     },
     e("o_again")
-  )))) : /* @__PURE__ */ t.createElement("li", null, e("o_none")))), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("o_messages")), /* @__PURE__ */ t.createElement("ul", { className: "messages" }, r.messages.length ? r.messages.map((_, h) => /* @__PURE__ */ t.createElement("li", { key: h }, de(n, _))) : /* @__PURE__ */ t.createElement("li", null, e("o_no_messages")))));
+  )))) : /* @__PURE__ */ t.createElement("li", null, e("o_none")))), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("o_messages")), /* @__PURE__ */ t.createElement("ul", { className: "messages" }, r.messages.length ? r.messages.map((h, m) => /* @__PURE__ */ t.createElement("li", { key: m }, de(n, h))) : /* @__PURE__ */ t.createElement("li", null, e("o_no_messages")))));
 }
-const po = ie.map((e, n) => ({ id: n, name: e, cost: Ra[n], cls: xa[n] })).filter((e) => e.cost > 0 && ["commercial", "industrial", "illegal"].includes(e.cls)).sort((e, n) => e.name.localeCompare(n.name));
-function go({ t: e, x: n, core: o, crews: r, draft: a, setDraft: s, selectedBuilding: i, selectedBlock: d, onIssued: p, onClose: f }) {
-  const m = cn[a.kind], [u, c] = t.useState(null), _ = t.useMemo(() => Fn(o, a), [o, a]), h = (b) => {
-    c(null), s({ ...a, ...b });
-  }, y = (b) => h({ ...Dt(a.crew, b), manpower: Math.min(a.manpower, cn[b].max) }), k = r.find((b) => b.slot === a.crew), F = m.target === "point" ? e("job_pick_point") : m.target === "area" ? e("job_pick_area") : e("job_pick_building"), N = () => {
-    const b = An(o, a);
-    c(b), b.ok && p(b);
+const Mo = ce.map((e, n) => ({ id: n, name: e, cost: Va[n], cls: $a[n] })).filter((e) => e.cost > 0 && ["commercial", "industrial", "illegal"].includes(e.cls)).sort((e, n) => e.name.localeCompare(n.name));
+function Fo({ t: e, x: n, core: o, crews: r, draft: a, setDraft: s, selectedBuilding: i, selectedBlock: d, onIssued: p, onClose: k }) {
+  const _ = mn[a.kind], [u, c] = t.useState(null), h = t.useMemo(() => Yn(o, a), [o, a]), m = (f) => {
+    c(null), s({ ...a, ...f });
+  }, N = (f) => m({ ...Gt(a.crew, f), manpower: Math.min(a.manpower, mn[f].max) }), g = r.find((f) => f.slot === a.crew), y = _.target === "point" ? e("job_pick_point") : _.target === "area" ? e("job_pick_area") : e("job_pick_building"), w = () => {
+    const f = Rn(o, a);
+    c(f), f.ok && p(f);
   };
-  return /* @__PURE__ */ t.createElement("aside", { className: "card job-card", "aria-label": e("job_title") }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("h3", null, e("job_title")), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: f, "aria-label": e("job_close") }, "×")), /* @__PURE__ */ t.createElement("div", { className: "fields" }, /* @__PURE__ */ t.createElement("label", null, e("job_crew"), /* @__PURE__ */ t.createElement("select", { value: a.crew, onChange: (b) => h({ crew: Number(b.target.value) }) }, r.map((b) => /* @__PURE__ */ t.createElement("option", { key: b.slot, value: b.slot }, De(b))))), /* @__PURE__ */ t.createElement("label", null, e("job_kind"), /* @__PURE__ */ t.createElement("select", { value: a.kind, onChange: (b) => y(b.target.value) }, pe.map((b) => /* @__PURE__ */ t.createElement("option", { key: b, value: b }, je(n.lang, b))))), /* @__PURE__ */ t.createElement("label", null, e("job_men"), /* @__PURE__ */ t.createElement(
+  return /* @__PURE__ */ t.createElement("aside", { className: "card job-card", "aria-label": e("job_title") }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("h3", null, e("job_title")), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: k, "aria-label": e("job_close") }, "×")), /* @__PURE__ */ t.createElement("div", { className: "fields" }, /* @__PURE__ */ t.createElement("label", null, e("job_crew"), /* @__PURE__ */ t.createElement("select", { value: a.crew, onChange: (f) => m({ crew: Number(f.target.value) }) }, r.map((f) => /* @__PURE__ */ t.createElement("option", { key: f.slot, value: f.slot }, Fe(f))))), /* @__PURE__ */ t.createElement("label", null, e("job_kind"), /* @__PURE__ */ t.createElement("select", { value: a.kind, onChange: (f) => N(f.target.value) }, fe.map((f) => /* @__PURE__ */ t.createElement("option", { key: f, value: f }, Ge(n.lang, f))))), /* @__PURE__ */ t.createElement("label", null, e("job_men"), /* @__PURE__ */ t.createElement(
     "input",
     {
       type: "number",
       min: 1,
-      max: m.max,
+      max: _.max,
       value: a.manpower,
-      onChange: (b) => h({ manpower: Math.max(1, Math.min(m.max, Math.trunc(Number(b.target.value) || 1))) })
+      onChange: (f) => m({ manpower: Math.max(1, Math.min(_.max, Math.trunc(Number(f.target.value) || 1))) })
     }
-  ), /* @__PURE__ */ t.createElement("small", null, " ", e("job_men_note", { max: m.max, have: k ? k.members.length + 1 : 0 }))), a.kind === "donate" && /* @__PURE__ */ t.createElement("label", null, e("job_amount"), /* @__PURE__ */ t.createElement(
+  ), /* @__PURE__ */ t.createElement("small", null, " ", e("job_men_note", { max: _.max, have: g ? g.members.length + 1 : 0 }))), a.kind === "donate" && /* @__PURE__ */ t.createElement("label", null, e("job_amount"), /* @__PURE__ */ t.createElement(
     "input",
     {
       type: "number",
       min: 0,
       step: 10,
       value: a.amount < 0 ? "" : a.amount,
-      onChange: (b) => h({ amount: b.target.value === "" ? -1 : Math.max(0, Math.trunc(Number(b.target.value))) })
+      onChange: (f) => m({ amount: f.target.value === "" ? -1 : Math.max(0, Math.trunc(Number(f.target.value))) })
     }
   )), a.kind === "adjust" && /* @__PURE__ */ t.createElement("label", null, e("job_level"), /* @__PURE__ */ t.createElement(
     "input",
@@ -2804,341 +2923,341 @@ function go({ t: e, x: n, core: o, crews: r, draft: a, setDraft: s, selectedBuil
       max: 200,
       step: 10,
       value: a.level < 0 ? "" : a.level,
-      onChange: (b) => h({ level: b.target.value === "" ? -1 : Math.max(0, Math.min(200, Math.trunc(Number(b.target.value)))) })
+      onChange: (f) => m({ level: f.target.value === "" ? -1 : Math.max(0, Math.min(200, Math.trunc(Number(f.target.value)))) })
     }
-  )), a.kind === "setUp" && /* @__PURE__ */ t.createElement(t.Fragment, null, /* @__PURE__ */ t.createElement("label", null, e("job_business"), /* @__PURE__ */ t.createElement("select", { value: a.business, onChange: (b) => h({ business: Number(b.target.value) }) }, /* @__PURE__ */ t.createElement("option", { value: -1 }, "—"), po.map((b) => /* @__PURE__ */ t.createElement("option", { key: b.id, value: b.id }, b.name, " · ", ce(n.lang, b.cost))))), /* @__PURE__ */ t.createElement("div", { className: "pickrow" }, e("job_front"), ": ", a.front >= 0 ? n.place(a.front) : "—", /* @__PURE__ */ t.createElement("button", { className: "mini wide", disabled: i < 0, onClick: () => h({ front: i }) }, e("job_front_pick")))), /* @__PURE__ */ t.createElement("label", { className: "check" }, /* @__PURE__ */ t.createElement("input", { type: "checkbox", checked: a.repeat, onChange: (b) => h({ repeat: b.target.checked }) }), " ", e("job_repeat"))), /* @__PURE__ */ t.createElement("p", { className: "hint" }, F), /* @__PURE__ */ t.createElement("div", { className: "pickrow" }, m.target !== "point" && /* @__PURE__ */ t.createElement(
+  )), a.kind === "setUp" && /* @__PURE__ */ t.createElement(t.Fragment, null, /* @__PURE__ */ t.createElement("label", null, e("job_business"), /* @__PURE__ */ t.createElement("select", { value: a.business, onChange: (f) => m({ business: Number(f.target.value) }) }, /* @__PURE__ */ t.createElement("option", { value: -1 }, "—"), Mo.map((f) => /* @__PURE__ */ t.createElement("option", { key: f.id, value: f.id }, f.name, " · ", ae(n.lang, f.cost))))), /* @__PURE__ */ t.createElement("div", { className: "pickrow" }, e("job_front"), ": ", a.front >= 0 ? n.place(a.front) : "—", /* @__PURE__ */ t.createElement("button", { className: "mini wide", disabled: i < 0, onClick: () => m({ front: i }) }, e("job_front_pick")))), /* @__PURE__ */ t.createElement("label", { className: "check" }, /* @__PURE__ */ t.createElement("input", { type: "checkbox", checked: a.repeat, onChange: (f) => m({ repeat: f.target.checked }) }), " ", e("job_repeat"))), /* @__PURE__ */ t.createElement("p", { className: "hint" }, y), /* @__PURE__ */ t.createElement("div", { className: "pickrow" }, _.target !== "point" && /* @__PURE__ */ t.createElement(
     "button",
     {
       className: "mini wide",
       disabled: i < 0 || a.buildings.includes(i),
-      onClick: () => h({ buildings: m.target === "building" ? [i] : [...a.buildings, i] })
+      onClick: () => m({ buildings: _.target === "building" ? [i] : [...a.buildings, i] })
     },
     e("job_add")
-  ), m.target === "area" && /* @__PURE__ */ t.createElement(
+  ), _.target === "area" && /* @__PURE__ */ t.createElement(
     "button",
     {
       className: "mini wide",
       disabled: d < 0 || a.blocks.includes(d),
-      onClick: () => h({ blocks: [...a.blocks, d] })
+      onClick: () => m({ blocks: [...a.blocks, d] })
     },
     e("job_block")
-  ), /* @__PURE__ */ t.createElement("button", { className: "mini wide", onClick: () => h({ buildings: [], blocks: [], point: null }) }, e("job_clear"))), /* @__PURE__ */ t.createElement("ul", { className: "targets" }, a.buildings.map((b) => /* @__PURE__ */ t.createElement("li", { key: `b${b}` }, n.place(b), " ", /* @__PURE__ */ t.createElement(
+  ), /* @__PURE__ */ t.createElement("button", { className: "mini wide", onClick: () => m({ buildings: [], blocks: [], point: null }) }, e("job_clear"))), /* @__PURE__ */ t.createElement("ul", { className: "targets" }, a.buildings.map((f) => /* @__PURE__ */ t.createElement("li", { key: `b${f}` }, n.place(f), " ", /* @__PURE__ */ t.createElement(
     "button",
     {
       className: "mini",
       "aria-label": e("job_remove"),
-      onClick: () => h({ buildings: a.buildings.filter((I) => I !== b) })
+      onClick: () => m({ buildings: a.buildings.filter(($) => $ !== f) })
     },
     "×"
-  ))), a.blocks.map((b) => /* @__PURE__ */ t.createElement("li", { key: `k${b}` }, e("o_block", { n: b }), " ", /* @__PURE__ */ t.createElement(
+  ))), a.blocks.map((f) => /* @__PURE__ */ t.createElement("li", { key: `k${f}` }, e("o_block", { n: f }), " ", /* @__PURE__ */ t.createElement(
     "button",
     {
       className: "mini",
       "aria-label": e("job_remove"),
-      onClick: () => h({ blocks: a.blocks.filter((I) => I !== b) })
+      onClick: () => m({ blocks: a.blocks.filter(($) => $ !== f) })
     },
     "×"
-  ))), a.point && /* @__PURE__ */ t.createElement("li", null, e("o_point"), " (", Math.round(a.point.x / 256), ", ", Math.round(a.point.y / 256), " m)")), _ && /* @__PURE__ */ t.createElement("p", { className: "estimate" }, _.order.targets.length > 0 || _.order.point ? e("job_estimate", { time: ct(_.order.estimate) }) : "", _.order.cost > 0 ? ` · ${e("job_cost", { cost: ce(n.lang, _.order.cost) })}` : "", _.order.targets.length > 1 ? ` · ${e("o_sites", { n: _.order.targets.length })}` : "", !_.hasTime && (_.order.targets.length > 0 || _.order.point) ? ` · ${e("job_no_time")}` : "", _.staffing.kind !== "L_None" ? ` · ${de(n, _.staffing)}` : ""), u && /* @__PURE__ */ t.createElement("p", { className: u.ok ? "reply ok" : "reply bad", role: "status" }, Ne(n, u)), u && u.kind === "Y_No_Time_Trim" && u.kept.length > 0 && /* @__PURE__ */ t.createElement("div", { className: "pickrow" }, /* @__PURE__ */ t.createElement("button", { className: "mini wide", onClick: () => h({ buildings: u.kept, blocks: [] }) }, e("job_take_kept", { n: u.kept.length }))), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: f }, e("job_close")), /* @__PURE__ */ t.createElement("button", { className: "main", onClick: N }, e("job_issue"))));
+  ))), a.point && /* @__PURE__ */ t.createElement("li", null, e("o_point"), " (", Math.round(a.point.x / 256), ", ", Math.round(a.point.y / 256), " m)")), h && /* @__PURE__ */ t.createElement("p", { className: "estimate" }, h.order.targets.length > 0 || h.order.point ? e("job_estimate", { time: ut(h.order.estimate) }) : "", h.order.cost > 0 ? ` · ${e("job_cost", { cost: ae(n.lang, h.order.cost) })}` : "", h.order.targets.length > 1 ? ` · ${e("o_sites", { n: h.order.targets.length })}` : "", !h.hasTime && (h.order.targets.length > 0 || h.order.point) ? ` · ${e("job_no_time")}` : "", h.staffing.kind !== "L_None" ? ` · ${de(n, h.staffing)}` : ""), u && /* @__PURE__ */ t.createElement("p", { className: u.ok ? "reply ok" : "reply bad", role: "status" }, Me(n, u)), u && u.kind === "Y_No_Time_Trim" && u.kept.length > 0 && /* @__PURE__ */ t.createElement("div", { className: "pickrow" }, /* @__PURE__ */ t.createElement("button", { className: "mini wide", onClick: () => m({ buildings: u.kept, blocks: [] }) }, e("job_take_kept", { n: u.kept.length }))), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: k }, e("job_close")), /* @__PURE__ */ t.createElement("button", { className: "main", onClick: w }, e("job_issue"))));
 }
-function fo({ t: e, canContinue: n, ready: o, onContinue: r, onNew: a }) {
+function Po({ t: e, canContinue: n, ready: o, onContinue: r, onNew: a }) {
   const s = (i, d) => /* @__PURE__ */ t.createElement("button", { key: i, className: "menu-item", disabled: !0, title: d }, /* @__PURE__ */ t.createElement("span", null, e(i)), /* @__PURE__ */ t.createElement("small", null, d));
   return /* @__PURE__ */ t.createElement("div", { className: "overlay open start-menu", role: "dialog", "aria-modal": "true", "aria-labelledby": "menu-title" }, /* @__PURE__ */ t.createElement("div", { className: "box" }, /* @__PURE__ */ t.createElement("h2", { id: "menu-title" }, e("title")), /* @__PURE__ */ t.createElement("p", { className: "menu-sub" }, e("subtitle")), /* @__PURE__ */ t.createElement("nav", { className: "menu-list" }, /* @__PURE__ */ t.createElement("button", { className: "menu-item live", disabled: !n, onClick: r, autoFocus: n }, /* @__PURE__ */ t.createElement("span", null, e("m_continue")), !n && /* @__PURE__ */ t.createElement("small", null, e("m_this_session"))), /* @__PURE__ */ t.createElement("button", { className: "menu-item live", disabled: !o, onClick: a, autoFocus: !n }, /* @__PURE__ */ t.createElement("span", null, e("m_new"))), s("m_load", e("m_unassigned")), s("m_tutorials", e("m_out")), s("m_hof", e("later", { n: 8 })), s("m_leaderboard", e("later", { n: 8 })), s("m_how", e("m_unassigned")), s("m_credits", e("m_unassigned")))));
 }
-function bo(e, n) {
+function Ao(e, n) {
   let o = -1;
   for (let r = 0; r < 4e4; r++)
     if (e.hs_get(Y.building, r, 6) === 0 && ++o === n) return r;
   return -1;
 }
-const wo = 33, ko = [
+const To = 33, Bo = [
   { draws: 254050, cash: 5308, wages: 836 },
   { draws: 229972, cash: 4022, wages: 836 },
   { draws: 228697, cash: 3186, wages: 836 },
   { draws: 231961, cash: 2266, wages: 920 }
 ];
-function yo(e, n = () => performance.now()) {
-  const o = [], r = [], a = (v, R, P, W = "exact") => {
-    const K = String(R), ee = String(P), te = W === "info" ? !0 : W === "20%" ? Math.abs(Number(R) - Number(P)) <= 0.2 * Math.abs(Number(P)) : K === ee;
-    o.push({ label: v, got: K, want: ee, mode: W, ok: te });
+function Yo(e, n = () => performance.now()) {
+  const o = [], r = [], a = (L, x, G, V = "exact") => {
+    const W = String(x), te = String(G), ne = V === "info" ? !0 : V === "20%" ? Math.abs(Number(x) - Number(G)) <= 0.2 * Math.abs(Number(G)) : W === te;
+    o.push({ label: L, got: W, want: te, mode: V, ok: ne });
   };
   e.hs_new_game(1932, 1932, 40, 32);
-  const s = Nt(e, 1932), i = Tn(e), d = At(e), p = {
+  const s = Ft(e, 1932), i = On(e), d = dt(e), p = {
     lang: "en-GB",
     me: d,
-    place: (v) => Bn(e, s, i, v),
-    building: (v) => jt(e, v),
-    person: (v) => me(e, v),
-    gang: (v) => `The ${Yt[e.hs_get(Y.gang, v, D.surname)]} Gang`,
-    crew: (v) => De({ nameFirst: e.hs_get(J.crews, v, Z.nameFirst) }),
-    type: (v) => ie[v] ?? "?"
-  }, f = (v) => bo(e, v), m = Re(e, d)[0].slot, u = e.hs_get(Y.gang, d, D.office);
-  a("lieutenant", me(e, Re(e, d)[0].lieutenant), "Luigi Romano"), a("office (1.2.91 number 4576)", u, f(4576));
-  const c = (v, R, P, W) => {
-    const K = { ...Dt(m, R.kind), ...R }, ee = Fn(e, K);
-    P !== null && a(`${v}: estimate (minutes)`, ee ? ee.order.estimate : -1, P);
-    const te = An(e, K);
-    return a(`${v}: reply`, Ne(p, te), W), { preview: ee, reply: te };
-  }, _ = (v) => {
-    let R = null;
-    for (let P = 0; P < 512; P++) {
-      if (e.hs_get(J.order, P, T.gang) !== d || pe[e.hs_get(J.order, P, T.kind)] !== v) continue;
-      const W = Nn(e, P);
-      (!R || W.id > R.id) && (R = W);
+    place: (L) => zn(e, s, i, L),
+    building: (L) => Ht(e, L),
+    person: (L) => he(e, L),
+    gang: (L) => `The ${zt[e.hs_get(Y.gang, L, D.surname)]} Gang`,
+    crew: (L) => Fe({ nameFirst: e.hs_get(Q.crews, L, Z.nameFirst) }),
+    type: (L) => ce[L] ?? "?"
+  }, k = (L) => Ao(e, L), _ = Oe(e, d)[0].slot, u = e.hs_get(Y.gang, d, D.office);
+  a("lieutenant", he(e, Oe(e, d)[0].lieutenant), "Luigi Romano"), a("office (1.2.91 number 4576)", u, k(4576));
+  const c = (L, x, G, V) => {
+    const W = { ...Gt(_, x.kind), ...x }, te = Yn(e, W);
+    G !== null && a(`${L}: estimate (minutes)`, te ? te.order.estimate : -1, G);
+    const ne = Rn(e, W);
+    return a(`${L}: reply`, Me(p, ne), V), { preview: te, reply: ne };
+  }, h = (L) => {
+    let x = null;
+    for (let G = 0; G < 512; G++) {
+      if (e.hs_get(Q.order, G, A.gang) !== d || fe[e.hs_get(Q.order, G, A.kind)] !== L) continue;
+      const V = An(e, G);
+      (!x || V.id > x.id) && (x = V);
     }
-    return R;
-  }, h = (v) => Ln(e, d).find((R) => R.kind === v), y = (v) => v ? v.results.map((R) => de(p, R)) : [], k = (v) => {
-    const R = n();
-    e.hs_finish_week(), r.push(Math.round(n() - R));
-    const P = ko[v - 1];
-    a(`week ${v}: cash (1.2.91 less business income, item 8)`, e.hs_get(Y.gang, d, D.cash), P.cash), a(`week ${v}: wages`, e.hs_get(Y.gang, d, D.wages), P.wages), a(`week ${v}: random draws`, e.hs_count(M.drawsWeek), P.draws, "20%");
-  }, F = (v, R, P) => {
-    const W = h(v);
-    a(`${R}: state`, W?.state ?? "missing", "done"), a(`${R}: done at minute (1.2.91 with cars)`, W?.finished ?? -1, P, "info");
-  }, N = (v, R, P) => {
-    const W = y(h(v));
-    P.forEach((K, ee) => a(`${R}: result ${ee + 1}`, W[ee] ?? "(none)", K)), W.length !== P.length && a(`${R}: results`, W.length, P.length);
+    return x;
+  }, m = (L) => Tn(e, d).find((x) => x.kind === L), N = (L) => L ? L.results.map((x) => de(p, x)) : [], g = (L) => {
+    const x = n();
+    e.hs_finish_week(), r.push(Math.round(n() - x));
+    const G = Bo[L - 1];
+    a(`week ${L}: cash (1.2.91 less business income, item 8)`, e.hs_get(Y.gang, d, D.cash), G.cash), a(`week ${L}: wages`, e.hs_get(Y.gang, d, D.wages), G.wages), a(`week ${L}: random draws`, e.hs_count(F.drawsWeek), G.draws, "20%");
+  }, y = (L, x, G) => {
+    const V = m(L);
+    a(`${x}: state`, V?.state ?? "missing", "done"), a(`${x}: done at minute (1.2.91 with cars)`, V?.finished ?? -1, G, "info");
+  }, w = (L, x, G) => {
+    const V = N(m(L));
+    G.forEach((W, te) => a(`${x}: result ${te + 1}`, V[te] ?? "(none)", W)), V.length !== G.length && a(`${x}: results`, V.length, G.length);
   };
-  c("collect 1407, 1578", { kind: "collect", buildings: [f(1407), f(1578)] }, 312, "Luigi Romano accepted the order.");
-  const b = _("collect");
-  a("collect: route", b ? b.targets.map((v) => v === f(1578) ? 1578 : v === f(1407) ? 1407 : v).join(" then ") : "", "1578 then 1407");
-  const I = c("buy 1411", { kind: "buy", buildings: [f(1411)] }, 359, "Luigi Romano accepted the order.");
-  a("buy 1411: price", I.preview?.order.cost ?? -1, 160), c("explore block 413", { kind: "explore", blocks: [413] }, 340, "Luigi Romano accepted the order."), a("explore: sites", _("explore")?.targets.length ?? 0, 5), c("recruit block 413", { kind: "recruit", blocks: [413] }, null, "Nothing there for that order."), c(
+  c("collect 1407, 1578", { kind: "collect", buildings: [k(1407), k(1578)] }, 312, "Luigi Romano accepted the order.");
+  const f = h("collect");
+  a("collect: route", f ? f.targets.map((L) => L === k(1578) ? 1578 : L === k(1407) ? 1407 : L).join(" then ") : "", "1578 then 1407");
+  const $ = c("buy 1411", { kind: "buy", buildings: [k(1411)] }, 359, "Luigi Romano accepted the order.");
+  a("buy 1411: price", $.preview?.order.cost ?? -1, 160), c("explore block 413", { kind: "explore", blocks: [413] }, 340, "Luigi Romano accepted the order."), a("explore: sites", h("explore")?.targets.length ?? 0, 5), c("recruit block 413", { kind: "recruit", blocks: [413] }, null, "Nothing there for that order."), c(
     "clear streets block 413",
     { kind: "clearStreets", blocks: [413] },
     null,
     "Clearing the streets needs the mayor or the police chief on your side (bribed)."
   ), c("explore with 3 men", { kind: "explore", blocks: [413], manpower: 3 }, null, "Luigi Romano has only 2 people."), e.hs_launch_week();
-  const E = (v) => {
-    const R = _(v);
-    return R && R.assigned.length ? me(e, R.assigned[0]) : R?.state ?? "";
+  const S = (L) => {
+    const x = h(L);
+    return x && x.assigned.length ? he(e, x.assigned[0]) : x?.state ?? "";
   };
-  a("week 1 hand-out: collect", E("collect"), "Sal Rinaldi"), a("week 1 hand-out: buy", E("buy"), "Luigi Romano"), a("week 1 hand-out: explore", E("explore"), "queued"), k(1), F("buy", "buy", 498), F("collect", "collect", 552), F("explore", "explore", 1321), N("collect", "collect", [
+  a("week 1 hand-out: collect", S("collect"), "Sal Rinaldi"), a("week 1 hand-out: buy", S("buy"), "Luigi Romano"), a("week 1 hand-out: explore", S("explore"), "queued"), g(1), y("buy", "buy", 498), y("collect", "collect", 552), y("explore", "explore", 1321), w("collect", "collect", [
     "Collected $152 from Apartment Block on Cermak St at Wood Ave.",
     "Collected $152 from Apartment Block on Maxwell St at Paulina Ave."
-  ]), N("buy", "buy", ["Bought Empty land on Maxwell St at Paulina Ave for $160."]), N("explore", "explore", [
+  ]), w("buy", "buy", ["Bought Empty land on Maxwell St at Paulina Ave for $160."]), w("explore", "explore", [
     "Looked over Perfume Store on Archer St at Paulina Ave: owned by you.",
     "Looked over Residences on Cermak St at Paulina Ave: paying nobody.",
     "Looked over Residences on Cermak St at Paulina Ave: paying nobody.",
     "Looked over Residences on Cermak St at Hermitage Ave: paying nobody.",
     "Looked over Office on Cermak St at Paulina Ave: owned by you."
-  ]), c("adjust 1407 to 150 %", { kind: "adjust", buildings: [f(1407)], level: 150 }, 142, "Luigi Romano accepted the order."), c(
+  ]), c("adjust 1407 to 150 %", { kind: "adjust", buildings: [k(1407)], level: 150 }, 142, "Luigi Romano accepted the order."), c(
     "set up a clothing bank at 1583",
-    { kind: "setUp", buildings: [f(1583)], business: Ba.indexOf("clothingBank") },
+    { kind: "setUp", buildings: [k(1583)], business: Wa.indexOf("clothingBank") },
     538,
     "Luigi Romano accepted the order."
   );
-  const g = _("setUp");
-  a("cancel the set-up", g ? Ne(p, ze(e, X.cancel, g.slot)) : "", "Order cancelled."), c("clean up block 413", { kind: "cleanUp", blocks: [413] }, 338, "Luigi Romano accepted the order."), c("donate $200 to 1406", { kind: "donate", buildings: [f(1406)], amount: 200 }, 186, "Luigi Romano accepted the order."), e.hs_launch_week(), k(2), F("adjust", "adjust", 255), F("cleanUp", "clean up", 666), F("donate", "donate", 681), N("adjust", "adjust", ["Protection at Apartment Block on Maxwell St at Paulina Ave set to $228."]), N("cleanUp", "clean up", [
+  const b = h("setUp");
+  a("cancel the set-up", b ? Me(p, je(e, J.cancel, b.slot)) : "", "Order cancelled."), c("clean up block 413", { kind: "cleanUp", blocks: [413] }, 338, "Luigi Romano accepted the order."), c("donate $200 to 1406", { kind: "donate", buildings: [k(1406)], amount: 200 }, 186, "Luigi Romano accepted the order."), e.hs_launch_week(), g(2), y("adjust", "adjust", 255), y("cleanUp", "clean up", 666), y("donate", "donate", 681), w("adjust", "adjust", ["Protection at Apartment Block on Maxwell St at Paulina Ave set to $228."]), w("cleanUp", "clean up", [
     "Cleaned up round Perfume Store on Archer St at Paulina Ave.",
     "Cleaned up round Residences on Cermak St at Paulina Ave.",
     "Cleaned up round Residences on Cermak St at Paulina Ave.",
     "Cleaned up round Residences on Cermak St at Hermitage Ave.",
     "Cleaned up round Office on Cermak St at Paulina Ave."
-  ]), N("donate", "donate", ["Donated $200 to Church on Maxwell St at Laflin Ave."]), a("week 2: purchases", e.hs_get(Y.gang, d, wo), 450), c("run 1583", { kind: "run", buildings: [f(1583)] }, 176, "Luigi Romano accepted the order.");
-  const S = e.hs_get(Y.building, u, Me.lot), G = (v) => e.hs_get(Y.lot, S, v);
+  ]), w("donate", "donate", ["Donated $200 to Church on Maxwell St at Laflin Ave."]), a("week 2: purchases", e.hs_get(Y.gang, d, To), 450), c("run 1583", { kind: "run", buildings: [k(1583)] }, 176, "Luigi Romano accepted the order.");
+  const v = e.hs_get(Y.building, u, Ae.lot), O = (L) => e.hs_get(Y.lot, v, L);
   c(
     "go to the office",
-    { kind: "goTo", point: { x: G(2) + Math.trunc(G(4) / 2), y: G(3) + Math.trunc(G(5) / 2) } },
+    { kind: "goTo", point: { x: O(2) + Math.trunc(O(4) / 2), y: O(3) + Math.trunc(O(5) / 2) } },
     1200,
     "Luigi Romano accepted the order."
-  ), e.hs_launch_week(), k(3), F("run", "run", 176), N("run", "run", ["New management installed at Perfume Store on Archer St at Paulina Ave."]);
-  const U = h("goTo");
-  a("go to: held position (minutes)", U?.results[0]?.b ?? -1, 2376, "20%"), a("go to: line", y(U)[0] ?? "", "Held position for 39h 36m.", "info"), a("week 3: crew", Re(e, d)[0].members.map((v) => me(e, v)).join(", "), "Gino Costa");
-  const ue = [1, 2].map((v) => e.hs_get(Y.pool, d, v));
-  a("move the first of the pool to the crew", Ne(p, ze(e, X.moveToCrew, ue[0], m)), "Vito Ferrante joined Luigi's Crew."), a("move the second of the pool to the crew", Ne(p, ze(e, X.moveToCrew, ue[1], m)), "Carmela Romano joined Luigi's Crew."), c("patrol block 413", { kind: "patrol", blocks: [413] }, 600, "Luigi Romano accepted the order."), c("guard 1583", { kind: "guard", buildings: [f(1583)] }, 600, "Luigi Romano accepted the order."), c("recruit block 411", { kind: "recruit", blocks: [411] }, 213, "Luigi Romano accepted the order."), a("recruit: site (1.2.91 number 1570, the gym)", _("recruit")?.targets[0] ?? -1, f(1570)), e.hs_launch_week(), a("week 4 hand-out: patrol", E("patrol"), "Luigi Romano"), a("week 4 hand-out: guard", E("guard"), "Gino Costa"), a("week 4 hand-out: recruit", E("recruit"), "Vito Ferrante"), k(4), F("recruit", "recruit", 294), N("recruit", "recruit", ["1 hood signed on, waiting in the pool."]);
-  const ae = h("patrol"), ge = h("guard");
-  a("patrol: blocks", ae?.results[0]?.b ?? -1, 1), a("patrol: minutes", ae?.results[0]?.c ?? -1, 2344, "20%"), a("patrol: line", y(ae)[0] ?? "", "Patrolled 1 block for 39h 4m.", "info"), a("guard: minutes", ge?.results[0]?.b ?? -1, 2399, "20%"), a("guard: line", y(ge)[0] ?? "", "Stood guard at Perfume Store on Archer St at Paulina Ave for 39h 59m.", "info"), a("week 4: pool, crew", `${e.hs_get(Y.gang, d, D.poolCount)}, ${Re(e, d)[0].members.length}`, "2, 3");
-  const Ae = o.filter((v) => !v.ok).length;
-  return { rows: o, passed: o.length - Ae, failed: Ae, weekMs: r };
+  ), e.hs_launch_week(), g(3), y("run", "run", 176), w("run", "run", ["New management installed at Perfume Store on Archer St at Paulina Ave."]);
+  const I = m("goTo");
+  a("go to: held position (minutes)", I?.results[0]?.b ?? -1, 2376, "20%"), a("go to: line", N(I)[0] ?? "", "Held position for 39h 36m.", "info"), a("week 3: crew", Oe(e, d)[0].members.map((L) => he(e, L)).join(", "), "Gino Costa");
+  const ue = [1, 2].map((L) => e.hs_get(Y.pool, d, L));
+  a("move the first of the pool to the crew", Me(p, je(e, J.moveToCrew, ue[0], _)), "Vito Ferrante joined Luigi's Crew."), a("move the second of the pool to the crew", Me(p, je(e, J.moveToCrew, ue[1], _)), "Carmela Romano joined Luigi's Crew."), c("patrol block 413", { kind: "patrol", blocks: [413] }, 600, "Luigi Romano accepted the order."), c("guard 1583", { kind: "guard", buildings: [k(1583)] }, 600, "Luigi Romano accepted the order."), c("recruit block 411", { kind: "recruit", blocks: [411] }, 213, "Luigi Romano accepted the order."), a("recruit: site (1.2.91 number 1570, the gym)", h("recruit")?.targets[0] ?? -1, k(1570)), e.hs_launch_week(), a("week 4 hand-out: patrol", S("patrol"), "Luigi Romano"), a("week 4 hand-out: guard", S("guard"), "Gino Costa"), a("week 4 hand-out: recruit", S("recruit"), "Vito Ferrante"), g(4), y("recruit", "recruit", 294), w("recruit", "recruit", ["1 hood signed on, waiting in the pool."]);
+  const X = m("patrol"), be = m("guard");
+  a("patrol: blocks", X?.results[0]?.b ?? -1, 1), a("patrol: minutes", X?.results[0]?.c ?? -1, 2344, "20%"), a("patrol: line", N(X)[0] ?? "", "Patrolled 1 block for 39h 4m.", "info"), a("guard: minutes", be?.results[0]?.b ?? -1, 2399, "20%"), a("guard: line", N(be)[0] ?? "", "Stood guard at Perfume Store on Archer St at Paulina Ave for 39h 59m.", "info"), a("week 4: pool, crew", `${e.hs_get(Y.gang, d, D.poolCount)}, ${Oe(e, d)[0].members.length}`, "2, 3");
+  const Be = o.filter((L) => !L.ok).length;
+  return { rows: o, passed: o.length - Be, failed: Be, weekMs: r };
 }
-const vt = window.HS.stamp, nt = matchMedia("(prefers-reduced-motion: reduce)"), Eo = 10 / 3, vo = 12;
-function St(e) {
-  return Object.keys(he).find((n) => he[n][0] === e.w && he[n][1] === e.h) ?? "standard";
+const Nt = window.HS.stamp, at = matchMedia("(prefers-reduced-motion: reduce)"), xo = 10 / 3, Ro = 12;
+function Lt(e) {
+  return Object.keys(ge).find((n) => ge[n][0] === e.w && ge[n][1] === e.h) ?? "standard";
 }
-function So() {
-  const [e, n] = x(() => {
-    const l = ft("ahs.lang", "en-GB");
-    return Xt.includes(l) ? l : "en-GB";
-  }), [o, r] = x(() => ft("ahs.sound", "on") !== "off"), [a, s] = x(null), [i, d] = x(null), [p, f] = x(null), [m, u] = x(null), [c, _] = x(null), [h, y] = x(null), [k, F] = x(-1), [N, b] = x("street"), [I, E] = x(0), [g, S] = x(!1), [G, U] = x(!1), [ue, ae] = x(!1), [ge, Ae] = x(""), [v, R] = x(null), [P, W] = x([]), [K, ee] = x(null), [te, Ge] = x(-1), [He, dt] = x(!1), [fe, Rn] = x(() => {
-    const l = Number(ft("ahs.speed", "1"));
+function Oo() {
+  const [e, n] = B(() => {
+    const l = kt("ahs.lang", "en-GB");
+    return tn.includes(l) ? l : "en-GB";
+  }), [o, r] = B(() => kt("ahs.sound", "on") !== "off"), [a, s] = B(null), [i, d] = B(null), [p, k] = B(null), [_, u] = B(null), [c, h] = B(null), [m, N] = B(null), [g, y] = B(-1), [w, f] = B("street"), [$, S] = B(0), [b, v] = B(!1), [O, I] = B(!1), [ue, X] = B(!1), [be, Be] = B(""), [L, x] = B(null), [G, V] = B(null), [W, te] = B([]), [ne, jn] = B(null), [we, He] = B(-1), [Ie, _t] = B(!1), [ke, Gn] = B(() => {
+    const l = Number(kt("ahs.speed", "1"));
     return [1, 2, 4, 8, 0].includes(l) ? l : 1;
-  }), [Te, ut] = x(!1), [Yn, Gt] = x(null), [On, zn] = x(0), Ie = Le(0), [We, _t] = x(!0), [Dn, jn] = x(!1), [$e, mt] = x(!1), [be, Gn] = x(null), [ne, we] = x(null), [qe, Ue] = x(""), [Hn, In] = x(null), Ve = Le(-1), L = ke((l, w) => Lt(e, l, w), [e]), _e = ke((l) => {
-    R(Za(l));
-    const w = kt(l);
-    Ja(l, l.hs_count(M.lots) * 2, w), W(w), ee(Qa(l));
-    const B = At(l);
-    Gn(B > 0 ? mo(l, B, w[B - 1]?.pool ?? [], ro(l)) : null);
-    const A = un(l);
-    A !== Ve.current && (Ve.current >= 0 && _((z) => z && Nt(l, z.seed)), Ve.current = A), zn((z) => z + 1);
-  }, []), Ke = ke((l, w, B) => {
-    const [A, z] = he[B], Q = performance.now();
-    l.hs_new_game(w, w, A, z);
-    const oe = Nt(l, w);
-    _(oe), F(-1), Ge(-1), y(l.hs_state_hash()), Ve.current = un(l), we(null), Ue(""), jn(!0), _e(l), Ee("new_game", {
-      seed: w,
-      size: B,
-      ms: Math.round(performance.now() - Q),
-      city_hash: oe.cityHash,
-      structure_hash: oe.structureHash,
-      lots: oe.counts.lots,
-      status: oe.status
+  }), [Ye, mt] = B(!1), [Hn, It] = B(null), [In, Wn] = B(0), We = Pe(0), [$e, ht] = B(!0), [$n, Vn] = B(!1), [Ve, pt] = B(!1), [ye, qn] = B(null), [oe, Ee] = B(null), [qe, Ue] = B(""), [Un, Kn] = B(null), Ke = Pe(-1), M = ve((l, E) => Pt(e, l, E), [e]), _e = ve((l) => {
+    x(lo(l)), V(io(l));
+    const E = vt(l);
+    co(l, l.hs_count(F.lots) * 2, E), te(E), jn(uo(l));
+    const T = dt(l);
+    qn(T > 0 ? No(l, T, E[T - 1]?.pool ?? [], wo(l)) : null);
+    const P = pn(l);
+    P !== Ke.current && (Ke.current >= 0 && h((j) => j && Ft(l, j.seed)), Ke.current = P), Wn((j) => j + 1);
+  }, []), Ze = ve((l, E, T) => {
+    const [P, j] = ge[T], ee = performance.now();
+    l.hs_new_game(E, E, P, j);
+    const re = Ft(l, E);
+    h(re), y(-1), He(-1), N(l.hs_state_hash()), Ke.current = pn(l), Ee(null), Ue(""), Vn(!0), _e(l), Ce("new_game", {
+      seed: E,
+      size: T,
+      ms: Math.round(performance.now() - ee),
+      city_hash: re.cityHash,
+      structure_hash: re.structureHash,
+      lots: re.counts.lots,
+      status: re.status
     });
   }, [_e]);
-  V(() => {
-    if (!a || !K?.running || Te || We) return;
-    let l = 0, w = performance.now();
-    const B = (A) => {
-      let z = 0;
-      if (fe === 0) {
-        const Q = A + vo;
-        for (; performance.now() < Q; ) {
-          const oe = a.hs_tick(4);
-          if (z += oe, oe < 4) break;
+  U(() => {
+    if (!a || !ne?.running || Ye || $e) return;
+    let l = 0, E = performance.now();
+    const T = (P) => {
+      let j = 0;
+      if (ke === 0) {
+        const ee = P + Ro;
+        for (; performance.now() < ee; ) {
+          const re = a.hs_tick(4);
+          if (j += re, re < 4) break;
         }
       } else {
-        Ie.current += (A - w) / 1e3 * Eo * fe;
-        const Q = Math.floor(Ie.current);
-        Ie.current -= Q, Q > 0 && (z = a.hs_tick(Math.min(Q, 60)));
+        We.current += (P - E) / 1e3 * xo * ke;
+        const ee = Math.floor(We.current);
+        We.current -= ee, ee > 0 && (j = a.hs_tick(Math.min(ee, 60)));
       }
-      if (w = A, z > 0 && (_e(a), a.hs_count(M.phase) === 0)) {
-        y(a.hs_state_hash()), Ee("week_settled", {
-          week: a.hs_count(M.week) - 1,
-          draws: a.hs_count(M.drawsWeek),
-          wages: kt(a).map((Q) => Q.wages),
+      if (E = P, j > 0 && (_e(a), a.hs_count(F.phase) === 0)) {
+        N(a.hs_state_hash()), Ce("week_settled", {
+          week: a.hs_count(F.week) - 1,
+          draws: a.hs_count(F.drawsWeek),
+          wages: vt(a).map((ee) => ee.wages),
           state_hash: a.hs_state_hash() >>> 0
-        }), re(o, 523.25);
+        }), se(o, 523.25);
         return;
       }
-      l = requestAnimationFrame(B);
+      l = requestAnimationFrame(T);
     };
-    return l = requestAnimationFrame(B), () => cancelAnimationFrame(l);
-  }, [a, K?.running, Te, We, fe, _e, o]);
-  const Wn = () => {
-    a && (a.hs_launch_week(), Ie.current = 0, ut(!1), O("launch_week", a.hs_count(M.week)), _e(a));
-  }, $n = () => {
+    return l = requestAnimationFrame(T), () => cancelAnimationFrame(l);
+  }, [a, ne?.running, Ye, $e, ke, _e, o]);
+  const Zn = () => {
+    a && (a.hs_launch_week(), We.current = 0, mt(!1), z("launch_week", a.hs_count(F.week)), _e(a));
+  }, Jn = () => {
     if (!a) return;
-    const l = performance.now(), w = a.hs_count(M.week);
+    const l = performance.now(), E = a.hs_count(F.week);
     a.hs_finish_week();
-    const B = Math.round(performance.now() - l);
-    _e(a), y(a.hs_state_hash()), O("finish_week", w), Ee("week_settled", {
-      week: w,
-      ms: B,
-      draws: a.hs_count(M.drawsWeek),
-      wages: kt(a).map((A) => A.wages),
+    const T = Math.round(performance.now() - l);
+    _e(a), N(a.hs_state_hash()), z("finish_week", E), Ce("week_settled", {
+      week: E,
+      ms: T,
+      draws: a.hs_count(F.drawsWeek),
+      wages: vt(a).map((P) => P.wages),
       state_hash: a.hs_state_hash() >>> 0
-    }), re(o, 523.25);
-  }, Ht = ke((l) => {
-    Ge(l), F(-1), l >= 0 && (O("select_person", l), re(o, 587.33));
-  }, [o]), It = (l) => {
+    }), se(o, 523.25);
+  }, Wt = ve((l) => {
+    He(l), y(-1), l >= 0 && (z("select_person", l), se(o, 587.33));
+  }, [o]), $t = (l) => {
     if (!a) return;
-    Ht(l);
-    const w = ln(a, l);
-    w && (b("street"), Gt({ x: w.x, y: w.y, n: Date.now() }));
-  }, qn = ye(() => [0, ...P.map((l) => l.colour)], [P]), ht = ye(
-    () => a && te >= 0 ? ln(a, te) : null,
+    Wt(l);
+    const E = _n(a, l);
+    E && (f("street"), It({ x: E.x, y: E.y, n: Date.now() }));
+  }, Qn = Se(() => [0, ...W.map((l) => l.colour)], [W]), gt = Se(
+    () => a && we >= 0 ? _n(a, we) : null,
     // tickNo: the card follows him as he walks.
-    [a, te, On]
+    [a, we, In]
   );
-  V(() => {
-    ta(window.HS.wasm, (l) => {
-      Ye("last_chance", Lt("en-GB", `err${l.code}`), { ...l }), f(l);
+  U(() => {
+    la(window.HS.wasm, (l) => {
+      ze("last_chance", Pt("en-GB", `err${l.code}`), { ...l }), k(l);
     }).then((l) => {
-      l.hs_new_game(Ce.seed, Ce.auto, Ce.w, Ce.h);
-      const w = {
-        streams: [1, 2, 3].map((B) => Array.from({ length: 20 }, (A, z) => l.hs_rng_value(B, z + 1) >>> 0)),
-        checks: Array.from({ length: 9 }, (B, A) => l.hs_check_value(A + 1)),
+      l.hs_new_game(Le.seed, Le.auto, Le.w, Le.h);
+      const E = {
+        streams: [1, 2, 3].map((T) => Array.from({ length: 20 }, (P, j) => l.hs_rng_value(T, j + 1) >>> 0)),
+        checks: Array.from({ length: 9 }, (T, P) => l.hs_check_value(P + 1)),
         gw: l.hs_grid_w(),
         gh: l.hs_grid_h(),
-        pattern: Array.from({ length: 225 }, (B, A) => l.hs_cell_kind(A % 15, Math.floor(A / 15))),
+        pattern: Array.from({ length: 225 }, (T, P) => l.hs_cell_kind(P % 15, Math.floor(P / 15))),
         worldHash: l.hs_state_hash()
       };
-      u(w), Ee("core_loaded", { build_id: l.hs_build_id(), ...Pt(w) }), s(l);
+      u(E), Ce("core_loaded", { build_id: l.hs_build_id(), ...Bt(E) }), s(l);
     }).catch((l) => {
-      l instanceof Ct || (d(String(l)), Ye("wasm_load", String(l)));
+      l instanceof Mt || (d(String(l)), ze("wasm_load", String(l)));
     });
-  }, [Ke]), V(() => {
-    document.documentElement.lang = e, document.title = L("title");
-  }, [e, L]), V(() => {
-    const l = (B) => {
-      B.key === "F9" ? (B.preventDefault(), O("report_opened", "f9"), ae(!0)) : B.key === "Escape" && (ae(!1), U(!1));
+  }, [Ze]), U(() => {
+    document.documentElement.lang = e, document.title = M("title");
+  }, [e, M]), U(() => {
+    const l = (T) => {
+      T.key === "F9" ? (T.preventDefault(), z("report_opened", "f9"), X(!0)) : T.key === "Escape" && (X(!1), I(!1));
     };
     window.addEventListener("keydown", l);
-    const w = () => Ee("reduced_motion", nt.matches);
-    return nt.addEventListener?.("change", w), () => {
-      window.removeEventListener("keydown", l), nt.removeEventListener?.("change", w);
+    const E = () => Ce("reduced_motion", at.matches);
+    return at.addEventListener?.("change", E), () => {
+      window.removeEventListener("keydown", l), at.removeEventListener?.("change", E);
     };
   }, []);
-  const Wt = ke((l) => {
-    F(l), Ge(-1), l >= 0 && (O("select_lot", l), re(o, 659.25)), l >= 0 && a && c && we((w) => {
-      if (!w) return w;
-      const B = c.lots[l];
-      if (!B) return w;
-      if (w.kind === "goTo") return { ...w, point: { x: Math.round((B.x + B.w / 2) * 256), y: Math.round((B.y + B.h / 2) * 256) } };
-      const A = dn(a, c, l);
-      return A < 0 ? w : ["buy", "setUp", "run", "donate", "guard"].includes(w.kind) ? { ...w, buildings: [A] } : w.buildings.includes(A) ? { ...w, buildings: w.buildings.filter((z) => z !== A) } : { ...w, buildings: [...w.buildings, A] };
+  const Vt = ve((l) => {
+    y(l), He(-1), l >= 0 && (z("select_lot", l), se(o, 659.25)), l >= 0 && a && c && Ee((E) => {
+      if (!E) return E;
+      const T = c.lots[l];
+      if (!T) return E;
+      if (E.kind === "goTo") return { ...E, point: { x: Math.round((T.x + T.w / 2) * 256), y: Math.round((T.y + T.h / 2) * 256) } };
+      const P = hn(a, c, l);
+      return P < 0 ? E : ["buy", "setUp", "run", "donate", "guard"].includes(E.kind) ? { ...E, buildings: [P] } : E.buildings.includes(P) ? { ...E, buildings: E.buildings.filter((j) => j !== P) } : { ...E, buildings: [...E.buildings, P] };
     });
-  }, [o, a, c]), $t = ye(() => a && c ? Tn(a) : { cols: [], rows: [] }, [a, c]), pt = ye(() => ({
+  }, [o, a, c]), qt = Se(() => a && c ? On(a) : { cols: [], rows: [] }, [a, c]), ft = Se(() => ({
     lang: e,
-    me: a ? At(a) : 0,
-    place: (l) => a && c ? Bn(a, c, $t, l) : String(l),
-    building: (l) => a ? jt(a, l) : String(l),
-    person: (l) => a && l >= 0 ? me(a, l) : "—",
-    gang: (l) => L("g_name", { name: P[l - 1]?.name ?? String(l) }),
-    crew: (l) => a ? De({ nameFirst: a.hs_get(J.crews, l, Z.nameFirst) }) : String(l),
-    type: (l) => ie[l] ?? "?"
-  }), [e, a, c, $t, P, L]), Ze = ke((l) => {
+    me: a ? dt(a) : 0,
+    place: (l) => a && c ? zn(a, c, qt, l) : String(l),
+    building: (l) => a ? Ht(a, l) : String(l),
+    person: (l) => a && l >= 0 ? he(a, l) : "—",
+    gang: (l) => M("g_name", { name: W[l - 1]?.name ?? String(l) }),
+    crew: (l) => a ? Fe({ nameFirst: a.hs_get(Q.crews, l, Z.nameFirst) }) : String(l),
+    type: (l) => ce[l] ?? "?"
+  }), [e, a, c, qt, W, M]), Je = ve((l) => {
     if (!a || !c) return null;
-    const w = c.lots[a.hs_get(3, l, 0)];
-    return w ? { x: w.x + w.w / 2, y: w.y + w.h / 2 } : null;
-  }, [a, c]), qt = ye(() => {
+    const E = c.lots[a.hs_get(3, l, 0)];
+    return E ? { x: E.x + E.w / 2, y: E.y + E.h / 2 } : null;
+  }, [a, c]), Ut = Se(() => {
     const l = [];
     if (!c) return l;
-    const w = P.find((A) => A.player), B = w ? Fe[w.colour % 4] : "#f1d58f";
-    for (const A of be?.orders ?? [])
-      if (!["done", "failed", "cancelled"].includes(A.state)) {
-        for (const z of A.targets) {
-          const Q = Ze(z);
-          Q && l.push({ ...Q, colour: B });
+    const E = W.find((P) => P.player), T = E ? pe[E.colour % 4] : "#f1d58f";
+    for (const P of ye?.orders ?? [])
+      if (!["done", "failed", "cancelled"].includes(P.state)) {
+        for (const j of P.targets) {
+          const ee = Je(j);
+          ee && l.push({ ...ee, colour: T });
         }
-        A.point && l.push({ x: A.point.x / 256, y: A.point.y / 256, colour: B });
+        P.point && l.push({ x: P.point.x / 256, y: P.point.y / 256, colour: T });
       }
-    if (ne) {
-      for (const A of ne.buildings) {
-        const z = Ze(A);
-        z && l.push({ ...z, colour: "#f1d58f" });
+    if (oe) {
+      for (const P of oe.buildings) {
+        const j = Je(P);
+        j && l.push({ ...j, colour: "#f1d58f" });
       }
-      for (const A of ne.blocks)
-        for (const z of c.lots) z.block === A && l.push({ x: z.x + z.w / 2, y: z.y + z.h / 2, colour: "#f1d58f" });
-      ne.point && l.push({ x: ne.point.x / 256, y: ne.point.y / 256, colour: "#f1d58f" });
+      for (const P of oe.blocks)
+        for (const j of c.lots) j.block === P && l.push({ x: j.x + j.w / 2, y: j.y + j.h / 2, colour: "#f1d58f" });
+      oe.point && l.push({ x: oe.point.x / 256, y: oe.point.y / 256, colour: "#f1d58f" });
     }
     return l;
-  }, [c, P, be, ne, Ze]), Un = (l) => {
-    const w = l.targets.length ? Ze(l.targets[0]) : l.point ? { x: l.point.x / 256, y: l.point.y / 256 } : null;
-    w && (b("street"), Gt({ ...w, n: Date.now() }));
-  }, Ut = (l) => {
-    const w = Ne(pt, l);
-    Ue(w), O("command", { reply: l.kind, a: l.a, b: l.b }), a && _e(a);
-  }, Vn = () => {
+  }, [c, W, ye, oe, Je]), Xn = (l) => {
+    const E = l.targets.length ? Je(l.targets[0]) : l.point ? { x: l.point.x / 256, y: l.point.y / 256 } : null;
+    E && (f("street"), It({ ...E, n: Date.now() }));
+  }, Kt = (l) => {
+    const E = Me(ft, l);
+    Ue(E), z("command", { reply: l.kind, a: l.a, b: l.b }), a && _e(a);
+  }, ea = () => {
     if (!a || !c) return;
-    const l = c.seed, w = St(c);
-    O("order_check");
-    const B = yo(a);
-    In(B), Ee("order_check", { passed: B.passed, failed: B.failed, week_ms: B.weekMs }), Ke(a, l, w);
-  }, Kn = () => {
-    _t(!0), O("menu");
+    const l = c.seed, E = Lt(c);
+    z("order_check");
+    const T = Yo(a);
+    Kn(T), Ce("order_check", { passed: T.passed, failed: T.failed, week_ms: T.weekMs }), Ze(a, l, E);
+  }, ta = () => {
+    ht(!0), z("menu");
   };
-  V(() => {
+  U(() => {
     if (!qe) return;
     const l = setTimeout(() => Ue(""), 6e3);
     return () => clearTimeout(l);
   }, [qe]);
-  const Vt = ye(() => ({
-    stamp: vt,
+  const Zt = Se(() => ({
+    stamp: Nt,
     lang: e,
     sound: o,
-    reducedMotion: nt.matches,
+    reducedMotion: at.matches,
     seeds: c ? { city: c.seed, auto: c.seed } : null,
-    stateHash: h === null ? null : "0x" + (h >>> 0).toString(16).padStart(8, "0"),
+    stateHash: m === null ? null : "0x" + (m >>> 0).toString(16).padStart(8, "0"),
     custom: {
       build_id: a?.hs_build_id() ?? null,
       core_load_error: i,
@@ -3150,186 +3269,187 @@ function So() {
         structure_hash: c.structureHash,
         rng_after_city: c.rngAfter,
         counts: c.counts,
-        matches_reference: En(c) !== null
+        matches_reference: Ln(c) !== null
       } : null,
-      selected_lot: k,
-      selected_person: te,
-      view: N,
-      step2: m ? Pt(m) : null,
-      week: K,
-      speed: fe,
-      gangs: P.map((l) => ({ id: l.id, name: l.name, cash: l.cash, wages: l.wages, crew: l.crew.length, pool: l.pool.length })),
+      selected_lot: g,
+      selected_person: we,
+      view: w,
+      step2: _ ? Bt(_) : null,
+      week: ne,
+      speed: ke,
+      gangs: W.map((l) => ({ id: l.id, name: l.name, cash: l.cash, wages: l.wages, crew: l.crew.length, pool: l.pool.length })),
       people: a ? {
-        count: a.hs_count(M.people),
+        count: a.hs_count(F.people),
         hashes: [1, 2, 3, 4].map((l) => a.hs_population_hash(l) >>> 0),
-        rng_after_setup: (a.hs_count(M.setupLow) | a.hs_count(M.setupHigh) << 16) >>> 0,
-        rng_after_minute_1: (a.hs_count(M.m1Low) | a.hs_count(M.m1High) << 16) >>> 0
+        rng_after_setup: (a.hs_count(F.setupLow) | a.hs_count(F.setupHigh) << 16) >>> 0,
+        rng_after_minute_1: (a.hs_count(F.m1Low) | a.hs_count(F.m1High) << 16) >>> 0
       } : null
     }
-  }), [e, o, c, h, a, i, k, te, N, m, K, fe, P]), Zn = () => {
-    O("crash_test");
+  }), [e, o, c, m, a, i, g, we, w, _, ne, ke, W]), na = () => {
+    z("crash_test");
     try {
       a?.hs_crash_test(4);
     } catch (l) {
-      l instanceof Ct || Ye("wasm", String(l));
+      l instanceof Mt || ze("wasm", String(l));
     }
-  }, Jn = c ? L(St(c)) : "";
+  }, aa = c ? M(Lt(c)) : "";
   return /* @__PURE__ */ t.createElement("div", { className: "game-shell" }, c && /* @__PURE__ */ t.createElement(
-    Xa,
+    _o,
     {
       city: c,
-      selected: k,
-      onSelect: Wt,
-      turnSignal: I,
-      visible: N === "street",
-      label: L("street"),
-      people: v,
-      gangColours: qn,
-      person: te,
-      onPerson: Ht,
-      focus: Yn,
-      markers: qt
+      selected: g,
+      onSelect: Vt,
+      turnSignal: $,
+      visible: w === "street",
+      label: M("street"),
+      people: L,
+      gangColours: Qn,
+      person: we,
+      onPerson: Wt,
+      focus: Hn,
+      markers: Ut,
+      vehicles: G
     }
-  ), c && N === "plan" && /* @__PURE__ */ t.createElement(Fa, { city: c, selected: k, onSelect: Wt, label: L("plan"), markers: qt }), /* @__PURE__ */ t.createElement("header", { className: "map-buttons" }, /* @__PURE__ */ t.createElement("div", { className: "title" }, /* @__PURE__ */ t.createElement("strong", null, L("title")), /* @__PURE__ */ t.createElement("span", null, L("subtitle"))), /* @__PURE__ */ t.createElement("div", { className: "buttons" }, /* @__PURE__ */ t.createElement("button", { className: "hud-btn", "aria-pressed": N === "plan", onClick: () => {
-    const l = N === "plan" ? "street" : "plan";
-    b(l), O("view", l);
-  } }, L(N === "plan" ? "street" : "plan")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", disabled: N !== "street", onClick: () => {
-    E((l) => l + 1), O("turn_view");
-  } }, L("turn_view")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", onClick: Kn }, L("m_menu")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", disabled: !a || !c, onClick: () => {
-    S(!0), O("new_game_opened");
-  } }, L("new_game")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", onClick: () => {
+  ), c && w === "plan" && /* @__PURE__ */ t.createElement(ja, { city: c, selected: g, onSelect: Vt, label: M("plan"), markers: Ut }), /* @__PURE__ */ t.createElement("header", { className: "map-buttons" }, /* @__PURE__ */ t.createElement("div", { className: "title" }, /* @__PURE__ */ t.createElement("strong", null, M("title")), /* @__PURE__ */ t.createElement("span", null, M("subtitle"))), /* @__PURE__ */ t.createElement("div", { className: "buttons" }, /* @__PURE__ */ t.createElement("button", { className: "hud-btn", "aria-pressed": w === "plan", onClick: () => {
+    const l = w === "plan" ? "street" : "plan";
+    f(l), z("view", l);
+  } }, M(w === "plan" ? "street" : "plan")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", disabled: w !== "street", onClick: () => {
+    S((l) => l + 1), z("turn_view");
+  } }, M("turn_view")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", onClick: ta }, M("m_menu")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", disabled: !a || !c, onClick: () => {
+    v(!0), z("new_game_opened");
+  } }, M("new_game")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", onClick: () => {
     const l = !o;
-    r(l), bt("ahs.sound", l ? "on" : "off"), O("sound", l ? "on" : "off"), re(l);
-  } }, L(o ? "sound_on" : "sound_off")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", "aria-pressed": G, onClick: () => {
-    U(!G), O("debug", !G);
-  } }, L("debug")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", onClick: () => {
-    ae(!0), O("report_opened", "button");
-  } }, L("feedback")), /* @__PURE__ */ t.createElement("span", { className: "flags", "aria-label": "Language" }, Xt.map((l) => /* @__PURE__ */ t.createElement("button", { key: l, "aria-pressed": l === e, title: l, onClick: () => {
-    n(l), bt("ahs.lang", l), O("language", l);
-  } }, /* @__PURE__ */ t.createElement(eo, { lang: l }))))), c && /* @__PURE__ */ t.createElement("div", { className: "city-line" }, L("city_line", { seed: c.seed, size: Jn, w: c.w, h: c.h, lots: c.counts.lots.toLocaleString(e) }))), /* @__PURE__ */ t.createElement(
-    Ga,
+    r(l), yt("ahs.sound", l ? "on" : "off"), z("sound", l ? "on" : "off"), se(l);
+  } }, M(o ? "sound_on" : "sound_off")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", "aria-pressed": O, onClick: () => {
+    I(!O), z("debug", !O);
+  } }, M("debug")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", onClick: () => {
+    X(!0), z("report_opened", "button");
+  } }, M("feedback")), /* @__PURE__ */ t.createElement("span", { className: "flags", "aria-label": "Language" }, tn.map((l) => /* @__PURE__ */ t.createElement("button", { key: l, "aria-pressed": l === e, title: l, onClick: () => {
+    n(l), yt("ahs.lang", l), z("language", l);
+  } }, /* @__PURE__ */ t.createElement(mo, { lang: l }))))), c && /* @__PURE__ */ t.createElement("div", { className: "city-line" }, M("city_line", { seed: c.seed, size: aa, w: c.w, h: c.h, lots: c.counts.lots.toLocaleString(e) }))), /* @__PURE__ */ t.createElement(
+    Qa,
     {
-      t: L,
-      gangsOpen: He,
+      t: M,
+      gangsOpen: Ie,
       onGangs: () => {
-        dt(!He), mt(!1), O("gangs", !He);
+        _t(!Ie), pt(!1), z("gangs", !Ie);
       },
-      ordersOpen: $e,
+      ordersOpen: Ve,
       onOrders: () => {
-        mt(!$e), dt(!1), O("orders", !$e);
+        pt(!Ve), _t(!1), z("orders", !Ve);
       }
     }
-  ), c && !ht && !ne && /* @__PURE__ */ t.createElement(Da, { city: c, lot: k, t: L, gangs: P, onClose: () => F(-1) }), ne && a && c && be && /* @__PURE__ */ t.createElement(
-    go,
+  ), c && !gt && !oe && /* @__PURE__ */ t.createElement(Za, { city: c, lot: g, t: M, gangs: W, onClose: () => y(-1) }), oe && a && c && ye && /* @__PURE__ */ t.createElement(
+    Fo,
     {
-      t: L,
-      x: pt,
+      t: M,
+      x: ft,
       core: a,
-      crews: be.crews,
-      draft: ne,
-      setDraft: we,
-      selectedBuilding: k >= 0 ? dn(a, c, k) : -1,
-      selectedBlock: c.lots[k]?.block ?? -1,
+      crews: ye.crews,
+      draft: oe,
+      setDraft: Ee,
+      selectedBuilding: g >= 0 ? hn(a, c, g) : -1,
+      selectedBlock: c.lots[g]?.block ?? -1,
       onIssued: (l) => {
-        Ut(l), we(null);
+        Kt(l), Ee(null);
       },
-      onClose: () => we(null)
+      onClose: () => Ee(null)
     }
-  ), qe && /* @__PURE__ */ t.createElement("p", { className: "toast", role: "status", onClick: () => Ue("") }, qe), ht && /* @__PURE__ */ t.createElement($a, { person: ht, gangs: P, t: L, onClose: () => Ge(-1) }), /* @__PURE__ */ t.createElement(
-    Ia,
+  ), qe && /* @__PURE__ */ t.createElement("p", { className: "toast", role: "status", onClick: () => Ue("") }, qe), gt && /* @__PURE__ */ t.createElement(no, { person: gt, gangs: W, t: M, onClose: () => He(-1) }), /* @__PURE__ */ t.createElement(
+    eo,
     {
-      t: L,
-      clock: K,
-      speed: fe,
-      paused: Te,
+      t: M,
+      clock: ne,
+      speed: ke,
+      paused: Ye,
       onSpeed: (l) => {
-        Rn(l), bt("ahs.speed", String(l)), O("speed", l);
+        Gn(l), yt("ahs.speed", String(l)), z("speed", l);
       },
       onPause: () => {
-        ut(!Te), O("pause", !Te);
+        mt(!Ye), z("pause", !Ye);
       },
-      onLaunch: Wn,
-      onFinish: $n
+      onLaunch: Zn,
+      onFinish: Jn
     }
-  ), $e && a && be && /* @__PURE__ */ t.createElement(
-    ho,
+  ), Ve && a && ye && /* @__PURE__ */ t.createElement(
+    Lo,
     {
-      t: L,
-      x: pt,
+      t: M,
+      x: ft,
       core: a,
-      view: be,
-      running: !!K?.running,
-      onPerson: It,
+      view: ye,
+      running: !!ne?.running,
+      onPerson: $t,
       onNewOrder: (l) => {
-        we(Dt(l, "collect")), O("job_card", l);
+        Ee(Gt(l, "collect")), z("job_card", l);
       },
-      onChanged: Ut,
-      onClose: () => mt(!1),
-      onShow: Un
+      onChanged: Kt,
+      onClose: () => pt(!1),
+      onShow: Xn
     }
-  ), He && a && /* @__PURE__ */ t.createElement(
-    qa,
+  ), Ie && a && /* @__PURE__ */ t.createElement(
+    ao,
     {
-      gangs: P,
-      t: L,
-      names: (l) => me(a, l),
-      onPerson: It,
-      onClose: () => dt(!1)
+      gangs: W,
+      t: M,
+      names: (l) => he(a, l),
+      onPerson: $t,
+      onClose: () => _t(!1)
     }
-  ), /* @__PURE__ */ t.createElement("p", { className: "view-help" }, L(N === "plan" ? "plan_key" : "view_help")), !c && !We && /* @__PURE__ */ t.createElement("div", { className: "loading" }, i ? L("core_missing", { error: i }) : L("loading")), G && /* @__PURE__ */ t.createElement(
-    Ta,
+  ), /* @__PURE__ */ t.createElement("p", { className: "view-help" }, M(w === "plan" ? "plan_key" : "view_help")), !c && !$e && /* @__PURE__ */ t.createElement("div", { className: "loading" }, i ? M("core_missing", { error: i }) : M("loading")), O && /* @__PURE__ */ t.createElement(
+    Ia,
     {
-      t: L,
-      stamp: vt,
+      t: M,
+      stamp: Nt,
       buildId: a?.hs_build_id() ?? null,
-      stateHash: h,
-      step2: m,
+      stateHash: m,
+      step2: _,
       city: c,
       core: a,
-      onClose: () => U(!1),
+      onClose: () => I(!1),
       onSound: () => {
-        O("test_sound"), re(o);
+        z("test_sound"), se(o);
       },
-      onCrash: Zn,
-      orderCheck: Hn,
-      onOrderCheck: Vn
+      onCrash: na,
+      orderCheck: Un,
+      onOrderCheck: ea
     }
-  ), We && /* @__PURE__ */ t.createElement(
-    fo,
+  ), $e && /* @__PURE__ */ t.createElement(
+    Po,
     {
-      t: L,
-      canContinue: Dn && !!c,
+      t: M,
+      canContinue: $n && !!c,
       ready: !!a,
       onContinue: () => {
-        _t(!1), O("continue");
+        ht(!1), z("continue");
       },
       onNew: () => {
-        a && (_t(!1), ut(!1), O("new_game", { seed: 1932, size: "standard", from: "menu" }), Ke(a, 1932, "standard"), re(o, 392));
+        a && (ht(!1), mt(!1), z("new_game", { seed: 1932, size: "standard", from: "menu" }), Ze(a, 1932, "standard"), se(o, 392));
       }
     }
-  ), g && a && c && /* @__PURE__ */ t.createElement(
-    Ua,
+  ), b && a && c && /* @__PURE__ */ t.createElement(
+    oo,
     {
       lang: e,
       seed: c.seed,
-      size: St(c),
-      onCancel: () => S(!1),
-      onStart: (l, w) => {
-        S(!1), O("new_game", { seed: l, size: w }), Ke(a, l, w), re(o, 392);
+      size: Lt(c),
+      onCancel: () => v(!1),
+      onStart: (l, E) => {
+        v(!1), z("new_game", { seed: l, size: E }), Ze(a, l, E), se(o, 392);
       }
     }
-  ), ue && /* @__PURE__ */ t.createElement("div", { className: "overlay open", role: "dialog", "aria-modal": "true", "aria-labelledby": "fb-title" }, /* @__PURE__ */ t.createElement("div", { className: "box" }, /* @__PURE__ */ t.createElement("h2", { id: "fb-title" }, L("report_title")), /* @__PURE__ */ t.createElement("label", null, L("expected"), /* @__PURE__ */ t.createElement("textarea", { autoFocus: !0, value: ge, onChange: (l) => Ae(l.target.value) })), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: () => {
-    O("report_cancelled"), ae(!1);
-  } }, L("cancel")), /* @__PURE__ */ t.createElement(
+  ), ue && /* @__PURE__ */ t.createElement("div", { className: "overlay open", role: "dialog", "aria-modal": "true", "aria-labelledby": "fb-title" }, /* @__PURE__ */ t.createElement("div", { className: "box" }, /* @__PURE__ */ t.createElement("h2", { id: "fb-title" }, M("report_title")), /* @__PURE__ */ t.createElement("label", null, M("expected"), /* @__PURE__ */ t.createElement("textarea", { autoFocus: !0, value: be, onChange: (l) => Be(l.target.value) })), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: () => {
+    z("report_cancelled"), X(!1);
+  } }, M("cancel")), /* @__PURE__ */ t.createElement(
     "button",
     {
       className: "main",
-      disabled: ge.trim() === "",
+      disabled: be.trim() === "",
       onClick: () => {
-        en("manual", ge.trim(), Vt), Ae(""), ae(!1);
+        nn("manual", be.trim(), Zt), Be(""), X(!1);
       }
     },
-    L("download")
-  )))), p && /* @__PURE__ */ t.createElement("div", { className: "overlay open", role: "alertdialog", "aria-modal": "true", "aria-labelledby": "crash-title" }, /* @__PURE__ */ t.createElement("div", { className: "box" }, /* @__PURE__ */ t.createElement("h2", { id: "crash-title" }, L("crash_title")), /* @__PURE__ */ t.createElement("p", null, L("crash_text", { code: p.code, name: L(`err${p.code}`) })), /* @__PURE__ */ t.createElement("p", { className: "where" }, p.file, ":", p.line), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: () => en("crash", null, Vt) }, L("download")), /* @__PURE__ */ t.createElement("button", { className: "main", onClick: () => location.reload() }, L("reload"))))), /* @__PURE__ */ t.createElement("div", { className: "stamp" }, vt));
+    M("download")
+  )))), p && /* @__PURE__ */ t.createElement("div", { className: "overlay open", role: "alertdialog", "aria-modal": "true", "aria-labelledby": "crash-title" }, /* @__PURE__ */ t.createElement("div", { className: "box" }, /* @__PURE__ */ t.createElement("h2", { id: "crash-title" }, M("crash_title")), /* @__PURE__ */ t.createElement("p", null, M("crash_text", { code: p.code, name: M(`err${p.code}`) })), /* @__PURE__ */ t.createElement("p", { className: "where" }, p.file, ":", p.line), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: () => nn("crash", null, Zt) }, M("download")), /* @__PURE__ */ t.createElement("button", { className: "main", onClick: () => location.reload() }, M("reload"))))), /* @__PURE__ */ t.createElement("div", { className: "stamp" }, Nt));
 }
-Xn(document.getElementById("root")).render(/* @__PURE__ */ t.createElement(So, null));
+ra(document.getElementById("root")).render(/* @__PURE__ */ t.createElement(Oo, null));
