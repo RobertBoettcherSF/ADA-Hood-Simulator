@@ -1,5 +1,5 @@
-import * as b from "./vendor/three.module.min.js?v=v0.4.0%20b20261123-1325%2002c91f0";
-const e = window.React, { createElement: Kn, Fragment: $n, useCallback: se, useEffect: I, useMemo: Le, useReducer: Un, useRef: ce, useState: L } = e, It = window.ReactDOM, { createRoot: Ht } = It, E = {
+import * as C from "./vendor/three.module.min.js?v=v0.5.0%20b20261124-0940%20a5213cd";
+const t = window.React, { createElement: Co, Fragment: No, useCallback: ke, useEffect: V, useMemo: ye, useReducer: Lo, useRef: Le, useState: x } = t, Qn = window.ReactDOM, { createRoot: Xn } = Qn, M = {
   blocks: 1,
   merged: 2,
   lots: 3,
@@ -25,7 +25,7 @@ const e = window.React, { createElement: Kn, Fragment: $n, useCallback: se, useE
   walking: 62,
   builtClassBase: 90,
   builtTypes: 99
-}, D = { block: 1, building: 3, person: 5, gang: 6, crew: 7, pool: 8, premises: 9 }, z = {
+}, Y = { block: 1, lot: 2, building: 3, person: 5, gang: 6, crew: 7, pool: 8, premises: 9 }, $ = {
   id: 0,
   role: 1,
   gang: 2,
@@ -42,7 +42,7 @@ const e = window.React, { createElement: Kn, Fragment: $n, useCallback: se, useE
   nameLength: 16,
   skill: 20,
   opinion: 40
-}, A = {
+}, D = {
   colour: 0,
   surname: 1,
   player: 2,
@@ -62,126 +62,126 @@ const e = window.React, { createElement: Kn, Fragment: $n, useCallback: se, useE
   wages: 17,
   eliminated: 18,
   offered: 20
-}, Dt = { protectGang: 3 }, Te = { lot: 0, type: 2 }, Pe = 480, ze = 2400, Ze = { name: 12, plan: 19 }, Xe = 12, Qe = 10;
-class Fe extends Error {
+}, ea = { protectGang: 3 }, Me = { lot: 0, type: 2 }, gt = 480, lt = 2400, Kt = { name: 12, plan: 19 }, Zt = 12, Jt = 10;
+class Ct extends Error {
 }
-async function Ot(t, a) {
-  let s = null;
+async function ta(e, n) {
+  let o = null;
   const r = () => {
-    if (!s) return "";
-    let u = "";
-    const d = s.hs_error_file_length();
-    for (let h = 1; h <= d; h++) u += String.fromCharCode(s.hs_error_file_char(h));
-    return u;
-  }, n = Uint8Array.from(atob(t), (u) => u.charCodeAt(0)), { instance: l } = await WebAssembly.instantiate(n, {
+    if (!o) return "";
+    let i = "";
+    const d = o.hs_error_file_length();
+    for (let p = 1; p <= d; p++) i += String.fromCharCode(o.hs_error_file_char(p));
+    return i;
+  }, a = Uint8Array.from(atob(e), (i) => i.charCodeAt(0)), { instance: s } = await WebAssembly.instantiate(a, {
     env: {
-      hs_host_error(u, d) {
-        const h = { code: u, file: r(), line: d };
-        throw a(h), new Fe(`Ada core stopped: ${h.file}:${d}`);
+      hs_host_error(i, d) {
+        const p = { code: i, file: r(), line: d };
+        throw n(p), new Ct(`Ada core stopped: ${p.file}:${d}`);
       }
     }
   });
-  return s = l.exports, s;
+  return o = s.exports, o;
 }
-const x = (t) => t >>> 0, et = (t) => "0x" + x(t).toString(16).padStart(8, "0"), T = 54, _e = 14, pe = 3, Q = 256, ut = ["downtown", "commercial", "industrial", "residential", "civic"], Wt = ["urban", "park", "civic", "plaza", "avenue", "water"], mt = ["empty", "residential", "tenement", "commercial", "industrial", "municipal", "charity", "illegal"], qt = ["north", "east", "south", "west"], Vt = 192;
-function Kt(t, a) {
-  const s = (o) => new Int32Array(t.memory.buffer, t.hs_draw_ptr(o), t.hs_draw_len(o)), r = s(1), n = s(2), l = [];
-  for (let o = 0; o * Xe < r.length; o++) {
-    const m = o * Xe;
-    l.push({
-      id: o,
-      gx: r[m],
-      gy: r[m + 1],
-      district: r[m + 2],
-      use: r[m + 3],
-      spanX: r[m + 4],
-      spanY: r[m + 5],
-      merged: r[m + 6],
-      landValue: r[m + 7],
-      squalor: r[m + 8],
-      content: r[m + 9],
-      rail: r[m + 10] === 1,
-      landmark: r[m + 11],
-      name: t.hs_get(D.block, o, Ze.name),
-      plan: t.hs_get(D.block, o, Ze.plan)
+const H = (e) => e >>> 0, Qt = (e) => "0x" + H(e).toString(16).padStart(8, "0"), q = 54, Je = 14, Qe = 3, Se = 256, hn = ["downtown", "commercial", "industrial", "residential", "civic"], na = ["urban", "park", "civic", "plaza", "avenue", "water"], pn = ["empty", "residential", "tenement", "commercial", "industrial", "municipal", "charity", "illegal"], aa = ["north", "east", "south", "west"], oa = 192;
+function Nt(e, n) {
+  const o = (m) => new Int32Array(e.memory.buffer, e.hs_draw_ptr(m), e.hs_draw_len(m)), r = o(1), a = o(2), s = [];
+  for (let m = 0; m * Zt < r.length; m++) {
+    const u = m * Zt;
+    s.push({
+      id: m,
+      gx: r[u],
+      gy: r[u + 1],
+      district: r[u + 2],
+      use: r[u + 3],
+      spanX: r[u + 4],
+      spanY: r[u + 5],
+      merged: r[u + 6],
+      landValue: r[u + 7],
+      squalor: r[u + 8],
+      content: r[u + 9],
+      rail: r[u + 10] === 1,
+      landmark: r[u + 11],
+      name: e.hs_get(Y.block, m, Kt.name),
+      plan: e.hs_get(Y.block, m, Kt.plan)
     });
   }
-  const u = [];
-  for (let o = 0; o * Qe < n.length; o++) {
-    const m = o * Qe;
-    u.push({
-      id: o,
-      block: n[m],
-      index: n[m + 1],
-      x: n[m + 2] / Q,
-      y: n[m + 3] / Q,
-      w: n[m + 4] / Q,
-      h: n[m + 5] / Q,
-      face: n[m + 6],
-      type: n[m + 7],
-      cls: n[m + 8],
-      storeys: n[m + 9]
+  const i = [];
+  for (let m = 0; m * Jt < a.length; m++) {
+    const u = m * Jt;
+    i.push({
+      id: m,
+      block: a[u],
+      index: a[u + 1],
+      x: a[u + 2] / Se,
+      y: a[u + 3] / Se,
+      w: a[u + 4] / Se,
+      h: a[u + 5] / Se,
+      face: a[u + 6],
+      type: a[u + 7],
+      cls: a[u + 8],
+      storeys: a[u + 9]
     });
   }
   const d = [];
-  for (let o = 1; o <= 4; o++) {
-    const m = t.hs_get(D.gang, o, A.office), c = m >= 0 ? u[t.hs_get(D.building, m, Te.lot)] : void 0;
+  for (let m = 1; m <= 4; m++) {
+    const u = e.hs_get(Y.gang, m, D.office), c = u >= 0 ? i[e.hs_get(Y.building, u, Me.lot)] : void 0;
     if (!c) continue;
-    const _ = c.x + c.w / 2, g = c.y + c.h / 2;
+    const _ = c.x + c.w / 2, h = c.y + c.h / 2;
     d.push({
-      gang: o,
-      colour: t.hs_get(D.gang, o, A.colour),
+      gang: m,
+      colour: e.hs_get(Y.gang, m, D.colour),
       block: c.block,
       lot: c.id,
-      fx: Math.floor(_ / (T / 5)),
-      fy: Math.floor(g / (T / 5))
+      fx: Math.floor(_ / (q / 5)),
+      fy: Math.floor(h / (q / 5))
     });
   }
-  const h = t.hs_count(E.blocksX), w = t.hs_count(E.blocksY);
+  const p = e.hs_count(M.blocksX), f = e.hs_count(M.blocksY);
   return {
-    seed: a,
-    w: h,
-    h: w,
-    standard: h === 40 && w === 32,
-    blocks: l,
-    lots: u,
+    seed: n,
+    w: p,
+    h: f,
+    standard: p === 40 && f === 32,
+    blocks: s,
+    lots: i,
     hq: d,
-    cityHash: x(t.hs_city_hash()),
-    structureHash: x(t.hs_structure_hash()),
-    rngAfter: x(t.hs_count(E.rngLow) | t.hs_count(E.rngHigh) << 16),
-    retries: t.hs_count(E.retries),
-    status: t.hs_count(E.status),
+    cityHash: H(e.hs_city_hash()),
+    structureHash: H(e.hs_structure_hash()),
+    rngAfter: H(e.hs_count(M.rngLow) | e.hs_count(M.rngHigh) << 16),
+    retries: e.hs_count(M.retries),
+    status: e.hs_count(M.status),
     counts: {
-      blocks: t.hs_count(E.blocks),
-      merged: t.hs_count(E.merged),
-      lots: t.hs_count(E.lots),
+      blocks: e.hs_count(M.blocks),
+      merged: e.hs_count(M.merged),
+      lots: e.hs_count(M.lots),
       // As generated, before the gangs turned fronts and offices (item 4).
-      buildings: t.hs_count(E.buildings),
-      typesUsed: t.hs_count(E.builtTypes),
-      classes: mt.map((o, m) => t.hs_count(E.builtClassBase + m)),
-      districts: ut.map((o, m) => t.hs_count(E.districtBase + m)),
-      uses: Wt.map((o, m) => t.hs_count(E.useBase + m))
+      buildings: e.hs_count(M.buildings),
+      typesUsed: e.hs_count(M.builtTypes),
+      classes: pn.map((m, u) => e.hs_count(M.builtClassBase + u)),
+      districts: hn.map((m, u) => e.hs_count(M.districtBase + u)),
+      uses: na.map((m, u) => e.hs_count(M.useBase + u))
     }
   };
 }
-function ht(t) {
+function gn(e) {
   return {
-    x: t.gx * T + _e / 2 + pe,
-    y: t.gy * T + _e / 2 + pe,
-    w: t.spanX * T - _e - 2 * pe,
-    h: t.spanY * T - _e - 2 * pe
+    x: e.gx * q + Je / 2 + Qe,
+    y: e.gy * q + Je / 2 + Qe,
+    w: e.spanX * q - Je - 2 * Qe,
+    h: e.spanY * q - Je - 2 * Qe
   };
 }
-function $t(t, a, s) {
-  const r = Math.floor(a / T), n = Math.floor(s / T);
-  if (r < 0 || n < 0 || r >= t.w || n >= t.h) return -1;
-  let l = t.blocks[n * t.w + r];
-  l.merged >= 0 && (l = t.blocks[l.merged]);
-  for (const u of t.lots)
-    if (u.block === l.id && a >= u.x && a <= u.x + u.w && s >= u.y && s <= u.y + u.h) return u.id;
+function ra(e, n, o) {
+  const r = Math.floor(n / q), a = Math.floor(o / q);
+  if (r < 0 || a < 0 || r >= e.w || a >= e.h) return -1;
+  let s = e.blocks[a * e.w + r];
+  s.merged >= 0 && (s = e.blocks[s.merged]);
+  for (const i of e.lots)
+    if (i.block === s.id && n >= i.x && n <= i.x + i.w && o >= i.y && o <= i.y + i.h) return i.id;
   return -1;
 }
-const tt = ["en-GB", "de", "es", "fr"], Ut = {
+const Xt = ["en-GB", "de", "es", "fr"], sa = {
   title: "Hood Simulator",
   subtitle: "Saint Volstead, 1932",
   loading: "Loading the Ada core…",
@@ -347,6 +347,76 @@ const tt = ["en-GB", "de", "es", "fr"], Ut = {
   pc_skills: "Skills",
   pc_close: "Close",
   d_step4: "Step 4: people and the week",
+  d_step5: "Step 5: orders",
+  d_order_note: "Plays 1.2.91's scripted four weeks (seed 1932, Standard) on a fresh game, then starts this city again.",
+  d_order_check: "Run order check",
+  d_order_sum: "{n}/{m} checks pass · weeks ran in {ms} ms",
+  m_menu: "Menu",
+  m_continue: "Continue previous game",
+  m_new: "New game",
+  m_load: "Load game",
+  m_tutorials: "Tutorials",
+  m_hof: "Hall of Fame",
+  m_leaderboard: "Leaderboard",
+  m_how: "How to play",
+  m_credits: "Credits",
+  m_unassigned: "No step yet",
+  m_out: "Not planned",
+  m_this_session: "This browser session only",
+  o_title: "Crews and orders",
+  o_crew_time: "{used} of {cap} man-minutes booked ({men} men)",
+  o_lt: "lieutenant",
+  o_none: "None",
+  o_orders: "Orders this week",
+  o_new: "New order",
+  o_demote: "Break up the crew",
+  o_pool: "The pool",
+  o_last: "Last week's orders",
+  o_again: "Give again",
+  o_messages: "Messages this week",
+  o_no_messages: "No messages yet.",
+  o_pay_up: "Pay $10 more",
+  o_pay_down: "Pay $10 less",
+  o_to_pool: "To the pool",
+  o_to_crew: "To {crew}",
+  o_promote: "Make lieutenant",
+  o_sack: "Sack",
+  o_cancel: "Cancel the order",
+  o_point: "a point",
+  o_sites: "{n} sites",
+  o_done_at: "done {day} {time}",
+  o_block: "Block {n}",
+  st_queued: "queued",
+  st_travelling: "on the way",
+  st_waiting: "waiting",
+  st_executing: "at work",
+  st_done: "done",
+  st_failed: "failed",
+  st_cancelled: "cancelled",
+  job_title: "New order",
+  job_close: "Close",
+  job_crew: "Crew",
+  job_kind: "Order",
+  job_men: "Men",
+  job_men_note: "at most {max}; the crew has {have}",
+  job_amount: "Amount ($)",
+  job_level: "Rate (% of the going rate)",
+  job_business: "Business",
+  job_front: "Front",
+  job_front_pick: "Use the selected building",
+  job_repeat: "Give it again every week",
+  job_pick_point: "Click where the men should go.",
+  job_pick_area: "Click buildings to add or remove them, or add the selected building's whole block.",
+  job_pick_building: "Click a building in the street or on the city plan.",
+  job_add: "Add the selected building",
+  job_block: "Add its whole block",
+  job_clear: "Clear the sites",
+  job_remove: "Remove",
+  job_estimate: "Estimate {time}",
+  job_cost: "costs {cost}",
+  job_no_time: "the crew has not got the time",
+  job_issue: "Give the order",
+  job_take_kept: "Keep the {n} sites he can manage",
   d_people: "People",
   d_minute1: "Random state after minute 1",
   role_boss: "Boss",
@@ -378,7 +448,7 @@ const tt = ["en-GB", "de", "es", "fr"], Ut = {
   sk_intimidation: "Intimidation",
   sk_driving: "Driving",
   sk_stealth: "Stealth"
-}, jt = {
+}, la = {
   title: "Hood Simulator",
   subtitle: "Saint Volstead, 1932",
   loading: "Ada-Kern wird geladen …",
@@ -544,6 +614,76 @@ const tt = ["en-GB", "de", "es", "fr"], Ut = {
   pc_skills: "Fähigkeiten",
   pc_close: "Schließen",
   d_step4: "Schritt 4: Leute und die Woche",
+  d_step5: "Schritt 5: Befehle",
+  d_order_note: "Spielt die vier vorgegebenen Wochen von 1.2.91 (Seed 1932, Standard) in einem neuen Spiel und startet danach diese Stadt neu.",
+  d_order_check: "Befehlsprüfung starten",
+  d_order_sum: "{n}/{m} Prüfungen bestanden · Wochen in {ms} ms",
+  m_menu: "Menü",
+  m_continue: "Letztes Spiel fortsetzen",
+  m_new: "Neues Spiel",
+  m_load: "Spiel laden",
+  m_tutorials: "Tutorials",
+  m_hof: "Ruhmeshalle",
+  m_leaderboard: "Bestenliste",
+  m_how: "Spielanleitung",
+  m_credits: "Mitwirkende",
+  m_unassigned: "Noch kein Schritt",
+  m_out: "Nicht geplant",
+  m_this_session: "Nur in dieser Browsersitzung",
+  o_title: "Trupps und Befehle",
+  o_crew_time: "{used} von {cap} Mannminuten verplant ({men} Mann)",
+  o_lt: "Leutnant",
+  o_none: "Keine",
+  o_orders: "Befehle dieser Woche",
+  o_new: "Neuer Befehl",
+  o_demote: "Trupp auflösen",
+  o_pool: "Der Pool",
+  o_last: "Befehle der letzten Woche",
+  o_again: "Noch einmal geben",
+  o_messages: "Meldungen dieser Woche",
+  o_no_messages: "Noch keine Meldungen.",
+  o_pay_up: "$10 mehr Lohn",
+  o_pay_down: "$10 weniger Lohn",
+  o_to_pool: "In den Pool",
+  o_to_crew: "Zu {crew}",
+  o_promote: "Zum Leutnant machen",
+  o_sack: "Feuern",
+  o_cancel: "Befehl zurücknehmen",
+  o_point: "ein Punkt",
+  o_sites: "{n} Orte",
+  o_done_at: "fertig {day} {time}",
+  o_block: "Block {n}",
+  st_queued: "wartet",
+  st_travelling: "unterwegs",
+  st_waiting: "wartet ab",
+  st_executing: "bei der Arbeit",
+  st_done: "erledigt",
+  st_failed: "gescheitert",
+  st_cancelled: "zurückgenommen",
+  job_title: "Neuer Befehl",
+  job_close: "Schließen",
+  job_crew: "Trupp",
+  job_kind: "Befehl",
+  job_men: "Männer",
+  job_men_note: "höchstens {max}; der Trupp hat {have}",
+  job_amount: "Betrag ($)",
+  job_level: "Satz (% des üblichen)",
+  job_business: "Geschäft",
+  job_front: "Tarnung",
+  job_front_pick: "Ausgewähltes Gebäude nehmen",
+  job_repeat: "Jede Woche wieder geben",
+  job_pick_point: "Klicke, wohin die Männer gehen sollen.",
+  job_pick_area: "Klicke Gebäude zum Hinzufügen oder Entfernen, oder nimm den ganzen Block des ausgewählten Gebäudes.",
+  job_pick_building: "Klicke ein Gebäude auf der Straße oder im Stadtplan.",
+  job_add: "Ausgewähltes Gebäude hinzufügen",
+  job_block: "Ganzen Block hinzufügen",
+  job_clear: "Orte leeren",
+  job_remove: "Entfernen",
+  job_estimate: "Schätzung {time}",
+  job_cost: "kostet {cost}",
+  job_no_time: "der Trupp hat keine Zeit",
+  job_issue: "Befehl geben",
+  job_take_kept: "Die {n} Orte nehmen, die er schafft",
   d_people: "Leute",
   d_minute1: "Zufallszustand nach Minute 1",
   role_boss: "Boss",
@@ -575,7 +715,7 @@ const tt = ["en-GB", "de", "es", "fr"], Ut = {
   sk_intimidation: "Einschüchterung",
   sk_driving: "Fahren",
   sk_stealth: "Heimlichkeit"
-}, Yt = {
+}, ia = {
   title: "Hood Simulator",
   subtitle: "Saint Volstead, 1932",
   loading: "Cargando el núcleo Ada…",
@@ -741,6 +881,76 @@ const tt = ["en-GB", "de", "es", "fr"], Ut = {
   pc_skills: "Habilidades",
   pc_close: "Cerrar",
   d_step4: "Paso 4: gente y la semana",
+  d_step5: "Paso 5: órdenes",
+  d_order_note: "Juega las cuatro semanas guionizadas de 1.2.91 (semilla 1932, Estándar) en una partida nueva y luego vuelve a empezar esta ciudad.",
+  d_order_check: "Comprobar órdenes",
+  d_order_sum: "{n}/{m} comprobaciones correctas · semanas en {ms} ms",
+  m_menu: "Menú",
+  m_continue: "Continuar la partida anterior",
+  m_new: "Nueva partida",
+  m_load: "Cargar partida",
+  m_tutorials: "Tutoriales",
+  m_hof: "Salón de la fama",
+  m_leaderboard: "Clasificación",
+  m_how: "Cómo jugar",
+  m_credits: "Créditos",
+  m_unassigned: "Aún sin paso",
+  m_out: "No previsto",
+  m_this_session: "Solo en esta sesión del navegador",
+  o_title: "Cuadrillas y órdenes",
+  o_crew_time: "{used} de {cap} minutos-hombre reservados ({men} hombres)",
+  o_lt: "lugarteniente",
+  o_none: "Ninguna",
+  o_orders: "Órdenes de esta semana",
+  o_new: "Nueva orden",
+  o_demote: "Disolver la cuadrilla",
+  o_pool: "La reserva",
+  o_last: "Órdenes de la semana pasada",
+  o_again: "Dar otra vez",
+  o_messages: "Mensajes de esta semana",
+  o_no_messages: "Aún no hay mensajes.",
+  o_pay_up: "$10 más de paga",
+  o_pay_down: "$10 menos de paga",
+  o_to_pool: "A la reserva",
+  o_to_crew: "A {crew}",
+  o_promote: "Hacer lugarteniente",
+  o_sack: "Despedir",
+  o_cancel: "Cancelar la orden",
+  o_point: "un punto",
+  o_sites: "{n} sitios",
+  o_done_at: "hecho {day} {time}",
+  o_block: "Manzana {n}",
+  st_queued: "en cola",
+  st_travelling: "en camino",
+  st_waiting: "esperando",
+  st_executing: "trabajando",
+  st_done: "hecho",
+  st_failed: "fallida",
+  st_cancelled: "cancelada",
+  job_title: "Nueva orden",
+  job_close: "Cerrar",
+  job_crew: "Cuadrilla",
+  job_kind: "Orden",
+  job_men: "Hombres",
+  job_men_note: "como mucho {max}; la cuadrilla tiene {have}",
+  job_amount: "Cantidad ($)",
+  job_level: "Tarifa (% de la habitual)",
+  job_business: "Negocio",
+  job_front: "Tapadera",
+  job_front_pick: "Usar el edificio elegido",
+  job_repeat: "Darla otra vez cada semana",
+  job_pick_point: "Haz clic donde deben ir los hombres.",
+  job_pick_area: "Haz clic en edificios para añadirlos o quitarlos, o añade la manzana entera del edificio elegido.",
+  job_pick_building: "Haz clic en un edificio de la calle o del plano.",
+  job_add: "Añadir el edificio elegido",
+  job_block: "Añadir su manzana entera",
+  job_clear: "Vaciar los sitios",
+  job_remove: "Quitar",
+  job_estimate: "Estimación {time}",
+  job_cost: "cuesta {cost}",
+  job_no_time: "la cuadrilla no tiene tiempo",
+  job_issue: "Dar la orden",
+  job_take_kept: "Quedarse con los {n} sitios que puede hacer",
   d_people: "Gente",
   d_minute1: "Estado aleatorio tras el minuto 1",
   role_boss: "Jefe",
@@ -772,7 +982,7 @@ const tt = ["en-GB", "de", "es", "fr"], Ut = {
   sk_intimidation: "Intimidación",
   sk_driving: "Conducción",
   sk_stealth: "Sigilo"
-}, Jt = {
+}, ca = {
   title: "Hood Simulator",
   subtitle: "Saint Volstead, 1932",
   loading: "Chargement du noyau Ada…",
@@ -938,6 +1148,76 @@ const tt = ["en-GB", "de", "es", "fr"], Ut = {
   pc_skills: "Compétences",
   pc_close: "Fermer",
   d_step4: "Étape 4 : les gens et la semaine",
+  d_step5: "Étape 5 : ordres",
+  d_order_note: "Joue les quatre semaines scénarisées de 1.2.91 (graine 1932, Standard) dans une nouvelle partie, puis relance cette ville.",
+  d_order_check: "Vérifier les ordres",
+  d_order_sum: "{n}/{m} vérifications réussies · semaines en {ms} ms",
+  m_menu: "Menu",
+  m_continue: "Reprendre la partie précédente",
+  m_new: "Nouvelle partie",
+  m_load: "Charger une partie",
+  m_tutorials: "Tutoriels",
+  m_hof: "Panthéon",
+  m_leaderboard: "Classement",
+  m_how: "Comment jouer",
+  m_credits: "Crédits",
+  m_unassigned: "Pas encore d'étape",
+  m_out: "Non prévu",
+  m_this_session: "Seulement pendant cette session du navigateur",
+  o_title: "Équipes et ordres",
+  o_crew_time: "{used} sur {cap} minutes-homme réservées ({men} hommes)",
+  o_lt: "lieutenant",
+  o_none: "Aucun",
+  o_orders: "Ordres de la semaine",
+  o_new: "Nouvel ordre",
+  o_demote: "Dissoudre l'équipe",
+  o_pool: "La réserve",
+  o_last: "Ordres de la semaine dernière",
+  o_again: "Redonner",
+  o_messages: "Messages de la semaine",
+  o_no_messages: "Pas encore de messages.",
+  o_pay_up: "$10 de plus",
+  o_pay_down: "$10 de moins",
+  o_to_pool: "Vers la réserve",
+  o_to_crew: "Vers {crew}",
+  o_promote: "Nommer lieutenant",
+  o_sack: "Renvoyer",
+  o_cancel: "Annuler l'ordre",
+  o_point: "un point",
+  o_sites: "{n} lieux",
+  o_done_at: "fini {day} {time}",
+  o_block: "Pâté {n}",
+  st_queued: "en attente",
+  st_travelling: "en route",
+  st_waiting: "patiente",
+  st_executing: "au travail",
+  st_done: "fait",
+  st_failed: "échoué",
+  st_cancelled: "annulé",
+  job_title: "Nouvel ordre",
+  job_close: "Fermer",
+  job_crew: "Équipe",
+  job_kind: "Ordre",
+  job_men: "Hommes",
+  job_men_note: "au plus {max} ; l'équipe en a {have}",
+  job_amount: "Montant ($)",
+  job_level: "Taux (% du tarif courant)",
+  job_business: "Affaire",
+  job_front: "Couverture",
+  job_front_pick: "Prendre le bâtiment choisi",
+  job_repeat: "Le redonner chaque semaine",
+  job_pick_point: "Cliquez où les hommes doivent aller.",
+  job_pick_area: "Cliquez des bâtiments pour les ajouter ou les retirer, ou ajoutez tout le pâté du bâtiment choisi.",
+  job_pick_building: "Cliquez un bâtiment dans la rue ou sur le plan.",
+  job_add: "Ajouter le bâtiment choisi",
+  job_block: "Ajouter tout son pâté",
+  job_clear: "Vider les lieux",
+  job_remove: "Retirer",
+  job_estimate: "Estimation {time}",
+  job_cost: "coûte {cost}",
+  job_no_time: "l'équipe n'a pas le temps",
+  job_issue: "Donner l'ordre",
+  job_take_kept: "Garder les {n} lieux qu'il peut faire",
   d_people: "Gens",
   d_minute1: "État aléatoire après la minute 1",
   role_boss: "Chef",
@@ -969,97 +1249,97 @@ const tt = ["en-GB", "de", "es", "fr"], Ut = {
   sk_intimidation: "Intimidation",
   sk_driving: "Conduite",
   sk_stealth: "Discrétion"
-}, Zt = { "en-GB": Ut, de: jt, es: Yt, fr: Jt };
-function Ge(t, a, s = {}) {
-  return Zt[t][a].replace(/\{(\w+)\}/g, (r, n) => String(s[n] ?? ""));
+}, da = { "en-GB": sa, de: la, es: ia, fr: ca };
+function Lt(e, n, o = {}) {
+  return da[e][n].replace(/\{(\w+)\}/g, (r, a) => String(o[a] ?? ""));
 }
-const Xt = performance.now(), Oe = 500, We = () => Math.round(performance.now() - Xt), we = [], be = [], ke = [];
-let _t = 0, pt = 0;
-function B(t, a) {
-  we.length >= Oe && (we.shift(), _t++), we.push({ t_ms: We(), action: t, ...a === void 0 ? {} : { detail: a } });
+const ua = performance.now(), Tt = 500, Bt = () => Math.round(performance.now() - ua), at = [], ot = [], rt = [];
+let fn = 0, bn = 0;
+function O(e, n) {
+  at.length >= Tt && (at.shift(), fn++), at.push({ t_ms: Bt(), action: e, ...n === void 0 ? {} : { detail: n } });
 }
-function re(t, a) {
-  be.length >= Oe && (be.shift(), pt++), be.push({ t_ms: We(), event: t, ...a === void 0 ? {} : { detail: a } });
+function Ee(e, n) {
+  ot.length >= Tt && (ot.shift(), bn++), ot.push({ t_ms: Bt(), event: e, ...n === void 0 ? {} : { detail: n } });
 }
-function ie(t, a, s = {}) {
-  ke.length >= Oe && ke.shift(), ke.push({ t_ms: We(), kind: t, message: a, ...s });
+function Ye(e, n, o = {}) {
+  rt.length >= Tt && rt.shift(), rt.push({ t_ms: Bt(), kind: e, message: n, ...o });
 }
-window.addEventListener("error", (t) => ie("javascript", String(t.message), { file: t.filename, line: t.lineno }));
-window.addEventListener("unhandledrejection", (t) => ie("javascript", String(t.reason)));
-function nt(t, a, s) {
+window.addEventListener("error", (e) => Ye("javascript", String(e.message), { file: e.filename, line: e.lineno }));
+window.addEventListener("unhandledrejection", (e) => Ye("javascript", String(e.reason)));
+function en(e, n, o) {
   const r = {
     schema: "poncelet-report",
     schema_version: 1,
-    kind: t,
-    stamp: s.stamp,
+    kind: e,
+    stamp: o.stamp,
     created: (/* @__PURE__ */ new Date()).toISOString(),
-    seeds: s.seeds,
+    seeds: o.seeds,
     test_key: null,
-    expected: a,
-    state_hash: s.stateHash,
-    action_log: we,
-    actions_dropped: _t,
-    events: be,
-    events_dropped: pt,
-    errors: ke,
+    expected: n,
+    state_hash: o.stateHash,
+    action_log: at,
+    actions_dropped: fn,
+    events: ot,
+    events_dropped: bn,
+    errors: rt,
     environment: {
       user_agent: navigator.userAgent,
       browser_language: navigator.language,
-      page_language: s.lang,
+      page_language: o.lang,
       viewport: [innerWidth, innerHeight],
       device_pixel_ratio: devicePixelRatio,
-      reduced_motion: s.reducedMotion,
-      sound: s.sound ? "on" : "off",
+      reduced_motion: o.reducedMotion,
+      sound: o.sound ? "on" : "off",
       url: location.href
     },
-    custom: s.custom
-  }, n = document.createElement("a");
-  n.href = URL.createObjectURL(new Blob([JSON.stringify(r, null, 2)], { type: "application/json" })), n.download = `hood-report-${s.stamp.split(" ")[1] ?? "dev"}-${Date.now()}.json`, document.body.appendChild(n), n.click(), n.remove(), setTimeout(() => URL.revokeObjectURL(n.href), 1e3), B("report_downloaded", t);
+    custom: o.custom
+  }, a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(r, null, 2)], { type: "application/json" })), a.download = `hood-report-${o.stamp.split(" ")[1] ?? "dev"}-${Date.now()}.json`, document.body.appendChild(a), a.click(), a.remove(), setTimeout(() => URL.revokeObjectURL(a.href), 1e3), O("report_downloaded", e);
 }
-let le = null;
-function $(t, a = 523.25) {
-  if (!t) return;
-  le ??= new AudioContext();
-  const s = le.createOscillator(), r = le.createGain(), n = le.currentTime;
-  s.type = "sine", s.frequency.value = a, r.gain.setValueAtTime(0, n), r.gain.linearRampToValueAtTime(0.05, n + 0.02), r.gain.exponentialRampToValueAtTime(1e-4, n + 0.3), s.connect(r).connect(le.destination), s.start(n), s.stop(n + 0.35);
+let Be = null;
+function re(e, n = 523.25) {
+  if (!e) return;
+  Be ??= new AudioContext();
+  const o = Be.createOscillator(), r = Be.createGain(), a = Be.currentTime;
+  o.type = "sine", o.frequency.value = n, r.gain.setValueAtTime(0, a), r.gain.linearRampToValueAtTime(0.05, a + 0.02), r.gain.exponentialRampToValueAtTime(1e-4, a + 0.3), o.connect(r).connect(Be.destination), o.start(a), o.stop(a + 0.35);
 }
-function Ae(t, a) {
+function ft(e, n) {
   try {
-    return localStorage.getItem(t) ?? a;
+    return localStorage.getItem(e) ?? n;
   } catch {
-    return a;
+    return n;
   }
 }
-function Be(t, a) {
+function bt(e, n) {
   try {
-    localStorage.setItem(t, a);
+    localStorage.setItem(e, n);
   } catch {
   }
 }
-const Qt = 0.55, en = 11, at = 1.5, oe = 900, tn = 240, qe = Math.SQRT2 * Math.tan(Math.PI / 6), Ee = Math.hypot(1, qe, 1), gt = qe / Ee;
-function Ve(t) {
-  return tn / t;
+const _a = 0.55, ma = 11, tn = 1.5, xe = 900, ha = 240, xt = Math.SQRT2 * Math.tan(Math.PI / 6), st = Math.hypot(1, xt, 1), wn = xt / st;
+function Rt(e) {
+  return ha / e;
 }
-function nn(t) {
-  const a = t ? -1 : 1;
-  return [a / Ee, qe / Ee, a / Ee];
+function pa(e) {
+  const n = e ? -1 : 1;
+  return [n / st, xt / st, n / st];
 }
-function an(t) {
-  return Math.min(en, Math.max(Qt, t));
+function ga(e) {
+  return Math.min(ma, Math.max(_a, e));
 }
-function sn(t, a, s, r) {
-  const n = Ve(t.zoom), l = n * a, u = n * Math.SQRT1_2 / (2 * gt) + l * Math.SQRT1_2 / 2, d = (h, w) => w - u < u ? w / 2 : Math.min(w - u, Math.max(u, h));
-  return { ...t, x: d(t.x, s), z: d(t.z, r) };
+function fa(e, n, o, r) {
+  const a = Rt(e.zoom), s = a * n, i = a * Math.SQRT1_2 / (2 * wn) + s * Math.SQRT1_2 / 2, d = (p, f) => f - i < i ? f / 2 : Math.min(f - i, Math.max(i, p));
+  return { ...e, x: d(e.x, o), z: d(e.z, r) };
 }
-function rn(t, a, s, r) {
-  const n = Ve(t.zoom) / r, l = t.turned ? -1 : 1, u = -a * n, d = s * n / gt;
+function ba(e, n, o, r) {
+  const a = Rt(e.zoom) / r, s = e.turned ? -1 : 1, i = -n * a, d = o * a / wn;
   return {
-    ...t,
-    x: t.x + (u * l - d * l) * Math.SQRT1_2,
-    z: t.z + (-u * l - d * l) * Math.SQRT1_2
+    ...e,
+    x: e.x + (i * s - d * s) * Math.SQRT1_2,
+    z: e.z + (-i * s - d * s) * Math.SQRT1_2
   };
 }
-const ve = ["#5d5240", "#c49a6c", "#9b5a48", "#5f8fa8", "#7c7a74", "#e0d9c6", "#a08cc0", "#7a3b3b"], st = ["#8a8478", "#4f6e3a", "#9b9688", "#a99f8a", "#47474a", "#2e4f66"], de = ["#c0392b", "#2e8b57", "#2f5fb3", "#d9822b"], ln = "#3a3937", rt = 2830392, lt = 4.2, X = 0.3, ot = 0.8, q = T / 5, xe = 1.8, it = 0.9, on = [
+const it = ["#5d5240", "#c49a6c", "#9b5a48", "#5f8fa8", "#7c7a74", "#e0d9c6", "#a08cc0", "#7a3b3b"], nn = ["#8a8478", "#4f6e3a", "#9b9688", "#a99f8a", "#47474a", "#2e4f66"], Fe = ["#c0392b", "#2e8b57", "#2f5fb3", "#d9822b"], wa = "#3a3937", an = 2830392, on = 4.2, ve = 0.3, rn = 0.8, se = q / 5, wt = 1.8, sn = 0.9, ka = [
   "#f1d58f",
   "#f1d58f",
   "#f1d58f",
@@ -1079,12 +1359,12 @@ const ve = ["#5d5240", "#c49a6c", "#9b5a48", "#5f8fa8", "#7c7a74", "#e0d9c6", "#
   "#f4f0e6",
   "#6f8f6a"
 ];
-class cn {
+class ya {
   renderer;
-  scene = new b.Scene();
-  camera = new b.OrthographicCamera(-1, 1, 1, -1, 1, 4e3);
+  scene = new C.Scene();
+  camera = new C.OrthographicCamera(-1, 1, 1, -1, 1, 4e3);
   city = null;
-  group = new b.Group();
+  group = new C.Group();
   buildings = null;
   lotOfInstance = [];
   outline;
@@ -1092,166 +1372,180 @@ class cn {
   personOfInstance = [];
   gangColour = [0, 0, 1, 2, 3];
   ring;
-  raycaster = new b.Raycaster();
-  view = { x: 0, z: 0, zoom: at, turned: !1 };
+  markers = null;
+  raycaster = new C.Raycaster();
+  view = { x: 0, z: 0, zoom: tn, turned: !1 };
   frame = 0;
-  constructor(a) {
-    this.renderer = new b.WebGLRenderer({ canvas: a, antialias: !0 }), this.renderer.setPixelRatio(Math.min(2, devicePixelRatio)), this.scene.background = new b.Color(rt), this.scene.fog = new b.Fog(rt, oe + 300, oe + 2600), this.scene.add(new b.HemisphereLight(15262420, 3814184, 1.6));
-    const s = new b.DirectionalLight(16773852, 1.8);
-    s.position.set(-300, 600, -150), this.scene.add(s), this.scene.add(this.group), this.outline = new b.LineSegments(
-      new b.EdgesGeometry(new b.BoxGeometry(1, 1, 1)),
-      new b.LineBasicMaterial({ color: 16769674 })
-    ), this.outline.visible = !1, this.scene.add(this.outline), this.ring = new b.Mesh(new b.RingGeometry(1.4, 2.2, 24), new b.MeshBasicMaterial({ color: 16769674, side: b.DoubleSide })), this.ring.rotation.x = -Math.PI / 2, this.ring.visible = !1, this.scene.add(this.ring);
+  constructor(n) {
+    this.renderer = new C.WebGLRenderer({ canvas: n, antialias: !0 }), this.renderer.setPixelRatio(Math.min(2, devicePixelRatio)), this.scene.background = new C.Color(an), this.scene.fog = new C.Fog(an, xe + 300, xe + 2600), this.scene.add(new C.HemisphereLight(15262420, 3814184, 1.6));
+    const o = new C.DirectionalLight(16773852, 1.8);
+    o.position.set(-300, 600, -150), this.scene.add(o), this.scene.add(this.group), this.outline = new C.LineSegments(
+      new C.EdgesGeometry(new C.BoxGeometry(1, 1, 1)),
+      new C.LineBasicMaterial({ color: 16769674 })
+    ), this.outline.visible = !1, this.scene.add(this.outline), this.ring = new C.Mesh(new C.RingGeometry(1.4, 2.2, 24), new C.MeshBasicMaterial({ color: 16769674, side: C.DoubleSide })), this.ring.rotation.x = -Math.PI / 2, this.ring.visible = !1, this.scene.add(this.ring);
   }
-  setCity(a) {
-    this.city = a;
-    for (const o of [...this.group.children])
-      this.group.remove(o), o instanceof b.Mesh && (o.geometry.dispose(), o.material.dispose());
-    const s = a.w * T, r = a.h * T, n = new b.Mesh(
-      new b.PlaneGeometry(s + 400, r + 400),
-      new b.MeshLambertMaterial({ color: ln })
+  setCity(n) {
+    const o = !!this.city && this.city.seed === n.seed && this.city.w === n.w && this.city.h === n.h;
+    this.city = n;
+    for (const u of [...this.group.children])
+      this.group.remove(u), u instanceof C.Mesh && (u.geometry.dispose(), u.material.dispose());
+    const r = n.w * q, a = n.h * q, s = new C.Mesh(
+      new C.PlaneGeometry(r + 400, a + 400),
+      new C.MeshLambertMaterial({ color: wa })
     );
-    n.rotation.x = -Math.PI / 2, n.position.set(s / 2, 0, r / 2), this.group.add(n);
-    const l = a.blocks.filter((o) => o.merged < 0), u = new b.InstancedMesh(new b.BoxGeometry(1, 1, 1), new b.MeshLambertMaterial(), l.length), d = new b.Matrix4(), h = new b.Color();
-    l.forEach((o, m) => {
-      const c = ht(o), g = o.use === 4 || o.use === 5 ? 0.05 : X;
-      d.makeScale(c.w, g, c.h).setPosition(c.x + c.w / 2, g / 2, c.y + c.h / 2), u.setMatrixAt(m, d), u.setColorAt(m, h.set(st[o.use] ?? st[0]));
-    }), this.group.add(u), this.lotOfInstance = a.lots.map((o) => o.id);
-    const w = new b.InstancedMesh(new b.BoxGeometry(1, 1, 1), new b.MeshLambertMaterial(), a.lots.length);
-    a.lots.forEach((o, m) => {
-      const _ = o.cls === 0 ? 0.25 : Math.max(1, o.storeys) * lt, g = Math.max(0.5, o.w - 2 * ot), C = Math.max(0.5, o.h - 2 * ot);
-      d.makeScale(g, _, C).setPosition(o.x + o.w / 2, X + _ / 2, o.y + o.h / 2), w.setMatrixAt(m, d), w.setColorAt(m, h.set(ve[o.cls] ?? ve[0]));
-    }), this.buildings = w, this.group.add(w);
-    for (const o of a.hq) {
-      const m = new b.MeshLambertMaterial({ color: de[o.colour % 4] }), c = new b.Mesh(new b.CylinderGeometry(0.6, 0.6, 40, 8), m);
-      c.position.set(o.fx * q + q / 2, 20, o.fy * q + q / 2), this.group.add(c);
-      const _ = new b.Mesh(new b.BoxGeometry(12, 7, 0.4), m.clone());
-      _.position.set(o.fx * q + q / 2 + 6.5, 36, o.fy * q + q / 2), this.group.add(_);
+    s.rotation.x = -Math.PI / 2, s.position.set(r / 2, 0, a / 2), this.group.add(s);
+    const i = n.blocks.filter((u) => u.merged < 0), d = new C.InstancedMesh(new C.BoxGeometry(1, 1, 1), new C.MeshLambertMaterial(), i.length), p = new C.Matrix4(), f = new C.Color();
+    i.forEach((u, c) => {
+      const _ = gn(u), y = u.use === 4 || u.use === 5 ? 0.05 : ve;
+      p.makeScale(_.w, y, _.h).setPosition(_.x + _.w / 2, y / 2, _.y + _.h / 2), d.setMatrixAt(c, p), d.setColorAt(c, f.set(nn[u.use] ?? nn[0]));
+    }), this.group.add(d), this.lotOfInstance = n.lots.map((u) => u.id);
+    const m = new C.InstancedMesh(new C.BoxGeometry(1, 1, 1), new C.MeshLambertMaterial(), n.lots.length);
+    n.lots.forEach((u, c) => {
+      const h = u.cls === 0 ? 0.25 : Math.max(1, u.storeys) * on, y = Math.max(0.5, u.w - 2 * rn), k = Math.max(0.5, u.h - 2 * rn);
+      p.makeScale(y, h, k).setPosition(u.x + u.w / 2, ve + h / 2, u.y + u.h / 2), m.setMatrixAt(c, p), m.setColorAt(c, f.set(it[u.cls] ?? it[0]));
+    }), this.buildings = m, this.group.add(m);
+    for (const u of n.hq) {
+      const c = new C.MeshLambertMaterial({ color: Fe[u.colour % 4] }), _ = new C.Mesh(new C.CylinderGeometry(0.6, 0.6, 40, 8), c);
+      _.position.set(u.fx * se + se / 2, 20, u.fy * se + se / 2), this.group.add(_);
+      const h = new C.Mesh(new C.BoxGeometry(12, 7, 0.4), c.clone());
+      h.position.set(u.fx * se + se / 2 + 6.5, 36, u.fy * se + se / 2), this.group.add(h);
     }
-    this.walkers = null, this.ring.visible = !1, this.outline.visible = !1, this.view = { x: s / 2, z: r / 2, zoom: at, turned: !1 }, this.update();
+    this.walkers = null, this.ring.visible = !1, this.outline.visible = !1, o || (this.view = { x: r / 2, z: a / 2, zoom: tn, turned: !1 }), this.update();
+  }
+  /** Item 5: pins over order sites (metres; the job card's in gold, given orders in the gang's colour). */
+  setMarkers(n) {
+    if (this.markers && (this.scene.remove(this.markers), this.markers.geometry.dispose(), this.markers.material.dispose(), this.markers = null), n.length) {
+      const o = new C.InstancedMesh(new C.ConeGeometry(2.2, 7, 10).rotateX(Math.PI), new C.MeshBasicMaterial(), n.length), r = new C.Matrix4(), a = new C.Color();
+      n.forEach((s, i) => {
+        r.makeTranslation(s.x, 34, s.y), o.setMatrixAt(i, r), o.setColorAt(i, a.set(s.colour));
+      }), this.markers = o, this.scene.add(o);
+    }
+    this.render();
   }
   /** The people layer (x, y, role, gang, indoors per person): figures for
    * everyone not indoors. gangColours maps gang number to colour index. */
-  setPeople(a, s, r) {
-    const n = a.length / 5;
-    if (!this.walkers || this.walkers.instanceMatrix.count < n) {
+  setPeople(n, o, r) {
+    const a = n.length / 5;
+    if (!this.walkers || this.walkers.instanceMatrix.count < a) {
       this.walkers && (this.group.remove(this.walkers), this.walkers.geometry.dispose(), this.walkers.material.dispose());
-      const h = new b.CylinderGeometry(it / 2, it / 2, xe, 6);
-      h.translate(0, xe / 2 + X, 0), this.walkers = new b.InstancedMesh(h, new b.MeshLambertMaterial(), Math.max(n, 1)), this.walkers.frustumCulled = !1, this.group.add(this.walkers);
+      const p = new C.CylinderGeometry(sn / 2, sn / 2, wt, 6);
+      p.translate(0, wt / 2 + ve, 0), this.walkers = new C.InstancedMesh(p, new C.MeshLambertMaterial(), Math.max(a, 1)), this.walkers.frustumCulled = !1, this.group.add(this.walkers);
     }
-    this.gangColour = s;
-    const l = new b.Matrix4(), u = new b.Color();
+    this.gangColour = o;
+    const s = new C.Matrix4(), i = new C.Color();
     let d = 0;
     this.personOfInstance.length = 0;
-    for (let h = 0; h < n; h++) {
-      const w = h * 5;
-      if (a[w + 4] === 1) continue;
-      l.makeTranslation(a[w] / 256, 0, a[w + 1] / 256), this.walkers.setMatrixAt(d, l);
-      const o = a[w + 3];
-      this.walkers.setColorAt(d++, u.set(o > 0 ? de[(this.gangColour[o] ?? 0) % 4] : on[a[w + 2]] ?? "#ffffff")), this.personOfInstance.push(h), h === r && this.ring.position.set(a[w] / 256, X + 0.05, a[w + 1] / 256);
+    for (let p = 0; p < a; p++) {
+      const f = p * 5;
+      if (n[f + 4] === 1) continue;
+      s.makeTranslation(n[f] / 256, 0, n[f + 1] / 256), this.walkers.setMatrixAt(d, s);
+      const m = n[f + 3];
+      this.walkers.setColorAt(d++, i.set(m > 0 ? Fe[(this.gangColour[m] ?? 0) % 4] : ka[n[f + 2]] ?? "#ffffff")), this.personOfInstance.push(p), p === r && this.ring.position.set(n[f] / 256, ve + 0.05, n[f + 1] / 256);
     }
-    return this.ring.visible = r >= 0 && r < n && a[r * 5 + 4] !== 1, this.walkers.count = d, this.walkers.instanceMatrix.needsUpdate = !0, this.walkers.instanceColor && (this.walkers.instanceColor.needsUpdate = !0), this.walkers.computeBoundingSphere(), this.render(), d;
+    return this.ring.visible = r >= 0 && r < a && n[r * 5 + 4] !== 1, this.walkers.count = d, this.walkers.instanceMatrix.needsUpdate = !0, this.walkers.instanceColor && (this.walkers.instanceColor.needsUpdate = !0), this.walkers.computeBoundingSphere(), this.render(), d;
   }
-  select(a) {
-    const s = this.city?.lots[a];
-    if (!s) {
+  select(n) {
+    const o = this.city?.lots[n];
+    if (!o) {
       this.outline.visible = !1, this.render();
       return;
     }
-    const r = s.cls === 0 ? 0.6 : Math.max(1, s.storeys) * lt + 0.4;
-    this.outline.scale.set(s.w, r, s.h), this.outline.position.set(s.x + s.w / 2, X + r / 2, s.y + s.h / 2), this.outline.visible = !0, this.render();
+    const r = o.cls === 0 ? 0.6 : Math.max(1, o.storeys) * on + 0.4;
+    this.outline.scale.set(o.w, r, o.h), this.outline.position.set(o.x + o.w / 2, ve + r / 2, o.y + o.h / 2), this.outline.visible = !0, this.render();
   }
   size() {
-    const a = this.renderer.domElement;
-    return { w: a.clientWidth || 1, h: a.clientHeight || 1 };
+    const n = this.renderer.domElement;
+    return { w: n.clientWidth || 1, h: n.clientHeight || 1 };
   }
   /** Applies the view: clamps it, places the camera, renders. */
   update() {
     if (!this.city) return;
-    const { w: a, h: s } = this.size();
-    this.renderer.setSize(a, s, !1), this.view = sn({ ...this.view, zoom: an(this.view.zoom) }, a / s, this.city.w * T, this.city.h * T);
-    const r = Ve(this.view.zoom), n = r * (a / s);
-    Object.assign(this.camera, { left: -n / 2, right: n / 2, top: r / 2, bottom: -r / 2 }), this.camera.updateProjectionMatrix();
-    const [l, u, d] = nn(this.view.turned);
-    this.camera.position.set(this.view.x + l * oe, u * oe, this.view.z + d * oe), this.camera.lookAt(this.view.x, 0, this.view.z), this.render();
+    const { w: n, h: o } = this.size();
+    this.renderer.setSize(n, o, !1), this.view = fa({ ...this.view, zoom: ga(this.view.zoom) }, n / o, this.city.w * q, this.city.h * q);
+    const r = Rt(this.view.zoom), a = r * (n / o);
+    Object.assign(this.camera, { left: -a / 2, right: a / 2, top: r / 2, bottom: -r / 2 }), this.camera.updateProjectionMatrix();
+    const [s, i, d] = pa(this.view.turned);
+    this.camera.position.set(this.view.x + s * xe, i * xe, this.view.z + d * xe), this.camera.lookAt(this.view.x, 0, this.view.z), this.render();
   }
   render() {
     cancelAnimationFrame(this.frame), this.frame = requestAnimationFrame(() => this.renderer.render(this.scene, this.camera));
   }
-  drag(a, s) {
-    this.view = rn(this.view, a, s, this.size().h), this.update();
+  drag(n, o) {
+    this.view = ba(this.view, n, o, this.size().h), this.update();
   }
-  zoomBy(a) {
-    this.view = { ...this.view, zoom: this.view.zoom * a }, this.update();
+  zoomBy(n) {
+    this.view = { ...this.view, zoom: this.view.zoom * n }, this.update();
   }
   turn() {
     this.view = { ...this.view, turned: !this.view.turned }, this.update();
   }
-  lookAt(a, s) {
-    this.view = { ...this.view, x: a, z: s }, this.update();
+  lookAt(n, o) {
+    this.view = { ...this.view, x: n, z: o }, this.update();
   }
   /** What is under a canvas point: a person (nearest figure within a few
    * pixels) or else a lot; -1 for nothing. */
-  pick(a, s) {
+  pick(n, o) {
     if (!this.buildings) return { person: -1, lot: -1 };
-    const r = this.renderer.domElement.getBoundingClientRect(), n = new b.Vector2((a - r.left) / r.width * 2 - 1, -((s - r.top) / r.height) * 2 + 1);
+    const r = this.renderer.domElement.getBoundingClientRect(), a = new C.Vector2((n - r.left) / r.width * 2 - 1, -((o - r.top) / r.height) * 2 + 1);
     if (this.walkers && this.walkers.count > 0) {
-      const u = new b.Matrix4(), d = new b.Vector3();
-      let h = -1, w = 64;
-      for (let o = 0; o < this.walkers.count; o++) {
-        this.walkers.getMatrixAt(o, u), d.setFromMatrixPosition(u).setY(X + xe / 2).project(this.camera);
-        const m = (d.x - n.x) * r.width / 2, c = (d.y - n.y) * r.height / 2, _ = m * m + c * c;
-        _ < w && (w = _, h = o);
+      const i = new C.Matrix4(), d = new C.Vector3();
+      let p = -1, f = 64;
+      for (let m = 0; m < this.walkers.count; m++) {
+        this.walkers.getMatrixAt(m, i), d.setFromMatrixPosition(i).setY(ve + wt / 2).project(this.camera);
+        const u = (d.x - a.x) * r.width / 2, c = (d.y - a.y) * r.height / 2, _ = u * u + c * c;
+        _ < f && (f = _, p = m);
       }
-      if (h >= 0) return { person: this.personOfInstance[h], lot: -1 };
+      if (p >= 0) return { person: this.personOfInstance[p], lot: -1 };
     }
-    this.raycaster.setFromCamera(n, this.camera);
-    const l = this.raycaster.intersectObject(this.buildings, !1)[0];
-    return { person: -1, lot: l?.instanceId != null ? this.lotOfInstance[l.instanceId] : -1 };
+    this.raycaster.setFromCamera(a, this.camera);
+    const s = this.raycaster.intersectObject(this.buildings, !1)[0];
+    return { person: -1, lot: s?.instanceId != null ? this.lotOfInstance[s.instanceId] : -1 };
   }
   dispose() {
     cancelAnimationFrame(this.frame), this.renderer.dispose();
   }
 }
-const dn = ["#d8c59a", "#cdbf9f", "#a9a49a", "#c8b9a0", "#bfc3c7"], un = "#7d9a5d", mn = "#5f86a3", hn = "#8f8a80", _n = "#d6ccb4", pn = "#e9dfc6", gn = "#b9ad93";
-function fn({ city: t, selected: a, onSelect: s, label: r }) {
-  const n = ce(null), l = ce({ scale: 1, ox: 0, oy: 0 });
-  I(() => {
-    const d = n.current;
-    if (!d) return;
-    const h = () => {
-      const o = Math.min(2, devicePixelRatio), m = d.clientWidth, c = d.clientHeight;
-      d.width = Math.round(m * o), d.height = Math.round(c * o);
-      const _ = d.getContext("2d");
-      if (!_) return;
-      const g = t.w * T, C = t.h * T, P = 24, S = Math.min((m - 2 * P) / g, (c - 2 * P) / C), R = (m - g * S) / 2, k = (c - C * S) / 2;
-      l.current = { scale: S, ox: R, oy: k }, _.setTransform(o * S, 0, 0, o * S, o * R, o * k), _.fillStyle = pn, _.fillRect(-P / S, -P / S, g + 2 * P / S, C + 2 * P / S), _.fillStyle = gn, _.fillRect(0, 0, g, C);
-      for (const p of t.blocks) {
-        if (p.merged >= 0) continue;
-        const M = ht(p);
-        _.fillStyle = p.use === 1 ? un : p.use === 5 ? mn : p.use === 4 ? hn : p.use === 3 ? _n : dn[p.district], _.fillRect(M.x - 2, M.y - 2, M.w + 4, M.h + 4);
+const Ea = ["#d8c59a", "#cdbf9f", "#a9a49a", "#c8b9a0", "#bfc3c7"], va = "#7d9a5d", Sa = "#5f86a3", Ca = "#8f8a80", Na = "#d6ccb4", La = "#e9dfc6", Ma = "#b9ad93";
+function Fa({ city: e, selected: n, onSelect: o, label: r, markers: a }) {
+  const s = Le(null), i = Le({ scale: 1, ox: 0, oy: 0 });
+  V(() => {
+    const p = s.current;
+    if (!p) return;
+    const f = () => {
+      const u = Math.min(2, devicePixelRatio), c = p.clientWidth, _ = p.clientHeight;
+      p.width = Math.round(c * u), p.height = Math.round(_ * u);
+      const h = p.getContext("2d");
+      if (!h) return;
+      const y = e.w * q, k = e.h * q, F = 24, N = Math.min((c - 2 * F) / y, (_ - 2 * F) / k), b = (c - y * N) / 2, I = (_ - k * N) / 2;
+      i.current = { scale: N, ox: b, oy: I }, h.setTransform(u * N, 0, 0, u * N, u * b, u * I), h.fillStyle = La, h.fillRect(-F / N, -F / N, y + 2 * F / N, k + 2 * F / N), h.fillStyle = Ma, h.fillRect(0, 0, y, k);
+      for (const g of e.blocks) {
+        if (g.merged >= 0) continue;
+        const S = gn(g);
+        h.fillStyle = g.use === 1 ? va : g.use === 5 ? Sa : g.use === 4 ? Ca : g.use === 3 ? Na : Ea[g.district], h.fillRect(S.x - 2, S.y - 2, S.w + 4, S.h + 4);
       }
-      for (const p of t.lots)
-        _.fillStyle = ve[p.cls] ?? ve[0], _.globalAlpha = p.cls === 0 ? 0.35 : 0.9, _.fillRect(p.x + 0.6, p.y + 0.6, Math.max(0.5, p.w - 1.2), Math.max(0.5, p.h - 1.2));
-      _.globalAlpha = 1;
-      const f = t.lots[a];
-      f && (_.strokeStyle = "#1b1208", _.lineWidth = 2.5 / S, _.strokeRect(f.x - 1, f.y - 1, f.w + 2, f.h + 2));
-      for (const p of t.hq) {
-        const M = (p.fx + 0.5) * (T / 5), F = (p.fy + 0.5) * (T / 5), G = 9 / S;
-        _.fillStyle = "#1b1208", _.fillRect(M - 0.6 / S, F - 2.2 * G, 1.2 / S, 2.2 * G), _.fillStyle = de[p.colour % 4], _.beginPath(), _.moveTo(M, F - 2.2 * G), _.lineTo(M + 1.6 * G, F - 1.7 * G), _.lineTo(M, F - 1.2 * G), _.fill();
+      for (const g of e.lots)
+        h.fillStyle = it[g.cls] ?? it[0], h.globalAlpha = g.cls === 0 ? 0.35 : 0.9, h.fillRect(g.x + 0.6, g.y + 0.6, Math.max(0.5, g.w - 1.2), Math.max(0.5, g.h - 1.2));
+      h.globalAlpha = 1;
+      const E = e.lots[n];
+      E && (h.strokeStyle = "#1b1208", h.lineWidth = 2.5 / N, h.strokeRect(E.x - 1, E.y - 1, E.w + 2, E.h + 2));
+      for (const g of a)
+        h.fillStyle = g.colour, h.strokeStyle = "#1b1208", h.lineWidth = 1 / N, h.beginPath(), h.arc(g.x, g.y, 6 / N, 0, Math.PI * 2), h.fill(), h.stroke();
+      for (const g of e.hq) {
+        const S = (g.fx + 0.5) * (q / 5), G = (g.fy + 0.5) * (q / 5), U = 9 / N;
+        h.fillStyle = "#1b1208", h.fillRect(S - 0.6 / N, G - 2.2 * U, 1.2 / N, 2.2 * U), h.fillStyle = Fe[g.colour % 4], h.beginPath(), h.moveTo(S, G - 2.2 * U), h.lineTo(S + 1.6 * U, G - 1.7 * U), h.lineTo(S, G - 1.2 * U), h.fill();
       }
     };
-    h();
-    const w = new ResizeObserver(h);
-    return w.observe(d), () => w.disconnect();
-  }, [t, a]);
-  const u = (d) => {
-    const h = d.currentTarget.getBoundingClientRect(), w = l.current;
-    s($t(t, (d.clientX - h.left - w.ox) / w.scale, (d.clientY - h.top - w.oy) / w.scale));
+    f();
+    const m = new ResizeObserver(f);
+    return m.observe(p), () => m.disconnect();
+  }, [e, n, a]);
+  const d = (p) => {
+    const f = p.currentTarget.getBoundingClientRect(), m = i.current;
+    o(ra(e, (p.clientX - f.left - m.ox) / m.scale, (p.clientY - f.top - m.oy) / m.scale));
   };
-  return /* @__PURE__ */ e.createElement("canvas", { className: "city-plan", ref: n, onClick: u, "aria-label": r });
+  return /* @__PURE__ */ t.createElement("canvas", { className: "city-plan", ref: s, onClick: d, "aria-label": r });
 }
-const Ie = [
+const Mt = [
   2087000994,
   1345216982,
   2537227108,
@@ -1272,7 +1566,7 @@ const Ie = [
   2227219457,
   2140019606,
   4173634592
-], ft = [48, 31, 59, 54, 80, 33, 22, 63, 76, 45, 72, 89, 91, 73, 21, 13, 95, 51, 49, 97], wt = [
+], kn = [48, 31, 59, 54, 80, 33, 22, 63, 76, 45, 72, 89, 91, 73, 21, 13, 95, 51, 49, 97], yn = [
   6347,
   31496,
   30113,
@@ -1293,71 +1587,70 @@ const Ie = [
   5001,
   1002,
   15126
-], He = [13824, 2764, 1280, 362, 46341, 65536, 128, 5, 38500], wn = [
+], Ft = [13824, 2764, 1280, 362, 46341, 65536, 128, 5, 38500], Pa = [
   { w: 36, h: 28, seed: 1932, rng: 787968811, city: 130389902, structure: 2172434479, blocks: 1008, merged: 140, lots: 8769, buildings: 8769, types: 164, hq: [] },
   { w: 40, h: 32, seed: 1932, rng: 1183664769, city: 162525796, structure: 3010893233, blocks: 1280, merged: 22, lots: 4580, buildings: 4580, types: 170, hq: [[13, 10], [31, 4], [7, 20], [36, 25]] },
   { w: 44, h: 35, seed: 1932, rng: 214220379, city: 1231309806, structure: 2436981367, blocks: 1540, merged: 209, lots: 13488, buildings: 13488, types: 166, hq: [] },
   { w: 40, h: 32, seed: 187, rng: 1183663024, city: 2335500783, structure: 2753879728, blocks: 1280, merged: 20, lots: 4733, buildings: 4733, types: 170, hq: [[11, 9], [29, 4], [9, 17], [25, 23]] }
-], bn = [
+], Aa = [
   { w: 40, h: 32, seed: 1932, people: 8479, rngSetup: 532198006, rngMinute1: 3184470837, hashes: [762905189, 59061474, 867735307, 2325457386] },
   { w: 44, h: 35, seed: 1932, people: 20879, rngSetup: 3696518514, rngMinute1: 2775660613, hashes: [4085821087, 1945027344, 3513816520, 825993883] }
-], ee = { seed: 1932, auto: 1932, w: 44, h: 35 };
-function De(t) {
-  const a = [Ie, ft, wt];
+], Ce = { seed: 1932, auto: 1932, w: 44, h: 35 };
+function Pt(e) {
+  const n = [Mt, kn, yn];
   return {
-    random: t.streams.reduce((s, r, n) => s + r.filter((l, u) => l === a[n][u]).length, 0),
-    checks: t.checks.filter((s, r) => s === He[r]).length
+    random: e.streams.reduce((o, r, a) => o + r.filter((s, i) => s === n[a][i]).length, 0),
+    checks: e.checks.filter((o, r) => o === Ft[r]).length
   };
 }
-function bt(t) {
-  return wn.find((a) => a.w === t.w && a.h === t.h && a.seed === t.seed) ?? null;
+function En(e) {
+  return Pa.find((n) => n.w === e.w && n.h === e.h && n.seed === e.seed) ?? null;
 }
-const ge = ({ v: t, expect: a }) => /* @__PURE__ */ e.createElement("td", { className: t === a ? "ok" : "bad" }, t);
-function kn({ t, stamp: a, buildId: s, stateHash: r, step2: n, city: l, core: u, onClose: d, onSound: h, onCrash: w }) {
-  const o = l ? bn.find((k) => k.w === l.w && k.h === l.h && k.seed === l.seed) ?? null : null, m = (k, f) => u ? x(u.hs_count(k) | u.hs_count(f) << 16) : 0, c = u && l ? [
-    [t("d_people"), u.hs_count(E.people), o?.people ?? null],
-    [t("d_rng"), m(E.setupLow, E.setupHigh), o?.rngSetup ?? null],
-    ...["people", "positions", "opinions", "names"].map((k, f) => [`${k} hash`, x(u.hs_population_hash(f + 1)), o?.hashes[f] ?? null]),
+const Xe = ({ v: e, expect: n }) => /* @__PURE__ */ t.createElement("td", { className: e === n ? "ok" : "bad" }, e);
+function Ta({ t: e, stamp: n, buildId: o, stateHash: r, step2: a, city: s, core: i, onClose: d, onSound: p, onCrash: f, orderCheck: m, onOrderCheck: u }) {
+  const c = s ? Aa.find((E) => E.w === s.w && E.h === s.h && E.seed === s.seed) ?? null : null, _ = (E, g) => i ? H(i.hs_count(E) | i.hs_count(g) << 16) : 0, h = i && s ? [
+    [e("d_people"), i.hs_count(M.people), c?.people ?? null],
+    [e("d_rng"), _(M.setupLow, M.setupHigh), c?.rngSetup ?? null],
+    ...["people", "positions", "opinions", "names"].map((E, g) => [`${E} hash`, H(i.hs_population_hash(g + 1)), c?.hashes[g] ?? null]),
     // Shown once week 1 has run its first minute (0 before).
-    [t("d_minute1"), m(E.m1Low, E.m1High), o?.rngMinute1 ?? null]
-  ] : [], _ = c.filter(([, k, f]) => f !== null && x(k) === x(f)).length, g = l ? bt(l) : null, C = l ? [
-    [t("d_rng"), l.rngAfter, g?.rng ?? null],
-    [t("d_city"), l.cityHash, g?.city ?? null],
-    [t("d_structure"), l.structureHash, g?.structure ?? null],
-    ["blocks", l.counts.blocks, g?.blocks ?? null],
-    ["merged", l.counts.merged, g?.merged ?? null],
-    ["lots", l.counts.lots, g?.lots ?? null],
-    ["buildings", l.counts.buildings, g?.buildings ?? null],
-    ["types", l.counts.typesUsed, g?.types ?? null],
-    ...g?.hq.length ? g.hq.map((k, f) => {
-      const p = l.hq[f] ? l.blocks[l.hq[f].block] : null;
-      return [`HQ ${f + 1} (gx·100 + gy)`, p ? p.gx * 100 + p.gy : -1, k[0] * 100 + k[1]];
+    [e("d_minute1"), _(M.m1Low, M.m1High), c?.rngMinute1 ?? null]
+  ] : [], y = h.filter(([, E, g]) => g !== null && H(E) === H(g)).length, k = s ? En(s) : null, F = s ? [
+    [e("d_rng"), s.rngAfter, k?.rng ?? null],
+    [e("d_city"), s.cityHash, k?.city ?? null],
+    [e("d_structure"), s.structureHash, k?.structure ?? null],
+    ["blocks", s.counts.blocks, k?.blocks ?? null],
+    ["merged", s.counts.merged, k?.merged ?? null],
+    ["lots", s.counts.lots, k?.lots ?? null],
+    ["buildings", s.counts.buildings, k?.buildings ?? null],
+    ["types", s.counts.typesUsed, k?.types ?? null],
+    ...k?.hq.length ? k.hq.map((E, g) => {
+      const S = s.hq[g] ? s.blocks[s.hq[g].block] : null;
+      return [`HQ ${g + 1} (gx·100 + gy)`, S ? S.gx * 100 + S.gy : -1, E[0] * 100 + E[1]];
     }) : []
-  ] : [], P = C.filter(([, k, f]) => f !== null && x(k) === x(f)).length, S = n ? De(n) : null, R = [Ie, ft, wt];
-  return /* @__PURE__ */ e.createElement("aside", { className: "drawer", "aria-label": t("d_title") }, /* @__PURE__ */ e.createElement("header", null, /* @__PURE__ */ e.createElement("h2", null, t("d_title")), /* @__PURE__ */ e.createElement("button", { className: "close", onClick: d, "aria-label": t("d_close") }, "×")), u && l && /* @__PURE__ */ e.createElement("section", null, /* @__PURE__ */ e.createElement("h3", null, t("d_step4")), /* @__PURE__ */ e.createElement("p", { className: "sum" }, o ? t("d_match", { n: _, m: c.length }) : t("d_no_ref")), /* @__PURE__ */ e.createElement("table", null, /* @__PURE__ */ e.createElement("tbody", null, c.map(([k, f, p]) => /* @__PURE__ */ e.createElement("tr", { key: k }, /* @__PURE__ */ e.createElement("th", null, k), p === null ? /* @__PURE__ */ e.createElement("td", null, x(f)) : /* @__PURE__ */ e.createElement(ge, { v: x(f), expect: x(p) }), /* @__PURE__ */ e.createElement("td", null, p === null ? "" : x(p))))))), /* @__PURE__ */ e.createElement("section", null, /* @__PURE__ */ e.createElement("h3", null, t("d_step3")), l && /* @__PURE__ */ e.createElement("p", { className: "sum" }, t("d_counts", {
-    b: l.counts.blocks,
-    m: l.counts.merged,
-    l: l.counts.lots,
-    n: l.counts.buildings,
-    t: l.counts.typesUsed,
-    r: l.retries
-  })), /* @__PURE__ */ e.createElement("p", { className: "sum" }, g ? t("d_match", { n: P, m: C.length }) : t("d_no_ref")), /* @__PURE__ */ e.createElement("table", null, /* @__PURE__ */ e.createElement("tbody", null, C.map(([k, f, p]) => /* @__PURE__ */ e.createElement("tr", { key: k }, /* @__PURE__ */ e.createElement("th", null, k), p === null ? /* @__PURE__ */ e.createElement("td", null, x(f)) : /* @__PURE__ */ e.createElement(ge, { v: x(f), expect: x(p) }), /* @__PURE__ */ e.createElement("td", null, p === null ? "" : x(p))))))), /* @__PURE__ */ e.createElement("section", null, /* @__PURE__ */ e.createElement("h3", null, t("d_step1")), /* @__PURE__ */ e.createElement("table", null, /* @__PURE__ */ e.createElement("tbody", null, /* @__PURE__ */ e.createElement("tr", null, /* @__PURE__ */ e.createElement("th", null, t("d_stamp")), /* @__PURE__ */ e.createElement("td", null, a)), /* @__PURE__ */ e.createElement("tr", null, /* @__PURE__ */ e.createElement("th", null, t("d_build_id")), /* @__PURE__ */ e.createElement("td", null, s ?? "…")), /* @__PURE__ */ e.createElement("tr", null, /* @__PURE__ */ e.createElement("th", null, t("d_state")), /* @__PURE__ */ e.createElement("td", null, r === null ? "…" : `${et(r)} (${x(r)})`)))), /* @__PURE__ */ e.createElement("div", { className: "row" }, /* @__PURE__ */ e.createElement("button", { className: "main", onClick: h }, t("test_sound")), /* @__PURE__ */ e.createElement("button", { className: "main danger", onClick: w }, t("crash_test")))), n && S && /* @__PURE__ */ e.createElement("section", null, /* @__PURE__ */ e.createElement("h3", null, t("d_step2")), /* @__PURE__ */ e.createElement("p", { className: "sum" }, t("random_sum", { n: S.random, m: 60 })), /* @__PURE__ */ e.createElement("div", { className: "scroll" }, /* @__PURE__ */ e.createElement("table", null, /* @__PURE__ */ e.createElement("thead", null, /* @__PURE__ */ e.createElement("tr", null, /* @__PURE__ */ e.createElement("th", null, t("col_i")), /* @__PURE__ */ e.createElement("th", null, t("col_main")), /* @__PURE__ */ e.createElement("th", null, t("col_ref")), /* @__PURE__ */ e.createElement("th", null, t("col_int")), /* @__PURE__ */ e.createElement("th", null, t("col_ref")), /* @__PURE__ */ e.createElement("th", null, t("col_plan")), /* @__PURE__ */ e.createElement("th", null, t("col_ref")))), /* @__PURE__ */ e.createElement("tbody", null, Ie.map((k, f) => /* @__PURE__ */ e.createElement("tr", { key: f }, /* @__PURE__ */ e.createElement("td", null, f + 1), [0, 1, 2].map((p) => /* @__PURE__ */ e.createElement(e.Fragment, { key: p }, /* @__PURE__ */ e.createElement(ge, { v: n.streams[p][f], expect: R[p][f] }), /* @__PURE__ */ e.createElement("td", null, R[p][f])))))))), /* @__PURE__ */ e.createElement("p", { className: "sum" }, t("numbers_sum", { n: S.checks, m: n.checks.length })), /* @__PURE__ */ e.createElement("table", null, /* @__PURE__ */ e.createElement("thead", null, /* @__PURE__ */ e.createElement("tr", null, /* @__PURE__ */ e.createElement("th", null, t("col_check")), /* @__PURE__ */ e.createElement("th", null, t("col_ada")), /* @__PURE__ */ e.createElement("th", null, t("col_exp")))), /* @__PURE__ */ e.createElement("tbody", null, n.checks.map((k, f) => /* @__PURE__ */ e.createElement("tr", { key: f }, /* @__PURE__ */ e.createElement("th", null, t(`c${f + 1}`)), /* @__PURE__ */ e.createElement(ge, { v: k, expect: He[f] }), /* @__PURE__ */ e.createElement("td", null, He[f]))))), /* @__PURE__ */ e.createElement("p", { className: "sum" }, t("grid_sum", { w: n.gw, h: n.gh, n: n.gw * n.gh })), /* @__PURE__ */ e.createElement("div", { className: "grid-sample", "aria-hidden": "true" }, n.pattern.map((k, f) => /* @__PURE__ */ e.createElement("i", { key: f, className: k === 1 ? "b" : k === 0 ? "s" : "x" }))), /* @__PURE__ */ e.createElement("p", { className: "sum" }, t("grid_legend")), /* @__PURE__ */ e.createElement("p", { className: "sum" }, t("world_sum", {
-    seed: ee.seed,
-    auto: ee.auto,
-    w: n.gw,
-    h: n.gh,
-    hash: `${et(n.worldHash)} (${x(n.worldHash)})`
+  ] : [], N = F.filter(([, E, g]) => g !== null && H(E) === H(g)).length, b = a ? Pt(a) : null, I = [Mt, kn, yn];
+  return /* @__PURE__ */ t.createElement("aside", { className: "drawer", "aria-label": e("d_title") }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("h2", null, e("d_title")), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: d, "aria-label": e("d_close") }, "×")), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step5")), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("d_order_note")), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", disabled: !i || !s, onClick: u }, e("d_order_check"))), m && /* @__PURE__ */ t.createElement(t.Fragment, null, /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("d_order_sum", { n: m.passed, m: m.rows.length, ms: m.weekMs.join(", ") })), /* @__PURE__ */ t.createElement("div", { className: "scroll" }, /* @__PURE__ */ t.createElement("table", { className: "checks" }, /* @__PURE__ */ t.createElement("thead", null, /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("col_check")), /* @__PURE__ */ t.createElement("th", null, e("col_ada")), /* @__PURE__ */ t.createElement("th", null, "1.2.91"), /* @__PURE__ */ t.createElement("th", null))), /* @__PURE__ */ t.createElement("tbody", null, m.rows.map((E, g) => /* @__PURE__ */ t.createElement("tr", { key: g }, /* @__PURE__ */ t.createElement("th", null, E.label), /* @__PURE__ */ t.createElement("td", { className: E.mode === "info" ? "" : E.ok ? "ok" : "bad" }, E.got), /* @__PURE__ */ t.createElement("td", null, E.want), /* @__PURE__ */ t.createElement("td", null, E.mode === "20%" ? "±20 %" : E.mode === "info" ? "info" : "=")))))))), i && s && /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step4")), /* @__PURE__ */ t.createElement("p", { className: "sum" }, c ? e("d_match", { n: y, m: h.length }) : e("d_no_ref")), /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("tbody", null, h.map(([E, g, S]) => /* @__PURE__ */ t.createElement("tr", { key: E }, /* @__PURE__ */ t.createElement("th", null, E), S === null ? /* @__PURE__ */ t.createElement("td", null, H(g)) : /* @__PURE__ */ t.createElement(Xe, { v: H(g), expect: H(S) }), /* @__PURE__ */ t.createElement("td", null, S === null ? "" : H(S))))))), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step3")), s && /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("d_counts", {
+    b: s.counts.blocks,
+    m: s.counts.merged,
+    l: s.counts.lots,
+    n: s.counts.buildings,
+    t: s.counts.typesUsed,
+    r: s.retries
+  })), /* @__PURE__ */ t.createElement("p", { className: "sum" }, k ? e("d_match", { n: N, m: F.length }) : e("d_no_ref")), /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("tbody", null, F.map(([E, g, S]) => /* @__PURE__ */ t.createElement("tr", { key: E }, /* @__PURE__ */ t.createElement("th", null, E), S === null ? /* @__PURE__ */ t.createElement("td", null, H(g)) : /* @__PURE__ */ t.createElement(Xe, { v: H(g), expect: H(S) }), /* @__PURE__ */ t.createElement("td", null, S === null ? "" : H(S))))))), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step1")), /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("tbody", null, /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("d_stamp")), /* @__PURE__ */ t.createElement("td", null, n)), /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("d_build_id")), /* @__PURE__ */ t.createElement("td", null, o ?? "…")), /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("d_state")), /* @__PURE__ */ t.createElement("td", null, r === null ? "…" : `${Qt(r)} (${H(r)})`)))), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: p }, e("test_sound")), /* @__PURE__ */ t.createElement("button", { className: "main danger", onClick: f }, e("crash_test")))), a && b && /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("d_step2")), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("random_sum", { n: b.random, m: 60 })), /* @__PURE__ */ t.createElement("div", { className: "scroll" }, /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("thead", null, /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("col_i")), /* @__PURE__ */ t.createElement("th", null, e("col_main")), /* @__PURE__ */ t.createElement("th", null, e("col_ref")), /* @__PURE__ */ t.createElement("th", null, e("col_int")), /* @__PURE__ */ t.createElement("th", null, e("col_ref")), /* @__PURE__ */ t.createElement("th", null, e("col_plan")), /* @__PURE__ */ t.createElement("th", null, e("col_ref")))), /* @__PURE__ */ t.createElement("tbody", null, Mt.map((E, g) => /* @__PURE__ */ t.createElement("tr", { key: g }, /* @__PURE__ */ t.createElement("td", null, g + 1), [0, 1, 2].map((S) => /* @__PURE__ */ t.createElement(t.Fragment, { key: S }, /* @__PURE__ */ t.createElement(Xe, { v: a.streams[S][g], expect: I[S][g] }), /* @__PURE__ */ t.createElement("td", null, I[S][g])))))))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("numbers_sum", { n: b.checks, m: a.checks.length })), /* @__PURE__ */ t.createElement("table", null, /* @__PURE__ */ t.createElement("thead", null, /* @__PURE__ */ t.createElement("tr", null, /* @__PURE__ */ t.createElement("th", null, e("col_check")), /* @__PURE__ */ t.createElement("th", null, e("col_ada")), /* @__PURE__ */ t.createElement("th", null, e("col_exp")))), /* @__PURE__ */ t.createElement("tbody", null, a.checks.map((E, g) => /* @__PURE__ */ t.createElement("tr", { key: g }, /* @__PURE__ */ t.createElement("th", null, e(`c${g + 1}`)), /* @__PURE__ */ t.createElement(Xe, { v: E, expect: Ft[g] }), /* @__PURE__ */ t.createElement("td", null, Ft[g]))))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("grid_sum", { w: a.gw, h: a.gh, n: a.gw * a.gh })), /* @__PURE__ */ t.createElement("div", { className: "grid-sample", "aria-hidden": "true" }, a.pattern.map((E, g) => /* @__PURE__ */ t.createElement("i", { key: g, className: E === 1 ? "b" : E === 0 ? "s" : "x" }))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("grid_legend")), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("world_sum", {
+    seed: Ce.seed,
+    auto: Ce.auto,
+    w: a.gw,
+    h: a.gh,
+    hash: `${Qt(a.worldHash)} (${H(a.worldHash)})`
   }))));
 }
-const ye = ["Bakers", "Butchers", "Grocers", "Convenience Store", "Shoe Store", "Tailors", "Book Store", "Printers", "Pawnbrokers", "Jewellers", "Furrier", "Drug Store", "Plumbers", "Cafe", "Milk Bar", "Breakfast Bar", "Restaurant", "Pool Hall", "Gymnasium", "Health Center", "Massage Parlor", "Dance Studio", "Barbers", "Laundry", "Hardware Store", "Auto Shop", "Finance Company", "Accountancy Firm", "Law Offices", "Hotel", "Hotel (Large)", "Department Store", "Bank", "Main Bank", "Newspaper Offices", "Radio Station", "Warehouse", "Foundry", "Mill", "Cannery", "Garage Depot", "Trade Union", "Docks", "Railroad Terminal", "Tenement Block", "Apartment Block", "Residences", "City Hall", "Courthouse", "Police Headquarters", "Hospital", "School", "Library", "Labour Exchange", "Fire House", "F.B.I. Headquarters", "Museum", "Public Baths", "US Post", "Power Plant", "Water Plant", "Residences", "Church", "Orphanage", "Soup Kitchen", "Clothing Bank", "Office", "Speakeasy", "Moonshine Still", "Casino", "Card Games", "Dice Game", "Gambling Den", "Prizefight Ring", "Grifters", "Insider Trading", "Loan Shark", "Counterfeit Press", "Numbers Racket", "Rented Rooms", "Teamsters", "Acupuncture Clinic", "Antiques Dealer", "Art Gallery", "Auction Rooms", "Auto Dealers", "Bailiffs", "Beauty Parlor", "Blacksmiths", "Bridal Parlor", "Cab Company", "Cake Store", "Candy Store", "Carpet Store", "Catering Suppliers", "Cheese Store", "China Store", "Chiropodists", "Clothiers", "Coffin Makers", "Cosmetics Store", "Delicatessen", "Orthodontists", "Detective Agency", "Diamond Merchant", "Doctors", "Dressmakers", "Electrical Suppliers", "Electricians", "Costume Store", "Fishmongers", "Florists", "Fortune Tellers", "French Polishers", "Fruit and Veg. Store", "Funeral Directors", "Furniture Store", "Gardening Suppliers", "Gas Station/Mechanic", "Gift Store", "Gold Merchants", "Golf Store", "Gramophone Store", "Glassware", "Haberdashery", "Hair Salon", "Wig Makers", "Ice Store", "Ice Cream Parlor", "Ladieswear", "Lingerie Store", "Local Store", "Locksmiths", "Lumber Merchant", "Milliners", "Movie Theater", "Music Store", "News Agency", "Nursery Store", "Optometrist", "Perfume Store", "Pest Controllers", "Pet Store", "Photographers", "Piano Store", "Real Estate", "Record Store", "Removals Company", "Saddlers", "Shoe Repairs", "Sign Writers", "Soda Fountain", "Sports Equipment", "Stamp and Coin Dealers", "Stationers", "Tattoo Parlor", "Telegraph Office", "Theater", "Tobacconists", "Toy Store", "Upholsterers", "Watchmakers", "Window Cleaners", "Abattoir", "Builders", "Cement Factory", "Ceramics", "Chandler", "Leather Curers", "Engineers", "Excavators", "Fabricators", "Factory", "Food Processors", "Freight Forwarding", "Furriers", "Glaziers", "Ice House", "Ironmongers", "Joiners", "Junk Yard", "Lumber Yard", "Milk Yard", "Packaging Plant", "Paper Mill", "Sheet Workers", "Steel Mill", "Stone Masons", "Tanners", "Textiles", "Weavers", "Wheelwrights", "Empty land"], En = ["Volstead Green", "Hinge Oak", "Lantern Park", "Cinder Gardens"], yn = ["St. Michael’s", "St. Mary’s", "St. Joseph’s", "St. Patrick’s"], vn = ["Alphonse", "Vito", "Salvatore", "Frank", "Johnny", "Tommy", "Angelo", "Rocco", "Carmine", "Dominic", "Enzo", "Gino", "Luigi", "Marco", "Nico", "Paulie", "Sal", "Tony", "Vinnie", "Bugsy", "Dutch", "Lefty", "Moe", "Jake", "Abe", "Sam", "Meyer", "Solly", "Hymie", "Sean", "Declan", "Patrick", "Liam", "Eamon", "Rory", "Mickey", "Fergus", "Brendan", "Walter", "Harold", "Clarence", "Chester", "Herbert", "Raymond", "Ernest", "Floyd", "Otto", "Klaus", "Heinrich", "Wilhelm", "Stefan", "Anton", "Ludwig", "Amos", "Cyrus", "Silas", "Homer", "Virgil", "Emmett", "Wilbur", "Elmer", "Orville", "Rosa", "Concetta", "Maria", "Angelina", "Lucia", "Carmela", "Gina", "Nina", "Sofia", "Bridget", "Maureen", "Nora", "Colleen", "Kathleen", "Siobhan", "Aileen", "Ruth", "Esther", "Sadie", "Belle", "Pearl", "Mabel", "Hazel", "Edna", "Vera", "Opal", "Dorothy", "Gladys", "Mildred", "Beatrice", "Constance", "Harriet", "Florence", "Greta", "Ilse", "Anneliese", "Hilde", "Marlene", "Lillian", "Wilma", "Norma", "Thelma", "Bessie", "Myrtle", "Ada", "Capone", "Moretti", "Bellini", "Ricci", "Costa", "Rinaldi", "Marino", "Gallo", "Fontana", "Genovese", "Lombardi", "Barbieri", "Vitale", "Ferrante", "Bruno", "Greco", "Rizzo", "OConnell", "Doyle", "Kelly", "Sullivan", "Murphy", "Flanagan", "Gallagher", "Quinn", "Byrne", "Donnelly", "Fitzgerald", "Rourke", "Maguire", "Brennan", "Rosenberg", "Goldstein", "Weiss", "Kaplan", "Lansky", "Bernstein", "Shapiro", "Roth", "Schmidt", "Braun", "Wagner", "Keller", "Hoffman", "Zimmer", "Krause", "Bauer", "Kowalski", "Nowak", "Wozniak", "Zielinski", "Jankowski", "Whitaker", "Ashford", "Carmichael", "Blackwood", "Hollis", "Vance", "Sterling", "Marsh", "Doyle", "Crane", "Hargrove", "Pemberton", "Locke", "Radcliffe", "Winslow", "Petrov", "Sokolov", "Ivanov", "Volkov", "Papadakis", "Stavros", "Kostas", "Scarface", "The Enforcer", "Bugs", "Baby Face", "Pretty Boy", "Lucky", "The Waiter", "Machine Gun", "The Chin", "Three Fingers", "The Cigar", "Ice Pick", "Knuckles", "The Weasel", "Fats", "Slim", "The Ghost", "Nails", "Trigger", "Whitey", "Doc", "The Butcher", "Sleepy", "Cricket", "Half-Moon", "Tick-Tock", "Silk", "Curly", "Moretti", "OConnell", "Rosenberg", "Vanetti", "Delgado", "Kowalski", "Bellini", "Doyle", "Marchetti", "Sullivan", "Weiss", "Corvino", "Clarence", "Amos", "Floyd", "Ellis", "Jesse", "Otis", "Rufus", "Willie", "Booker", "Luther", "Calvin", "Odell", "Pearl", "Bessie", "Hazel", "Mattie", "Viola", "Ida", "Lula", "Minnie", "Washington", "Jefferson", "Coleman", "Freeman", "Banks", "Tillman", "Haywood", "Hollins", "Mosley", "Gaines", "Pruitt", "Dawson", "Walter", "Clarence", "Chester", "Harold", "Herbert", "Leonard", "Raymond", "Everett", "Howard", "Lloyd", "Russell", "Wesley", "Dorothy", "Mildred", "Edna", "Gladys", "Irene", "Myrtle", "Agnes", "Vera", "Whitaker", "Carmichael", "Pemberton", "Ashford", "Blakely", "Hollis", "Prescott", "Thornton", "Granger", "Whitfield", "Kendall", "Hartley", "Henry", "Walter", "Eddie", "Tommy", "Albert", "Johnny", "Frank", "Sam", "George", "Harry", "Mae", "Lillian", "Rose", "Ruby", "Grace", "Alice", "Lee", "Wong", "Chin", "Chan", "Fong", "Lum", "Yee", "Quan", "Moy", "Louie", "Otto", "Heinrich", "Ludwig", "Fritz", "Hans", "Karl", "Werner", "Max", "Franz", "Wilhelm", "Emil", "Gustav", "Greta", "Hilde", "Ilse", "Frieda", "Marta", "Klara", "Liesl", "Erna", "Schmidt", "Keller", "Bauer", "Wagner", "Weber", "Hoffmann", "Kruger", "Fischer", "Becker", "Schulz", "Vogel", "Braun", "Nikos", "Kostas", "Yannis", "Dimitri", "Spiros", "Christos", "Vasilis", "Andreas", "Petros", "Stelios", "Eleni", "Sophia", "Katerina", "Despina", "Irini", "Anastasia", "Papadakis", "Stavros", "Kostas", "Pappas", "Karras", "Demos", "Galanis", "Vlahos", "Manos", "Lykos", "Declan", "Brendan", "Mickey", "Fergus", "Seamus", "Liam", "Cormac", "Dermot", "Owen", "Paddy", "Kieran", "Ronan", "Bridget", "Maureen", "Nora", "Siobhan", "Kathleen", "Peggy", "Eileen", "Molly", "Doyle", "Flanagan", "Maguire", "OConnell", "Sullivan", "Callahan", "Brennan", "Keane", "Murphy", "Quinlan", "Dolan", "Hennessy", "Salvatore", "Rocco", "Carmine", "Vito", "Angelo", "Enzo", "Luigi", "Marco", "Paolo", "Domenico", "Sal", "Nunzio", "Tony", "Frankie", "Gino", "Aldo", "Concetta", "Rosa", "Carmela", "Lucia", "Gina", "Teresa", "Filomena", "Angela", "Moretti", "Rinaldi", "Ferrante", "Vanetti", "Corvino", "Bellini", "Marchetti", "Ricci", "Costa", "Lombardi", "Esposito", "Greco", "Russo", "Romano", "Santoro", "Meyer", "Abe", "Solly", "Moe", "Izzy", "Benny", "Hymie", "Sam", "Lou", "Morris", "Irving", "Nat", "Esther", "Sadie", "Ruth", "Miriam", "Rivka", "Bella", "Fanny", "Goldie", "Rosenberg", "Kaplan", "Shapiro", "Weiss", "Goldberg", "Levine", "Feldman", "Siegel", "Abrams", "Horowitz", "Adler", "Bernstein", "Miguel", "Rafael", "Ernesto", "Jose", "Luis", "Ramon", "Alfonso", "Joaquin", "Arturo", "Ignacio", "Guadalupe", "Rosa", "Elena", "Consuelo", "Dolores", "Lupita", "Carmen", "Juana", "Delgado", "Ramirez", "Castillo", "Morales", "Herrera", "Navarro", "Fuentes", "Ortega", "Salazar", "Mendoza", "Stefan", "Anton", "Kazimierz", "Jan", "Tadeusz", "Wojciech", "Jozef", "Marek", "Leon", "Bronislaw", "Wanda", "Halina", "Jadwiga", "Zofia", "Irena", "Stasia", "Kowalski", "Nowak", "Zielinski", "Wisniewski", "Lewandowski", "Kaminski", "Mazur", "Sobczak", "Pawlak", "Dudek"], Sn = ["boss", "lieutenant", "hood", "accountant", "lawyer", "citizen", "owner", "police", "firefighter", "policeChief", "fbi", "fbiHead", "judge", "da", "mayor", "reporter", "clergy", "snitch"], kt = ["intelligence", "organization", "business", "firearms", "fists", "knives", "arson", "explosives", "intimidation", "driving", "stealth"];
-function Cn({ city: t, lot: a, t: s, onClose: r, gangs: n }) {
-  const l = t.lots[a];
-  if (!l) return /* @__PURE__ */ e.createElement("aside", { className: "card building-card idle" }, /* @__PURE__ */ e.createElement("p", null, s("card_none")));
-  const u = t.blocks[l.block], d = t.hq.find((m) => m.lot === l.id), w = (l.type === ye.indexOf("Church") && u.name >= 0 ? yn[u.name] : null) ?? ye[l.type] ?? ye[Vt], o = (m, c) => /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("dt", null, s(m)), /* @__PURE__ */ e.createElement("dd", null, c));
-  return /* @__PURE__ */ e.createElement("aside", { className: "card building-card", "aria-live": "polite" }, /* @__PURE__ */ e.createElement("header", null, /* @__PURE__ */ e.createElement("span", { className: "swatch", "data-cls": l.cls }), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("h3", null, w), /* @__PURE__ */ e.createElement("div", { className: "sub" }, s(`cls_${mt[l.cls]}`), " · ", s(`dist_${ut[u.district]}`))), /* @__PURE__ */ e.createElement("button", { className: "close", onClick: r, "aria-label": s("card_close") }, "×")), /* @__PURE__ */ e.createElement("dl", null, o("card_value", u.landValue), o("card_squalor", u.squalor), o("card_block", `${u.gx}, ${u.gy}${u.spanX * u.spanY > 1 ? ` (${u.spanX} × ${u.spanY})` : ""}`), o("card_plot", l.index), o("card_storeys", l.storeys), o("card_faces", s(`face_${qt[l.face]}`))), d && /* @__PURE__ */ e.createElement("p", { className: "note" }, s("card_hq", { name: n[d.gang - 1]?.name ?? d.gang })), u.use === 1 && u.name >= 0 && /* @__PURE__ */ e.createElement("p", { className: "note" }, En[u.name]));
+const ie = ["Bakers", "Butchers", "Grocers", "Convenience Store", "Shoe Store", "Tailors", "Book Store", "Printers", "Pawnbrokers", "Jewellers", "Furrier", "Drug Store", "Plumbers", "Cafe", "Milk Bar", "Breakfast Bar", "Restaurant", "Pool Hall", "Gymnasium", "Health Center", "Massage Parlor", "Dance Studio", "Barbers", "Laundry", "Hardware Store", "Auto Shop", "Finance Company", "Accountancy Firm", "Law Offices", "Hotel", "Hotel (Large)", "Department Store", "Bank", "Main Bank", "Newspaper Offices", "Radio Station", "Warehouse", "Foundry", "Mill", "Cannery", "Garage Depot", "Trade Union", "Docks", "Railroad Terminal", "Tenement Block", "Apartment Block", "Residences", "City Hall", "Courthouse", "Police Headquarters", "Hospital", "School", "Library", "Labour Exchange", "Fire House", "F.B.I. Headquarters", "Museum", "Public Baths", "US Post", "Power Plant", "Water Plant", "Residences", "Church", "Orphanage", "Soup Kitchen", "Clothing Bank", "Office", "Speakeasy", "Moonshine Still", "Casino", "Card Games", "Dice Game", "Gambling Den", "Prizefight Ring", "Grifters", "Insider Trading", "Loan Shark", "Counterfeit Press", "Numbers Racket", "Rented Rooms", "Teamsters", "Acupuncture Clinic", "Antiques Dealer", "Art Gallery", "Auction Rooms", "Auto Dealers", "Bailiffs", "Beauty Parlor", "Blacksmiths", "Bridal Parlor", "Cab Company", "Cake Store", "Candy Store", "Carpet Store", "Catering Suppliers", "Cheese Store", "China Store", "Chiropodists", "Clothiers", "Coffin Makers", "Cosmetics Store", "Delicatessen", "Orthodontists", "Detective Agency", "Diamond Merchant", "Doctors", "Dressmakers", "Electrical Suppliers", "Electricians", "Costume Store", "Fishmongers", "Florists", "Fortune Tellers", "French Polishers", "Fruit and Veg. Store", "Funeral Directors", "Furniture Store", "Gardening Suppliers", "Gas Station/Mechanic", "Gift Store", "Gold Merchants", "Golf Store", "Gramophone Store", "Glassware", "Haberdashery", "Hair Salon", "Wig Makers", "Ice Store", "Ice Cream Parlor", "Ladieswear", "Lingerie Store", "Local Store", "Locksmiths", "Lumber Merchant", "Milliners", "Movie Theater", "Music Store", "News Agency", "Nursery Store", "Optometrist", "Perfume Store", "Pest Controllers", "Pet Store", "Photographers", "Piano Store", "Real Estate", "Record Store", "Removals Company", "Saddlers", "Shoe Repairs", "Sign Writers", "Soda Fountain", "Sports Equipment", "Stamp and Coin Dealers", "Stationers", "Tattoo Parlor", "Telegraph Office", "Theater", "Tobacconists", "Toy Store", "Upholsterers", "Watchmakers", "Window Cleaners", "Abattoir", "Builders", "Cement Factory", "Ceramics", "Chandler", "Leather Curers", "Engineers", "Excavators", "Fabricators", "Factory", "Food Processors", "Freight Forwarding", "Furriers", "Glaziers", "Ice House", "Ironmongers", "Joiners", "Junk Yard", "Lumber Yard", "Milk Yard", "Packaging Plant", "Paper Mill", "Sheet Workers", "Steel Mill", "Stone Masons", "Tanners", "Textiles", "Weavers", "Wheelwrights", "Empty land"], Ba = ["bakers", "butchers", "grocers", "convenienceStore", "shoeStore", "tailors", "bookStore", "printers", "pawnbroker", "jewellers", "furrier", "drugStore", "plumbers", "cafe", "milkBar", "breakfastBar", "restaurant", "poolHall", "gym", "healthCenter", "massageParlor", "danceStudio", "barbers", "laundry", "hardwareStore", "autoShop", "financeCompany", "accountancy", "lawFirm", "hotelSmall", "hotelLarge", "departmentStore", "bankSmall", "bankLarge", "newspaper", "radioStation", "warehouse", "foundry", "mill", "cannery", "garageDepot", "tradeUnion", "docks", "railroad", "tenementPoor", "tenementMid", "tenementRich", "cityHall", "courthouse", "policeHQ", "hospital", "school", "library", "labourExchange", "firehouse", "fbiHQ", "museum", "publicBaths", "usPost", "powerPlant", "waterPlant", "residence", "church", "orphanage", "soupKitchen", "clothingBank", "office", "speakeasy", "moonshineStill", "casino", "cardGames", "diceGame", "gamblingDen", "prizeFight", "grifters", "insiderTrading", "loanShark", "counterfeitPress", "numbersRacket", "rentedRooms", "teamsters", "acupunctureClinic", "antiquesDealer", "artGallery", "auctionRooms", "autoDealers", "bailiffs", "beautyParlor", "blacksmiths", "bridalParlor", "cabCompany", "cakeStore", "candyStore", "carpetStore", "cateringSuppliers", "cheeseStore", "chinaStore", "chiropodists", "clothiers", "coffinMakers", "cosmeticsStore", "delicatessen", "orthodontists", "detectiveAgency", "diamondMerchant", "doctors", "dressmakers", "electricalSuppliers", "electricians", "costumeStore", "fishmongers", "florists", "fortuneTellers", "frenchPolishers", "fruitAndVegStore", "funeralDirectors", "furnitureStore", "gardeningSuppliers", "gasStationMechanic", "giftStore", "goldMerchants", "golfStore", "gramophoneStore", "glassware", "haberdashery", "hairSalon", "wigMakers", "iceStore", "iceCreamParlor", "ladieswear", "lingerieStore", "localStore", "locksmiths", "lumberMerchant", "milliners", "movieTheater", "musicStore", "newsAgency", "nurseryStore", "optometrist", "perfumeStore", "pestControllers", "petStore", "photographers", "pianoStore", "realEstate", "recordStore", "removalsCompany", "saddlers", "shoeRepairs", "signWriters", "sodaFountain", "sportsEquipment", "stampAndCoinDealers", "stationers", "tattooParlor", "telegraphOffice", "theater", "tobacconists", "toyStore", "upholsterers", "watchmakers", "windowCleaners", "abattoir", "builders", "cementFactory", "ceramics", "chandler", "leatherCurers", "engineers", "excavators", "fabricators", "factory", "foodProcessors", "freightForwarding", "furriers", "glaziers", "iceHouse", "ironmongers", "joiners", "junkYard", "lumberYard", "milkYard", "packagingPlant", "paperMill", "sheetWorkers", "steelMill", "stoneMasons", "tanners", "textiles", "weavers", "wheelwrights", "emptyLand"], xa = ["commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "tenement", "tenement", "tenement", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "municipal", "residential", "charity", "charity", "charity", "charity", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "illegal", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "commercial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "industrial", "empty"], Ra = [5200, 5600, 6e3, 14200, 6800, 7200, 6600, 8200, 7e3, 12500, 12e3, 7400, 5800, 6200, 5800, 5600, 16800, 7600, 4500, 9e3, 8400, 3800, 4800, 5400, 6600, 9200, 5900, 11e3, 12e3, 13e3, 26e3, 34e3, 22e3, 46e3, 44e3, 44e3, 9e3, 16e3, 14e3, 23800, 11e3, 12e3, 41200, 3e4, 4200, 7e3, 12e3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3e3, 2e3, 6e3, 8e3, 4500, 18e3, 4e3, 3600, 6500, 7e3, 4200, 12e3, 7500, 9500, 5e3, 11e3, 8500, 5800, 8100, 8100, 13900, 10400, 4100, 7e3, 4400, 7e3, 10400, 5800, 4400, 10400, 5800, 5500, 8100, 8100, 5500, 5800, 7e3, 5800, 8100, 5500, 11600, 8100, 8100, 5800, 5500, 4100, 5800, 4400, 4600, 5500, 5800, 5800, 11600, 5800, 4400, 7e3, 8100, 4600, 5800, 2900, 5800, 5800, 4600, 4400, 5800, 8100, 7e3, 13900, 5500, 5800, 5800, 11600, 4400, 5500, 5800, 8100, 7e3, 4400, 4100, 5800, 5500, 8100, 5500, 10400, 4100, 4100, 5500, 5800, 5800, 4100, 4400, 2900, 5500, 9300, 4100, 4100, 5500, 10400, 4100, 5800, 16200, 16200, 16200, 31900, 16200, 20900, 16200, 31900, 16200, 20900, 16200, 31900, 16200, 2300, 16200, 16200, 2300, 5800, 16200, 16200, 20900, 20900, 31900, 16200, 16200, 20900, 16200, 16200, 0], Ya = ["Volstead Green", "Hinge Oak", "Lantern Park", "Cinder Gardens"], Oa = ["St. Michael’s", "St. Mary’s", "St. Joseph’s", "St. Patrick’s"], et = ["Wabash", "Clark", "Dearborn", "State", "Halsted", "Ashland", "Racine", "Morgan", "Sangamon", "Peoria", "Carpenter", "Laflin", "Wood", "Paulina", "Hermitage", "Wolcott", "Damen", "Leavitt", "Oakley", "Claremont"], tt = ["Madison", "Monroe", "Adams", "Jackson", "Van Buren", "Harrison", "Polk", "Taylor", "Roosevelt", "Maxwell", "Cermak", "Archer", "Pershing", "Garfield", "Lawrence", "Belmont", "Fullerton", "Diversey", "Addison", "Irving"], Yt = ["Alphonse", "Vito", "Salvatore", "Frank", "Johnny", "Tommy", "Angelo", "Rocco", "Carmine", "Dominic", "Enzo", "Gino", "Luigi", "Marco", "Nico", "Paulie", "Sal", "Tony", "Vinnie", "Bugsy", "Dutch", "Lefty", "Moe", "Jake", "Abe", "Sam", "Meyer", "Solly", "Hymie", "Sean", "Declan", "Patrick", "Liam", "Eamon", "Rory", "Mickey", "Fergus", "Brendan", "Walter", "Harold", "Clarence", "Chester", "Herbert", "Raymond", "Ernest", "Floyd", "Otto", "Klaus", "Heinrich", "Wilhelm", "Stefan", "Anton", "Ludwig", "Amos", "Cyrus", "Silas", "Homer", "Virgil", "Emmett", "Wilbur", "Elmer", "Orville", "Rosa", "Concetta", "Maria", "Angelina", "Lucia", "Carmela", "Gina", "Nina", "Sofia", "Bridget", "Maureen", "Nora", "Colleen", "Kathleen", "Siobhan", "Aileen", "Ruth", "Esther", "Sadie", "Belle", "Pearl", "Mabel", "Hazel", "Edna", "Vera", "Opal", "Dorothy", "Gladys", "Mildred", "Beatrice", "Constance", "Harriet", "Florence", "Greta", "Ilse", "Anneliese", "Hilde", "Marlene", "Lillian", "Wilma", "Norma", "Thelma", "Bessie", "Myrtle", "Ada", "Capone", "Moretti", "Bellini", "Ricci", "Costa", "Rinaldi", "Marino", "Gallo", "Fontana", "Genovese", "Lombardi", "Barbieri", "Vitale", "Ferrante", "Bruno", "Greco", "Rizzo", "OConnell", "Doyle", "Kelly", "Sullivan", "Murphy", "Flanagan", "Gallagher", "Quinn", "Byrne", "Donnelly", "Fitzgerald", "Rourke", "Maguire", "Brennan", "Rosenberg", "Goldstein", "Weiss", "Kaplan", "Lansky", "Bernstein", "Shapiro", "Roth", "Schmidt", "Braun", "Wagner", "Keller", "Hoffman", "Zimmer", "Krause", "Bauer", "Kowalski", "Nowak", "Wozniak", "Zielinski", "Jankowski", "Whitaker", "Ashford", "Carmichael", "Blackwood", "Hollis", "Vance", "Sterling", "Marsh", "Doyle", "Crane", "Hargrove", "Pemberton", "Locke", "Radcliffe", "Winslow", "Petrov", "Sokolov", "Ivanov", "Volkov", "Papadakis", "Stavros", "Kostas", "Scarface", "The Enforcer", "Bugs", "Baby Face", "Pretty Boy", "Lucky", "The Waiter", "Machine Gun", "The Chin", "Three Fingers", "The Cigar", "Ice Pick", "Knuckles", "The Weasel", "Fats", "Slim", "The Ghost", "Nails", "Trigger", "Whitey", "Doc", "The Butcher", "Sleepy", "Cricket", "Half-Moon", "Tick-Tock", "Silk", "Curly", "Moretti", "OConnell", "Rosenberg", "Vanetti", "Delgado", "Kowalski", "Bellini", "Doyle", "Marchetti", "Sullivan", "Weiss", "Corvino", "Clarence", "Amos", "Floyd", "Ellis", "Jesse", "Otis", "Rufus", "Willie", "Booker", "Luther", "Calvin", "Odell", "Pearl", "Bessie", "Hazel", "Mattie", "Viola", "Ida", "Lula", "Minnie", "Washington", "Jefferson", "Coleman", "Freeman", "Banks", "Tillman", "Haywood", "Hollins", "Mosley", "Gaines", "Pruitt", "Dawson", "Walter", "Clarence", "Chester", "Harold", "Herbert", "Leonard", "Raymond", "Everett", "Howard", "Lloyd", "Russell", "Wesley", "Dorothy", "Mildred", "Edna", "Gladys", "Irene", "Myrtle", "Agnes", "Vera", "Whitaker", "Carmichael", "Pemberton", "Ashford", "Blakely", "Hollis", "Prescott", "Thornton", "Granger", "Whitfield", "Kendall", "Hartley", "Henry", "Walter", "Eddie", "Tommy", "Albert", "Johnny", "Frank", "Sam", "George", "Harry", "Mae", "Lillian", "Rose", "Ruby", "Grace", "Alice", "Lee", "Wong", "Chin", "Chan", "Fong", "Lum", "Yee", "Quan", "Moy", "Louie", "Otto", "Heinrich", "Ludwig", "Fritz", "Hans", "Karl", "Werner", "Max", "Franz", "Wilhelm", "Emil", "Gustav", "Greta", "Hilde", "Ilse", "Frieda", "Marta", "Klara", "Liesl", "Erna", "Schmidt", "Keller", "Bauer", "Wagner", "Weber", "Hoffmann", "Kruger", "Fischer", "Becker", "Schulz", "Vogel", "Braun", "Nikos", "Kostas", "Yannis", "Dimitri", "Spiros", "Christos", "Vasilis", "Andreas", "Petros", "Stelios", "Eleni", "Sophia", "Katerina", "Despina", "Irini", "Anastasia", "Papadakis", "Stavros", "Kostas", "Pappas", "Karras", "Demos", "Galanis", "Vlahos", "Manos", "Lykos", "Declan", "Brendan", "Mickey", "Fergus", "Seamus", "Liam", "Cormac", "Dermot", "Owen", "Paddy", "Kieran", "Ronan", "Bridget", "Maureen", "Nora", "Siobhan", "Kathleen", "Peggy", "Eileen", "Molly", "Doyle", "Flanagan", "Maguire", "OConnell", "Sullivan", "Callahan", "Brennan", "Keane", "Murphy", "Quinlan", "Dolan", "Hennessy", "Salvatore", "Rocco", "Carmine", "Vito", "Angelo", "Enzo", "Luigi", "Marco", "Paolo", "Domenico", "Sal", "Nunzio", "Tony", "Frankie", "Gino", "Aldo", "Concetta", "Rosa", "Carmela", "Lucia", "Gina", "Teresa", "Filomena", "Angela", "Moretti", "Rinaldi", "Ferrante", "Vanetti", "Corvino", "Bellini", "Marchetti", "Ricci", "Costa", "Lombardi", "Esposito", "Greco", "Russo", "Romano", "Santoro", "Meyer", "Abe", "Solly", "Moe", "Izzy", "Benny", "Hymie", "Sam", "Lou", "Morris", "Irving", "Nat", "Esther", "Sadie", "Ruth", "Miriam", "Rivka", "Bella", "Fanny", "Goldie", "Rosenberg", "Kaplan", "Shapiro", "Weiss", "Goldberg", "Levine", "Feldman", "Siegel", "Abrams", "Horowitz", "Adler", "Bernstein", "Miguel", "Rafael", "Ernesto", "Jose", "Luis", "Ramon", "Alfonso", "Joaquin", "Arturo", "Ignacio", "Guadalupe", "Rosa", "Elena", "Consuelo", "Dolores", "Lupita", "Carmen", "Juana", "Delgado", "Ramirez", "Castillo", "Morales", "Herrera", "Navarro", "Fuentes", "Ortega", "Salazar", "Mendoza", "Stefan", "Anton", "Kazimierz", "Jan", "Tadeusz", "Wojciech", "Jozef", "Marek", "Leon", "Bronislaw", "Wanda", "Halina", "Jadwiga", "Zofia", "Irena", "Stasia", "Kowalski", "Nowak", "Zielinski", "Wisniewski", "Lewandowski", "Kaminski", "Mazur", "Sobczak", "Pawlak", "Dudek"], za = ["boss", "lieutenant", "hood", "accountant", "lawyer", "citizen", "owner", "police", "firefighter", "policeChief", "fbi", "fbiHead", "judge", "da", "mayor", "reporter", "clergy", "snitch"], vn = ["intelligence", "organization", "business", "firearms", "fists", "knives", "arson", "explosives", "intimidation", "driving", "stealth"];
+function Da({ city: e, lot: n, t: o, onClose: r, gangs: a }) {
+  const s = e.lots[n];
+  if (!s) return /* @__PURE__ */ t.createElement("aside", { className: "card building-card idle" }, /* @__PURE__ */ t.createElement("p", null, o("card_none")));
+  const i = e.blocks[s.block], d = e.hq.find((u) => u.lot === s.id), f = (s.type === ie.indexOf("Church") && i.name >= 0 ? Oa[i.name] : null) ?? ie[s.type] ?? ie[oa], m = (u, c) => /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, o(u)), /* @__PURE__ */ t.createElement("dd", null, c));
+  return /* @__PURE__ */ t.createElement("aside", { className: "card building-card", "aria-live": "polite" }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("span", { className: "swatch", "data-cls": s.cls }), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("h3", null, f), /* @__PURE__ */ t.createElement("div", { className: "sub" }, o(`cls_${pn[s.cls]}`), " · ", o(`dist_${hn[i.district]}`))), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: r, "aria-label": o("card_close") }, "×")), /* @__PURE__ */ t.createElement("dl", null, m("card_value", i.landValue), m("card_squalor", i.squalor), m("card_block", `${i.gx}, ${i.gy}${i.spanX * i.spanY > 1 ? ` (${i.spanX} × ${i.spanY})` : ""}`), m("card_plot", s.index), m("card_storeys", s.storeys), m("card_faces", o(`face_${aa[s.face]}`))), d && /* @__PURE__ */ t.createElement("p", { className: "note" }, o("card_hq", { name: a[d.gang - 1]?.name ?? d.gang })), i.use === 1 && i.name >= 0 && /* @__PURE__ */ t.createElement("p", { className: "note" }, Ya[i.name]));
 }
-const Mn = [
-  ["p_orders", 5],
+const ja = [
   ["p_trams", 6],
   ["p_police", 7],
   ["p_money", 8],
@@ -1365,45 +1658,45 @@ const Mn = [
   ["p_reports", 10],
   ["p_auto", 11]
 ];
-function Ln({ t, gangsOpen: a, onGangs: s }) {
-  return /* @__PURE__ */ e.createElement("nav", { className: "journal", "aria-label": "Journal" }, /* @__PURE__ */ e.createElement("button", { className: "live", "aria-pressed": a, onClick: s }, /* @__PURE__ */ e.createElement("span", null, t("p_gangs"))), Mn.map(([r, n]) => /* @__PURE__ */ e.createElement("button", { key: r, disabled: !0, title: t("later_title", { n }) }, /* @__PURE__ */ e.createElement("span", null, t(r)), /* @__PURE__ */ e.createElement("small", null, t("later", { n })))));
+function Ga({ t: e, gangsOpen: n, onGangs: o, ordersOpen: r, onOrders: a }) {
+  return /* @__PURE__ */ t.createElement("nav", { className: "journal", "aria-label": "Journal" }, /* @__PURE__ */ t.createElement("button", { className: "live", "aria-pressed": n, onClick: o }, /* @__PURE__ */ t.createElement("span", null, e("p_gangs"))), /* @__PURE__ */ t.createElement("button", { className: "live", "aria-pressed": r, onClick: a }, /* @__PURE__ */ t.createElement("span", null, e("p_orders"))), ja.map(([s, i]) => /* @__PURE__ */ t.createElement("button", { key: s, disabled: !0, title: e("later_title", { n: i }) }, /* @__PURE__ */ t.createElement("span", null, e(s)), /* @__PURE__ */ t.createElement("small", null, e("later", { n: i })))));
 }
-const Pn = [1, 2, 4, 8, 0];
-function An(t, a) {
-  const s = Math.min(a, ze - 1), r = Math.floor(s / Pe), n = a >= ze ? Pe : s % Pe, l = 8 + Math.floor(n / 60), u = n % 60;
-  return { day: t(`day${r}`), time: `${l}:${String(u).padStart(2, "0")}` };
+const Ha = [1, 2, 4, 8, 0];
+function Sn(e, n) {
+  const o = Math.min(n, lt - 1), r = Math.floor(o / gt), a = n >= lt ? gt : o % gt, s = 8 + Math.floor(a / 60), i = a % 60;
+  return { day: e(`day${r}`), time: `${s}:${String(i).padStart(2, "0")}` };
 }
-function Bn({ t, clock: a, speed: s, onSpeed: r, onLaunch: n, onFinish: l, paused: u, onPause: d }) {
-  if (!a) return null;
-  const { day: h, time: w } = An(t, a.minute), o = Math.floor(a.minute * 100 / ze);
-  return /* @__PURE__ */ e.createElement("div", { className: "card week-clock", "aria-live": "off" }, /* @__PURE__ */ e.createElement("div", { className: "clock-line" }, /* @__PURE__ */ e.createElement("strong", null, t("clock_line", { w: a.week, day: a.running ? h : t("planning"), time: a.running ? w : "" })), /* @__PURE__ */ e.createElement("small", null, t("walking_now", { n: a.walking.toLocaleString() }))), /* @__PURE__ */ e.createElement(
+function Ia({ t: e, clock: n, speed: o, onSpeed: r, onLaunch: a, onFinish: s, paused: i, onPause: d }) {
+  if (!n) return null;
+  const { day: p, time: f } = Sn(e, n.minute), m = Math.floor(n.minute * 100 / lt);
+  return /* @__PURE__ */ t.createElement("div", { className: "card week-clock", "aria-live": "off" }, /* @__PURE__ */ t.createElement("div", { className: "clock-line" }, /* @__PURE__ */ t.createElement("strong", null, e("clock_line", { w: n.week, day: n.running ? p : e("planning"), time: n.running ? f : "" })), /* @__PURE__ */ t.createElement("small", null, e("walking_now", { n: n.walking.toLocaleString() }))), /* @__PURE__ */ t.createElement(
     "div",
     {
       className: "week-bar",
       role: "progressbar",
       "aria-valuemin": 0,
       "aria-valuemax": 100,
-      "aria-valuenow": o,
-      "aria-label": t("week_bar", { w: a.week, pct: o }),
-      title: t("week_bar", { w: a.week, pct: o })
+      "aria-valuenow": m,
+      "aria-label": e("week_bar", { w: n.week, pct: m }),
+      title: e("week_bar", { w: n.week, pct: m })
     },
-    [0, 1, 2, 3, 4].map((m) => /* @__PURE__ */ e.createElement("i", { key: m })),
-    /* @__PURE__ */ e.createElement("b", { style: { width: `${o}%` } })
-  ), a.gameOver ? /* @__PURE__ */ e.createElement("p", { className: "note" }, t("game_over")) : /* @__PURE__ */ e.createElement("div", { className: "clock-buttons" }, a.running ? /* @__PURE__ */ e.createElement(e.Fragment, null, /* @__PURE__ */ e.createElement("button", { className: "main", "aria-pressed": u, onClick: d }, t("pause")), /* @__PURE__ */ e.createElement("button", { className: "main", onClick: l }, t("finish"))) : /* @__PURE__ */ e.createElement("button", { className: "main", onClick: n }, t("launch")), /* @__PURE__ */ e.createElement("span", { className: "speeds", "aria-label": t("speed") }, Pn.map((m) => /* @__PURE__ */ e.createElement("button", { key: m, "aria-pressed": s === m, onClick: () => r(m) }, m === 0 ? t("speed_max") : `${m}×`)))));
+    [0, 1, 2, 3, 4].map((u) => /* @__PURE__ */ t.createElement("i", { key: u })),
+    /* @__PURE__ */ t.createElement("b", { style: { width: `${m}%` } })
+  ), n.gameOver ? /* @__PURE__ */ t.createElement("p", { className: "note" }, e("game_over")) : /* @__PURE__ */ t.createElement("div", { className: "clock-buttons" }, n.running ? /* @__PURE__ */ t.createElement(t.Fragment, null, /* @__PURE__ */ t.createElement("button", { className: "main", "aria-pressed": i, onClick: d }, e("pause")), /* @__PURE__ */ t.createElement("button", { className: "main", onClick: s }, e("finish"))) : /* @__PURE__ */ t.createElement("button", { className: "main", onClick: a }, e("launch")), /* @__PURE__ */ t.createElement("span", { className: "speeds", "aria-label": e("speed") }, Ha.map((u) => /* @__PURE__ */ t.createElement("button", { key: u, "aria-pressed": o === u, onClick: () => r(u) }, u === 0 ? e("speed_max") : `${u}×`)))));
 }
-const xn = (t) => "★".repeat(Math.floor(t / 2)) + (t % 2 ? "½" : "");
-function Rn({ person: t, gangs: a, t: s, onClose: r }) {
-  const n = t.gang > 0 ? a[t.gang - 1] : null, l = (d, h) => /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("dt", null, s(d)), /* @__PURE__ */ e.createElement("dd", null, h)), u = t.walking ? s("pc_walking") : t.building >= 0 ? s("pc_inside") : s("pc_standing");
-  return /* @__PURE__ */ e.createElement("aside", { className: "card building-card person-card", "aria-live": "polite" }, /* @__PURE__ */ e.createElement("header", null, /* @__PURE__ */ e.createElement("span", { className: "swatch", style: { background: n ? de[n.colour % 4] : "#b9ab8f", borderRadius: "50%" } }), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("h3", null, t.name), /* @__PURE__ */ e.createElement("div", { className: "sub" }, s(`role_${t.role}`), " · #", t.id)), /* @__PURE__ */ e.createElement("button", { className: "close", onClick: r, "aria-label": s("pc_close") }, "×")), /* @__PURE__ */ e.createElement("dl", null, l("pc_gang", n ? s("g_name", { name: n.name }) : s("pc_none")), l("pc_where", u), n && t.role !== "boss" && l("pc_pay", `$${t.pay}`), n && t.role !== "boss" && l("pc_demand", `$${t.demand}`), n && l("pc_loyalty", `${t.loyalty.toFixed(2)} %`), n && l("pc_attitude", `${t.hostility} / ${t.fear}`)), /* @__PURE__ */ e.createElement("h4", null, s("pc_skills")), /* @__PURE__ */ e.createElement("dl", { className: "skills" }, kt.map((d, h) => /* @__PURE__ */ e.createElement("div", { key: d }, /* @__PURE__ */ e.createElement("dt", null, s(`sk_${d}`)), /* @__PURE__ */ e.createElement("dd", null, xn(t.skills[h]))))));
+const Wa = (e) => "★".repeat(Math.floor(e / 2)) + (e % 2 ? "½" : "");
+function $a({ person: e, gangs: n, t: o, onClose: r }) {
+  const a = e.gang > 0 ? n[e.gang - 1] : null, s = (d, p) => /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, o(d)), /* @__PURE__ */ t.createElement("dd", null, p)), i = e.walking ? o("pc_walking") : e.building >= 0 ? o("pc_inside") : o("pc_standing");
+  return /* @__PURE__ */ t.createElement("aside", { className: "card building-card person-card", "aria-live": "polite" }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("span", { className: "swatch", style: { background: a ? Fe[a.colour % 4] : "#b9ab8f", borderRadius: "50%" } }), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("h3", null, e.name), /* @__PURE__ */ t.createElement("div", { className: "sub" }, o(`role_${e.role}`), " · #", e.id)), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: r, "aria-label": o("pc_close") }, "×")), /* @__PURE__ */ t.createElement("dl", null, s("pc_gang", a ? o("g_name", { name: a.name }) : o("pc_none")), s("pc_where", i), a && e.role !== "boss" && s("pc_pay", `$${e.pay}`), a && e.role !== "boss" && s("pc_demand", `$${e.demand}`), a && s("pc_loyalty", `${e.loyalty.toFixed(2)} %`), a && s("pc_attitude", `${e.hostility} / ${e.fear}`)), /* @__PURE__ */ t.createElement("h4", null, o("pc_skills")), /* @__PURE__ */ t.createElement("dl", { className: "skills" }, vn.map((d, p) => /* @__PURE__ */ t.createElement("div", { key: d }, /* @__PURE__ */ t.createElement("dt", null, o(`sk_${d}`)), /* @__PURE__ */ t.createElement("dd", null, Wa(e.skills[p]))))));
 }
-function Nn({ gangs: t, t: a, names: s, onPerson: r, onClose: n }) {
-  const l = (d) => d >= 0 ? /* @__PURE__ */ e.createElement("button", { className: "link", key: d, onClick: () => r(d) }, s(d)) : /* @__PURE__ */ e.createElement("span", { key: "none" }, "—"), u = t.findIndex((d) => d.player);
-  return /* @__PURE__ */ e.createElement("aside", { className: "drawer gang-panel", "aria-label": a("g_title") }, /* @__PURE__ */ e.createElement("header", null, /* @__PURE__ */ e.createElement("h2", null, a("g_title")), /* @__PURE__ */ e.createElement("button", { className: "close", onClick: n, "aria-label": a("pc_close") }, "×")), t.map((d) => /* @__PURE__ */ e.createElement("section", { key: d.id }, /* @__PURE__ */ e.createElement("h3", null, /* @__PURE__ */ e.createElement("span", { className: "swatch", style: { background: de[d.colour % 4] } }), " ", a("g_name", { name: d.name }), /* @__PURE__ */ e.createElement("small", null, " · ", d.player ? a("g_player") : a("g_rival", { p: d.profile }), d.eliminated ? ` · ${a("g_out")}` : "")), /* @__PURE__ */ e.createElement("dl", null, /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("dt", null, a("g_boss")), /* @__PURE__ */ e.createElement("dd", null, l(d.boss))), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("dt", null, a("g_lt")), /* @__PURE__ */ e.createElement("dd", null, l(d.lieutenant))), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("dt", null, a("g_crew")), /* @__PURE__ */ e.createElement("dd", null, d.crew.length ? d.crew.map(l) : "—")), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("dt", null, a("g_pool")), /* @__PURE__ */ e.createElement("dd", null, d.pool.length ? d.pool.map(l) : "—")), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("dt", null, a("g_manager")), /* @__PURE__ */ e.createElement("dd", null, l(d.manager))), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("dt", null, a("g_front")), /* @__PURE__ */ e.createElement("dd", null, ye[d.frontType] ?? "—")), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("dt", null, a("g_cash")), /* @__PURE__ */ e.createElement("dd", null, "$", d.cash.toLocaleString())), /* @__PURE__ */ e.createElement("div", null, /* @__PURE__ */ e.createElement("dt", null, a("g_wages")), /* @__PURE__ */ e.createElement("dd", null, "$", d.wages.toLocaleString()))), /* @__PURE__ */ e.createElement("p", { className: "sum" }, a("g_kit", { p: d.pistols, c: d.coupes, cp: d.crewPistols, cc: d.crewCoupes })), /* @__PURE__ */ e.createElement("p", { className: "sum" }, a("g_protects", { n: d.protectedCount })), !d.player && u >= 0 && /* @__PURE__ */ e.createElement("p", { className: "sum" }, a("g_offers", { s: a(`st_${d.offered[u]}`) })))));
+function qa({ gangs: e, t: n, names: o, onPerson: r, onClose: a }) {
+  const s = (d) => d >= 0 ? /* @__PURE__ */ t.createElement("button", { className: "link", key: d, onClick: () => r(d) }, o(d)) : /* @__PURE__ */ t.createElement("span", { key: "none" }, "—"), i = e.findIndex((d) => d.player);
+  return /* @__PURE__ */ t.createElement("aside", { className: "drawer gang-panel", "aria-label": n("g_title") }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("h2", null, n("g_title")), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: a, "aria-label": n("pc_close") }, "×")), e.map((d) => /* @__PURE__ */ t.createElement("section", { key: d.id }, /* @__PURE__ */ t.createElement("h3", null, /* @__PURE__ */ t.createElement("span", { className: "swatch", style: { background: Fe[d.colour % 4] } }), " ", n("g_name", { name: d.name }), /* @__PURE__ */ t.createElement("small", null, " · ", d.player ? n("g_player") : n("g_rival", { p: d.profile }), d.eliminated ? ` · ${n("g_out")}` : "")), /* @__PURE__ */ t.createElement("dl", null, /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_boss")), /* @__PURE__ */ t.createElement("dd", null, s(d.boss))), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_lt")), /* @__PURE__ */ t.createElement("dd", null, s(d.lieutenant))), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_crew")), /* @__PURE__ */ t.createElement("dd", null, d.crew.length ? d.crew.map(s) : "—")), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_pool")), /* @__PURE__ */ t.createElement("dd", null, d.pool.length ? d.pool.map(s) : "—")), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_manager")), /* @__PURE__ */ t.createElement("dd", null, s(d.manager))), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_front")), /* @__PURE__ */ t.createElement("dd", null, ie[d.frontType] ?? "—")), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_cash")), /* @__PURE__ */ t.createElement("dd", null, "$", d.cash.toLocaleString())), /* @__PURE__ */ t.createElement("div", null, /* @__PURE__ */ t.createElement("dt", null, n("g_wages")), /* @__PURE__ */ t.createElement("dd", null, "$", d.wages.toLocaleString()))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, n("g_kit", { p: d.pistols, c: d.coupes, cp: d.crewPistols, cc: d.crewCoupes })), /* @__PURE__ */ t.createElement("p", { className: "sum" }, n("g_protects", { n: d.protectedCount })), !d.player && i >= 0 && /* @__PURE__ */ t.createElement("p", { className: "sum" }, n("g_offers", { s: n(`st_${d.offered[i]}`) })))));
 }
-const U = { small: [36, 28], standard: [40, 32], large: [44, 35] };
-function Tn({ lang: t, seed: a, size: s, onStart: r, onCancel: n }) {
-  const l = (c, _) => Ge(t, c, _), [u, d] = e.useState(String(a)), [h, w] = e.useState(s), o = /^\d{1,10}$/.test(u.trim()) ? Number(u.trim()) : NaN, m = Number.isInteger(o) && o <= 4294967295;
-  return /* @__PURE__ */ e.createElement(
+const he = { small: [36, 28], standard: [40, 32], large: [44, 35] };
+function Ua({ lang: e, seed: n, size: o, onStart: r, onCancel: a }) {
+  const s = (c, _) => Lt(e, c, _), [i, d] = t.useState(String(n)), [p, f] = t.useState(o), m = /^\d{1,10}$/.test(i.trim()) ? Number(i.trim()) : NaN, u = Number.isInteger(m) && m <= 4294967295;
+  return /* @__PURE__ */ t.createElement(
     "div",
     {
       className: "overlay open",
@@ -1411,292 +1704,1444 @@ function Tn({ lang: t, seed: a, size: s, onStart: r, onCancel: n }) {
       "aria-modal": "true",
       "aria-labelledby": "ng-title",
       onKeyDown: (c) => {
-        c.key === "Escape" && n();
+        c.key === "Escape" && a();
       }
     },
-    /* @__PURE__ */ e.createElement("form", { className: "box", onSubmit: (c) => {
-      c.preventDefault(), m && r(o, h);
-    } }, /* @__PURE__ */ e.createElement("h2", { id: "ng-title" }, l("ng_title")), /* @__PURE__ */ e.createElement("label", null, l("ng_seed"), /* @__PURE__ */ e.createElement("input", { autoFocus: !0, inputMode: "numeric", value: u, onChange: (c) => d(c.target.value), "aria-invalid": !m })), !m && /* @__PURE__ */ e.createElement("p", { className: "warn" }, l("seed_bad")), /* @__PURE__ */ e.createElement("fieldset", null, /* @__PURE__ */ e.createElement("legend", null, l("ng_size")), Object.keys(U).map((c) => /* @__PURE__ */ e.createElement("label", { key: c, className: "choice" }, /* @__PURE__ */ e.createElement("input", { type: "radio", name: "size", checked: h === c, onChange: () => w(c) }), l(c), " ", /* @__PURE__ */ e.createElement("small", null, l("size_note", { w: U[c][0], h: U[c][1] }))))), /* @__PURE__ */ e.createElement("div", { className: "row" }, /* @__PURE__ */ e.createElement("button", { type: "button", className: "main", onClick: n }, l("cancel")), /* @__PURE__ */ e.createElement("button", { type: "submit", className: "main", disabled: !m }, l("ng_start"))))
+    /* @__PURE__ */ t.createElement("form", { className: "box", onSubmit: (c) => {
+      c.preventDefault(), u && r(m, p);
+    } }, /* @__PURE__ */ t.createElement("h2", { id: "ng-title" }, s("ng_title")), /* @__PURE__ */ t.createElement("label", null, s("ng_seed"), /* @__PURE__ */ t.createElement("input", { autoFocus: !0, inputMode: "numeric", value: i, onChange: (c) => d(c.target.value), "aria-invalid": !u })), !u && /* @__PURE__ */ t.createElement("p", { className: "warn" }, s("seed_bad")), /* @__PURE__ */ t.createElement("fieldset", null, /* @__PURE__ */ t.createElement("legend", null, s("ng_size")), Object.keys(he).map((c) => /* @__PURE__ */ t.createElement("label", { key: c, className: "choice" }, /* @__PURE__ */ t.createElement("input", { type: "radio", name: "size", checked: p === c, onChange: () => f(c) }), s(c), " ", /* @__PURE__ */ t.createElement("small", null, s("size_note", { w: he[c][0], h: he[c][1] }))))), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { type: "button", className: "main", onClick: a }, s("cancel")), /* @__PURE__ */ t.createElement("button", { type: "submit", className: "main", disabled: !u }, s("ng_start"))))
   );
 }
-const zn = ["alliance", "peace", "ceasefire", "aggression", "war"], Fn = 255;
-function Gn(t) {
-  return new Int32Array(t.memory.buffer, t.hs_draw_ptr(3), t.hs_draw_len(3)).slice();
+const Va = ["alliance", "peace", "ceasefire", "aggression", "war"], Ka = 255;
+function Za(e) {
+  return new Int32Array(e.memory.buffer, e.hs_draw_ptr(3), e.hs_draw_len(3)).slice();
 }
-function Et(t, a) {
-  const s = t.hs_get(D.person, a, z.nameLength);
+function me(e, n) {
+  const o = e.hs_get(Y.person, n, $.nameLength);
   let r = "";
-  for (let n = 1; n <= s; n++) r += String.fromCharCode(t.hs_name_char(a, n));
+  for (let a = 1; a <= o; a++) r += String.fromCharCode(e.hs_name_char(n, a));
   return r;
 }
-function ct(t, a) {
-  if (a < 0 || a >= t.hs_count(E.people)) return null;
-  const s = (r) => t.hs_get(D.person, a, r);
+function ln(e, n) {
+  if (n < 0 || n >= e.hs_count(M.people)) return null;
+  const o = (r) => e.hs_get(Y.person, n, r);
   return {
-    index: a,
-    id: s(z.id),
-    name: Et(t, a),
-    role: Sn[s(z.role)],
-    gang: s(z.gang),
-    female: s(z.female) === 1,
-    skills: kt.map((r, n) => s(z.skill + n)),
-    pay: s(z.pay),
-    demand: s(z.demand),
-    loyalty: s(z.loyalty) / Fn,
-    building: s(z.building),
-    x: s(z.x) / Q,
-    y: s(z.y) / Q,
-    walking: s(z.walking) === 1,
-    hostility: s(z.hostility),
-    fear: s(z.fear),
-    opinion: [1, 2, 3, 4].map((r) => s(z.opinion + r))
+    index: n,
+    id: o($.id),
+    name: me(e, n),
+    role: za[o($.role)],
+    gang: o($.gang),
+    female: o($.female) === 1,
+    skills: vn.map((r, a) => o($.skill + a)),
+    pay: o($.pay),
+    demand: o($.demand),
+    loyalty: o($.loyalty) / Ka,
+    building: o($.building),
+    x: o($.x) / Se,
+    y: o($.y) / Se,
+    walking: o($.walking) === 1,
+    hostility: o($.hostility),
+    fear: o($.fear),
+    opinion: [1, 2, 3, 4].map((r) => o($.opinion + r))
   };
 }
-function Re(t) {
-  const a = [];
-  for (let s = 1; s <= 4; s++) {
-    const r = (h) => t.hs_get(D.gang, s, h), n = r(A.office), l = r(A.front), u = [], d = [];
-    for (let h = 1; h <= r(A.crewCount); h++) u.push(t.hs_get(D.crew, s, h));
-    for (let h = 1; h <= r(A.poolCount); h++) d.push(t.hs_get(D.pool, s, h));
-    a.push({
-      id: s,
-      colour: r(A.colour),
-      name: vn[r(A.surname)] ?? "?",
-      player: r(A.player) === 1,
-      profile: r(A.profile),
-      boss: r(A.boss),
-      cash: r(A.cash),
-      office: n,
-      officeLot: n >= 0 ? t.hs_get(D.building, n, Te.lot) : -1,
-      front: l,
-      frontType: l >= 0 ? t.hs_get(D.building, l, Te.type) : -1,
-      manager: r(A.manager),
-      lieutenant: r(A.lieutenant),
-      crew: u,
+function kt(e) {
+  const n = [];
+  for (let o = 1; o <= 4; o++) {
+    const r = (p) => e.hs_get(Y.gang, o, p), a = r(D.office), s = r(D.front), i = [], d = [];
+    for (let p = 1; p <= r(D.crewCount); p++) i.push(e.hs_get(Y.crew, o, p));
+    for (let p = 1; p <= r(D.poolCount); p++) d.push(e.hs_get(Y.pool, o, p));
+    n.push({
+      id: o,
+      colour: r(D.colour),
+      name: Yt[r(D.surname)] ?? "?",
+      player: r(D.player) === 1,
+      profile: r(D.profile),
+      boss: r(D.boss),
+      cash: r(D.cash),
+      office: a,
+      officeLot: a >= 0 ? e.hs_get(Y.building, a, Me.lot) : -1,
+      front: s,
+      frontType: s >= 0 ? e.hs_get(Y.building, s, Me.type) : -1,
+      manager: r(D.manager),
+      lieutenant: r(D.lieutenant),
+      crew: i,
       pool: d,
-      pistols: r(A.pistols),
-      coupes: r(A.coupes),
-      crewPistols: r(A.crewPistols),
-      crewCoupes: r(A.crewCoupes),
-      wages: r(A.wages),
-      eliminated: r(A.eliminated) === 1,
-      offered: [1, 2, 3, 4].map((h) => zn[r(A.offered + h)] ?? "peace"),
+      pistols: r(D.pistols),
+      coupes: r(D.coupes),
+      crewPistols: r(D.crewPistols),
+      crewCoupes: r(D.crewCoupes),
+      wages: r(D.wages),
+      eliminated: r(D.eliminated) === 1,
+      offered: [1, 2, 3, 4].map((p) => Va[r(D.offered + p)] ?? "peace"),
       protectedCount: 0
     });
   }
-  return a;
+  return n;
 }
-function In(t, a, s) {
-  for (let r = 0; r < a; r++) {
-    const n = t.hs_get(D.premises, r, Dt.protectGang);
-    n >= 1 && n <= 4 && s[n - 1].protectedCount++;
+function Ja(e, n, o) {
+  for (let r = 0; r < n; r++) {
+    const a = e.hs_get(Y.premises, r, ea.protectGang);
+    a >= 1 && a <= 4 && o[a - 1].protectedCount++;
   }
 }
-function Hn(t) {
+function Qa(e) {
   return {
-    week: t.hs_count(E.week),
-    minute: t.hs_count(E.minute),
-    running: t.hs_count(E.phase) === 1,
-    gameOver: t.hs_count(E.gameOver) === 1,
-    walking: t.hs_count(E.walking)
+    week: e.hs_count(M.week),
+    minute: e.hs_count(M.minute),
+    running: e.hs_count(M.phase) === 1,
+    gameOver: e.hs_count(M.gameOver) === 1,
+    walking: e.hs_count(M.walking)
   };
 }
-function Dn({ city: t, selected: a, onSelect: s, turnSignal: r, visible: n, label: l, people: u, gangColours: d, person: h, onPerson: w, focus: o }) {
-  const m = ce(null), c = ce(null);
-  return I(() => {
-    if (!m.current) return;
-    const _ = new cn(m.current);
-    c.current = _;
-    const g = new ResizeObserver(() => _.update());
-    return g.observe(m.current), () => {
-      g.disconnect(), _.dispose(), c.current = null;
+function Xa({ city: e, selected: n, onSelect: o, turnSignal: r, visible: a, label: s, people: i, gangColours: d, person: p, onPerson: f, focus: m, markers: u }) {
+  const c = Le(null), _ = Le(null);
+  return V(() => {
+    if (!c.current) return;
+    const h = new ya(c.current);
+    _.current = h;
+    const y = new ResizeObserver(() => h.update());
+    return y.observe(c.current), () => {
+      y.disconnect(), h.dispose(), _.current = null;
     };
-  }, []), I(() => {
-    c.current?.setCity(t);
-  }, [t]), I(() => {
-    c.current?.select(a);
-  }, [a, t]), I(() => {
-    r && c.current?.turn();
-  }, [r]), I(() => {
-    u && c.current?.setPeople(u, d, h);
-  }, [u, d, h, t]), I(() => {
-    o && c.current?.lookAt(o.x, o.y);
-  }, [o]), I(() => {
-    n && c.current?.update();
-  }, [n]), I(() => {
-    const _ = m.current;
-    if (!_) return;
-    const g = /* @__PURE__ */ new Map();
-    let C = 0, P = 0;
-    const S = (p) => {
-      if (_.setPointerCapture(p.pointerId), g.set(p.pointerId, { x: p.clientX, y: p.clientY }), C = 0, g.size === 2) {
-        const [M, F] = [...g.values()];
-        P = Math.hypot(M.x - F.x, M.y - F.y);
+  }, []), V(() => {
+    _.current?.setCity(e);
+  }, [e]), V(() => {
+    _.current?.select(n);
+  }, [n, e]), V(() => {
+    r && _.current?.turn();
+  }, [r]), V(() => {
+    i && _.current?.setPeople(i, d, p);
+  }, [i, d, p, e]), V(() => {
+    m && _.current?.lookAt(m.x, m.y);
+  }, [m]), V(() => {
+    _.current?.setMarkers(u);
+  }, [u, e]), V(() => {
+    a && _.current?.update();
+  }, [a]), V(() => {
+    const h = c.current;
+    if (!h) return;
+    const y = /* @__PURE__ */ new Map();
+    let k = 0, F = 0;
+    const N = (g) => {
+      if (h.setPointerCapture(g.pointerId), y.set(g.pointerId, { x: g.clientX, y: g.clientY }), k = 0, y.size === 2) {
+        const [S, G] = [...y.values()];
+        F = Math.hypot(S.x - G.x, S.y - G.y);
       }
-    }, R = (p) => {
-      const M = g.get(p.pointerId);
-      if (!(!M || !c.current) && (g.size === 1 && (c.current.drag(p.clientX - M.x, p.clientY - M.y), C += Math.abs(p.clientX - M.x) + Math.abs(p.clientY - M.y)), g.set(p.pointerId, { x: p.clientX, y: p.clientY }), g.size === 2)) {
-        const [F, G] = [...g.values()], j = Math.hypot(F.x - G.x, F.y - G.y);
-        P > 0 && c.current.zoomBy(j / P), P = j, C = 99;
+    }, b = (g) => {
+      const S = y.get(g.pointerId);
+      if (!(!S || !_.current) && (y.size === 1 && (_.current.drag(g.clientX - S.x, g.clientY - S.y), k += Math.abs(g.clientX - S.x) + Math.abs(g.clientY - S.y)), y.set(g.pointerId, { x: g.clientX, y: g.clientY }), y.size === 2)) {
+        const [G, U] = [...y.values()], ue = Math.hypot(G.x - U.x, G.y - U.y);
+        F > 0 && _.current.zoomBy(ue / F), F = ue, k = 99;
       }
-    }, k = (p) => {
-      if (g.size === 1 && C < 4 && c.current) {
-        const M = c.current.pick(p.clientX, p.clientY);
-        M.person >= 0 ? w(M.person) : s(M.lot);
+    }, I = (g) => {
+      if (y.size === 1 && k < 4 && _.current) {
+        const S = _.current.pick(g.clientX, g.clientY);
+        S.person >= 0 ? f(S.person) : o(S.lot);
       }
-      g.delete(p.pointerId), g.size < 2 && (P = 0);
-    }, f = (p) => {
-      p.preventDefault(), c.current?.zoomBy(Math.exp(-p.deltaY * 15e-4));
+      y.delete(g.pointerId), y.size < 2 && (F = 0);
+    }, E = (g) => {
+      g.preventDefault(), _.current?.zoomBy(Math.exp(-g.deltaY * 15e-4));
     };
-    return _.addEventListener("pointerdown", S), _.addEventListener("pointermove", R), _.addEventListener("pointerup", k), _.addEventListener("pointercancel", k), _.addEventListener("wheel", f, { passive: !1 }), () => {
-      _.removeEventListener("pointerdown", S), _.removeEventListener("pointermove", R), _.removeEventListener("pointerup", k), _.removeEventListener("pointercancel", k), _.removeEventListener("wheel", f);
+    return h.addEventListener("pointerdown", N), h.addEventListener("pointermove", b), h.addEventListener("pointerup", I), h.addEventListener("pointercancel", I), h.addEventListener("wheel", E, { passive: !1 }), () => {
+      h.removeEventListener("pointerdown", N), h.removeEventListener("pointermove", b), h.removeEventListener("pointerup", I), h.removeEventListener("pointercancel", I), h.removeEventListener("wheel", E);
     };
-  }, [s, w]), I(() => {
-    const _ = (g) => {
-      if (!n || !c.current || g.target instanceof HTMLElement && g.target.closest("input, textarea")) return;
-      const C = 60, P = { ArrowLeft: [C, 0], ArrowRight: [-C, 0], ArrowUp: [0, C], ArrowDown: [0, -C] };
-      P[g.key] ? (g.preventDefault(), c.current.drag(...P[g.key])) : g.key === "+" || g.key === "=" ? c.current.zoomBy(1.25) : g.key === "-" && c.current.zoomBy(0.8);
+  }, [o, f]), V(() => {
+    const h = (y) => {
+      if (!a || !_.current || y.target instanceof HTMLElement && y.target.closest("input, textarea")) return;
+      const k = 60, F = { ArrowLeft: [k, 0], ArrowRight: [-k, 0], ArrowUp: [0, k], ArrowDown: [0, -k] };
+      F[y.key] ? (y.preventDefault(), _.current.drag(...F[y.key])) : y.key === "+" || y.key === "=" ? _.current.zoomBy(1.25) : y.key === "-" && _.current.zoomBy(0.8);
     };
-    return window.addEventListener("keydown", _), () => window.removeEventListener("keydown", _);
-  }, [n]), /* @__PURE__ */ e.createElement("canvas", { className: "street-view", ref: m, "aria-label": l, style: { visibility: n ? "visible" : "hidden" } });
+    return window.addEventListener("keydown", h), () => window.removeEventListener("keydown", h);
+  }, [a]), /* @__PURE__ */ t.createElement("canvas", { className: "street-view", ref: c, "aria-label": s, style: { visibility: a ? "visible" : "hidden" } });
 }
-function On({ lang: t }) {
-  switch (t) {
+function eo({ lang: e }) {
+  switch (e) {
     case "de":
-      return /* @__PURE__ */ e.createElement("svg", { viewBox: "0 0 5 3", "aria-hidden": "true" }, /* @__PURE__ */ e.createElement("path", { fill: "#000", d: "M0 0h5v1H0z" }), /* @__PURE__ */ e.createElement("path", { fill: "#D00", d: "M0 1h5v1H0z" }), /* @__PURE__ */ e.createElement("path", { fill: "#FFCE00", d: "M0 2h5v1H0z" }));
+      return /* @__PURE__ */ t.createElement("svg", { viewBox: "0 0 5 3", "aria-hidden": "true" }, /* @__PURE__ */ t.createElement("path", { fill: "#000", d: "M0 0h5v1H0z" }), /* @__PURE__ */ t.createElement("path", { fill: "#D00", d: "M0 1h5v1H0z" }), /* @__PURE__ */ t.createElement("path", { fill: "#FFCE00", d: "M0 2h5v1H0z" }));
     case "es":
-      return /* @__PURE__ */ e.createElement("svg", { viewBox: "0 0 4 3", "aria-hidden": "true" }, /* @__PURE__ */ e.createElement("path", { fill: "#AA151B", d: "M0 0h4v3H0z" }), /* @__PURE__ */ e.createElement("path", { fill: "#F1BF00", d: "M0 .75h4v1.5H0z" }));
+      return /* @__PURE__ */ t.createElement("svg", { viewBox: "0 0 4 3", "aria-hidden": "true" }, /* @__PURE__ */ t.createElement("path", { fill: "#AA151B", d: "M0 0h4v3H0z" }), /* @__PURE__ */ t.createElement("path", { fill: "#F1BF00", d: "M0 .75h4v1.5H0z" }));
     case "fr":
-      return /* @__PURE__ */ e.createElement("svg", { viewBox: "0 0 3 2", "aria-hidden": "true" }, /* @__PURE__ */ e.createElement("path", { fill: "#002395", d: "M0 0h1v2H0z" }), /* @__PURE__ */ e.createElement("path", { fill: "#fff", d: "M1 0h1v2H1z" }), /* @__PURE__ */ e.createElement("path", { fill: "#ED2939", d: "M2 0h1v2H2z" }));
+      return /* @__PURE__ */ t.createElement("svg", { viewBox: "0 0 3 2", "aria-hidden": "true" }, /* @__PURE__ */ t.createElement("path", { fill: "#002395", d: "M0 0h1v2H0z" }), /* @__PURE__ */ t.createElement("path", { fill: "#fff", d: "M1 0h1v2H1z" }), /* @__PURE__ */ t.createElement("path", { fill: "#ED2939", d: "M2 0h1v2H2z" }));
     default:
-      return /* @__PURE__ */ e.createElement("svg", { viewBox: "0 0 60 30", "aria-hidden": "true" }, /* @__PURE__ */ e.createElement("clipPath", { id: "gb-a" }, /* @__PURE__ */ e.createElement("path", { d: "M0,0v30h60V0z" })), /* @__PURE__ */ e.createElement("clipPath", { id: "gb-b" }, /* @__PURE__ */ e.createElement("path", { d: "M30,15h30v15zv15H0zH0V0zV0h30z" })), /* @__PURE__ */ e.createElement("g", { clipPath: "url(#gb-a)" }, /* @__PURE__ */ e.createElement("path", { d: "M0,0v30h60V0z", fill: "#012169" }), /* @__PURE__ */ e.createElement("path", { d: "M0,0L60,30M60,0L0,30", stroke: "#fff", strokeWidth: "6" }), /* @__PURE__ */ e.createElement("path", { d: "M0,0L60,30M60,0L0,30", clipPath: "url(#gb-b)", stroke: "#C8102E", strokeWidth: "4" }), /* @__PURE__ */ e.createElement("path", { d: "M30,0v30M0,15h60", stroke: "#fff", strokeWidth: "10" }), /* @__PURE__ */ e.createElement("path", { d: "M30,0v30M0,15h60", stroke: "#C8102E", strokeWidth: "6" })));
+      return /* @__PURE__ */ t.createElement("svg", { viewBox: "0 0 60 30", "aria-hidden": "true" }, /* @__PURE__ */ t.createElement("clipPath", { id: "gb-a" }, /* @__PURE__ */ t.createElement("path", { d: "M0,0v30h60V0z" })), /* @__PURE__ */ t.createElement("clipPath", { id: "gb-b" }, /* @__PURE__ */ t.createElement("path", { d: "M30,15h30v15zv15H0zH0V0zV0h30z" })), /* @__PURE__ */ t.createElement("g", { clipPath: "url(#gb-a)" }, /* @__PURE__ */ t.createElement("path", { d: "M0,0v30h60V0z", fill: "#012169" }), /* @__PURE__ */ t.createElement("path", { d: "M0,0L60,30M60,0L0,30", stroke: "#fff", strokeWidth: "6" }), /* @__PURE__ */ t.createElement("path", { d: "M0,0L60,30M60,0L0,30", clipPath: "url(#gb-b)", stroke: "#C8102E", strokeWidth: "4" }), /* @__PURE__ */ t.createElement("path", { d: "M30,0v30M0,15h60", stroke: "#fff", strokeWidth: "10" }), /* @__PURE__ */ t.createElement("path", { d: "M30,0v30M0,15h60", stroke: "#C8102E", strokeWidth: "6" })));
   }
 }
-const Ne = window.HS.stamp, fe = matchMedia("(prefers-reduced-motion: reduce)"), Wn = 10 / 3, qn = 12;
-function dt(t) {
-  return Object.keys(U).find((a) => U[a][0] === t.w && U[a][1] === t.h) ?? "standard";
-}
-function Vn() {
-  const [t, a] = L(() => {
-    const i = Ae("ahs.lang", "en-GB");
-    return tt.includes(i) ? i : "en-GB";
-  }), [s, r] = L(() => Ae("ahs.sound", "on") !== "off"), [n, l] = L(null), [u, d] = L(null), [h, w] = L(null), [o, m] = L(null), [c, _] = L(null), [g, C] = L(null), [P, S] = L(-1), [R, k] = L("street"), [f, p] = L(0), [M, F] = L(!1), [G, j] = L(!1), [yt, te] = L(!1), [Se, Ke] = L(""), [vt, St] = L(null), [V, Ct] = L([]), [ne, Mt] = L(null), [Y, ue] = L(-1), [me, $e] = L(!1), [J, Lt] = L(() => {
-    const i = Number(Ae("ahs.speed", "1"));
-    return [1, 2, 4, 8, 0].includes(i) ? i : 1;
-  }), [ae, Ue] = L(!1), [Pt, At] = L(null), [Bt, xt] = L(0), he = ce(0), y = se((i, v) => Ge(t, i, v), [t]), Z = se((i) => {
-    St(Gn(i));
-    const v = Re(i);
-    In(i, i.hs_count(E.lots) * 2, v), Ct(v), Mt(Hn(i)), xt((N) => N + 1);
-  }, []), Ce = se((i, v, N) => {
-    const [H, K] = U[N], O = performance.now();
-    i.hs_new_game(v, v, H, K);
-    const W = Kt(i, v);
-    _(W), S(-1), ue(-1), C(i.hs_state_hash()), Z(i), re("new_game", {
-      seed: v,
-      size: N,
-      ms: Math.round(performance.now() - O),
-      city_hash: W.cityHash,
-      structure_hash: W.structureHash,
-      lots: W.counts.lots,
-      status: W.status
+const Pe = { last: 64, messages: 65, cityVersion: 66, playerGang: 68, avenueCol: 100, avenueRow: 104 }, J = { crews: 10, gangCrews: 11, order: 12, last: 13, message: 14, preview: 15 }, Z = {
+  id: 0,
+  lieutenant: 2,
+  count: 3,
+  pistols: 4,
+  coupes: 5,
+  orderCount: 6,
+  timeUsed: 7,
+  nameFirst: 8,
+  men: 9,
+  member: 20,
+  order: 40
+}, T = {
+  id: 0,
+  gang: 1,
+  crew: 2,
+  kind: 3,
+  state: 4,
+  manpower: 5,
+  repeat: 6,
+  amount: 7,
+  level: 8,
+  business: 9,
+  front: 10,
+  px: 11,
+  py: 12,
+  hasPoint: 13,
+  targets: 14,
+  blocks: 15,
+  assigned: 16,
+  completed: 18,
+  estimate: 19,
+  worked: 20,
+  started: 21,
+  finished: 22,
+  results: 24,
+  cost: 25,
+  fail: 30,
+  waiting: 35,
+  hasTime: 45,
+  staffing: 46,
+  target: 100,
+  block: 200,
+  person: 220,
+  result: 300
+}, le = { building: 1, block: 2, point: 3, amount: 4, level: 5, business: 6, front: 7, repeat: 8 }, X = { cancel: 1, setPay: 2, sack: 3, promote: 4, demote: 5, moveToCrew: 6, moveToPool: 7, repeat: 8 }, to = 3, no = 13, pe = [
+  "buy",
+  "setUp",
+  "run",
+  "collect",
+  "adjust",
+  "donate",
+  "cleanUp",
+  "clearStreets",
+  "guard",
+  "patrol",
+  "explore",
+  "recruit",
+  "goTo"
+], cn = {
+  buy: { target: "building", max: 2, group: "business" },
+  setUp: { target: "building", max: 2, group: "business" },
+  run: { target: "building", max: 2, group: "business" },
+  collect: { target: "area", max: 10, group: "business" },
+  adjust: { target: "area", max: 1, group: "business" },
+  donate: { target: "building", max: 4, group: "business" },
+  cleanUp: { target: "area", max: 4, group: "business" },
+  clearStreets: { target: "area", max: 4, group: "business" },
+  guard: { target: "building", max: 4, group: "personnel" },
+  patrol: { target: "area", max: 4, group: "personnel" },
+  explore: { target: "area", max: 10, group: "personnel" },
+  recruit: { target: "area", max: 10, group: "personnel" },
+  goTo: { target: "point", max: 4, group: "personnel" }
+}, ao = ["queued", "travelling", "waiting", "executing", "done", "failed", "cancelled"], Ot = [
+  "L_None",
+  "L_Bought",
+  "L_Opened",
+  "L_New_Management",
+  "L_Collected",
+  "L_Refused_Pay",
+  "L_Already_Paid",
+  "L_Protection_Set",
+  "L_Donated",
+  "L_Cleaned_Up",
+  "L_Cleared",
+  "L_Looked_Over",
+  "L_Found_Hidden",
+  "L_Nobody_Hiring",
+  "L_Signed_On",
+  "L_Nobody_Willing",
+  "L_Stood_Guard",
+  "L_Patrolled",
+  "L_Held",
+  "L_Ran_Out",
+  "L_Continuing",
+  "F_No_Site",
+  "F_Owned_Already",
+  "F_Not_For_Sale",
+  "F_Price",
+  "F_Not_Yours",
+  "F_No_Type",
+  "F_Illegal_Centre",
+  "F_Legal_Centre",
+  "F_City_Only",
+  "F_No_Front",
+  "F_Front_Taken",
+  "F_Fit_Out",
+  "F_Not_Your_Site",
+  "F_No_Hood_Free",
+  "F_No_Charity",
+  "F_No_Donation",
+  "F_Spare_Money",
+  "F_Clean_Up_Money",
+  "F_Streets_Not_Bribed",
+  "F_Site_Gone",
+  "F_Nobody_Left",
+  "F_Never_Started",
+  "F_Not_Enough_Time",
+  "F_Nothing_Came",
+  "F_Needs_People",
+  "F_Needs_Free",
+  "F_Target_Lost",
+  "F_Never_Started_Default",
+  "M_Acquired",
+  "M_Opened",
+  "M_Refused_Protection",
+  "M_Uncovered",
+  "M_Order_Failed",
+  "M_Order_Cut_Short",
+  "M_Queued_Waiting"
+], Cn = [
+  "Y_None",
+  "Y_Accepted",
+  "Y_Cancelled",
+  "Y_Back_On_Street",
+  "Y_Promoted",
+  "Y_Broken_Up",
+  "Y_Joined",
+  "Y_Already_In",
+  "Y_Done",
+  "Y_No_Crew",
+  "Y_Lt_Unavailable",
+  "Y_Positive_Whole",
+  "Y_Only_People",
+  "Y_At_Most",
+  "Y_Staffing",
+  "Y_Valid_Amount",
+  "Y_Donation_Zero",
+  "Y_Streets",
+  "Y_Rate",
+  "Y_No_Block",
+  "Y_No_Site",
+  "Y_Valid_Site",
+  "Y_Site_Not_Valid",
+  "Y_Inside_City",
+  "Y_Nothing_There",
+  "Y_Cannot_Afford",
+  "Y_No_Time_Trim",
+  "Y_No_Time",
+  "Y_Too_Many_Orders",
+  "Y_No_Order",
+  "Y_No_Person",
+  "Y_Choose_Hood",
+  "Y_Not_In_Pool",
+  "Y_Max_Lieutenants",
+  "Y_Could_Not_Promote",
+  "Y_Choose_Hood_Crew",
+  "Y_Crew_Full",
+  "Y_Choose_Crew_Hood"
+], oo = Cn.indexOf("Y_Done"), Oe = (e, n) => ({
+  kind: Ot[e(n)] ?? "L_None",
+  a: e(n + 1),
+  b: e(n + 2),
+  c: e(n + 3),
+  d: e(n + 4)
+}), At = (e) => e.hs_count(Pe.playerGang);
+function Re(e, n) {
+  const o = [], r = e.hs_get(J.gangCrews, n, 0);
+  for (let a = 1; a <= r; a++) {
+    const s = e.hs_get(J.gangCrews, n, a);
+    if (s < 0) continue;
+    const i = (f) => e.hs_get(J.crews, s, f), d = i(Z.count), p = i(Z.orderCount);
+    o.push({
+      slot: s,
+      id: i(Z.id),
+      lieutenant: i(Z.lieutenant),
+      nameFirst: i(Z.nameFirst),
+      members: Array.from({ length: d }, (f, m) => i(Z.member + m + 1)),
+      orders: Array.from({ length: p }, (f, m) => i(Z.order + m + 1)),
+      timeUsed: i(Z.timeUsed),
+      men: i(Z.men),
+      pistols: i(Z.pistols),
+      coupes: i(Z.coupes)
     });
-  }, [Z]);
-  I(() => {
-    if (!n || !ne?.running || ae) return;
-    let i = 0, v = performance.now();
-    const N = (H) => {
-      let K = 0;
-      if (J === 0) {
-        const O = H + qn;
-        for (; performance.now() < O; ) {
-          const W = n.hs_tick(4);
-          if (K += W, W < 4) break;
+  }
+  return o;
+}
+function De(e) {
+  return `${Yt[e.nameFirst] ?? "?"}'s Crew`;
+}
+function zt(e, n, o) {
+  const r = (s) => e.hs_get(n, o, s), a = (s, i) => Array.from({ length: i }, (d, p) => r(s + p));
+  return {
+    slot: o,
+    id: r(T.id),
+    crew: r(T.crew),
+    kind: pe[r(T.kind)],
+    state: ao[r(T.state)],
+    manpower: r(T.manpower),
+    repeat: r(T.repeat) === 1,
+    amount: r(T.amount),
+    level: r(T.level),
+    business: r(T.business),
+    front: r(T.front),
+    point: r(T.hasPoint) === 1 ? { x: r(T.px), y: r(T.py) } : null,
+    targets: a(T.target, r(T.targets)),
+    blocks: a(T.block, r(T.blocks)),
+    assigned: a(T.person, r(T.assigned)),
+    completed: r(T.completed),
+    estimate: r(T.estimate),
+    worked: r(T.worked),
+    started: r(T.started),
+    finished: r(T.finished),
+    cost: r(T.cost),
+    fail: Oe(r, T.fail),
+    waiting: Oe(r, T.waiting),
+    results: Array.from({ length: r(T.results) }, (s, i) => Oe(r, T.result + 5 * i))
+  };
+}
+const Nn = (e, n) => zt(e, J.order, n);
+function Ln(e, n) {
+  const o = [];
+  for (let r = 0; r < e.hs_count(Pe.last); r++)
+    e.hs_get(J.last, r, T.gang) === n && o.push(zt(e, J.last, r));
+  return o;
+}
+function ro(e) {
+  return Array.from({ length: e.hs_count(Pe.messages) }, (n, o) => Oe((r) => e.hs_get(J.message, o + 1, r), 0));
+}
+const Dt = (e, n) => ({
+  crew: e,
+  kind: n,
+  manpower: 1,
+  buildings: [],
+  blocks: [],
+  point: null,
+  amount: -1,
+  level: -1,
+  business: -1,
+  front: -1,
+  repeat: !1
+});
+function Mn(e, n) {
+  e.hs_order_begin(n.crew, pe.indexOf(n.kind), n.manpower);
+  for (const o of n.buildings) e.hs_order_add(le.building, o, 0);
+  for (const o of n.blocks) e.hs_order_add(le.block, o, 0);
+  n.point && e.hs_order_add(le.point, n.point.x, n.point.y), n.amount !== -1 && e.hs_order_add(le.amount, n.amount, 0), n.level !== -1 && e.hs_order_add(le.level, n.level, 0), n.business !== -1 && e.hs_order_add(le.business, n.business, 0), n.front !== -1 && e.hs_order_add(le.front, n.front, 0), n.repeat && e.hs_order_add(le.repeat, 1, 0);
+}
+function Fn(e, n) {
+  if (Mn(e, n), e.hs_order_preview() !== 1) return null;
+  const o = (r) => e.hs_get(J.preview, 0, r);
+  return { order: zt(e, J.preview, 0), hasTime: o(T.hasTime) === 1, staffing: Oe(o, T.staffing) };
+}
+function Pn(e, n) {
+  const o = e.hs_reply(5);
+  return {
+    kind: Cn[n] ?? "Y_None",
+    ok: n >= 1 && n <= oo,
+    a: e.hs_reply(1),
+    b: e.hs_reply(2),
+    c: e.hs_reply(3),
+    d: e.hs_reply(4),
+    kept: Array.from({ length: o }, (r, a) => e.hs_reply(10 + a)),
+    slot: e.hs_reply(6)
+  };
+}
+function An(e, n) {
+  return Mn(e, n), Pn(e, e.hs_order_issue());
+}
+function ze(e, n, o, r = 0) {
+  return Pn(e, e.hs_command(n, o, r));
+}
+function Tn(e) {
+  const n = (o) => [0, 1, 2, 3].map((r) => e.hs_count(o + r)).filter((r) => r >= 0);
+  return { cols: n(Pe.avenueCol), rows: n(Pe.avenueRow) };
+}
+function yt(e, n) {
+  const o = e.cols.includes(n - 1) ? n - 1 : n;
+  return `${et[(o % et.length + et.length) % et.length]} Ave`;
+}
+function Et(e, n) {
+  const o = e.rows.includes(n - 1) ? n - 1 : n;
+  return `${tt[(o % tt.length + tt.length) % tt.length]} St`;
+}
+function jt(e, n) {
+  return n < 0 ? "nowhere" : e.hs_get(Y.building, n, to) === 0 ? "Empty land" : ie[e.hs_get(Y.building, n, Me.type)] ?? "unknown";
+}
+function Bn(e, n, o, r) {
+  const a = jt(e, r), s = n.lots[e.hs_get(Y.building, r, Me.lot)], i = s ? n.blocks[s.block] : void 0;
+  if (!s || !i) return a;
+  if (!n.standard && (i.use === 2 || e.hs_get(Y.block, i.id, no) >= 0)) {
+    const c = ["north", "east", "south", "west"][s.face], _ = i.gx + (c === "east" ? i.spanX : 0), h = i.gy + (c === "south" ? i.spanY : 0);
+    return `${a} on ${c === "east" || c === "west" ? yt(o, _) : Et(o, h)}`;
+  }
+  const p = s.index % 3, f = Math.floor(s.index / 3), m = p === 2 ? i.gx + 1 : i.gx, u = f === 2 ? i.gy + 1 : i.gy;
+  return f === 1 && p !== 1 ? `${a} on ${yt(o, m)} at ${Et(o, u)}` : `${a} on ${Et(o, u)} at ${yt(o, m)}`;
+}
+function dn(e, n, o) {
+  return o >= 0 && o < n.lots.length ? e.hs_get(Y.lot, o, 7) : -1;
+}
+const un = (e) => e.hs_count(Pe.cityVersion), so = { "en-GB": "en-US", de: "de-DE", es: "es-ES", fr: "fr-FR" }, ce = (e, n) => "$" + n.toLocaleString(so[e]);
+function ct(e) {
+  const n = Math.round(e), o = Math.abs(n), r = Math.floor(o / 60), a = o % 60, s = n < 0 ? "−" : "";
+  return r ? `${s}${r}h ${a}m` : `${s}${a}m`;
+}
+const lo = {
+  "en-GB": {
+    buy: "Buy Premises",
+    setUp: "Set Up Business",
+    run: "Run Business",
+    collect: "Collect Protection",
+    adjust: "Adjust Protection",
+    donate: "Donate to Charity",
+    cleanUp: "Clean-up Drive",
+    clearStreets: "Clear the Streets",
+    guard: "Guard Business",
+    patrol: "Patrol",
+    explore: "Explore",
+    recruit: "Recruit",
+    goTo: "Go To"
+  },
+  de: {
+    buy: "Gebäude kaufen",
+    setUp: "Geschäft eröffnen",
+    run: "Geschäft führen",
+    collect: "Schutzgeld kassieren",
+    adjust: "Schutzgeld anpassen",
+    donate: "Spenden",
+    cleanUp: "Aufräumaktion",
+    clearStreets: "Straßen räumen",
+    guard: "Geschäft bewachen",
+    patrol: "Streife",
+    explore: "Erkunden",
+    recruit: "Anwerben",
+    goTo: "Gehe zu"
+  },
+  es: {
+    buy: "Comprar local",
+    setUp: "Abrir negocio",
+    run: "Llevar negocio",
+    collect: "Cobrar protección",
+    adjust: "Ajustar protección",
+    donate: "Donar",
+    cleanUp: "Campaña de limpieza",
+    clearStreets: "Despejar las calles",
+    guard: "Vigilar negocio",
+    patrol: "Patrulla",
+    explore: "Explorar",
+    recruit: "Reclutar",
+    goTo: "Ir a"
+  },
+  fr: {
+    buy: "Acheter des locaux",
+    setUp: "Ouvrir une affaire",
+    run: "Gérer une affaire",
+    collect: "Encaisser la protection",
+    adjust: "Ajuster la protection",
+    donate: "Faire un don",
+    cleanUp: "Opération nettoyage",
+    clearStreets: "Dégager les rues",
+    guard: "Garder une affaire",
+    patrol: "Patrouille",
+    explore: "Explorer",
+    recruit: "Recruter",
+    goTo: "Aller à"
+  }
+}, je = (e, n) => lo[e][n], xn = {
+  L_Bought: "Bought {place} for {b$}.",
+  L_Opened: "Opened a {type}.",
+  L_New_Management: "New management installed at {place}.",
+  L_Collected: "Collected {b$} from {place}.",
+  L_Refused_Pay: "{owner} refused to pay.",
+  L_Already_Paid: "{place} has already paid this week.",
+  L_Protection_Set: "Protection at {place} set to {b$}.",
+  L_Donated: "Donated {b$} to {place}.",
+  L_Cleaned_Up: "Cleaned up round {place}.",
+  L_Cleared: "The streets round {place} were cleared.",
+  L_Looked_Over: "Looked over {place}: {standing}.",
+  owned_by: "owned by {who}",
+  paying_to: "paying {d$} a week to {who}",
+  paying_nobody: "paying nobody",
+  you: "you",
+  L_Found_Hidden: "Found a {hidden} behind {place}.",
+  L_Nobody_Hiring: "Nobody worth hiring at {place}.",
+  L_Nobody_Hiring_Else: "Nobody worth hiring at {place} — word is there are people looking for work at {else}.",
+  L_Signed_On_1: "1 hood signed on, waiting in the pool.",
+  L_Signed_On_n: "{b} hoods signed on, waiting in the pool.",
+  L_Nobody_Willing: "Nobody new was willing to work for you.",
+  L_Stood_Guard: "Stood guard at {place} for {bhm}.",
+  L_Patrolled_1: "Patrolled 1 block for {chm}.",
+  L_Patrolled_n: "Patrolled {b} blocks for {chm}.",
+  L_Held: "Held position for {bhm}.",
+  L_Ran_Out: "Ran out of week before finishing every target.",
+  L_Continuing: "{order}: continuing with {b} of {c} people; the others are unavailable.",
+  F_No_Site: "No such site.",
+  F_Owned_Already: "Somebody else already owns it.",
+  F_Not_For_Sale: "Those premises are no longer available to buy.",
+  F_Price: "You could not cover the asking price.",
+  F_Not_Yours: "You do not own that land.",
+  F_No_Type: "No business type was chosen.",
+  F_Illegal_Centre: "Illegal businesses can only occupy the centre of a block.",
+  F_Legal_Centre: "Only illegal businesses belong in the centre of a block.",
+  F_City_Only: "Only the city builds those.",
+  F_No_Front: "That illegal business has no front on the block.",
+  F_Front_Taken: "That front already hides another operation.",
+  F_Fit_Out: "You could not afford the fit-out.",
+  F_Not_Your_Site: "That is not one of your sites.",
+  F_No_Hood_Free: "No hood was free to run {place}.",
+  F_No_Charity: "No charity there.",
+  F_No_Donation: "No donation was offered.",
+  F_Spare_Money: "You could not spare the money.",
+  F_Clean_Up_Money: "You could not pay for the clean-up.",
+  F_Streets_Not_Bribed: "Neither the mayor nor the police chief will do it for you any more.",
+  F_Site_Gone: "The site is gone.",
+  F_Nobody_Left: "Nobody was left to carry out the order.",
+  F_Never_Started: "The order never started. {inner}",
+  F_Not_Enough_Time: "There was not enough time in the week to perform the order.",
+  F_Nothing_Came: "Nothing came of it.",
+  F_Needs_People: "This order needs {a} people, but only {b} remain in the crew.",
+  F_Needs_Free_1: "This order needs {a} people; 1 is {free}.",
+  F_Needs_Free_n: "This order needs {a} people; {b} are {free}.",
+  available: "available",
+  free: "free",
+  F_Target_Lost: "The target could not be found.",
+  F_Never_Started_Default: "The order never started. No crew was available before the week ended.",
+  M_Acquired: "Acquired {place}.",
+  M_Opened: "Opened a {type}.",
+  M_Refused_Protection: "{place} refused to pay protection.",
+  M_Uncovered: "Your hoods uncovered a hidden {hiddenB}.",
+  M_Order_Failed: "Order failed: {order} — {inner}",
+  M_Order_Cut_Short: "Order cut short: {order} — {inner}",
+  M_Queued_Waiting: "{order} is queued: {inner}",
+  the_owner: "The owner",
+  Y_Accepted: "{lt} accepted the order.",
+  Y_Cancelled: "Order cancelled.",
+  Y_Back_On_Street: "{pa} is back on the street.",
+  Y_Promoted: "{pa} now runs his own crew.",
+  Y_Broken_Up: "The crew has been broken up.",
+  Y_Joined: "{pa} joined {crewB}.",
+  Y_Already_In: "{pa} is already in {crewB}.",
+  Y_Done: "",
+  Y_No_Crew: "No such crew.",
+  Y_Lt_Unavailable: "That lieutenant is not available. Promote somebody to take the crew.",
+  Y_Positive_Whole: "Choose a positive whole number of people.",
+  Y_Only_People: "{lt} has only {b} people.",
+  Y_At_Most_1: "{order} takes at most 1 person.",
+  Y_At_Most_n: "{order} takes at most {b} people.",
+  Y_Valid_Amount: "Choose a valid amount.",
+  Y_Donation_Zero: "A donation must be greater than zero.",
+  Y_Streets: "Clearing the streets needs the mayor or the police chief on your side (bribed).",
+  Y_Rate: "Choose a protection rate between zero and double.",
+  Y_No_Block: "No such block.",
+  Y_No_Site: "No such site.",
+  Y_Valid_Site: "Choose a valid site for that order.",
+  Y_Site_Not_Valid: "That site is not valid for this order.",
+  Y_Inside_City: "Choose a place inside the city.",
+  Y_Nothing_There: "Nothing there for that order.",
+  Y_Cannot_Afford: "You cannot afford it: it costs {a$} and {b$} is left after this week's orders.",
+  Y_No_Time_Trim: "{lt} has not got the time for all {b} sites — he could manage {c} of them.",
+  Y_No_Time: "{lt} has not got the time. Reduce the area, add manpower, or leave it until next week.",
+  Y_Too_Many_Orders: "That crew cannot take more orders this week.",
+  Y_No_Order: "No such order.",
+  Y_No_Person: "No such person.",
+  Y_Choose_Hood: "Choose one of your hoods.",
+  Y_Not_In_Pool: "That hood is not in the pool or a crew.",
+  Y_Max_Lieutenants: "You already have {a} lieutenants.",
+  Y_Could_Not_Promote: "Could not promote.",
+  Y_Choose_Hood_Crew: "Choose one of your hoods and one of your crews.",
+  Y_Crew_Full: "That crew is full.",
+  Y_Choose_Crew_Hood: "Choose one of your crew hoods."
+}, io = {
+  L_Bought: "{place} für {b$} gekauft.",
+  L_Opened: "{type} eröffnet.",
+  L_New_Management: "Neue Leitung in {place} eingesetzt.",
+  L_Collected: "{b$} von {place} kassiert.",
+  L_Refused_Pay: "{owner} hat sich geweigert zu zahlen.",
+  L_Already_Paid: "{place} hat diese Woche schon gezahlt.",
+  L_Protection_Set: "Schutzgeld bei {place} auf {b$} gesetzt.",
+  L_Donated: "{b$} an {place} gespendet.",
+  L_Cleaned_Up: "Rund um {place} aufgeräumt.",
+  L_Cleared: "Die Straßen um {place} wurden geräumt.",
+  L_Looked_Over: "{place} angesehen: {standing}.",
+  owned_by: "gehört {who}",
+  paying_to: "zahlt {d$} pro Woche an {who}",
+  paying_nobody: "zahlt niemandem",
+  you: "dir",
+  L_Found_Hidden: "{hidden} hinter {place} gefunden.",
+  L_Nobody_Hiring: "Niemand Brauchbares bei {place}.",
+  L_Nobody_Hiring_Else: "Niemand Brauchbares bei {place} — es heißt, bei {else} suchen Leute Arbeit.",
+  L_Signed_On_1: "1 Mann angeheuert, wartet im Pool.",
+  L_Signed_On_n: "{b} Männer angeheuert, warten im Pool.",
+  L_Nobody_Willing: "Niemand Neues wollte für dich arbeiten.",
+  L_Stood_Guard: "Wache bei {place} für {bhm}.",
+  L_Patrolled_1: "1 Block für {chm} bestreift.",
+  L_Patrolled_n: "{b} Blocks für {chm} bestreift.",
+  L_Held: "Position für {bhm} gehalten.",
+  L_Ran_Out: "Die Woche war vorbei, bevor jedes Ziel erledigt war.",
+  L_Continuing: "{order}: weiter mit {b} von {c} Leuten; die anderen sind nicht verfügbar.",
+  F_No_Site: "Kein solcher Ort.",
+  F_Owned_Already: "Das gehört schon jemand anderem.",
+  F_Not_For_Sale: "Das Gebäude ist nicht mehr zu kaufen.",
+  F_Price: "Du konntest den Preis nicht aufbringen.",
+  F_Not_Yours: "Das Grundstück gehört dir nicht.",
+  F_No_Type: "Keine Geschäftsart gewählt.",
+  F_Illegal_Centre: "Illegale Geschäfte gehören nur in die Mitte eines Blocks.",
+  F_Legal_Centre: "In die Mitte eines Blocks gehören nur illegale Geschäfte.",
+  F_City_Only: "Das baut nur die Stadt.",
+  F_No_Front: "Dieses illegale Geschäft hat keine Tarnung im Block.",
+  F_Front_Taken: "Diese Tarnung versteckt schon ein anderes Geschäft.",
+  F_Fit_Out: "Du konntest die Einrichtung nicht bezahlen.",
+  F_Not_Your_Site: "Das ist keins deiner Gebäude.",
+  F_No_Hood_Free: "Kein Mann war frei, um {place} zu führen.",
+  F_No_Charity: "Dort ist keine Wohltätigkeit.",
+  F_No_Donation: "Es wurde keine Spende angeboten.",
+  F_Spare_Money: "Du konntest das Geld nicht entbehren.",
+  F_Clean_Up_Money: "Du konntest die Aufräumaktion nicht bezahlen.",
+  F_Streets_Not_Bribed: "Weder der Bürgermeister noch der Polizeichef tun das noch für dich.",
+  F_Site_Gone: "Das Gebäude ist weg.",
+  F_Nobody_Left: "Niemand war mehr da, um den Befehl auszuführen.",
+  F_Never_Started: "Der Befehl hat nie begonnen. {inner}",
+  F_Not_Enough_Time: "Die Woche hatte nicht genug Zeit für den Befehl.",
+  F_Nothing_Came: "Es ist nichts dabei herausgekommen.",
+  F_Needs_People: "Dieser Befehl braucht {a} Leute, aber nur {b} sind im Trupp.",
+  F_Needs_Free_1: "Dieser Befehl braucht {a} Leute; 1 ist {free}.",
+  F_Needs_Free_n: "Dieser Befehl braucht {a} Leute; {b} sind {free}.",
+  available: "verfügbar",
+  free: "frei",
+  F_Target_Lost: "Das Ziel war nicht zu finden.",
+  F_Never_Started_Default: "Der Befehl hat nie begonnen. Vor Wochenende war kein Trupp frei.",
+  M_Acquired: "{place} erworben.",
+  M_Opened: "{type} eröffnet.",
+  M_Refused_Protection: "{place} hat sich geweigert, Schutzgeld zu zahlen.",
+  M_Uncovered: "Deine Männer haben ein verstecktes Geschäft entdeckt: {hiddenB}.",
+  M_Order_Failed: "Befehl gescheitert: {order} — {inner}",
+  M_Order_Cut_Short: "Befehl abgebrochen: {order} — {inner}",
+  M_Queued_Waiting: "{order} wartet: {inner}",
+  the_owner: "Der Besitzer",
+  Y_Accepted: "{lt} hat den Befehl angenommen.",
+  Y_Cancelled: "Befehl zurückgenommen.",
+  Y_Back_On_Street: "{pa} ist wieder auf der Straße.",
+  Y_Promoted: "{pa} führt jetzt einen eigenen Trupp.",
+  Y_Broken_Up: "Der Trupp wurde aufgelöst.",
+  Y_Joined: "{pa} ist jetzt in {crewB}.",
+  Y_Already_In: "{pa} ist schon in {crewB}.",
+  Y_Done: "",
+  Y_No_Crew: "Kein solcher Trupp.",
+  Y_Lt_Unavailable: "Dieser Leutnant ist nicht verfügbar. Befördere jemanden, der den Trupp übernimmt.",
+  Y_Positive_Whole: "Wähle eine positive ganze Zahl von Leuten.",
+  Y_Only_People: "{lt} hat nur {b} Leute.",
+  Y_At_Most_1: "{order} braucht höchstens 1 Person.",
+  Y_At_Most_n: "{order} braucht höchstens {b} Leute.",
+  Y_Valid_Amount: "Wähle einen gültigen Betrag.",
+  Y_Donation_Zero: "Eine Spende muss größer als null sein.",
+  Y_Streets: "Zum Räumen der Straßen brauchst du den Bürgermeister oder den Polizeichef auf deiner Seite (bestochen).",
+  Y_Rate: "Wähle einen Satz zwischen null und dem Doppelten.",
+  Y_No_Block: "Kein solcher Block.",
+  Y_No_Site: "Kein solcher Ort.",
+  Y_Valid_Site: "Wähle einen gültigen Ort für diesen Befehl.",
+  Y_Site_Not_Valid: "Dieser Ort passt nicht zu diesem Befehl.",
+  Y_Inside_City: "Wähle einen Ort in der Stadt.",
+  Y_Nothing_There: "Dort gibt es nichts für diesen Befehl.",
+  Y_Cannot_Afford: "Das kannst du dir nicht leisten: es kostet {a$}, und nach den Befehlen dieser Woche bleiben {b$}.",
+  Y_No_Time_Trim: "{lt} hat nicht für alle {b} Orte Zeit — er schafft {c} davon.",
+  Y_No_Time: "{lt} hat keine Zeit. Verkleinere das Gebiet, nimm mehr Leute oder warte bis nächste Woche.",
+  Y_Too_Many_Orders: "Dieser Trupp kann diese Woche keine Befehle mehr annehmen.",
+  Y_No_Order: "Kein solcher Befehl.",
+  Y_No_Person: "Keine solche Person.",
+  Y_Choose_Hood: "Wähle einen deiner Männer.",
+  Y_Not_In_Pool: "Dieser Mann ist weder im Pool noch in einem Trupp.",
+  Y_Max_Lieutenants: "Du hast schon {a} Leutnants.",
+  Y_Could_Not_Promote: "Beförderung nicht möglich.",
+  Y_Choose_Hood_Crew: "Wähle einen deiner Männer und einen deiner Trupps.",
+  Y_Crew_Full: "Dieser Trupp ist voll.",
+  Y_Choose_Crew_Hood: "Wähle einen Mann aus einem deiner Trupps."
+}, co = {
+  L_Bought: "Comprado {place} por {b$}.",
+  L_Opened: "Abierto: {type}.",
+  L_New_Management: "Nueva gerencia en {place}.",
+  L_Collected: "Cobrados {b$} de {place}.",
+  L_Refused_Pay: "{owner} se negó a pagar.",
+  L_Already_Paid: "{place} ya pagó esta semana.",
+  L_Protection_Set: "Protección en {place} fijada en {b$}.",
+  L_Donated: "Donados {b$} a {place}.",
+  L_Cleaned_Up: "Limpieza alrededor de {place}.",
+  L_Cleared: "Se despejaron las calles alrededor de {place}.",
+  L_Looked_Over: "Revisado {place}: {standing}.",
+  owned_by: "propiedad de {who}",
+  paying_to: "paga {d$} a la semana a {who}",
+  paying_nobody: "no paga a nadie",
+  you: "ti",
+  L_Found_Hidden: "Encontrado un {hidden} detrás de {place}.",
+  L_Nobody_Hiring: "Nadie que valga la pena en {place}.",
+  L_Nobody_Hiring_Else: "Nadie que valga la pena en {place} — dicen que hay gente buscando trabajo en {else}.",
+  L_Signed_On_1: "1 matón contratado, espera en la reserva.",
+  L_Signed_On_n: "{b} matones contratados, esperan en la reserva.",
+  L_Nobody_Willing: "Nadie nuevo quiso trabajar para ti.",
+  L_Stood_Guard: "Guardia en {place} durante {bhm}.",
+  L_Patrolled_1: "Patrullada 1 manzana durante {chm}.",
+  L_Patrolled_n: "Patrulladas {b} manzanas durante {chm}.",
+  L_Held: "Posición mantenida durante {bhm}.",
+  L_Ran_Out: "La semana acabó antes de terminar todos los objetivos.",
+  L_Continuing: "{order}: sigue con {b} de {c} personas; las demás no están disponibles.",
+  F_No_Site: "No existe ese sitio.",
+  F_Owned_Already: "Ya es de otro.",
+  F_Not_For_Sale: "Ese local ya no está en venta.",
+  F_Price: "No pudiste cubrir el precio.",
+  F_Not_Yours: "Ese terreno no es tuyo.",
+  F_No_Type: "No se eligió tipo de negocio.",
+  F_Illegal_Centre: "Los negocios ilegales solo pueden ocupar el centro de una manzana.",
+  F_Legal_Centre: "En el centro de una manzana solo van negocios ilegales.",
+  F_City_Only: "Eso solo lo construye la ciudad.",
+  F_No_Front: "Ese negocio ilegal no tiene tapadera en la manzana.",
+  F_Front_Taken: "Esa tapadera ya oculta otra operación.",
+  F_Fit_Out: "No pudiste pagar el acondicionamiento.",
+  F_Not_Your_Site: "Ese no es uno de tus sitios.",
+  F_No_Hood_Free: "No había ningún matón libre para llevar {place}.",
+  F_No_Charity: "Ahí no hay beneficencia.",
+  F_No_Donation: "No se ofreció donación.",
+  F_Spare_Money: "No pudiste prescindir del dinero.",
+  F_Clean_Up_Money: "No pudiste pagar la limpieza.",
+  F_Streets_Not_Bribed: "Ni el alcalde ni el jefe de policía lo harán ya por ti.",
+  F_Site_Gone: "El sitio ya no existe.",
+  F_Nobody_Left: "No quedó nadie para cumplir la orden.",
+  F_Never_Started: "La orden no llegó a empezar. {inner}",
+  F_Not_Enough_Time: "No hubo tiempo suficiente en la semana para cumplir la orden.",
+  F_Nothing_Came: "No salió nada.",
+  F_Needs_People: "Esta orden necesita {a} personas, pero solo quedan {b} en la cuadrilla.",
+  F_Needs_Free_1: "Esta orden necesita {a} personas; 1 está {free}.",
+  F_Needs_Free_n: "Esta orden necesita {a} personas; {b} están {free}.",
+  available: "disponible",
+  free: "libre",
+  F_Target_Lost: "No se encontró el objetivo.",
+  F_Never_Started_Default: "La orden no llegó a empezar. No hubo cuadrilla disponible antes del fin de semana.",
+  M_Acquired: "Adquirido {place}.",
+  M_Opened: "Abierto: {type}.",
+  M_Refused_Protection: "{place} se negó a pagar protección.",
+  M_Uncovered: "Tus matones descubrieron un negocio oculto: {hiddenB}.",
+  M_Order_Failed: "Orden fallida: {order} — {inner}",
+  M_Order_Cut_Short: "Orden interrumpida: {order} — {inner}",
+  M_Queued_Waiting: "{order} en espera: {inner}",
+  the_owner: "El dueño",
+  Y_Accepted: "{lt} aceptó la orden.",
+  Y_Cancelled: "Orden cancelada.",
+  Y_Back_On_Street: "{pa} vuelve a la calle.",
+  Y_Promoted: "{pa} dirige ahora su propia cuadrilla.",
+  Y_Broken_Up: "La cuadrilla se ha disuelto.",
+  Y_Joined: "{pa} se unió a {crewB}.",
+  Y_Already_In: "{pa} ya está en {crewB}.",
+  Y_Done: "",
+  Y_No_Crew: "No existe esa cuadrilla.",
+  Y_Lt_Unavailable: "Ese lugarteniente no está disponible. Asciende a alguien para que lleve la cuadrilla.",
+  Y_Positive_Whole: "Elige un número entero positivo de personas.",
+  Y_Only_People: "{lt} solo tiene {b} personas.",
+  Y_At_Most_1: "{order} admite como mucho 1 persona.",
+  Y_At_Most_n: "{order} admite como mucho {b} personas.",
+  Y_Valid_Amount: "Elige una cantidad válida.",
+  Y_Donation_Zero: "Una donación debe ser mayor que cero.",
+  Y_Streets: "Despejar las calles requiere al alcalde o al jefe de policía de tu lado (sobornado).",
+  Y_Rate: "Elige una tarifa entre cero y el doble.",
+  Y_No_Block: "No existe esa manzana.",
+  Y_No_Site: "No existe ese sitio.",
+  Y_Valid_Site: "Elige un sitio válido para esa orden.",
+  Y_Site_Not_Valid: "Ese sitio no vale para esta orden.",
+  Y_Inside_City: "Elige un lugar dentro de la ciudad.",
+  Y_Nothing_There: "Ahí no hay nada para esa orden.",
+  Y_Cannot_Afford: "No te lo puedes permitir: cuesta {a$} y quedan {b$} tras las órdenes de esta semana.",
+  Y_No_Time_Trim: "{lt} no tiene tiempo para los {b} sitios — podría con {c}.",
+  Y_No_Time: "{lt} no tiene tiempo. Reduce la zona, añade gente o déjalo para la semana que viene.",
+  Y_Too_Many_Orders: "Esa cuadrilla no puede aceptar más órdenes esta semana.",
+  Y_No_Order: "No existe esa orden.",
+  Y_No_Person: "No existe esa persona.",
+  Y_Choose_Hood: "Elige a uno de tus matones.",
+  Y_Not_In_Pool: "Ese matón no está en la reserva ni en una cuadrilla.",
+  Y_Max_Lieutenants: "Ya tienes {a} lugartenientes.",
+  Y_Could_Not_Promote: "No se pudo ascender.",
+  Y_Choose_Hood_Crew: "Elige a uno de tus matones y una de tus cuadrillas.",
+  Y_Crew_Full: "Esa cuadrilla está llena.",
+  Y_Choose_Crew_Hood: "Elige a un matón de tus cuadrillas."
+}, uo = {
+  L_Bought: "Acheté {place} pour {b$}.",
+  L_Opened: "Ouvert : {type}.",
+  L_New_Management: "Nouvelle gérance installée à {place}.",
+  L_Collected: "Encaissé {b$} de {place}.",
+  L_Refused_Pay: "{owner} a refusé de payer.",
+  L_Already_Paid: "{place} a déjà payé cette semaine.",
+  L_Protection_Set: "Protection de {place} fixée à {b$}.",
+  L_Donated: "Don de {b$} à {place}.",
+  L_Cleaned_Up: "Nettoyé autour de {place}.",
+  L_Cleared: "Les rues autour de {place} ont été dégagées.",
+  L_Looked_Over: "Inspecté {place} : {standing}.",
+  owned_by: "appartient à {who}",
+  paying_to: "paie {d$} par semaine à {who}",
+  paying_nobody: "ne paie personne",
+  you: "vous",
+  L_Found_Hidden: "Trouvé un {hidden} derrière {place}.",
+  L_Nobody_Hiring: "Personne à embaucher à {place}.",
+  L_Nobody_Hiring_Else: "Personne à embaucher à {place} — on dit que des gens cherchent du travail à {else}.",
+  L_Signed_On_1: "1 homme engagé, il attend dans la réserve.",
+  L_Signed_On_n: "{b} hommes engagés, ils attendent dans la réserve.",
+  L_Nobody_Willing: "Personne de nouveau ne voulait travailler pour vous.",
+  L_Stood_Guard: "Garde à {place} pendant {bhm}.",
+  L_Patrolled_1: "1 pâté patrouillé pendant {chm}.",
+  L_Patrolled_n: "{b} pâtés patrouillés pendant {chm}.",
+  L_Held: "Position tenue pendant {bhm}.",
+  L_Ran_Out: "La semaine a pris fin avant que chaque cible soit traitée.",
+  L_Continuing: "{order} : continue avec {b} sur {c} personnes ; les autres sont indisponibles.",
+  F_No_Site: "Ce lieu n’existe pas.",
+  F_Owned_Already: "Quelqu’un d’autre le possède déjà.",
+  F_Not_For_Sale: "Ces locaux ne sont plus à vendre.",
+  F_Price: "Vous n’avez pas pu payer le prix.",
+  F_Not_Yours: "Ce terrain ne vous appartient pas.",
+  F_No_Type: "Aucun type d’affaire choisi.",
+  F_Illegal_Centre: "Les affaires illégales ne vont qu’au centre d’un pâté.",
+  F_Legal_Centre: "Seules les affaires illégales vont au centre d’un pâté.",
+  F_City_Only: "Seule la ville construit cela.",
+  F_No_Front: "Cette affaire illégale n’a pas de couverture dans le pâté.",
+  F_Front_Taken: "Cette couverture cache déjà une autre opération.",
+  F_Fit_Out: "Vous n’avez pas pu payer l’aménagement.",
+  F_Not_Your_Site: "Ce n’est pas un de vos lieux.",
+  F_No_Hood_Free: "Aucun homme n’était libre pour gérer {place}.",
+  F_No_Charity: "Pas d’œuvre de charité ici.",
+  F_No_Donation: "Aucun don n’a été proposé.",
+  F_Spare_Money: "Vous n’avez pas pu dégager l’argent.",
+  F_Clean_Up_Money: "Vous n’avez pas pu payer le nettoyage.",
+  F_Streets_Not_Bribed: "Ni le maire ni le chef de la police ne le feront plus pour vous.",
+  F_Site_Gone: "Le lieu a disparu.",
+  F_Nobody_Left: "Il ne restait personne pour exécuter l’ordre.",
+  F_Never_Started: "L’ordre n’a jamais commencé. {inner}",
+  F_Not_Enough_Time: "La semaine n’a pas suffi pour exécuter l’ordre.",
+  F_Nothing_Came: "Rien n’en est sorti.",
+  F_Needs_People: "Cet ordre demande {a} personnes, mais il n’en reste que {b} dans l’équipe.",
+  F_Needs_Free_1: "Cet ordre demande {a} personnes ; 1 est {free}.",
+  F_Needs_Free_n: "Cet ordre demande {a} personnes ; {b} sont {free}.",
+  available: "disponible",
+  free: "libre",
+  F_Target_Lost: "La cible est introuvable.",
+  F_Never_Started_Default: "L’ordre n’a jamais commencé. Aucune équipe n’était libre avant la fin de la semaine.",
+  M_Acquired: "Acquis {place}.",
+  M_Opened: "Ouvert : {type}.",
+  M_Refused_Protection: "{place} a refusé de payer la protection.",
+  M_Uncovered: "Vos hommes ont découvert une affaire cachée : {hiddenB}.",
+  M_Order_Failed: "Ordre échoué : {order} — {inner}",
+  M_Order_Cut_Short: "Ordre interrompu : {order} — {inner}",
+  M_Queued_Waiting: "{order} en attente : {inner}",
+  the_owner: "Le propriétaire",
+  Y_Accepted: "{lt} a accepté l’ordre.",
+  Y_Cancelled: "Ordre annulé.",
+  Y_Back_On_Street: "{pa} est de retour à la rue.",
+  Y_Promoted: "{pa} dirige désormais sa propre équipe.",
+  Y_Broken_Up: "L’équipe a été dissoute.",
+  Y_Joined: "{pa} a rejoint {crewB}.",
+  Y_Already_In: "{pa} est déjà dans {crewB}.",
+  Y_Done: "",
+  Y_No_Crew: "Cette équipe n’existe pas.",
+  Y_Lt_Unavailable: "Ce lieutenant n’est pas disponible. Promouvez quelqu’un pour reprendre l’équipe.",
+  Y_Positive_Whole: "Choisissez un nombre entier positif de personnes.",
+  Y_Only_People: "{lt} n’a que {b} personnes.",
+  Y_At_Most_1: "{order} prend au plus 1 personne.",
+  Y_At_Most_n: "{order} prend au plus {b} personnes.",
+  Y_Valid_Amount: "Choisissez un montant valide.",
+  Y_Donation_Zero: "Un don doit être supérieur à zéro.",
+  Y_Streets: "Dégager les rues demande le maire ou le chef de la police de votre côté (soudoyé).",
+  Y_Rate: "Choisissez un taux entre zéro et le double.",
+  Y_No_Block: "Ce pâté n’existe pas.",
+  Y_No_Site: "Ce lieu n’existe pas.",
+  Y_Valid_Site: "Choisissez un lieu valide pour cet ordre.",
+  Y_Site_Not_Valid: "Ce lieu ne convient pas à cet ordre.",
+  Y_Inside_City: "Choisissez un endroit dans la ville.",
+  Y_Nothing_There: "Rien à faire là pour cet ordre.",
+  Y_Cannot_Afford: "Vous n’en avez pas les moyens : cela coûte {a$} et il reste {b$} après les ordres de la semaine.",
+  Y_No_Time_Trim: "{lt} n’a pas le temps pour les {b} lieux — il pourrait en faire {c}.",
+  Y_No_Time: "{lt} n’a pas le temps. Réduisez la zone, ajoutez du monde ou attendez la semaine prochaine.",
+  Y_Too_Many_Orders: "Cette équipe ne peut plus prendre d’ordres cette semaine.",
+  Y_No_Order: "Cet ordre n’existe pas.",
+  Y_No_Person: "Cette personne n’existe pas.",
+  Y_Choose_Hood: "Choisissez un de vos hommes.",
+  Y_Not_In_Pool: "Cet homme n’est ni dans la réserve ni dans une équipe.",
+  Y_Max_Lieutenants: "Vous avez déjà {a} lieutenants.",
+  Y_Could_Not_Promote: "Promotion impossible.",
+  Y_Choose_Hood_Crew: "Choisissez un de vos hommes et une de vos équipes.",
+  Y_Crew_Full: "Cette équipe est complète.",
+  Y_Choose_Crew_Hood: "Choisissez un homme de vos équipes."
+}, _o = { "en-GB": xn, de: io, es: co, fr: uo };
+function j(e, n, o) {
+  return (_o[e][n] ?? xn[n] ?? n).replace(/\{(\w+\$?)\}/g, (a, s) => String(o[s] ?? ""));
+}
+function de(e, n) {
+  const { lang: o } = e, r = (i) => Ot[i] ?? "L_None", a = {
+    a: n.a,
+    b: n.b,
+    c: n.c,
+    d: n.d,
+    a$: ce(o, n.a),
+    b$: ce(o, n.b),
+    d$: ce(o, n.d),
+    bhm: ct(n.b),
+    chm: ct(n.c)
+  }, s = () => e.place(n.a);
+  switch (n.kind) {
+    case "L_None":
+      return "";
+    case "L_Opened":
+    case "M_Opened":
+      return j(o, n.kind, { type: e.type(n.a) });
+    case "L_Refused_Pay":
+      return j(o, n.kind, { owner: n.b >= 0 ? e.person(n.b) : j(o, "the_owner", {}) });
+    case "L_Looked_Over": {
+      const i = (p) => p === e.me ? j(o, "you", {}) : e.gang(p), d = n.b > 0 ? j(o, "owned_by", { who: i(n.b) }) : n.c > 0 ? j(o, "paying_to", { ...a, who: i(n.c) }) : j(o, "paying_nobody", {});
+      return j(o, n.kind, { place: s(), standing: d });
+    }
+    case "L_Found_Hidden":
+      return j(o, n.kind, { place: s(), hidden: e.building(n.b) });
+    case "L_Nobody_Hiring":
+      return n.b >= 0 ? j(o, "L_Nobody_Hiring_Else", { place: s(), else: e.place(n.b) }) : j(o, n.kind, { place: s() });
+    case "L_Signed_On":
+      return j(o, n.b === 1 ? "L_Signed_On_1" : "L_Signed_On_n", a);
+    case "L_Patrolled":
+      return j(o, n.b === 1 ? "L_Patrolled_1" : "L_Patrolled_n", a);
+    case "L_Continuing":
+      return j(o, n.kind, { ...a, order: je(o, pe[n.a]) });
+    case "F_Needs_Free":
+      return j(o, n.b === 1 ? "F_Needs_Free_1" : "F_Needs_Free_n", { ...a, free: j(o, n.c === 1 ? "available" : "free", {}) });
+    case "F_Never_Started":
+      return j(o, n.kind, { inner: de(e, { kind: r(n.a), a: n.b, b: n.c, c: n.d, d: 0 }) });
+    case "M_Uncovered":
+      return j(o, n.kind, { hiddenB: e.building(n.b) });
+    case "M_Order_Failed":
+    case "M_Order_Cut_Short":
+    case "M_Queued_Waiting":
+      return j(o, n.kind, {
+        order: je(o, pe[n.a]),
+        inner: de(e, { kind: r(n.b), a: n.c, b: n.d, c: 0, d: 0 })
+      });
+    default:
+      return j(o, n.kind, { ...a, place: n.a >= 0 ? s() : "" });
+  }
+}
+function Ne(e, n) {
+  const { lang: o } = e, r = { a: n.a, b: n.b, c: n.c, d: n.d, a$: ce(o, n.a), b$: ce(o, n.b) }, a = n.kind;
+  switch (a) {
+    case "Y_Accepted":
+    case "Y_Only_People":
+    case "Y_No_Time_Trim":
+    case "Y_No_Time":
+      return j(o, a, { ...r, lt: e.person(n.a) });
+    case "Y_Back_On_Street":
+    case "Y_Promoted":
+      return j(o, a, { pa: e.person(n.a) });
+    case "Y_Joined":
+    case "Y_Already_In":
+      return j(o, a, { pa: e.person(n.a), crewB: e.crew(n.b) });
+    case "Y_At_Most":
+      return j(o, n.b === 1 ? "Y_At_Most_1" : "Y_At_Most_n", { ...r, order: je(o, pe[n.a]) });
+    case "Y_Staffing":
+      return de(e, { kind: Ot[n.a] ?? "L_None", a: n.b, b: n.c, c: n.d, d: 0 });
+    default:
+      return j(o, a, r);
+  }
+}
+const _n = 10;
+function mo(e, n, o, r) {
+  const a = Re(e, n);
+  return { crews: a, orders: a.flatMap((s) => s.orders.map((i) => Nn(e, i))), last: Ln(e, n), pool: o, messages: r };
+}
+function mn({ t: e, x: n, o, onCancel: r, onShow: a }) {
+  const s = o.targets.length === 1 ? n.place(o.targets[0]) : o.point ? e("o_point") : e("o_sites", { n: o.targets.length }), i = o.finished >= 0 ? Sn(e, o.finished) : null;
+  return /* @__PURE__ */ t.createElement("li", { className: `order-line st-${o.state}` }, /* @__PURE__ */ t.createElement("button", { className: "link", onClick: a }, je(n.lang, o.kind)), /* @__PURE__ */ t.createElement("span", { className: "where" }, " · ", s), /* @__PURE__ */ t.createElement("span", { className: "state" }, " · ", e(`st_${o.state}`), o.estimate > 0 && o.state === "queued" ? ` · ${ct(o.estimate)}` : "", i ? ` · ${e("o_done_at", { day: i.day, time: i.time })}` : "", o.assigned.length ? ` · ${o.assigned.map((d) => n.person(d)).join(", ")}` : ""), r && /* @__PURE__ */ t.createElement("button", { className: "mini", onClick: r, title: e("o_cancel"), "aria-label": e("o_cancel") }, "×"), o.fail.kind !== "L_None" && /* @__PURE__ */ t.createElement("div", { className: "fail" }, de(n, o.fail)), o.results.length > 0 && /* @__PURE__ */ t.createElement("ul", { className: "results" }, o.results.map((d, p) => /* @__PURE__ */ t.createElement("li", { key: p }, de(n, d)))));
+}
+function ho({ t: e, x: n, core: o, view: r, running: a, onPerson: s, onNewOrder: i, onChanged: d, onClose: p, onShow: f }) {
+  const m = (_, h, y = 0) => d(ze(o, _, h, y)), u = (_) => o.hs_get(Y.person, _, $.pay), c = (_, h) => /* @__PURE__ */ t.createElement("li", { key: _, className: "man" }, /* @__PURE__ */ t.createElement("button", { className: "link", onClick: () => s(_) }, n.person(_)), /* @__PURE__ */ t.createElement("span", { className: "pay" }, " ", ce(n.lang, u(_))), /* @__PURE__ */ t.createElement("span", { className: "acts" }, /* @__PURE__ */ t.createElement("button", { className: "mini", title: e("o_pay_down"), "aria-label": e("o_pay_down"), onClick: () => m(X.setPay, _, Math.max(0, u(_) - _n)) }, "−"), /* @__PURE__ */ t.createElement("button", { className: "mini", title: e("o_pay_up"), "aria-label": e("o_pay_up"), onClick: () => m(X.setPay, _, u(_) + _n) }, "+"), h ? /* @__PURE__ */ t.createElement("button", { className: "mini wide", onClick: () => m(X.moveToPool, _) }, e("o_to_pool")) : r.crews.map((y) => /* @__PURE__ */ t.createElement("button", { key: y.slot, className: "mini wide", onClick: () => m(X.moveToCrew, _, y.slot) }, e("o_to_crew", { crew: De(y) }))), /* @__PURE__ */ t.createElement("button", { className: "mini wide", onClick: () => m(X.promote, _) }, e("o_promote")), /* @__PURE__ */ t.createElement("button", { className: "mini wide danger", onClick: () => m(X.sack, _) }, e("o_sack"))));
+  return /* @__PURE__ */ t.createElement("aside", { className: "drawer crews-panel", "aria-label": e("o_title") }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("h2", null, e("o_title")), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: p, "aria-label": e("pc_close") }, "×")), r.crews.map((_) => {
+    const h = r.orders.filter((k) => k.crew === _.slot), y = Math.max(1, _.men) * lt;
+    return /* @__PURE__ */ t.createElement("section", { key: _.slot }, /* @__PURE__ */ t.createElement("h3", null, De(_), " ", /* @__PURE__ */ t.createElement("small", null, "· ", e("o_lt"), " ", /* @__PURE__ */ t.createElement("button", { className: "link", onClick: () => s(_.lieutenant) }, n.person(_.lieutenant)))), /* @__PURE__ */ t.createElement("p", { className: "sum" }, e("o_crew_time", { used: _.timeUsed.toLocaleString(), cap: y.toLocaleString(), men: _.men })), /* @__PURE__ */ t.createElement("ul", { className: "men" }, _.members.length ? _.members.map((k) => c(k, _)) : /* @__PURE__ */ t.createElement("li", null, e("o_none"))), /* @__PURE__ */ t.createElement("h4", null, e("o_orders")), /* @__PURE__ */ t.createElement("ul", { className: "orders" }, h.length ? h.map((k) => /* @__PURE__ */ t.createElement(
+      mn,
+      {
+        key: k.slot,
+        t: e,
+        x: n,
+        o: k,
+        onShow: () => f(k),
+        onCancel: ["done", "failed", "cancelled"].includes(k.state) ? void 0 : () => m(X.cancel, k.slot)
+      }
+    )) : /* @__PURE__ */ t.createElement("li", null, e("o_none"))), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: () => i(_.slot) }, e("o_new")), /* @__PURE__ */ t.createElement("button", { className: "main danger", onClick: () => m(X.demote, _.slot) }, e("o_demote"))));
+  }), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("o_pool")), /* @__PURE__ */ t.createElement("ul", { className: "men" }, r.pool.length ? r.pool.map((_) => c(_, null)) : /* @__PURE__ */ t.createElement("li", null, e("o_none")))), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("o_last")), /* @__PURE__ */ t.createElement("ul", { className: "orders" }, r.last.length ? r.last.map((_, h) => /* @__PURE__ */ t.createElement(t.Fragment, { key: h }, /* @__PURE__ */ t.createElement(mn, { t: e, x: n, o: _, onShow: () => f(_) }), /* @__PURE__ */ t.createElement("li", { className: "again" }, /* @__PURE__ */ t.createElement(
+    "button",
+    {
+      className: "mini wide",
+      disabled: a,
+      onClick: () => d(ze(o, X.repeat, _.slot))
+    },
+    e("o_again")
+  )))) : /* @__PURE__ */ t.createElement("li", null, e("o_none")))), /* @__PURE__ */ t.createElement("section", null, /* @__PURE__ */ t.createElement("h3", null, e("o_messages")), /* @__PURE__ */ t.createElement("ul", { className: "messages" }, r.messages.length ? r.messages.map((_, h) => /* @__PURE__ */ t.createElement("li", { key: h }, de(n, _))) : /* @__PURE__ */ t.createElement("li", null, e("o_no_messages")))));
+}
+const po = ie.map((e, n) => ({ id: n, name: e, cost: Ra[n], cls: xa[n] })).filter((e) => e.cost > 0 && ["commercial", "industrial", "illegal"].includes(e.cls)).sort((e, n) => e.name.localeCompare(n.name));
+function go({ t: e, x: n, core: o, crews: r, draft: a, setDraft: s, selectedBuilding: i, selectedBlock: d, onIssued: p, onClose: f }) {
+  const m = cn[a.kind], [u, c] = t.useState(null), _ = t.useMemo(() => Fn(o, a), [o, a]), h = (b) => {
+    c(null), s({ ...a, ...b });
+  }, y = (b) => h({ ...Dt(a.crew, b), manpower: Math.min(a.manpower, cn[b].max) }), k = r.find((b) => b.slot === a.crew), F = m.target === "point" ? e("job_pick_point") : m.target === "area" ? e("job_pick_area") : e("job_pick_building"), N = () => {
+    const b = An(o, a);
+    c(b), b.ok && p(b);
+  };
+  return /* @__PURE__ */ t.createElement("aside", { className: "card job-card", "aria-label": e("job_title") }, /* @__PURE__ */ t.createElement("header", null, /* @__PURE__ */ t.createElement("h3", null, e("job_title")), /* @__PURE__ */ t.createElement("button", { className: "close", onClick: f, "aria-label": e("job_close") }, "×")), /* @__PURE__ */ t.createElement("div", { className: "fields" }, /* @__PURE__ */ t.createElement("label", null, e("job_crew"), /* @__PURE__ */ t.createElement("select", { value: a.crew, onChange: (b) => h({ crew: Number(b.target.value) }) }, r.map((b) => /* @__PURE__ */ t.createElement("option", { key: b.slot, value: b.slot }, De(b))))), /* @__PURE__ */ t.createElement("label", null, e("job_kind"), /* @__PURE__ */ t.createElement("select", { value: a.kind, onChange: (b) => y(b.target.value) }, pe.map((b) => /* @__PURE__ */ t.createElement("option", { key: b, value: b }, je(n.lang, b))))), /* @__PURE__ */ t.createElement("label", null, e("job_men"), /* @__PURE__ */ t.createElement(
+    "input",
+    {
+      type: "number",
+      min: 1,
+      max: m.max,
+      value: a.manpower,
+      onChange: (b) => h({ manpower: Math.max(1, Math.min(m.max, Math.trunc(Number(b.target.value) || 1))) })
+    }
+  ), /* @__PURE__ */ t.createElement("small", null, " ", e("job_men_note", { max: m.max, have: k ? k.members.length + 1 : 0 }))), a.kind === "donate" && /* @__PURE__ */ t.createElement("label", null, e("job_amount"), /* @__PURE__ */ t.createElement(
+    "input",
+    {
+      type: "number",
+      min: 0,
+      step: 10,
+      value: a.amount < 0 ? "" : a.amount,
+      onChange: (b) => h({ amount: b.target.value === "" ? -1 : Math.max(0, Math.trunc(Number(b.target.value))) })
+    }
+  )), a.kind === "adjust" && /* @__PURE__ */ t.createElement("label", null, e("job_level"), /* @__PURE__ */ t.createElement(
+    "input",
+    {
+      type: "number",
+      min: 0,
+      max: 200,
+      step: 10,
+      value: a.level < 0 ? "" : a.level,
+      onChange: (b) => h({ level: b.target.value === "" ? -1 : Math.max(0, Math.min(200, Math.trunc(Number(b.target.value)))) })
+    }
+  )), a.kind === "setUp" && /* @__PURE__ */ t.createElement(t.Fragment, null, /* @__PURE__ */ t.createElement("label", null, e("job_business"), /* @__PURE__ */ t.createElement("select", { value: a.business, onChange: (b) => h({ business: Number(b.target.value) }) }, /* @__PURE__ */ t.createElement("option", { value: -1 }, "—"), po.map((b) => /* @__PURE__ */ t.createElement("option", { key: b.id, value: b.id }, b.name, " · ", ce(n.lang, b.cost))))), /* @__PURE__ */ t.createElement("div", { className: "pickrow" }, e("job_front"), ": ", a.front >= 0 ? n.place(a.front) : "—", /* @__PURE__ */ t.createElement("button", { className: "mini wide", disabled: i < 0, onClick: () => h({ front: i }) }, e("job_front_pick")))), /* @__PURE__ */ t.createElement("label", { className: "check" }, /* @__PURE__ */ t.createElement("input", { type: "checkbox", checked: a.repeat, onChange: (b) => h({ repeat: b.target.checked }) }), " ", e("job_repeat"))), /* @__PURE__ */ t.createElement("p", { className: "hint" }, F), /* @__PURE__ */ t.createElement("div", { className: "pickrow" }, m.target !== "point" && /* @__PURE__ */ t.createElement(
+    "button",
+    {
+      className: "mini wide",
+      disabled: i < 0 || a.buildings.includes(i),
+      onClick: () => h({ buildings: m.target === "building" ? [i] : [...a.buildings, i] })
+    },
+    e("job_add")
+  ), m.target === "area" && /* @__PURE__ */ t.createElement(
+    "button",
+    {
+      className: "mini wide",
+      disabled: d < 0 || a.blocks.includes(d),
+      onClick: () => h({ blocks: [...a.blocks, d] })
+    },
+    e("job_block")
+  ), /* @__PURE__ */ t.createElement("button", { className: "mini wide", onClick: () => h({ buildings: [], blocks: [], point: null }) }, e("job_clear"))), /* @__PURE__ */ t.createElement("ul", { className: "targets" }, a.buildings.map((b) => /* @__PURE__ */ t.createElement("li", { key: `b${b}` }, n.place(b), " ", /* @__PURE__ */ t.createElement(
+    "button",
+    {
+      className: "mini",
+      "aria-label": e("job_remove"),
+      onClick: () => h({ buildings: a.buildings.filter((I) => I !== b) })
+    },
+    "×"
+  ))), a.blocks.map((b) => /* @__PURE__ */ t.createElement("li", { key: `k${b}` }, e("o_block", { n: b }), " ", /* @__PURE__ */ t.createElement(
+    "button",
+    {
+      className: "mini",
+      "aria-label": e("job_remove"),
+      onClick: () => h({ blocks: a.blocks.filter((I) => I !== b) })
+    },
+    "×"
+  ))), a.point && /* @__PURE__ */ t.createElement("li", null, e("o_point"), " (", Math.round(a.point.x / 256), ", ", Math.round(a.point.y / 256), " m)")), _ && /* @__PURE__ */ t.createElement("p", { className: "estimate" }, _.order.targets.length > 0 || _.order.point ? e("job_estimate", { time: ct(_.order.estimate) }) : "", _.order.cost > 0 ? ` · ${e("job_cost", { cost: ce(n.lang, _.order.cost) })}` : "", _.order.targets.length > 1 ? ` · ${e("o_sites", { n: _.order.targets.length })}` : "", !_.hasTime && (_.order.targets.length > 0 || _.order.point) ? ` · ${e("job_no_time")}` : "", _.staffing.kind !== "L_None" ? ` · ${de(n, _.staffing)}` : ""), u && /* @__PURE__ */ t.createElement("p", { className: u.ok ? "reply ok" : "reply bad", role: "status" }, Ne(n, u)), u && u.kind === "Y_No_Time_Trim" && u.kept.length > 0 && /* @__PURE__ */ t.createElement("div", { className: "pickrow" }, /* @__PURE__ */ t.createElement("button", { className: "mini wide", onClick: () => h({ buildings: u.kept, blocks: [] }) }, e("job_take_kept", { n: u.kept.length }))), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: f }, e("job_close")), /* @__PURE__ */ t.createElement("button", { className: "main", onClick: N }, e("job_issue"))));
+}
+function fo({ t: e, canContinue: n, ready: o, onContinue: r, onNew: a }) {
+  const s = (i, d) => /* @__PURE__ */ t.createElement("button", { key: i, className: "menu-item", disabled: !0, title: d }, /* @__PURE__ */ t.createElement("span", null, e(i)), /* @__PURE__ */ t.createElement("small", null, d));
+  return /* @__PURE__ */ t.createElement("div", { className: "overlay open start-menu", role: "dialog", "aria-modal": "true", "aria-labelledby": "menu-title" }, /* @__PURE__ */ t.createElement("div", { className: "box" }, /* @__PURE__ */ t.createElement("h2", { id: "menu-title" }, e("title")), /* @__PURE__ */ t.createElement("p", { className: "menu-sub" }, e("subtitle")), /* @__PURE__ */ t.createElement("nav", { className: "menu-list" }, /* @__PURE__ */ t.createElement("button", { className: "menu-item live", disabled: !n, onClick: r, autoFocus: n }, /* @__PURE__ */ t.createElement("span", null, e("m_continue")), !n && /* @__PURE__ */ t.createElement("small", null, e("m_this_session"))), /* @__PURE__ */ t.createElement("button", { className: "menu-item live", disabled: !o, onClick: a, autoFocus: !n }, /* @__PURE__ */ t.createElement("span", null, e("m_new"))), s("m_load", e("m_unassigned")), s("m_tutorials", e("m_out")), s("m_hof", e("later", { n: 8 })), s("m_leaderboard", e("later", { n: 8 })), s("m_how", e("m_unassigned")), s("m_credits", e("m_unassigned")))));
+}
+function bo(e, n) {
+  let o = -1;
+  for (let r = 0; r < 4e4; r++)
+    if (e.hs_get(Y.building, r, 6) === 0 && ++o === n) return r;
+  return -1;
+}
+const wo = 33, ko = [
+  { draws: 254050, cash: 5308, wages: 836 },
+  { draws: 229972, cash: 4022, wages: 836 },
+  { draws: 228697, cash: 3186, wages: 836 },
+  { draws: 231961, cash: 2266, wages: 920 }
+];
+function yo(e, n = () => performance.now()) {
+  const o = [], r = [], a = (v, R, P, W = "exact") => {
+    const K = String(R), ee = String(P), te = W === "info" ? !0 : W === "20%" ? Math.abs(Number(R) - Number(P)) <= 0.2 * Math.abs(Number(P)) : K === ee;
+    o.push({ label: v, got: K, want: ee, mode: W, ok: te });
+  };
+  e.hs_new_game(1932, 1932, 40, 32);
+  const s = Nt(e, 1932), i = Tn(e), d = At(e), p = {
+    lang: "en-GB",
+    me: d,
+    place: (v) => Bn(e, s, i, v),
+    building: (v) => jt(e, v),
+    person: (v) => me(e, v),
+    gang: (v) => `The ${Yt[e.hs_get(Y.gang, v, D.surname)]} Gang`,
+    crew: (v) => De({ nameFirst: e.hs_get(J.crews, v, Z.nameFirst) }),
+    type: (v) => ie[v] ?? "?"
+  }, f = (v) => bo(e, v), m = Re(e, d)[0].slot, u = e.hs_get(Y.gang, d, D.office);
+  a("lieutenant", me(e, Re(e, d)[0].lieutenant), "Luigi Romano"), a("office (1.2.91 number 4576)", u, f(4576));
+  const c = (v, R, P, W) => {
+    const K = { ...Dt(m, R.kind), ...R }, ee = Fn(e, K);
+    P !== null && a(`${v}: estimate (minutes)`, ee ? ee.order.estimate : -1, P);
+    const te = An(e, K);
+    return a(`${v}: reply`, Ne(p, te), W), { preview: ee, reply: te };
+  }, _ = (v) => {
+    let R = null;
+    for (let P = 0; P < 512; P++) {
+      if (e.hs_get(J.order, P, T.gang) !== d || pe[e.hs_get(J.order, P, T.kind)] !== v) continue;
+      const W = Nn(e, P);
+      (!R || W.id > R.id) && (R = W);
+    }
+    return R;
+  }, h = (v) => Ln(e, d).find((R) => R.kind === v), y = (v) => v ? v.results.map((R) => de(p, R)) : [], k = (v) => {
+    const R = n();
+    e.hs_finish_week(), r.push(Math.round(n() - R));
+    const P = ko[v - 1];
+    a(`week ${v}: cash (1.2.91 less business income, item 8)`, e.hs_get(Y.gang, d, D.cash), P.cash), a(`week ${v}: wages`, e.hs_get(Y.gang, d, D.wages), P.wages), a(`week ${v}: random draws`, e.hs_count(M.drawsWeek), P.draws, "20%");
+  }, F = (v, R, P) => {
+    const W = h(v);
+    a(`${R}: state`, W?.state ?? "missing", "done"), a(`${R}: done at minute (1.2.91 with cars)`, W?.finished ?? -1, P, "info");
+  }, N = (v, R, P) => {
+    const W = y(h(v));
+    P.forEach((K, ee) => a(`${R}: result ${ee + 1}`, W[ee] ?? "(none)", K)), W.length !== P.length && a(`${R}: results`, W.length, P.length);
+  };
+  c("collect 1407, 1578", { kind: "collect", buildings: [f(1407), f(1578)] }, 312, "Luigi Romano accepted the order.");
+  const b = _("collect");
+  a("collect: route", b ? b.targets.map((v) => v === f(1578) ? 1578 : v === f(1407) ? 1407 : v).join(" then ") : "", "1578 then 1407");
+  const I = c("buy 1411", { kind: "buy", buildings: [f(1411)] }, 359, "Luigi Romano accepted the order.");
+  a("buy 1411: price", I.preview?.order.cost ?? -1, 160), c("explore block 413", { kind: "explore", blocks: [413] }, 340, "Luigi Romano accepted the order."), a("explore: sites", _("explore")?.targets.length ?? 0, 5), c("recruit block 413", { kind: "recruit", blocks: [413] }, null, "Nothing there for that order."), c(
+    "clear streets block 413",
+    { kind: "clearStreets", blocks: [413] },
+    null,
+    "Clearing the streets needs the mayor or the police chief on your side (bribed)."
+  ), c("explore with 3 men", { kind: "explore", blocks: [413], manpower: 3 }, null, "Luigi Romano has only 2 people."), e.hs_launch_week();
+  const E = (v) => {
+    const R = _(v);
+    return R && R.assigned.length ? me(e, R.assigned[0]) : R?.state ?? "";
+  };
+  a("week 1 hand-out: collect", E("collect"), "Sal Rinaldi"), a("week 1 hand-out: buy", E("buy"), "Luigi Romano"), a("week 1 hand-out: explore", E("explore"), "queued"), k(1), F("buy", "buy", 498), F("collect", "collect", 552), F("explore", "explore", 1321), N("collect", "collect", [
+    "Collected $152 from Apartment Block on Cermak St at Wood Ave.",
+    "Collected $152 from Apartment Block on Maxwell St at Paulina Ave."
+  ]), N("buy", "buy", ["Bought Empty land on Maxwell St at Paulina Ave for $160."]), N("explore", "explore", [
+    "Looked over Perfume Store on Archer St at Paulina Ave: owned by you.",
+    "Looked over Residences on Cermak St at Paulina Ave: paying nobody.",
+    "Looked over Residences on Cermak St at Paulina Ave: paying nobody.",
+    "Looked over Residences on Cermak St at Hermitage Ave: paying nobody.",
+    "Looked over Office on Cermak St at Paulina Ave: owned by you."
+  ]), c("adjust 1407 to 150 %", { kind: "adjust", buildings: [f(1407)], level: 150 }, 142, "Luigi Romano accepted the order."), c(
+    "set up a clothing bank at 1583",
+    { kind: "setUp", buildings: [f(1583)], business: Ba.indexOf("clothingBank") },
+    538,
+    "Luigi Romano accepted the order."
+  );
+  const g = _("setUp");
+  a("cancel the set-up", g ? Ne(p, ze(e, X.cancel, g.slot)) : "", "Order cancelled."), c("clean up block 413", { kind: "cleanUp", blocks: [413] }, 338, "Luigi Romano accepted the order."), c("donate $200 to 1406", { kind: "donate", buildings: [f(1406)], amount: 200 }, 186, "Luigi Romano accepted the order."), e.hs_launch_week(), k(2), F("adjust", "adjust", 255), F("cleanUp", "clean up", 666), F("donate", "donate", 681), N("adjust", "adjust", ["Protection at Apartment Block on Maxwell St at Paulina Ave set to $228."]), N("cleanUp", "clean up", [
+    "Cleaned up round Perfume Store on Archer St at Paulina Ave.",
+    "Cleaned up round Residences on Cermak St at Paulina Ave.",
+    "Cleaned up round Residences on Cermak St at Paulina Ave.",
+    "Cleaned up round Residences on Cermak St at Hermitage Ave.",
+    "Cleaned up round Office on Cermak St at Paulina Ave."
+  ]), N("donate", "donate", ["Donated $200 to Church on Maxwell St at Laflin Ave."]), a("week 2: purchases", e.hs_get(Y.gang, d, wo), 450), c("run 1583", { kind: "run", buildings: [f(1583)] }, 176, "Luigi Romano accepted the order.");
+  const S = e.hs_get(Y.building, u, Me.lot), G = (v) => e.hs_get(Y.lot, S, v);
+  c(
+    "go to the office",
+    { kind: "goTo", point: { x: G(2) + Math.trunc(G(4) / 2), y: G(3) + Math.trunc(G(5) / 2) } },
+    1200,
+    "Luigi Romano accepted the order."
+  ), e.hs_launch_week(), k(3), F("run", "run", 176), N("run", "run", ["New management installed at Perfume Store on Archer St at Paulina Ave."]);
+  const U = h("goTo");
+  a("go to: held position (minutes)", U?.results[0]?.b ?? -1, 2376, "20%"), a("go to: line", y(U)[0] ?? "", "Held position for 39h 36m.", "info"), a("week 3: crew", Re(e, d)[0].members.map((v) => me(e, v)).join(", "), "Gino Costa");
+  const ue = [1, 2].map((v) => e.hs_get(Y.pool, d, v));
+  a("move the first of the pool to the crew", Ne(p, ze(e, X.moveToCrew, ue[0], m)), "Vito Ferrante joined Luigi's Crew."), a("move the second of the pool to the crew", Ne(p, ze(e, X.moveToCrew, ue[1], m)), "Carmela Romano joined Luigi's Crew."), c("patrol block 413", { kind: "patrol", blocks: [413] }, 600, "Luigi Romano accepted the order."), c("guard 1583", { kind: "guard", buildings: [f(1583)] }, 600, "Luigi Romano accepted the order."), c("recruit block 411", { kind: "recruit", blocks: [411] }, 213, "Luigi Romano accepted the order."), a("recruit: site (1.2.91 number 1570, the gym)", _("recruit")?.targets[0] ?? -1, f(1570)), e.hs_launch_week(), a("week 4 hand-out: patrol", E("patrol"), "Luigi Romano"), a("week 4 hand-out: guard", E("guard"), "Gino Costa"), a("week 4 hand-out: recruit", E("recruit"), "Vito Ferrante"), k(4), F("recruit", "recruit", 294), N("recruit", "recruit", ["1 hood signed on, waiting in the pool."]);
+  const ae = h("patrol"), ge = h("guard");
+  a("patrol: blocks", ae?.results[0]?.b ?? -1, 1), a("patrol: minutes", ae?.results[0]?.c ?? -1, 2344, "20%"), a("patrol: line", y(ae)[0] ?? "", "Patrolled 1 block for 39h 4m.", "info"), a("guard: minutes", ge?.results[0]?.b ?? -1, 2399, "20%"), a("guard: line", y(ge)[0] ?? "", "Stood guard at Perfume Store on Archer St at Paulina Ave for 39h 59m.", "info"), a("week 4: pool, crew", `${e.hs_get(Y.gang, d, D.poolCount)}, ${Re(e, d)[0].members.length}`, "2, 3");
+  const Ae = o.filter((v) => !v.ok).length;
+  return { rows: o, passed: o.length - Ae, failed: Ae, weekMs: r };
+}
+const vt = window.HS.stamp, nt = matchMedia("(prefers-reduced-motion: reduce)"), Eo = 10 / 3, vo = 12;
+function St(e) {
+  return Object.keys(he).find((n) => he[n][0] === e.w && he[n][1] === e.h) ?? "standard";
+}
+function So() {
+  const [e, n] = x(() => {
+    const l = ft("ahs.lang", "en-GB");
+    return Xt.includes(l) ? l : "en-GB";
+  }), [o, r] = x(() => ft("ahs.sound", "on") !== "off"), [a, s] = x(null), [i, d] = x(null), [p, f] = x(null), [m, u] = x(null), [c, _] = x(null), [h, y] = x(null), [k, F] = x(-1), [N, b] = x("street"), [I, E] = x(0), [g, S] = x(!1), [G, U] = x(!1), [ue, ae] = x(!1), [ge, Ae] = x(""), [v, R] = x(null), [P, W] = x([]), [K, ee] = x(null), [te, Ge] = x(-1), [He, dt] = x(!1), [fe, Rn] = x(() => {
+    const l = Number(ft("ahs.speed", "1"));
+    return [1, 2, 4, 8, 0].includes(l) ? l : 1;
+  }), [Te, ut] = x(!1), [Yn, Gt] = x(null), [On, zn] = x(0), Ie = Le(0), [We, _t] = x(!0), [Dn, jn] = x(!1), [$e, mt] = x(!1), [be, Gn] = x(null), [ne, we] = x(null), [qe, Ue] = x(""), [Hn, In] = x(null), Ve = Le(-1), L = ke((l, w) => Lt(e, l, w), [e]), _e = ke((l) => {
+    R(Za(l));
+    const w = kt(l);
+    Ja(l, l.hs_count(M.lots) * 2, w), W(w), ee(Qa(l));
+    const B = At(l);
+    Gn(B > 0 ? mo(l, B, w[B - 1]?.pool ?? [], ro(l)) : null);
+    const A = un(l);
+    A !== Ve.current && (Ve.current >= 0 && _((z) => z && Nt(l, z.seed)), Ve.current = A), zn((z) => z + 1);
+  }, []), Ke = ke((l, w, B) => {
+    const [A, z] = he[B], Q = performance.now();
+    l.hs_new_game(w, w, A, z);
+    const oe = Nt(l, w);
+    _(oe), F(-1), Ge(-1), y(l.hs_state_hash()), Ve.current = un(l), we(null), Ue(""), jn(!0), _e(l), Ee("new_game", {
+      seed: w,
+      size: B,
+      ms: Math.round(performance.now() - Q),
+      city_hash: oe.cityHash,
+      structure_hash: oe.structureHash,
+      lots: oe.counts.lots,
+      status: oe.status
+    });
+  }, [_e]);
+  V(() => {
+    if (!a || !K?.running || Te || We) return;
+    let l = 0, w = performance.now();
+    const B = (A) => {
+      let z = 0;
+      if (fe === 0) {
+        const Q = A + vo;
+        for (; performance.now() < Q; ) {
+          const oe = a.hs_tick(4);
+          if (z += oe, oe < 4) break;
         }
       } else {
-        he.current += (H - v) / 1e3 * Wn * J;
-        const O = Math.floor(he.current);
-        he.current -= O, O > 0 && (K = n.hs_tick(Math.min(O, 60)));
+        Ie.current += (A - w) / 1e3 * Eo * fe;
+        const Q = Math.floor(Ie.current);
+        Ie.current -= Q, Q > 0 && (z = a.hs_tick(Math.min(Q, 60)));
       }
-      if (v = H, K > 0 && (Z(n), n.hs_count(E.phase) === 0)) {
-        C(n.hs_state_hash()), re("week_settled", {
-          week: n.hs_count(E.week) - 1,
-          draws: n.hs_count(E.drawsWeek),
-          wages: Re(n).map((O) => O.wages),
-          state_hash: n.hs_state_hash() >>> 0
-        }), $(s, 523.25);
+      if (w = A, z > 0 && (_e(a), a.hs_count(M.phase) === 0)) {
+        y(a.hs_state_hash()), Ee("week_settled", {
+          week: a.hs_count(M.week) - 1,
+          draws: a.hs_count(M.drawsWeek),
+          wages: kt(a).map((Q) => Q.wages),
+          state_hash: a.hs_state_hash() >>> 0
+        }), re(o, 523.25);
         return;
       }
-      i = requestAnimationFrame(N);
+      l = requestAnimationFrame(B);
     };
-    return i = requestAnimationFrame(N), () => cancelAnimationFrame(i);
-  }, [n, ne?.running, ae, J, Z, s]);
-  const Rt = () => {
-    n && (n.hs_launch_week(), he.current = 0, Ue(!1), B("launch_week", n.hs_count(E.week)), Z(n));
-  }, Nt = () => {
-    if (!n) return;
-    const i = performance.now(), v = n.hs_count(E.week);
-    n.hs_finish_week();
-    const N = Math.round(performance.now() - i);
-    Z(n), C(n.hs_state_hash()), B("finish_week", v), re("week_settled", {
-      week: v,
-      ms: N,
-      draws: n.hs_count(E.drawsWeek),
-      wages: Re(n).map((H) => H.wages),
-      state_hash: n.hs_state_hash() >>> 0
-    }), $(s, 523.25);
-  }, je = se((i) => {
-    ue(i), S(-1), i >= 0 && (B("select_person", i), $(s, 587.33));
-  }, [s]), Tt = (i) => {
-    if (!n) return;
-    je(i);
-    const v = ct(n, i);
-    v && (k("street"), At({ x: v.x, y: v.y, n: Date.now() }));
-  }, zt = Le(() => [0, ...V.map((i) => i.colour)], [V]), Me = Le(
-    () => n && Y >= 0 ? ct(n, Y) : null,
+    return l = requestAnimationFrame(B), () => cancelAnimationFrame(l);
+  }, [a, K?.running, Te, We, fe, _e, o]);
+  const Wn = () => {
+    a && (a.hs_launch_week(), Ie.current = 0, ut(!1), O("launch_week", a.hs_count(M.week)), _e(a));
+  }, $n = () => {
+    if (!a) return;
+    const l = performance.now(), w = a.hs_count(M.week);
+    a.hs_finish_week();
+    const B = Math.round(performance.now() - l);
+    _e(a), y(a.hs_state_hash()), O("finish_week", w), Ee("week_settled", {
+      week: w,
+      ms: B,
+      draws: a.hs_count(M.drawsWeek),
+      wages: kt(a).map((A) => A.wages),
+      state_hash: a.hs_state_hash() >>> 0
+    }), re(o, 523.25);
+  }, Ht = ke((l) => {
+    Ge(l), F(-1), l >= 0 && (O("select_person", l), re(o, 587.33));
+  }, [o]), It = (l) => {
+    if (!a) return;
+    Ht(l);
+    const w = ln(a, l);
+    w && (b("street"), Gt({ x: w.x, y: w.y, n: Date.now() }));
+  }, qn = ye(() => [0, ...P.map((l) => l.colour)], [P]), ht = ye(
+    () => a && te >= 0 ? ln(a, te) : null,
     // tickNo: the card follows him as he walks.
-    [n, Y, Bt]
+    [a, te, On]
   );
-  I(() => {
-    Ot(window.HS.wasm, (i) => {
-      ie("last_chance", Ge("en-GB", `err${i.code}`), { ...i }), w(i);
-    }).then((i) => {
-      i.hs_new_game(ee.seed, ee.auto, ee.w, ee.h);
-      const v = {
-        streams: [1, 2, 3].map((N) => Array.from({ length: 20 }, (H, K) => i.hs_rng_value(N, K + 1) >>> 0)),
-        checks: Array.from({ length: 9 }, (N, H) => i.hs_check_value(H + 1)),
-        gw: i.hs_grid_w(),
-        gh: i.hs_grid_h(),
-        pattern: Array.from({ length: 225 }, (N, H) => i.hs_cell_kind(H % 15, Math.floor(H / 15))),
-        worldHash: i.hs_state_hash()
+  V(() => {
+    ta(window.HS.wasm, (l) => {
+      Ye("last_chance", Lt("en-GB", `err${l.code}`), { ...l }), f(l);
+    }).then((l) => {
+      l.hs_new_game(Ce.seed, Ce.auto, Ce.w, Ce.h);
+      const w = {
+        streams: [1, 2, 3].map((B) => Array.from({ length: 20 }, (A, z) => l.hs_rng_value(B, z + 1) >>> 0)),
+        checks: Array.from({ length: 9 }, (B, A) => l.hs_check_value(A + 1)),
+        gw: l.hs_grid_w(),
+        gh: l.hs_grid_h(),
+        pattern: Array.from({ length: 225 }, (B, A) => l.hs_cell_kind(A % 15, Math.floor(A / 15))),
+        worldHash: l.hs_state_hash()
       };
-      m(v), re("core_loaded", { build_id: i.hs_build_id(), ...De(v) }), l(i), Ce(i, 1932, "standard");
-    }).catch((i) => {
-      i instanceof Fe || (d(String(i)), ie("wasm_load", String(i)));
+      u(w), Ee("core_loaded", { build_id: l.hs_build_id(), ...Pt(w) }), s(l);
+    }).catch((l) => {
+      l instanceof Ct || (d(String(l)), Ye("wasm_load", String(l)));
     });
-  }, [Ce]), I(() => {
-    document.documentElement.lang = t, document.title = y("title");
-  }, [t, y]), I(() => {
-    const i = (N) => {
-      N.key === "F9" ? (N.preventDefault(), B("report_opened", "f9"), te(!0)) : N.key === "Escape" && (te(!1), j(!1));
+  }, [Ke]), V(() => {
+    document.documentElement.lang = e, document.title = L("title");
+  }, [e, L]), V(() => {
+    const l = (B) => {
+      B.key === "F9" ? (B.preventDefault(), O("report_opened", "f9"), ae(!0)) : B.key === "Escape" && (ae(!1), U(!1));
     };
-    window.addEventListener("keydown", i);
-    const v = () => re("reduced_motion", fe.matches);
-    return fe.addEventListener?.("change", v), () => {
-      window.removeEventListener("keydown", i), fe.removeEventListener?.("change", v);
+    window.addEventListener("keydown", l);
+    const w = () => Ee("reduced_motion", nt.matches);
+    return nt.addEventListener?.("change", w), () => {
+      window.removeEventListener("keydown", l), nt.removeEventListener?.("change", w);
     };
   }, []);
-  const Ye = se((i) => {
-    S(i), ue(-1), i >= 0 && (B("select_lot", i), $(s, 659.25));
-  }, [s]), Je = Le(() => ({
-    stamp: Ne,
-    lang: t,
-    sound: s,
-    reducedMotion: fe.matches,
+  const Wt = ke((l) => {
+    F(l), Ge(-1), l >= 0 && (O("select_lot", l), re(o, 659.25)), l >= 0 && a && c && we((w) => {
+      if (!w) return w;
+      const B = c.lots[l];
+      if (!B) return w;
+      if (w.kind === "goTo") return { ...w, point: { x: Math.round((B.x + B.w / 2) * 256), y: Math.round((B.y + B.h / 2) * 256) } };
+      const A = dn(a, c, l);
+      return A < 0 ? w : ["buy", "setUp", "run", "donate", "guard"].includes(w.kind) ? { ...w, buildings: [A] } : w.buildings.includes(A) ? { ...w, buildings: w.buildings.filter((z) => z !== A) } : { ...w, buildings: [...w.buildings, A] };
+    });
+  }, [o, a, c]), $t = ye(() => a && c ? Tn(a) : { cols: [], rows: [] }, [a, c]), pt = ye(() => ({
+    lang: e,
+    me: a ? At(a) : 0,
+    place: (l) => a && c ? Bn(a, c, $t, l) : String(l),
+    building: (l) => a ? jt(a, l) : String(l),
+    person: (l) => a && l >= 0 ? me(a, l) : "—",
+    gang: (l) => L("g_name", { name: P[l - 1]?.name ?? String(l) }),
+    crew: (l) => a ? De({ nameFirst: a.hs_get(J.crews, l, Z.nameFirst) }) : String(l),
+    type: (l) => ie[l] ?? "?"
+  }), [e, a, c, $t, P, L]), Ze = ke((l) => {
+    if (!a || !c) return null;
+    const w = c.lots[a.hs_get(3, l, 0)];
+    return w ? { x: w.x + w.w / 2, y: w.y + w.h / 2 } : null;
+  }, [a, c]), qt = ye(() => {
+    const l = [];
+    if (!c) return l;
+    const w = P.find((A) => A.player), B = w ? Fe[w.colour % 4] : "#f1d58f";
+    for (const A of be?.orders ?? [])
+      if (!["done", "failed", "cancelled"].includes(A.state)) {
+        for (const z of A.targets) {
+          const Q = Ze(z);
+          Q && l.push({ ...Q, colour: B });
+        }
+        A.point && l.push({ x: A.point.x / 256, y: A.point.y / 256, colour: B });
+      }
+    if (ne) {
+      for (const A of ne.buildings) {
+        const z = Ze(A);
+        z && l.push({ ...z, colour: "#f1d58f" });
+      }
+      for (const A of ne.blocks)
+        for (const z of c.lots) z.block === A && l.push({ x: z.x + z.w / 2, y: z.y + z.h / 2, colour: "#f1d58f" });
+      ne.point && l.push({ x: ne.point.x / 256, y: ne.point.y / 256, colour: "#f1d58f" });
+    }
+    return l;
+  }, [c, P, be, ne, Ze]), Un = (l) => {
+    const w = l.targets.length ? Ze(l.targets[0]) : l.point ? { x: l.point.x / 256, y: l.point.y / 256 } : null;
+    w && (b("street"), Gt({ ...w, n: Date.now() }));
+  }, Ut = (l) => {
+    const w = Ne(pt, l);
+    Ue(w), O("command", { reply: l.kind, a: l.a, b: l.b }), a && _e(a);
+  }, Vn = () => {
+    if (!a || !c) return;
+    const l = c.seed, w = St(c);
+    O("order_check");
+    const B = yo(a);
+    In(B), Ee("order_check", { passed: B.passed, failed: B.failed, week_ms: B.weekMs }), Ke(a, l, w);
+  }, Kn = () => {
+    _t(!0), O("menu");
+  };
+  V(() => {
+    if (!qe) return;
+    const l = setTimeout(() => Ue(""), 6e3);
+    return () => clearTimeout(l);
+  }, [qe]);
+  const Vt = ye(() => ({
+    stamp: vt,
+    lang: e,
+    sound: o,
+    reducedMotion: nt.matches,
     seeds: c ? { city: c.seed, auto: c.seed } : null,
-    stateHash: g === null ? null : "0x" + (g >>> 0).toString(16).padStart(8, "0"),
+    stateHash: h === null ? null : "0x" + (h >>> 0).toString(16).padStart(8, "0"),
     custom: {
-      build_id: n?.hs_build_id() ?? null,
-      core_load_error: u,
+      build_id: a?.hs_build_id() ?? null,
+      core_load_error: i,
       city: c ? {
         w: c.w,
         h: c.h,
@@ -1705,127 +3150,186 @@ function Vn() {
         structure_hash: c.structureHash,
         rng_after_city: c.rngAfter,
         counts: c.counts,
-        matches_reference: bt(c) !== null
+        matches_reference: En(c) !== null
       } : null,
-      selected_lot: P,
-      selected_person: Y,
-      view: R,
-      step2: o ? De(o) : null,
-      week: ne,
-      speed: J,
-      gangs: V.map((i) => ({ id: i.id, name: i.name, cash: i.cash, wages: i.wages, crew: i.crew.length, pool: i.pool.length })),
-      people: n ? {
-        count: n.hs_count(E.people),
-        hashes: [1, 2, 3, 4].map((i) => n.hs_population_hash(i) >>> 0),
-        rng_after_setup: (n.hs_count(E.setupLow) | n.hs_count(E.setupHigh) << 16) >>> 0,
-        rng_after_minute_1: (n.hs_count(E.m1Low) | n.hs_count(E.m1High) << 16) >>> 0
+      selected_lot: k,
+      selected_person: te,
+      view: N,
+      step2: m ? Pt(m) : null,
+      week: K,
+      speed: fe,
+      gangs: P.map((l) => ({ id: l.id, name: l.name, cash: l.cash, wages: l.wages, crew: l.crew.length, pool: l.pool.length })),
+      people: a ? {
+        count: a.hs_count(M.people),
+        hashes: [1, 2, 3, 4].map((l) => a.hs_population_hash(l) >>> 0),
+        rng_after_setup: (a.hs_count(M.setupLow) | a.hs_count(M.setupHigh) << 16) >>> 0,
+        rng_after_minute_1: (a.hs_count(M.m1Low) | a.hs_count(M.m1High) << 16) >>> 0
       } : null
     }
-  }), [t, s, c, g, n, u, P, Y, R, o, ne, J, V]), Ft = () => {
-    B("crash_test");
+  }), [e, o, c, h, a, i, k, te, N, m, K, fe, P]), Zn = () => {
+    O("crash_test");
     try {
-      n?.hs_crash_test(4);
-    } catch (i) {
-      i instanceof Fe || ie("wasm", String(i));
+      a?.hs_crash_test(4);
+    } catch (l) {
+      l instanceof Ct || Ye("wasm", String(l));
     }
-  }, Gt = c ? y(dt(c)) : "";
-  return /* @__PURE__ */ e.createElement("div", { className: "game-shell" }, c && /* @__PURE__ */ e.createElement(
-    Dn,
+  }, Jn = c ? L(St(c)) : "";
+  return /* @__PURE__ */ t.createElement("div", { className: "game-shell" }, c && /* @__PURE__ */ t.createElement(
+    Xa,
     {
       city: c,
-      selected: P,
-      onSelect: Ye,
-      turnSignal: f,
-      visible: R === "street",
-      label: y("street"),
-      people: vt,
-      gangColours: zt,
-      person: Y,
-      onPerson: je,
-      focus: Pt
+      selected: k,
+      onSelect: Wt,
+      turnSignal: I,
+      visible: N === "street",
+      label: L("street"),
+      people: v,
+      gangColours: qn,
+      person: te,
+      onPerson: Ht,
+      focus: Yn,
+      markers: qt
     }
-  ), c && R === "plan" && /* @__PURE__ */ e.createElement(fn, { city: c, selected: P, onSelect: Ye, label: y("plan") }), /* @__PURE__ */ e.createElement("header", { className: "map-buttons" }, /* @__PURE__ */ e.createElement("div", { className: "title" }, /* @__PURE__ */ e.createElement("strong", null, y("title")), /* @__PURE__ */ e.createElement("span", null, y("subtitle"))), /* @__PURE__ */ e.createElement("div", { className: "buttons" }, /* @__PURE__ */ e.createElement("button", { className: "hud-btn", "aria-pressed": R === "plan", onClick: () => {
-    const i = R === "plan" ? "street" : "plan";
-    k(i), B("view", i);
-  } }, y(R === "plan" ? "street" : "plan")), /* @__PURE__ */ e.createElement("button", { className: "hud-btn", disabled: R !== "street", onClick: () => {
-    p((i) => i + 1), B("turn_view");
-  } }, y("turn_view")), /* @__PURE__ */ e.createElement("button", { className: "hud-btn", disabled: !n, onClick: () => {
-    F(!0), B("new_game_opened");
-  } }, y("new_game")), /* @__PURE__ */ e.createElement("button", { className: "hud-btn", onClick: () => {
-    const i = !s;
-    r(i), Be("ahs.sound", i ? "on" : "off"), B("sound", i ? "on" : "off"), $(i);
-  } }, y(s ? "sound_on" : "sound_off")), /* @__PURE__ */ e.createElement("button", { className: "hud-btn", "aria-pressed": G, onClick: () => {
-    j(!G), B("debug", !G);
-  } }, y("debug")), /* @__PURE__ */ e.createElement("button", { className: "hud-btn", onClick: () => {
-    te(!0), B("report_opened", "button");
-  } }, y("feedback")), /* @__PURE__ */ e.createElement("span", { className: "flags", "aria-label": "Language" }, tt.map((i) => /* @__PURE__ */ e.createElement("button", { key: i, "aria-pressed": i === t, title: i, onClick: () => {
-    a(i), Be("ahs.lang", i), B("language", i);
-  } }, /* @__PURE__ */ e.createElement(On, { lang: i }))))), c && /* @__PURE__ */ e.createElement("div", { className: "city-line" }, y("city_line", { seed: c.seed, size: Gt, w: c.w, h: c.h, lots: c.counts.lots.toLocaleString(t) }))), /* @__PURE__ */ e.createElement(Ln, { t: y, gangsOpen: me, onGangs: () => {
-    $e(!me), B("gangs", !me);
-  } }), c && !Me && /* @__PURE__ */ e.createElement(Cn, { city: c, lot: P, t: y, gangs: V, onClose: () => S(-1) }), Me && /* @__PURE__ */ e.createElement(Rn, { person: Me, gangs: V, t: y, onClose: () => ue(-1) }), /* @__PURE__ */ e.createElement(
-    Bn,
+  ), c && N === "plan" && /* @__PURE__ */ t.createElement(Fa, { city: c, selected: k, onSelect: Wt, label: L("plan"), markers: qt }), /* @__PURE__ */ t.createElement("header", { className: "map-buttons" }, /* @__PURE__ */ t.createElement("div", { className: "title" }, /* @__PURE__ */ t.createElement("strong", null, L("title")), /* @__PURE__ */ t.createElement("span", null, L("subtitle"))), /* @__PURE__ */ t.createElement("div", { className: "buttons" }, /* @__PURE__ */ t.createElement("button", { className: "hud-btn", "aria-pressed": N === "plan", onClick: () => {
+    const l = N === "plan" ? "street" : "plan";
+    b(l), O("view", l);
+  } }, L(N === "plan" ? "street" : "plan")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", disabled: N !== "street", onClick: () => {
+    E((l) => l + 1), O("turn_view");
+  } }, L("turn_view")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", onClick: Kn }, L("m_menu")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", disabled: !a || !c, onClick: () => {
+    S(!0), O("new_game_opened");
+  } }, L("new_game")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", onClick: () => {
+    const l = !o;
+    r(l), bt("ahs.sound", l ? "on" : "off"), O("sound", l ? "on" : "off"), re(l);
+  } }, L(o ? "sound_on" : "sound_off")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", "aria-pressed": G, onClick: () => {
+    U(!G), O("debug", !G);
+  } }, L("debug")), /* @__PURE__ */ t.createElement("button", { className: "hud-btn", onClick: () => {
+    ae(!0), O("report_opened", "button");
+  } }, L("feedback")), /* @__PURE__ */ t.createElement("span", { className: "flags", "aria-label": "Language" }, Xt.map((l) => /* @__PURE__ */ t.createElement("button", { key: l, "aria-pressed": l === e, title: l, onClick: () => {
+    n(l), bt("ahs.lang", l), O("language", l);
+  } }, /* @__PURE__ */ t.createElement(eo, { lang: l }))))), c && /* @__PURE__ */ t.createElement("div", { className: "city-line" }, L("city_line", { seed: c.seed, size: Jn, w: c.w, h: c.h, lots: c.counts.lots.toLocaleString(e) }))), /* @__PURE__ */ t.createElement(
+    Ga,
     {
-      t: y,
-      clock: ne,
-      speed: J,
-      paused: ae,
-      onSpeed: (i) => {
-        Lt(i), Be("ahs.speed", String(i)), B("speed", i);
+      t: L,
+      gangsOpen: He,
+      onGangs: () => {
+        dt(!He), mt(!1), O("gangs", !He);
       },
-      onPause: () => {
-        Ue(!ae), B("pause", !ae);
-      },
-      onLaunch: Rt,
-      onFinish: Nt
-    }
-  ), me && n && /* @__PURE__ */ e.createElement(
-    Nn,
-    {
-      gangs: V,
-      t: y,
-      names: (i) => Et(n, i),
-      onPerson: Tt,
-      onClose: () => $e(!1)
-    }
-  ), /* @__PURE__ */ e.createElement("p", { className: "view-help" }, y(R === "plan" ? "plan_key" : "view_help")), !c && /* @__PURE__ */ e.createElement("div", { className: "loading" }, u ? y("core_missing", { error: u }) : y("loading")), G && /* @__PURE__ */ e.createElement(
-    kn,
-    {
-      t: y,
-      stamp: Ne,
-      buildId: n?.hs_build_id() ?? null,
-      stateHash: g,
-      step2: o,
-      city: c,
-      core: n,
-      onClose: () => j(!1),
-      onSound: () => {
-        B("test_sound"), $(s);
-      },
-      onCrash: Ft
-    }
-  ), M && n && c && /* @__PURE__ */ e.createElement(
-    Tn,
-    {
-      lang: t,
-      seed: c.seed,
-      size: dt(c),
-      onCancel: () => F(!1),
-      onStart: (i, v) => {
-        F(!1), B("new_game", { seed: i, size: v }), Ce(n, i, v), $(s, 392);
+      ordersOpen: $e,
+      onOrders: () => {
+        mt(!$e), dt(!1), O("orders", !$e);
       }
     }
-  ), yt && /* @__PURE__ */ e.createElement("div", { className: "overlay open", role: "dialog", "aria-modal": "true", "aria-labelledby": "fb-title" }, /* @__PURE__ */ e.createElement("div", { className: "box" }, /* @__PURE__ */ e.createElement("h2", { id: "fb-title" }, y("report_title")), /* @__PURE__ */ e.createElement("label", null, y("expected"), /* @__PURE__ */ e.createElement("textarea", { autoFocus: !0, value: Se, onChange: (i) => Ke(i.target.value) })), /* @__PURE__ */ e.createElement("div", { className: "row" }, /* @__PURE__ */ e.createElement("button", { className: "main", onClick: () => {
-    B("report_cancelled"), te(!1);
-  } }, y("cancel")), /* @__PURE__ */ e.createElement(
+  ), c && !ht && !ne && /* @__PURE__ */ t.createElement(Da, { city: c, lot: k, t: L, gangs: P, onClose: () => F(-1) }), ne && a && c && be && /* @__PURE__ */ t.createElement(
+    go,
+    {
+      t: L,
+      x: pt,
+      core: a,
+      crews: be.crews,
+      draft: ne,
+      setDraft: we,
+      selectedBuilding: k >= 0 ? dn(a, c, k) : -1,
+      selectedBlock: c.lots[k]?.block ?? -1,
+      onIssued: (l) => {
+        Ut(l), we(null);
+      },
+      onClose: () => we(null)
+    }
+  ), qe && /* @__PURE__ */ t.createElement("p", { className: "toast", role: "status", onClick: () => Ue("") }, qe), ht && /* @__PURE__ */ t.createElement($a, { person: ht, gangs: P, t: L, onClose: () => Ge(-1) }), /* @__PURE__ */ t.createElement(
+    Ia,
+    {
+      t: L,
+      clock: K,
+      speed: fe,
+      paused: Te,
+      onSpeed: (l) => {
+        Rn(l), bt("ahs.speed", String(l)), O("speed", l);
+      },
+      onPause: () => {
+        ut(!Te), O("pause", !Te);
+      },
+      onLaunch: Wn,
+      onFinish: $n
+    }
+  ), $e && a && be && /* @__PURE__ */ t.createElement(
+    ho,
+    {
+      t: L,
+      x: pt,
+      core: a,
+      view: be,
+      running: !!K?.running,
+      onPerson: It,
+      onNewOrder: (l) => {
+        we(Dt(l, "collect")), O("job_card", l);
+      },
+      onChanged: Ut,
+      onClose: () => mt(!1),
+      onShow: Un
+    }
+  ), He && a && /* @__PURE__ */ t.createElement(
+    qa,
+    {
+      gangs: P,
+      t: L,
+      names: (l) => me(a, l),
+      onPerson: It,
+      onClose: () => dt(!1)
+    }
+  ), /* @__PURE__ */ t.createElement("p", { className: "view-help" }, L(N === "plan" ? "plan_key" : "view_help")), !c && !We && /* @__PURE__ */ t.createElement("div", { className: "loading" }, i ? L("core_missing", { error: i }) : L("loading")), G && /* @__PURE__ */ t.createElement(
+    Ta,
+    {
+      t: L,
+      stamp: vt,
+      buildId: a?.hs_build_id() ?? null,
+      stateHash: h,
+      step2: m,
+      city: c,
+      core: a,
+      onClose: () => U(!1),
+      onSound: () => {
+        O("test_sound"), re(o);
+      },
+      onCrash: Zn,
+      orderCheck: Hn,
+      onOrderCheck: Vn
+    }
+  ), We && /* @__PURE__ */ t.createElement(
+    fo,
+    {
+      t: L,
+      canContinue: Dn && !!c,
+      ready: !!a,
+      onContinue: () => {
+        _t(!1), O("continue");
+      },
+      onNew: () => {
+        a && (_t(!1), ut(!1), O("new_game", { seed: 1932, size: "standard", from: "menu" }), Ke(a, 1932, "standard"), re(o, 392));
+      }
+    }
+  ), g && a && c && /* @__PURE__ */ t.createElement(
+    Ua,
+    {
+      lang: e,
+      seed: c.seed,
+      size: St(c),
+      onCancel: () => S(!1),
+      onStart: (l, w) => {
+        S(!1), O("new_game", { seed: l, size: w }), Ke(a, l, w), re(o, 392);
+      }
+    }
+  ), ue && /* @__PURE__ */ t.createElement("div", { className: "overlay open", role: "dialog", "aria-modal": "true", "aria-labelledby": "fb-title" }, /* @__PURE__ */ t.createElement("div", { className: "box" }, /* @__PURE__ */ t.createElement("h2", { id: "fb-title" }, L("report_title")), /* @__PURE__ */ t.createElement("label", null, L("expected"), /* @__PURE__ */ t.createElement("textarea", { autoFocus: !0, value: ge, onChange: (l) => Ae(l.target.value) })), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: () => {
+    O("report_cancelled"), ae(!1);
+  } }, L("cancel")), /* @__PURE__ */ t.createElement(
     "button",
     {
       className: "main",
-      disabled: Se.trim() === "",
+      disabled: ge.trim() === "",
       onClick: () => {
-        nt("manual", Se.trim(), Je), Ke(""), te(!1);
+        en("manual", ge.trim(), Vt), Ae(""), ae(!1);
       }
     },
-    y("download")
-  )))), h && /* @__PURE__ */ e.createElement("div", { className: "overlay open", role: "alertdialog", "aria-modal": "true", "aria-labelledby": "crash-title" }, /* @__PURE__ */ e.createElement("div", { className: "box" }, /* @__PURE__ */ e.createElement("h2", { id: "crash-title" }, y("crash_title")), /* @__PURE__ */ e.createElement("p", null, y("crash_text", { code: h.code, name: y(`err${h.code}`) })), /* @__PURE__ */ e.createElement("p", { className: "where" }, h.file, ":", h.line), /* @__PURE__ */ e.createElement("div", { className: "row" }, /* @__PURE__ */ e.createElement("button", { className: "main", onClick: () => nt("crash", null, Je) }, y("download")), /* @__PURE__ */ e.createElement("button", { className: "main", onClick: () => location.reload() }, y("reload"))))), /* @__PURE__ */ e.createElement("div", { className: "stamp" }, Ne));
+    L("download")
+  )))), p && /* @__PURE__ */ t.createElement("div", { className: "overlay open", role: "alertdialog", "aria-modal": "true", "aria-labelledby": "crash-title" }, /* @__PURE__ */ t.createElement("div", { className: "box" }, /* @__PURE__ */ t.createElement("h2", { id: "crash-title" }, L("crash_title")), /* @__PURE__ */ t.createElement("p", null, L("crash_text", { code: p.code, name: L(`err${p.code}`) })), /* @__PURE__ */ t.createElement("p", { className: "where" }, p.file, ":", p.line), /* @__PURE__ */ t.createElement("div", { className: "row" }, /* @__PURE__ */ t.createElement("button", { className: "main", onClick: () => en("crash", null, Vt) }, L("download")), /* @__PURE__ */ t.createElement("button", { className: "main", onClick: () => location.reload() }, L("reload"))))), /* @__PURE__ */ t.createElement("div", { className: "stamp" }, vt));
 }
-Ht(document.getElementById("root")).render(/* @__PURE__ */ e.createElement(Vn, null));
+Xn(document.getElementById("root")).render(/* @__PURE__ */ t.createElement(So, null));
