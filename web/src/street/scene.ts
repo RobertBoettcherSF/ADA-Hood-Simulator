@@ -18,6 +18,12 @@ const SLAB = 0.3;          // pavement slab height
 const MARGIN = 0.8;        // gap between neighbouring buildings
 const FINE = CELL / 5;     // the headquarters' fine cells
 const FIGURE_H = 1.8, FIGURE_W = 0.9;   // a walker, metres (proposed)
+// Item 6: vehicle boxes, metres (proposed): length, width, height.
+const CAR_SIZE = [4.4, 1.9, 1.5], TRUCK_SIZE = [6.5, 2.3, 2.6], TRAM_SIZE = [11, 2.4, 3.2];
+const FLEET_SIZE = [[4.0, 1.8, 1.3], [4.4, 1.9, 1.5], [6.5, 2.3, 2.6]];   // speedster, coupe, truck
+/** City car paint (the traffic's colour numbers) and the tram's livery. */
+export const CAR_COLOURS = ['#2b2b2b', '#5a2a27', '#2f3e57', '#44513a', '#6b6155', '#8a7f6a', '#3d3d45', '#7a6040'];
+const TRUCK_COLOUR = '#5b4a35', TRAM_COLOUR = '#9b5143';
 /** Walker colours by role (ROLES order); gang members take their gang's colour. */
 export const ROLE_COLOURS = ['#f1d58f', '#f1d58f', '#f1d58f', '#d8d0b8', '#d8d0b8', '#b9ab8f', '#8c6a46', '#1f3f8f',
   '#c0392b', '#14286a', '#111111', '#111111', '#6b3f8f', '#6b3f8f', '#6b3f8f', '#e5c84a', '#f4f0e6', '#6f8f6a'];
@@ -32,6 +38,9 @@ export class StreetScene {
   private lotOfInstance: number[] = [];
   private outline: THREE.LineSegments;
   private walkers: THREE.InstancedMesh | null = null;
+  private cars: THREE.InstancedMesh | null = null;
+  private fleet: THREE.InstancedMesh | null = null;
+  private trams: THREE.InstancedMesh | null = null;
   private personOfInstance: number[] = [];
   private gangColour: number[] = [0, 0, 1, 2, 3];
   private ring: THREE.Mesh;
@@ -114,6 +123,7 @@ export class StreetScene {
       this.group.add(flag);
     }
     this.walkers = null;
+    this.cars = this.fleet = this.trams = null;
     this.ring.visible = false;
     this.outline.visible = false;
     if (!same) this.view = { x: width / 2, z: depth / 2, zoom: ZOOM_START, turned: false };
@@ -155,7 +165,7 @@ export class StreetScene {
     this.personOfInstance.length = 0;
     for (let i = 0; i < count; i++) {
       const o = i * 5;
-      if (layer[o + 4] === 1) continue;
+      if (layer[o + 4] !== 0) continue;   // indoors (1) or in a car (2)
       m.makeTranslation(layer[o] / 256, 0, layer[o + 1] / 256);
       this.walkers.setMatrixAt(n, m);
       const gang = layer[o + 3];
@@ -163,13 +173,68 @@ export class StreetScene {
       this.personOfInstance.push(i);
       if (i === selected) { this.ring.position.set(layer[o] / 256, SLAB + 0.05, layer[o + 1] / 256); }
     }
-    this.ring.visible = selected >= 0 && selected < count && layer[selected * 5 + 4] !== 1;
+    this.ring.visible = selected >= 0 && selected < count && layer[selected * 5 + 4] === 0;
     this.walkers.count = n;
     this.walkers.instanceMatrix.needsUpdate = true;
     if (this.walkers.instanceColor) this.walkers.instanceColor.needsUpdate = true;
     this.walkers.computeBoundingSphere();
     this.render();
     return n;
+  }
+
+  /** Item 6: one instanced box layer, grown as needed. */
+  private boxes(old: THREE.InstancedMesh | null, count: number): THREE.InstancedMesh {
+    if (old && old.instanceMatrix.count >= count) return old;
+    if (old) { this.group.remove(old); old.geometry.dispose(); (old.material as THREE.Material).dispose(); }
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    geometry.translate(0, 0.5, 0);
+    const mesh = new THREE.InstancedMesh(geometry, new THREE.MeshLambertMaterial(), Math.max(count, 1) + 16);
+    mesh.frustumCulled = false;
+    this.group.add(mesh);
+    return mesh;
+  }
+
+  /** Item 6: the city's cars (x, y, heading, truck, colour, halted), the gang
+   * cars (x, y, kind, gang, crew, riders, heading) and the trams (x, y,
+   * direction x, y, on the map, line), positions in 1/256 m. */
+  setVehicles(cars: Int32Array, fleet: Int32Array, trams: Int32Array, gangColours: number[]) {
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
+    const up = new THREE.Vector3(0, 1, 0), colour = new THREE.Color();
+    const place = (mesh: THREE.InstancedMesh, n: number, x: number, y: number, angle: number, size: readonly number[], c: string) => {
+      q.setFromAxisAngle(up, angle); s.set(size[0], size[2], size[1]); p.set(x, SLAB, y);
+      mesh.setMatrixAt(n, m.compose(p, q, s)); mesh.setColorAt(n, colour.set(c));
+    };
+    const heading = (h: number) => -h * Math.PI / 2;   // 0 east, 1 south, 2 west, 3 north
+    const nc = cars.length / 6;
+    this.cars = this.boxes(this.cars, nc);
+    for (let i = 0; i < nc; i++) {
+      const o = i * 6, truck = cars[o + 3] === 1;
+      place(this.cars, i, cars[o] / 256, cars[o + 1] / 256, heading(cars[o + 2]), truck ? TRUCK_SIZE : CAR_SIZE,
+        truck ? TRUCK_COLOUR : CAR_COLOURS[cars[o + 4] % CAR_COLOURS.length]);
+    }
+    this.cars.count = nc;
+    const nf = fleet.length / 7;
+    this.fleet = this.boxes(this.fleet, nf);
+    for (let i = 0; i < nf; i++) {
+      const o = i * 7, h = fleet[o + 6];
+      place(this.fleet, i, fleet[o] / 256, fleet[o + 1] / 256, heading(h < 0 ? 0 : h), FLEET_SIZE[fleet[o + 2]] ?? CAR_SIZE,
+        GANG_COLOURS[(gangColours[fleet[o + 3]] ?? 0) % 4]);
+    }
+    this.fleet.count = nf;
+    const nt = trams.length / 6;
+    this.trams = this.boxes(this.trams, nt);
+    let k = 0;
+    for (let i = 0; i < nt; i++) {
+      const o = i * 6;
+      if (trams[o + 4] !== 1) continue;
+      place(this.trams, k++, trams[o] / 256, trams[o + 1] / 256, -Math.atan2(trams[o + 3], trams[o + 2]), TRAM_SIZE, TRAM_COLOUR);
+    }
+    this.trams.count = k;
+    for (const mesh of [this.cars, this.fleet, this.trams]) {
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
+    this.render();
   }
 
   select(lotId: number) {

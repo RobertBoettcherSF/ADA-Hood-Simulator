@@ -10,13 +10,15 @@ import { NAMES, STREETS_EW, STREETS_NS, TYPE_NAMES } from './tables';
 export const ORDER_COUNT = { orders: 63, last: 64, messages: 65, cityVersion: 66, crews: 67, playerGang: 68, avenueCol: 100, avenueRow: 104 } as const;
 export const ORDER_TABLE = { crews: 10, gangCrews: 11, order: 12, last: 13, message: 14, preview: 15 } as const;
 export const CREW_FIELD = { id: 0, gang: 1, lieutenant: 2, count: 3, pistols: 4, coupes: 5, orderCount: 6, timeUsed: 7,
-  nameFirst: 8, men: 9, members: 10, member: 20, order: 40 } as const;
+  nameFirst: 8, men: 9, members: 10, speedsters: 11, trucks: 12, member: 20, order: 40 } as const;
 export const ORDER_FIELD = { id: 0, gang: 1, crew: 2, kind: 3, state: 4, manpower: 5, repeat: 6, amount: 7, level: 8,
   business: 9, front: 10, px: 11, py: 12, hasPoint: 13, targets: 14, blocks: 15, assigned: 16, cursor: 17, completed: 18,
   estimate: 19, worked: 20, started: 21, finished: 22, crewSize: 23, results: 24, cost: 25, fail: 30, waiting: 35,
   miss: 40, hasTime: 45, staffing: 46, target: 100, block: 200, person: 220, result: 300 } as const;
 export const ADD = { building: 1, block: 2, point: 3, amount: 4, level: 5, business: 6, front: 7, repeat: 8 } as const;
-export const CMD = { cancel: 1, setPay: 2, sack: 3, promote: 4, demote: 5, moveToCrew: 6, moveToPool: 7, repeat: 8 } as const;
+export const CMD = { cancel: 1, setPay: 2, sack: 3, promote: 4, demote: 5, moveToCrew: 6, moveToPool: 7, repeat: 8, buyVehicle: 9 } as const;
+/** Item 6: the cars a crew can be given (cost in dollars, seats); kinds 0 speedster, 1 coupe, 2 truck. */
+export const VEHICLES = [{ kind: 0, cost: 5000, seats: 2 }, { kind: 1, cost: 3000, seats: 4 }, { kind: 2, cost: 3000, seats: 10 }] as const;
 export const PERSON_ORDER_FIELD = 17;
 export const B_CLASS = 3, B_REMOVED = 6;
 export const BLOCK_MODULE = 13;
@@ -54,12 +56,12 @@ export type LineKind = typeof LINE_KINDS[number];
 
 /** Hood.Population.Commands.Reply_Kind, in order. */
 export const REPLY_KINDS = ['Y_None',
-  'Y_Accepted', 'Y_Cancelled', 'Y_Back_On_Street', 'Y_Promoted', 'Y_Broken_Up', 'Y_Joined', 'Y_Already_In', 'Y_Done',
+  'Y_Accepted', 'Y_Cancelled', 'Y_Back_On_Street', 'Y_Promoted', 'Y_Broken_Up', 'Y_Joined', 'Y_Already_In', 'Y_Bought', 'Y_Done',
   'Y_No_Crew', 'Y_Lt_Unavailable', 'Y_Positive_Whole', 'Y_Only_People', 'Y_At_Most', 'Y_Staffing', 'Y_Valid_Amount',
   'Y_Donation_Zero', 'Y_Streets', 'Y_Rate', 'Y_No_Block', 'Y_No_Site', 'Y_Valid_Site', 'Y_Site_Not_Valid',
   'Y_Inside_City', 'Y_Nothing_There', 'Y_Cannot_Afford', 'Y_No_Time_Trim', 'Y_No_Time', 'Y_Too_Many_Orders',
   'Y_No_Order', 'Y_No_Person', 'Y_Choose_Hood', 'Y_Not_In_Pool', 'Y_Max_Lieutenants', 'Y_Could_Not_Promote',
-  'Y_Choose_Hood_Crew', 'Y_Crew_Full', 'Y_Choose_Crew_Hood'] as const;
+  'Y_Choose_Hood_Crew', 'Y_Crew_Full', 'Y_Choose_Crew_Hood', 'Y_Cannot_Afford_It'] as const;
 export type ReplyKind = typeof REPLY_KINDS[number];
 export const ACCEPTED_LAST = REPLY_KINDS.indexOf('Y_Done');
 
@@ -68,7 +70,7 @@ export interface Reply { kind: ReplyKind; ok: boolean; a: number; b: number; c: 
 
 export interface Crew {
   slot: number; id: number; lieutenant: number; nameFirst: number; members: number[]; orders: number[];
-  timeUsed: number; men: number; pistols: number; coupes: number;
+  timeUsed: number; men: number; pistols: number; coupes: number; speedsters: number; trucks: number;
 }
 export interface Order {
   slot: number; id: number; crew: number; kind: OrderKind; state: typeof ORDER_STATES[number]; manpower: number;
@@ -94,7 +96,7 @@ export function readCrews(core: Exports, gang: number): Crew[] {
       slot, id: f(CREW_FIELD.id), lieutenant: f(CREW_FIELD.lieutenant), nameFirst: f(CREW_FIELD.nameFirst),
       members: Array.from({ length: count }, (_, i) => f(CREW_FIELD.member + i + 1)),
       orders: Array.from({ length: orders }, (_, i) => f(CREW_FIELD.order + i + 1)),
-      timeUsed: f(CREW_FIELD.timeUsed), men: f(CREW_FIELD.men), pistols: f(CREW_FIELD.pistols), coupes: f(CREW_FIELD.coupes),
+      timeUsed: f(CREW_FIELD.timeUsed), men: f(CREW_FIELD.men), pistols: f(CREW_FIELD.pistols), coupes: f(CREW_FIELD.coupes), speedsters: f(CREW_FIELD.speedsters), trucks: f(CREW_FIELD.trucks),
     });
   }
   return out;

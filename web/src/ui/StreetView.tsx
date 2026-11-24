@@ -2,15 +2,17 @@
 import React, { useEffect, useRef } from 'react';
 import { City } from '../city';
 import { StreetScene } from '../street/scene';
+import type { Vehicles } from '../people';
 
 interface Props {
   city: City; selected: number; onSelect: (lot: number) => void; turnSignal: number; visible: boolean; label: string;
   people: Int32Array | null; gangColours: number[]; person: number; onPerson: (person: number) => void;
   focus: { x: number; y: number; n: number } | null;
   markers: { x: number; y: number; colour: string }[];
+  vehicles: Vehicles | null;
 }
 
-export function StreetView({ city, selected, onSelect, turnSignal, visible, label, people, gangColours, person, onPerson, focus, markers }: Props) {
+export function StreetView({ city, selected, onSelect, turnSignal, visible, label, people, gangColours, person, onPerson, focus, markers, vehicles }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const scene = useRef<StreetScene | null>(null);
 
@@ -26,6 +28,7 @@ export function StreetView({ city, selected, onSelect, turnSignal, visible, labe
   useEffect(() => { scene.current?.select(selected); }, [selected, city]);
   useEffect(() => { if (turnSignal) scene.current?.turn(); }, [turnSignal]);
   useEffect(() => { if (people) scene.current?.setPeople(people, gangColours, person); }, [people, gangColours, person, city]);
+  useEffect(() => { if (vehicles) scene.current?.setVehicles(vehicles.cars, vehicles.fleet, vehicles.trams, gangColours); }, [vehicles, gangColours, city]);
   useEffect(() => { if (focus) scene.current?.lookAt(focus.x, focus.y); }, [focus]);
   useEffect(() => { scene.current?.setMarkers(markers); }, [markers, city]);
   useEffect(() => { if (visible) scene.current?.update(); }, [visible]);

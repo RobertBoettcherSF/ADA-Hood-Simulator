@@ -92,6 +92,7 @@ const EN: Dict = {
   Y_Max_Lieutenants: 'You already have {a} lieutenants.', Y_Could_Not_Promote: 'Could not promote.',
   Y_Choose_Hood_Crew: 'Choose one of your hoods and one of your crews.', Y_Crew_Full: 'That crew is full.',
   Y_Choose_Crew_Hood: 'Choose one of your crew hoods.',
+  Y_Bought: 'Bought a {vehicle}.', Y_Cannot_Afford_It: 'You cannot afford it.', V_0: 'Speedster', V_1: 'Coupe', V_2: 'Truck',
 };
 
 const DE: Dict = {
@@ -143,6 +144,7 @@ const DE: Dict = {
   Y_Max_Lieutenants: 'Du hast schon {a} Leutnants.', Y_Could_Not_Promote: 'Beförderung nicht möglich.',
   Y_Choose_Hood_Crew: 'Wähle einen deiner Männer und einen deiner Trupps.', Y_Crew_Full: 'Dieser Trupp ist voll.',
   Y_Choose_Crew_Hood: 'Wähle einen Mann aus einem deiner Trupps.',
+  Y_Bought: 'Gekauft: ein {vehicle}.', Y_Cannot_Afford_It: 'Das kannst du dir nicht leisten.', V_0: 'Speedster', V_1: 'Coupé', V_2: 'Lastwagen',
 };
 
 const ES: Dict = {
@@ -194,6 +196,7 @@ const ES: Dict = {
   Y_Max_Lieutenants: 'Ya tienes {a} lugartenientes.', Y_Could_Not_Promote: 'No se pudo ascender.',
   Y_Choose_Hood_Crew: 'Elige a uno de tus matones y una de tus cuadrillas.', Y_Crew_Full: 'Esa cuadrilla está llena.',
   Y_Choose_Crew_Hood: 'Elige a un matón de tus cuadrillas.',
+  Y_Bought: 'Compraste un {vehicle}.', Y_Cannot_Afford_It: 'No te lo puedes permitir.', V_0: 'deportivo', V_1: 'cupé', V_2: 'camión',
 };
 
 const FR: Dict = {
@@ -245,6 +248,7 @@ const FR: Dict = {
   Y_Max_Lieutenants: 'Vous avez déjà {a} lieutenants.', Y_Could_Not_Promote: 'Promotion impossible.',
   Y_Choose_Hood_Crew: 'Choisissez un de vos hommes et une de vos équipes.', Y_Crew_Full: 'Cette équipe est complète.',
   Y_Choose_Crew_Hood: 'Choisissez un homme de vos équipes.',
+  Y_Bought: 'Vous avez acheté une {vehicle}.', Y_Cannot_Afford_It: 'Vous n’en avez pas les moyens.', V_0: 'voiture de sport', V_1: 'coupé', V_2: 'camionnette',
 };
 
 const DICTS: Record<Lang, Dict> = { 'en-GB': EN, de: DE, es: ES, fr: FR };
@@ -302,10 +306,14 @@ export function replyText(x: TextContext, r: Pick<Reply, 'kind' | 'a' | 'b' | 'c
     case 'Y_Back_On_Street': case 'Y_Promoted': return fill(lang, k, { pa: x.person(r.a) });
     case 'Y_Joined': case 'Y_Already_In': return fill(lang, k, { pa: x.person(r.a), crewB: x.crew(r.b) });
     case 'Y_At_Most': return fill(lang, r.b === 1 ? 'Y_At_Most_1' : 'Y_At_Most_n', { ...v, order: orderName(lang, ORDER_KINDS[r.a]) });
+    case 'Y_Bought': return fill(lang, k, { vehicle: fill(lang, `V_${r.a}`, {}) });
     case 'Y_Staffing': return lineText(x, { kind: LINE_KINDS[r.a] ?? 'L_None', a: r.b, b: r.c, c: r.d, d: 0 });
     default: return fill(lang, k, v);
   }
 }
+
+/** A vehicle kind's name (0 speedster, 1 coupe, 2 truck). */
+export function vehicleName(lang: Lang, kind: number): string { return fill(lang, `V_${kind}`, {}); }
 
 /** Every key each language needs (for the i18n completeness check). */
 export const TEXT_KEYS = Object.keys(EN);

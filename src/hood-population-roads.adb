@@ -3,6 +3,11 @@ with Hood.Streets;
 
 package body Hood.Population.Roads is
 
+   --  The three capacity checks below raise; in the wasm build that reaches
+   --  the last-chance handler, which reports the file and line to the page.
+   pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation)");
+   pragma Warnings (Off, "Last_Chance_Handler will be called");
+
    use Hood.Floats;
    package St renames Hood.Streets;
 
@@ -55,7 +60,7 @@ package body Hood.Population.Roads is
          end loop;
       end loop;
       if not Found then
-         raise Program_Error with "the city has no driveable streets";
+         raise Program_Error;  --  the city has no driveable streets
       end if;
       return Best;
    end Anchor_Of;
@@ -188,7 +193,7 @@ package body Hood.Population.Roads is
       I, Up : Integer_32;
    begin
       if Heap_Len >= Max_Heap then
-         raise Program_Error with "car route heap full (Max_Heap)";
+         raise Program_Error;  --  car route heap full (Max_Heap)
       end if;
       Heap (Heap_Len) := (C, S, Pushed);
       Pushed := Pushed + 1;
@@ -372,7 +377,7 @@ package body Hood.Population.Roads is
       begin
          if N = 0 or else Len (X, Y, R.Path (N - 1).X, R.Path (N - 1).Y) > 1.0E-6 then
             if N >= Walk.Max_Path_Points then
-               raise Program_Error with "car route longer than Max_Path_Points";
+               raise Program_Error;  --  car route longer than Max_Path_Points
             end if;
             R.Path (N) := (X => X, Y => Y, Cross => 0.0);
             N := N + 1;

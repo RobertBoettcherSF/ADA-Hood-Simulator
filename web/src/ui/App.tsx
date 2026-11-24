@@ -10,7 +10,7 @@ import { chime, downloadReport, logAction, logError, logEvent, store, stored } f
 import { CityPlan } from './CityPlan';
 import { DebugDrawer, STEP2_WORLD, Step2, cityReference, step2Matches } from './Debug';
 import { BuildingCard, GangPanel, Journal, NewGameBox, PersonCard, SIZES, Size, WeekClock } from './Panels';
-import { Clock, Gang, countProtected, personName, readClock, readGangs, readPerson, readWalkers } from '../people';
+import { Clock, Gang, countProtected, personName, readClock, readGangs, readPerson, readWalkers, readVehicles, type Vehicles } from '../people';
 import { COUNT } from '../core';
 import { StreetView } from './StreetView';
 import { Flag } from './Flags';
@@ -53,6 +53,7 @@ export function App() {
   const [feedback, setFeedback] = useState(false);
   const [expected, setExpected] = useState('');
   const [walkers, setWalkers] = useState<Int32Array | null>(null);
+  const [vehicles, setVehicles] = useState<Vehicles | null>(null);
   const [gangs, setGangs] = useState<Gang[]>([]);
   const [clock, setClock] = useState<Clock | null>(null);
   const [person, setPerson] = useState(-1);
@@ -76,6 +77,7 @@ export function App() {
   // Everything the page shows of the people, read after each step of the core.
   const refreshPeople = useCallback((c: Exports) => {
     setWalkers(readWalkers(c));
+    setVehicles(readVehicles(c));
     const g = readGangs(c);
     // Building numbers run past the lot count only by the few replaced
     // ones; hs_get gives 0 past the end, so twice the lots is safe.
@@ -303,7 +305,7 @@ export function App() {
   return (
     <div className="game-shell">
       {city && <StreetView city={city} selected={lot} onSelect={select} turnSignal={turn} visible={view === 'street'} label={t('street')}
-        people={walkers} gangColours={gangColours} person={person} onPerson={showPerson} focus={focus} markers={markers} />}
+        people={walkers} gangColours={gangColours} person={person} onPerson={showPerson} focus={focus} markers={markers} vehicles={vehicles} />}
       {city && view === 'plan' && <CityPlan city={city} selected={lot} onSelect={select} label={t('plan')} markers={markers} />}
 
       <header className="map-buttons">

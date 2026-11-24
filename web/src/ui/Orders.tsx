@@ -3,13 +3,13 @@
 // an order: crew, order, men, sites picked in the street or on the plan,
 // options, the estimate, then Give the order.
 import React from 'react';
-import { Exports, MINUTES_PER_WEEK, PERSON_FIELD, TABLE } from '../core';
+import { Exports, GANG_FIELD, MINUTES_PER_WEEK, PERSON_FIELD, TABLE } from '../core';
 import { Key } from '../i18n';
 import {
   CMD, Crew, Draft, Line, Order, OrderKind, ORDER_DEFS, ORDER_KINDS, Preview, command, crewName, issueDraft,
-  newDraft, previewDraft, readCrews, readLastWeek, readOrder, Reply,
+  newDraft, previewDraft, readCrews, readLastWeek, readOrder, Reply, VEHICLES, playerGang,
 } from '../orders';
-import { TextContext, hm, lineText, money, orderName, replyText } from '../orderText';
+import { TextContext, hm, lineText, money, orderName, replyText, vehicleName } from '../orderText';
 import { TYPE_CLASSES, TYPE_COSTS, TYPE_NAMES } from '../tables';
 import { clockText } from './Panels';
 
@@ -78,6 +78,15 @@ export function CrewsPanel({ t, x, core, view, running, onPerson, onNewOrder, on
           <section key={c.slot}>
             <h3>{crewName(c)} <small>· {t('o_lt')} <button className="link" onClick={() => onPerson(c.lieutenant)}>{x.person(c.lieutenant)}</button></small></h3>
             <p className="sum">{t('o_crew_time', { used: c.timeUsed.toLocaleString(), cap: cap.toLocaleString(), men: c.men })}</p>
+            <p className="sum">{t('o_cars', { s: c.speedsters, c: c.coupes, t: c.trucks })}</p>
+            <div className="row cars">
+              {VEHICLES.map(v => <button key={v.kind} className="mini wide"
+                onClick={() => {
+                  const cash = core.hs_get(TABLE.gang, playerGang(core), GANG_FIELD.cash);
+                  if (window.confirm(t('o_buy_confirm', { name: vehicleName(x.lang, v.kind), cost: money(x.lang, v.cost), team: crewName(c), cash: money(x.lang, cash) })))
+                    act(CMD.buyVehicle, v.kind, c.slot);
+                }}>{t('o_buy', { name: vehicleName(x.lang, v.kind), cost: money(x.lang, v.cost) })}</button>)}
+            </div>
             <ul className="men">{c.members.length ? c.members.map(p => man(p, c)) : <li>{t('o_none')}</li>}</ul>
             <h4>{t('o_orders')}</h4>
             <ul className="orders">

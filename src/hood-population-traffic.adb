@@ -5,6 +5,11 @@ with Hood.Random;
 
 package body Hood.Population.Traffic is
 
+   --  The capacity check below raises; in the wasm build that reaches the last-chance
+   --  handler, which reports the file and line to the page.
+   pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation)");
+   pragma Warnings (Off, "Last_Chance_Handler will be called");
+
    use Hood.Floats;
    use type Hood.City.Block_Use;
    package St renames Hood.Streets;
@@ -607,7 +612,7 @@ package body Hood.Population.Traffic is
                   Drop := Drop + 1;
                end loop;
                if Drop = 0 then
-                  raise Program_Error with "traffic window full";
+                  raise Program_Error;  --  traffic window full
                end if;
                for I in 0 .. Dr.Len - 1 - Drop loop
                   Dr.X (I) := Dr.X (I + Drop);

@@ -1,7 +1,9 @@
 #!/bin/sh
 # Builds dist/: index.html, version.txt, app.js, app.css and vendor/.
 # The Ada core (src/, src/wasm/) is compiled to WebAssembly with AdaWebPack 24
-# (GNAT-LLVM), linked with wasm-ld and inlined as base64 into web/index.html.
+# (GNAT-LLVM) with -ffp-contract=off (no fused multiply-add, so the doubles
+# round after every step), linked with wasm-ld and inlined as base64 into
+# web/index.html.
 # The page script (web/src, TypeScript and React) is bundled by Vite into
 # app.js and app.css; React 18.3.1 and Three.js 0.169.0 are copied from
 # web/node_modules into dist/vendor/. Every file the page loads carries
@@ -13,7 +15,7 @@
 set -e
 cd "$(dirname "$0")"
 
-VERSION=0.5.0   # proposed
+VERSION=0.6.0   # proposed
 
 A=${ADAWEBPACK:-$HOME/toolchains/adawebpack-24}
 T=$A/usr
@@ -65,7 +67,7 @@ ADA
 cd obj/wasm
 rm -f ./*.o ./*.ali
 for F in ../../src/*.adb ../../src/wasm/*.adb; do
-  "$T/bin/llvm-gcc" -c --target=wasm32 -O2 -gnat2022 -gnatp -gnatwa -gnatwe \
+  "$T/bin/llvm-gcc" -c --target=wasm32 -O2 -ffp-contract=off -gnat2022 -gnatp -gnatwa -gnatwe \
     --RTS="$T/lib/rts-native" -I../../src -I../../src/wasm -I../gen "$F"
 done
 # memcpy/memmove/memset come from the Ada runtime library (D-006)
@@ -82,7 +84,7 @@ $LD --no-entry --allow-undefined --strip-all \
   --export=hs_launch_week --export=hs_tick --export=hs_finish_week \
   --export=hs_order_begin --export=hs_order_add --export=hs_order_preview \
   --export=hs_order_issue --export=hs_command --export=hs_reply \
-  -z stack-size=1048576 --initial-memory=33554432 \
+  -z stack-size=1048576 --initial-memory=67108864 \
   -o hood.wasm ./*.o
 cd ../..
 

@@ -4,6 +4,11 @@ with Hood.Population.Roads;
 
 package body Hood.Population.Transport is
 
+   --  The capacity check below raises; in the wasm build that reaches the last-chance
+   --  handler, which reports the file and line to the page.
+   pragma Warnings (Off, "pragma Restrictions (No_Exception_Propagation)");
+   pragma Warnings (Off, "Last_Chance_Handler will be called");
+
    use Hood.Floats;
 
    function Crew_Cars (S : Population_State; Slot : Integer_32; K : Vehicle_Kind) return Integer_32 is
@@ -521,7 +526,7 @@ package body Hood.Population.Transport is
          return;
       end if;
       if S.Fleet_Count >= Max_Vehicles then
-         raise Program_Error with "fleet full (Max_Vehicles)";
+         raise Program_Error;  --  fleet full (Max_Vehicles)
       end if;
       Base (S, C, S.Crews (Slot).Gang, NX, NY, BX, BY);
       Parked_Spots (S, No_Id, NS);

@@ -1,6 +1,6 @@
 // The people and gangs the core placed (item 4), read through hs_get and
 // the people draw layer. Positions cross in 1/256 m.
-import { BUILDING_FIELD, Exports, GANG_FIELD, PEOPLE_STRIDE, PERSON_FIELD, PREMISES_FIELD, TABLE, COUNT } from './core';
+import { BUILDING_FIELD, Exports, GANG_FIELD, LAYER, PEOPLE_STRIDE, PERSON_FIELD, PREMISES_FIELD, TABLE, COUNT } from './core';
 import { UNITS } from './city';
 import { NAMES, ROLES, SKILLS } from './tables';
 
@@ -12,6 +12,13 @@ export function readWalkers(core: Exports): Int32Array {
   return new Int32Array(core.memory.buffer, core.hs_draw_ptr(3), core.hs_draw_len(3)).slice();
 }
 export const walkerCount = (layer: Int32Array) => layer.length / PEOPLE_STRIDE;
+
+/** Item 6: the city's cars, the gang cars and the trams this minute (copied out, as the people). */
+export interface Vehicles { cars: Int32Array; fleet: Int32Array; trams: Int32Array }
+export function readVehicles(core: Exports): Vehicles {
+  const view = (layer: number) => new Int32Array(core.memory.buffer, core.hs_draw_ptr(layer), core.hs_draw_len(layer)).slice();
+  return { cars: view(LAYER.cars), fleet: view(LAYER.fleet), trams: view(LAYER.trams) };
+}
 
 export function personName(core: Exports, index: number): string {
   const n = core.hs_get(TABLE.person, index, PERSON_FIELD.nameLength);

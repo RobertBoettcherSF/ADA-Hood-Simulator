@@ -10,16 +10,22 @@ package body Hood.Trams is
    Speed : constant Long_Float := 23.0 * 0.15 / (10.0 / 3.0);  --  1.035 m a minute
    Starts : constant array (1 .. 4) of Long_Float := [0.1, 0.3, 0.5, 0.7];
 
-   --  JavaScript's a % b for b > 0.
+   --  JavaScript's a % b for b > 0, exactly: subtract the largest
+   --  B * 2**K not above the rest until the rest is below B. Each
+   --  subtraction is exact (the two values are within a factor of two),
+   --  so no rounding happens and no runtime routine is needed.
    function Fmod (A, B : Long_Float) return Long_Float is
-      R : Long_Float := Long_Float'Remainder (A, B);
+      R : Long_Float := abs A;
+      D : Long_Float;
    begin
-      if R < 0.0 and then A >= 0.0 then
-         R := R + B;
-      elsif R > 0.0 and then A < 0.0 then
-         R := R - B;
-      end if;
-      return R;
+      while R >= B loop
+         D := B;
+         while D * 2.0 <= R loop
+            D := D * 2.0;
+         end loop;
+         R := R - D;
+      end loop;
+      return (if A < 0.0 then -R else R);
    end Fmod;
 
    Dwell : constant Long_Float := 12.0;  --  TRAM_STOP_DWELL, minutes at a stop
