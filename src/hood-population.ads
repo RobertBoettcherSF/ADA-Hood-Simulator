@@ -19,6 +19,16 @@ package Hood.Population with Preelaborate is
    Max_Pool   : constant := 64;   --  gang members waiting in the office
    Max_Sites  : constant := 512;  --  starting-racket choices per gang
    Gang_Count : constant := 4;
+   --  Item 5 (all proposed): crews, orders and the week's messages.
+   Max_Gang_Crews   : constant := 12;   --  constants.ts MAX_TEAMS
+   Max_Crew_Members : constant := 9;    --  MAX_TEAM_SIZE 10, less the lieutenant
+   Max_Crews        : constant := Max_Gang_Crews * Gang_Count;
+   Max_Crew_Orders  : constant := 24;   --  orders one crew holds in a week
+   Max_Orders       : constant := 512;  --  live orders of every gang
+   Max_Targets      : constant := 64;   --  sites of one order
+   Max_Order_Blocks : constant := 16;
+   Max_Results      : constant := 64;   --  result lines of one order
+   Max_Messages     : constant := 256;  --  the player's messages of a week
 
    No_Id : constant := Hood.City.No_Id;
 
@@ -60,6 +70,7 @@ package Hood.Population with Preelaborate is
       X, Y      : Hood.Units.Units; --  1/256 m
       DX, DY    : Hood.Units.Units; --  where he is walking to
       Walking   : Boolean;
+      Order     : Integer_32;       --  item 5: the order slot he works, or No_Id
    end record;
 
    type Person_Array is array (Integer_32 range 0 .. Max_People - 1) of Person_Rec;
@@ -68,6 +79,7 @@ package Hood.Population with Preelaborate is
    type Stance_Set is array (Gang_Id) of Stance;
    type Member_List is array (1 .. Max_Pool) of Integer_32;
    type Site_List is array (1 .. Max_Sites) of Integer_32;
+   type Crew_Slots is array (1 .. Max_Gang_Crews) of Integer_32;
 
    type Gang_Rec is record
       Colour      : Integer_32;   --  0 red, 1 green, 2 blue, 3 orange
@@ -79,23 +91,23 @@ package Hood.Population with Preelaborate is
       Cash        : Integer_32;
       Office      : Integer_32;   --  building index
       Front       : Integer_32;
-      Manager     : Integer_32;   --  person index
-      Team        : Integer_32;   --  the crew's number
-      Lieutenant  : Integer_32;   --  person index
-      Crew_Count  : Integer_32;
-      Crew        : Member_List;
+      Manager     : Integer_32;   --  person index (the front's manager)
+      Crew_Total  : Integer_32;   --  item 5: crews, 0 .. Max_Gang_Crews
+      Crews       : Crew_Slots;   --  crew slots (S.Crews), oldest first
       Pool_Count  : Integer_32;
       Pool        : Member_List;
       Pistols     : Integer_32;   --  in the office
       Coupes      : Integer_32;
-      Crew_Pistols : Integer_32;
-      Crew_Coupes : Integer_32;
       Offered     : Stance_Set;
       Known       : Stance_Set;
       Site_Count  : Integer_32;
       Sites       : Site_List;    --  starting-racket choices, in order
       Wages       : Integer_32;   --  paid at the last week's end
       Eliminated  : Boolean;
+      --  Item 5: this week's purchases and protection taken (finances
+      --  opened at the week's end, 1.2.91 stage 16), and last week's.
+      Purchases, Protection           : Integer_32;
+      Last_Purchases, Last_Protection : Integer_32;
    end record;
 
    type Gang_Array is array (Gang_Id) of Gang_Rec;
@@ -110,12 +122,143 @@ package Hood.Population with Preelaborate is
       Front_Of      : Integer_32;  --  an office: its front's index
       Hides         : Integer_32;  --  a front: its office's index
       Is_HQ         : Boolean;
+      Protect_Base  : Integer_32;  --  item 5: the going rate
+      Collected_Week : Integer_32; --  item 5: the week it last paid, or 0
    end record;
 
    type Extra_Array is array (Integer_32 range 0 .. Hood.City.Max_Buildings - 1) of Building_Extra;
    type Count_Array is array (Integer_32 range 0 .. Hood.City.Max_Blocks - 1) of Integer_32;
 
    type Phase_Kind is (Planning, Week_Running);
+
+   ---------------------------------------------------------------------
+   --  Item 5: crews (1.2.91 teams)
+   ---------------------------------------------------------------------
+
+   type Crew_Member_List is array (1 .. Max_Crew_Members) of Integer_32;
+   type Crew_Order_List is array (1 .. Max_Crew_Orders) of Integer_32;
+
+   type Crew_Rec is record
+      Id          : Integer_32;   --  1.2.91's number (the shared counter)
+      Gang        : Gang_Ref;     --  0: a free slot
+      Lieutenant  : Integer_32;   --  person index
+      Name_First  : Integer_32;   --  "First's Crew": the lieutenant's first name then
+      Count       : Integer_32;
+      Members     : Crew_Member_List;
+      Pistols     : Integer_32;
+      Coupes      : Integer_32;
+      Order_Count : Integer_32;
+      Orders      : Crew_Order_List;  --  order slots, in the order given
+      Time_Used   : Integer_32;   --  booked man-minutes (crewTime.ts)
+   end record;
+
+   type Crew_Array is array (Integer_32 range 0 .. Max_Crews - 1) of Crew_Rec;
+   type Crew_Slots_All is array (1 .. Max_Crews) of Integer_32;
+
+   ---------------------------------------------------------------------
+   --  Item 5: orders (the peaceful ones)
+   ---------------------------------------------------------------------
+
+   type Order_Kind is
+     (O_Buy, O_Set_Up, O_Run, O_Collect, O_Adjust, O_Donate, O_Clean_Up,
+      O_Clear_Streets, O_Guard, O_Patrol, O_Explore, O_Recruit, O_Go_To);
+
+   type Order_State is
+     (Queued, Travelling, Waiting, Executing, Done, Failed, Cancelled);
+
+   --  Why an order failed or what a line says; the page writes the words
+   --  (web/src/orders.ts), the core keeps the numbers.
+   type Line_Kind is
+     (L_None,
+      --  results
+      L_Bought,            --  A building, B cost
+      L_Opened,            --  A type
+      L_New_Management,    --  A building
+      L_Collected,         --  A building, B amount
+      L_Refused_Pay,       --  A building, B owner person or -1
+      L_Already_Paid,      --  A building
+      L_Protection_Set,    --  A building, B amount
+      L_Donated,           --  A building, B amount
+      L_Cleaned_Up,        --  A building
+      L_Cleared,           --  A building
+      L_Looked_Over,       --  A building, B owner gang or 0, C payee gang or 0, D weekly
+      L_Found_Hidden,      --  A front, B hidden building
+      L_Nobody_Hiring,     --  A building, B elsewhere or -1
+      L_Signed_On,         --  B count (to the pool)
+      L_Nobody_Willing,
+      L_Stood_Guard,       --  A building, B minutes
+      L_Patrolled,         --  B blocks, C minutes
+      L_Held,              --  B minutes
+      L_Ran_Out,
+      L_Continuing,        --  A order kind, B people left, C of
+      --  fail reasons
+      F_No_Site, F_Owned_Already, F_Not_For_Sale, F_Price, F_Not_Yours,
+      F_No_Type, F_Illegal_Centre, F_Legal_Centre, F_City_Only, F_No_Front,
+      F_Front_Taken, F_Fit_Out, F_Not_Your_Site, F_No_Hood_Free,
+      F_No_Charity, F_No_Donation, F_Spare_Money, F_Clean_Up_Money,
+      F_Streets_Not_Bribed, F_Site_Gone, F_Nobody_Left,
+      F_Never_Started,     --  A wait-reason kind ('Pos), B, C its numbers
+      F_Not_Enough_Time, F_Nothing_Came, F_Needs_People, F_Needs_Free,
+      F_Target_Lost, F_Never_Started_Default,
+      --  messages (report ())
+      M_Acquired,          --  A building
+      M_Opened,            --  A type
+      M_Refused_Protection,--  A building
+      M_Uncovered,         --  B hidden building
+      M_Order_Failed,      --  A order kind, then the fail line in B .. D
+      M_Order_Cut_Short,
+      M_Queued_Waiting);   --  A order kind, B reason line
+
+   type Line_Rec is record
+      Kind       : Line_Kind;
+      A, B, C, D : Integer_32;
+   end record;
+   No_Line : constant Line_Rec := (L_None, 0, 0, 0, 0);
+
+   type Target_List is array (1 .. Max_Targets) of Integer_32;
+   type Block_List is array (1 .. Max_Order_Blocks) of Integer_32;
+   type Assigned_List is array (1 .. 10) of Integer_32;
+   type Line_List is array (1 .. Max_Results) of Line_Rec;
+
+   type Order_Rec is record
+      Id          : Integer_32;   --  1.2.91's number (the shared counter)
+      Gang        : Gang_Ref;     --  0: a free slot
+      Crew        : Integer_32;   --  crew slot
+      Kind        : Order_Kind;
+      State       : Order_State;
+      Manpower    : Integer_32;
+      Repeat      : Boolean;
+      Amount      : Integer_32;   --  donate: dollars, -1 none
+      Level       : Integer_32;   --  adjust: per cent of the going rate
+      Business    : Integer_32;   --  set up: type id, -1 none
+      Front       : Integer_32;   --  set up: front building, -1 none
+      PX, PY      : Hood.Units.Units;  --  go to: the point
+      Has_Point   : Boolean;
+      Target_Count : Integer_32;
+      Targets     : Target_List;  --  building indexes
+      Block_Count : Integer_32;
+      Blocks      : Block_List;   --  blocks picked
+      Assigned_Count : Integer_32;
+      Assigned    : Assigned_List;
+      Cursor      : Integer_32;
+      Completed   : Integer_32;
+      Work_Left   : Integer_64;   --  micro-minutes (Work_Scale)
+      Estimate    : Integer_32;   --  minutes
+      Worked      : Integer_32;   --  standing orders: minutes on duty, -1 none
+      Started     : Integer_32;   --  minute, -1 not yet
+      Finished    : Integer_32;   --  minute, -1 not yet
+      Crew_Size   : Integer_32;   --  reported crew size, -1 none
+      Fail        : Line_Rec;     --  why it failed (or was cut short)
+      Last_Miss   : Line_Rec;
+      Waiting_For : Line_Rec;     --  dispatch wait reason
+      Result_Count : Integer_32;
+      Results     : Line_List;
+   end record;
+
+   type Order_Array is array (Integer_32 range 0 .. Max_Orders - 1) of Order_Rec;
+   type Message_Array is array (1 .. Max_Messages) of Line_Rec;
+
+   Work_Scale : constant := 1_000_000;  --  micro-minutes in a minute
 
    type Population_State is record
       Count     : Integer_32;
@@ -132,6 +275,15 @@ package Hood.Population with Preelaborate is
       Rng_After_Setup : Unsigned_32;
       Rng_After_Minute_1 : Unsigned_32;
       Draws_This_Week : Integer_32;
+      --  Item 5
+      Building_Count : Integer_32;  --  the city's, for loops over Extra
+      Crews          : Crew_Array;
+      Orders         : Order_Array;
+      Last_Count     : Integer_32;  --  last week's finished orders
+      Last_Week      : Order_Array; --  copies, as 1.2.91 lastWeekOrders
+      Message_Count  : Integer_32;
+      Messages       : Message_Array;  --  the player's, this week
+      City_Changed   : Boolean;     --  a building or block changed: the page refills its lots
    end record;
 
    Status_Ok   : constant := 0;

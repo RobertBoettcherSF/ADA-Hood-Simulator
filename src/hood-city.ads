@@ -87,6 +87,7 @@ package Hood.City with Preelaborate is
    Status_No_Site     : constant := 3;  --  no headquarters site
 
    type Class_Counts is array (Hood.Tables.Building_Class) of Integer_32;
+   type Avenue_Lines is array (Integer_32 range 0 .. 3) of Integer_32;
 
    type City_State is record
       W, H            : Integer_32;
@@ -109,6 +110,9 @@ package Hood.City with Preelaborate is
       --  people's setup turns fronts and offices (item 4).
       Built_Class     : Class_Counts;
       Built_Types     : Integer_32;
+      --  Item 5: the Standard plan's four avenue columns and rows (street
+      --  names: an avenue's two flanking lines share one), -1 elsewhere.
+      Avenue_Cols, Avenue_Rows : Avenue_Lines;
    end record;
 
    procedure Generate

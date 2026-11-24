@@ -23,7 +23,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "butchers",
@@ -40,7 +41,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "grocers",
@@ -57,7 +59,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "convenienceStore",
@@ -74,7 +77,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "shoeStore",
@@ -91,7 +95,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "tailors",
@@ -108,7 +113,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "bookStore",
@@ -125,7 +131,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "printers",
@@ -142,7 +149,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "pawnbroker",
@@ -159,7 +167,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "jewellers",
@@ -176,7 +185,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "furrier",
@@ -193,7 +203,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "drugStore",
@@ -210,7 +221,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "plumbers",
@@ -227,7 +239,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "cafe",
@@ -244,7 +257,8 @@
     null
    ],
    "recruit": "hood",
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "milkBar",
@@ -261,7 +275,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "breakfastBar",
@@ -278,7 +293,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "restaurant",
@@ -295,7 +311,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "poolHall",
@@ -312,7 +329,8 @@
     null
    ],
    "recruit": "hood",
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "gym",
@@ -329,7 +347,8 @@
     null
    ],
    "recruit": "hood",
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "healthCenter",
@@ -346,7 +365,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "massageParlor",
@@ -363,7 +383,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "danceStudio",
@@ -380,7 +401,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "barbers",
@@ -397,7 +419,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "laundry",
@@ -414,7 +437,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "hardwareStore",
@@ -431,7 +455,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "autoShop",
@@ -448,7 +473,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "financeCompany",
@@ -465,7 +491,8 @@
     null
    ],
    "recruit": "accountant",
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "accountancy",
@@ -482,7 +509,8 @@
     null
    ],
    "recruit": "accountant",
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "lawFirm",
@@ -499,7 +527,8 @@
     6
    ],
    "recruit": "lawyer",
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "hotelSmall",
@@ -516,7 +545,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "hotelLarge",
@@ -533,7 +563,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "departmentStore",
@@ -550,7 +581,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "bankSmall",
@@ -567,7 +599,8 @@
     null
    ],
    "recruit": null,
-   "special": "bank"
+   "special": "bank",
+   "office_cover": 95
   },
   {
    "id": "bankLarge",
@@ -584,7 +617,8 @@
     null
    ],
    "recruit": "accountant",
-   "special": "bank"
+   "special": "bank",
+   "office_cover": 95
   },
   {
    "id": "newspaper",
@@ -601,7 +635,8 @@
     null
    ],
    "recruit": null,
-   "special": "newspaper"
+   "special": "newspaper",
+   "office_cover": 60
   },
   {
    "id": "radioStation",
@@ -618,7 +653,8 @@
     null
    ],
    "recruit": null,
-   "special": "radio"
+   "special": "radio",
+   "office_cover": 60
   },
   {
    "id": "warehouse",
@@ -635,7 +671,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "foundry",
@@ -652,7 +689,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "mill",
@@ -669,7 +707,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "cannery",
@@ -686,7 +725,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "garageDepot",
@@ -703,7 +743,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "tradeUnion",
@@ -720,7 +761,8 @@
     null
    ],
    "recruit": null,
-   "special": "union"
+   "special": "union",
+   "office_cover": 95
   },
   {
    "id": "docks",
@@ -737,7 +779,8 @@
     null
    ],
    "recruit": "hood",
-   "special": "docks"
+   "special": "docks",
+   "office_cover": 60
   },
   {
    "id": "railroad",
@@ -754,7 +797,8 @@
     null
    ],
    "recruit": null,
-   "special": "railroad"
+   "special": "railroad",
+   "office_cover": 60
   },
   {
    "id": "tenementPoor",
@@ -771,7 +815,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "tenementMid",
@@ -788,7 +833,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "tenementRich",
@@ -805,7 +851,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "cityHall",
@@ -822,7 +869,8 @@
     null
    ],
    "recruit": null,
-   "special": "cityHall"
+   "special": "cityHall",
+   "office_cover": 60
   },
   {
    "id": "courthouse",
@@ -839,7 +887,8 @@
     null
    ],
    "recruit": "lawyer",
-   "special": "courthouse"
+   "special": "courthouse",
+   "office_cover": 60
   },
   {
    "id": "policeHQ",
@@ -856,7 +905,8 @@
     null
    ],
    "recruit": null,
-   "special": "policeHQ"
+   "special": "policeHQ",
+   "office_cover": 60
   },
   {
    "id": "hospital",
@@ -873,7 +923,8 @@
     3
    ],
    "recruit": null,
-   "special": "hospital"
+   "special": "hospital",
+   "office_cover": 60
   },
   {
    "id": "school",
@@ -890,7 +941,8 @@
     4
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "library",
@@ -907,7 +959,8 @@
     3
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 95
   },
   {
    "id": "labourExchange",
@@ -924,7 +977,8 @@
     3
    ],
    "recruit": "hood",
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "firehouse",
@@ -941,7 +995,8 @@
     2
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "fbiHQ",
@@ -958,7 +1013,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "museum",
@@ -975,7 +1031,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "publicBaths",
@@ -992,7 +1049,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "usPost",
@@ -1009,7 +1067,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "powerPlant",
@@ -1026,7 +1085,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "waterPlant",
@@ -1043,7 +1103,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "residence",
@@ -1060,7 +1121,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "church",
@@ -1077,7 +1139,8 @@
     3
    ],
    "recruit": null,
-   "special": "church"
+   "special": "church",
+   "office_cover": 60
   },
   {
    "id": "orphanage",
@@ -1094,7 +1157,8 @@
     null
    ],
    "recruit": null,
-   "special": "orphanage"
+   "special": "orphanage",
+   "office_cover": 60
   },
   {
    "id": "soupKitchen",
@@ -1111,7 +1175,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "clothingBank",
@@ -1128,7 +1193,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "office",
@@ -1145,7 +1211,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "speakeasy",
@@ -1162,7 +1229,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "moonshineStill",
@@ -1179,7 +1247,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "casino",
@@ -1196,7 +1265,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "cardGames",
@@ -1213,7 +1283,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "diceGame",
@@ -1230,7 +1301,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "gamblingDen",
@@ -1247,7 +1319,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "prizeFight",
@@ -1264,7 +1337,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "grifters",
@@ -1281,7 +1355,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "insiderTrading",
@@ -1298,7 +1373,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "loanShark",
@@ -1315,7 +1391,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "counterfeitPress",
@@ -1332,7 +1409,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "numbersRacket",
@@ -1349,7 +1427,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "rentedRooms",
@@ -1366,7 +1445,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "teamsters",
@@ -1383,7 +1463,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "acupunctureClinic",
@@ -1400,7 +1481,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "antiquesDealer",
@@ -1417,7 +1499,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "artGallery",
@@ -1434,7 +1517,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "auctionRooms",
@@ -1451,7 +1535,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "autoDealers",
@@ -1468,7 +1553,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "bailiffs",
@@ -1485,7 +1571,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "beautyParlor",
@@ -1502,7 +1589,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "blacksmiths",
@@ -1519,7 +1607,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "bridalParlor",
@@ -1536,7 +1625,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "cabCompany",
@@ -1553,7 +1643,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "cakeStore",
@@ -1570,7 +1661,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "candyStore",
@@ -1587,7 +1679,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "carpetStore",
@@ -1604,7 +1697,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "cateringSuppliers",
@@ -1621,7 +1715,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "cheeseStore",
@@ -1638,7 +1733,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "chinaStore",
@@ -1655,7 +1751,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "chiropodists",
@@ -1672,7 +1769,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "clothiers",
@@ -1689,7 +1787,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "coffinMakers",
@@ -1706,7 +1805,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "cosmeticsStore",
@@ -1723,7 +1823,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "delicatessen",
@@ -1740,7 +1841,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "orthodontists",
@@ -1757,7 +1859,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "detectiveAgency",
@@ -1774,7 +1877,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "diamondMerchant",
@@ -1791,7 +1895,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "doctors",
@@ -1808,7 +1913,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "dressmakers",
@@ -1825,7 +1931,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "electricalSuppliers",
@@ -1842,7 +1949,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "electricians",
@@ -1859,7 +1967,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "costumeStore",
@@ -1876,7 +1985,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "fishmongers",
@@ -1893,7 +2003,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "florists",
@@ -1910,7 +2021,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "fortuneTellers",
@@ -1927,7 +2039,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "frenchPolishers",
@@ -1944,7 +2057,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "fruitAndVegStore",
@@ -1961,7 +2075,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "funeralDirectors",
@@ -1978,7 +2093,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "furnitureStore",
@@ -1995,7 +2111,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "gardeningSuppliers",
@@ -2012,7 +2129,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "gasStationMechanic",
@@ -2029,7 +2147,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "giftStore",
@@ -2046,7 +2165,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "goldMerchants",
@@ -2063,7 +2183,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "golfStore",
@@ -2080,7 +2201,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "gramophoneStore",
@@ -2097,7 +2219,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "glassware",
@@ -2114,7 +2237,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "haberdashery",
@@ -2131,7 +2255,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "hairSalon",
@@ -2148,7 +2273,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "wigMakers",
@@ -2165,7 +2291,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "iceStore",
@@ -2182,7 +2309,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "iceCreamParlor",
@@ -2199,7 +2327,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "ladieswear",
@@ -2216,7 +2345,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "lingerieStore",
@@ -2233,7 +2363,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "localStore",
@@ -2250,7 +2381,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "locksmiths",
@@ -2267,7 +2399,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "lumberMerchant",
@@ -2284,7 +2417,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "milliners",
@@ -2301,7 +2435,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "movieTheater",
@@ -2318,7 +2453,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "musicStore",
@@ -2335,7 +2471,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "newsAgency",
@@ -2352,7 +2489,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "nurseryStore",
@@ -2369,7 +2507,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "optometrist",
@@ -2386,7 +2525,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "perfumeStore",
@@ -2403,7 +2543,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "pestControllers",
@@ -2420,7 +2561,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "petStore",
@@ -2437,7 +2579,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "photographers",
@@ -2454,7 +2597,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "pianoStore",
@@ -2471,7 +2615,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "realEstate",
@@ -2488,7 +2633,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "recordStore",
@@ -2505,7 +2651,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "removalsCompany",
@@ -2522,7 +2669,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "saddlers",
@@ -2539,7 +2687,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "shoeRepairs",
@@ -2556,7 +2705,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "signWriters",
@@ -2573,7 +2723,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "sodaFountain",
@@ -2590,7 +2741,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "sportsEquipment",
@@ -2607,7 +2759,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "stampAndCoinDealers",
@@ -2624,7 +2777,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "stationers",
@@ -2641,7 +2795,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "tattooParlor",
@@ -2658,7 +2813,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "telegraphOffice",
@@ -2675,7 +2831,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "theater",
@@ -2692,7 +2849,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "tobacconists",
@@ -2709,7 +2867,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "toyStore",
@@ -2726,7 +2885,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "upholsterers",
@@ -2743,7 +2903,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "watchmakers",
@@ -2760,7 +2921,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "windowCleaners",
@@ -2777,7 +2939,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "abattoir",
@@ -2794,7 +2957,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "builders",
@@ -2811,7 +2975,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "cementFactory",
@@ -2828,7 +2993,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "ceramics",
@@ -2845,7 +3011,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "chandler",
@@ -2862,7 +3029,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "leatherCurers",
@@ -2879,7 +3047,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "engineers",
@@ -2896,7 +3065,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "excavators",
@@ -2913,7 +3083,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "fabricators",
@@ -2930,7 +3101,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "factory",
@@ -2947,7 +3119,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "foodProcessors",
@@ -2964,7 +3137,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "freightForwarding",
@@ -2981,7 +3155,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "furriers",
@@ -2998,7 +3173,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "glaziers",
@@ -3015,7 +3191,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "iceHouse",
@@ -3032,7 +3209,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "ironmongers",
@@ -3049,7 +3227,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "joiners",
@@ -3066,7 +3245,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "junkYard",
@@ -3083,7 +3263,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "lumberYard",
@@ -3100,7 +3281,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "milkYard",
@@ -3117,7 +3299,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "packagingPlant",
@@ -3134,7 +3317,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "paperMill",
@@ -3151,7 +3335,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "sheetWorkers",
@@ -3168,7 +3353,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "steelMill",
@@ -3185,7 +3371,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "stoneMasons",
@@ -3202,7 +3389,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "tanners",
@@ -3219,7 +3407,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "textiles",
@@ -3236,7 +3425,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "weavers",
@@ -3253,7 +3443,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   },
   {
    "id": "wheelwrights",
@@ -3270,7 +3461,8 @@
     null
    ],
    "recruit": null,
-   "special": null
+   "special": null,
+   "office_cover": 60
   }
  ],
  "kinds": [

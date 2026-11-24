@@ -908,4 +908,71 @@ package Hood.Tables with Pure is
       960, 1040, 960, 1190, 960, 580, 960, 960, 580, 720, 960, 960, 1040,
       1040, 1190, 960, 960, 1040, 960, 960, 0];
 
+   --  Item 5: price, who is hired there (Role'Pos, -1 nobody), whether a
+   --  donation can go there (a church or an orphanage), and how well it
+   --  hides an office behind it (cover, hundredths).
+   Type_Cost : constant array (Type_Id) of Integer_32 :=
+     [5200, 5600, 6000, 14200, 6800, 7200, 6600, 8200, 7000, 12500, 12000,
+      7400, 5800, 6200, 5800, 5600, 16800, 7600, 4500, 9000, 8400, 3800,
+      4800, 5400, 6600, 9200, 5900, 11000, 12000, 13000, 26000, 34000, 22000,
+      46000, 44000, 44000, 9000, 16000, 14000, 23800, 11000, 12000, 41200,
+      30000, 4200, 7000, 12000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 3000, 2000, 6000, 8000, 4500, 18000, 4000, 3600, 6500, 7000,
+      4200, 12000, 7500, 9500, 5000, 11000, 8500, 5800, 8100, 8100, 13900,
+      10400, 4100, 7000, 4400, 7000, 10400, 5800, 4400, 10400, 5800, 5500,
+      8100, 8100, 5500, 5800, 7000, 5800, 8100, 5500, 11600, 8100, 8100,
+      5800, 5500, 4100, 5800, 4400, 4600, 5500, 5800, 5800, 11600, 5800,
+      4400, 7000, 8100, 4600, 5800, 2900, 5800, 5800, 4600, 4400, 5800, 8100,
+      7000, 13900, 5500, 5800, 5800, 11600, 4400, 5500, 5800, 8100, 7000,
+      4400, 4100, 5800, 5500, 8100, 5500, 10400, 4100, 4100, 5500, 5800,
+      5800, 4100, 4400, 2900, 5500, 9300, 4100, 4100, 5500, 10400, 4100,
+      5800, 16200, 16200, 16200, 31900, 16200, 20900, 16200, 31900, 16200,
+      20900, 16200, 31900, 16200, 2300, 16200, 16200, 2300, 5800, 16200,
+      16200, 20900, 20900, 31900, 16200, 16200, 20900, 16200, 16200, 0];
+   Type_Recruit_As : constant array (Type_Id) of Integer_32 :=
+     [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2, -1, -1, -1, 2,
+      2, -1, -1, -1, -1, -1, -1, -1, 3, 3, 4, -1, -1, -1, -1, 3, -1, -1, -1,
+      -1, -1, -1, -1, -1, 2, -1, -1, -1, -1, -1, 4, -1, -1, -1, -1, 2, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
+   Type_Charity : constant array (Type_Id) of Boolean :=
+     [False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, True, True, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False, False, False, False, False, False, False, False,
+      False, False, False];
+   Type_Office_Cover : constant array (Type_Id) of Integer_32 :=
+     [95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95,
+      95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 60, 60,
+      60, 60, 60, 60, 60, 95, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 95, 60,
+      60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,
+      60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,
+      60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,
+      60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,
+      60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,
+      60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,
+      60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60,
+      60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60];
+
 end Hood.Tables;

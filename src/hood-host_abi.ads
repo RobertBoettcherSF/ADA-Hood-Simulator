@@ -103,6 +103,15 @@ package Hood.Host_ABI is
    Count_Role       : constant := 70;  --  + Role'Pos (18 roles)
    Count_Built_Class : constant := 90;  --  + Building_Class'Pos, as generated
    Count_Built_Types : constant := 99;  --  types in use, as generated
+   --  Item 5: crews and orders
+   Count_Orders      : constant := 63;  --  order slots in use
+   Count_Last        : constant := 64;  --  last week's finished orders
+   Count_Messages    : constant := 65;  --  the player's messages this week
+   Count_City_Version : constant := 66; --  goes up when a building or block changes
+   Count_Crews       : constant := 67;  --  crew slots in use
+   Count_Player_Gang : constant := 68;
+   Count_Avenue_Col  : constant := 100; --  + 0 .. 3: avenue columns (street names), -1 none
+   Count_Avenue_Row  : constant := 104; --  + 0 .. 3: avenue rows
 
    function City_Count (What : Integer_32) return Integer_32
      with Export, Convention => C, External_Name => "hs_count";
@@ -117,6 +126,14 @@ package Hood.Host_ABI is
    Table_Crew     : constant := 7;  --  index gang, field 1 .. crew count
    Table_Pool     : constant := 8;  --  index gang, field 1 .. pool count
    Table_Premises : constant := 9;  --  index building: gang links
+   --  Item 5
+   Table_Crews    : constant := 10; --  index crew slot 0 .. 47
+   Table_Gang_Crews : constant := 11; --  index gang: field 0 count, 1 .. 12 crew slots
+   Table_Order    : constant := 12; --  index order slot 0 .. 511
+   Table_Last     : constant := 13; --  index 0 .. last week's count - 1
+   Table_Message  : constant := 14; --  index 1 .. messages: fields 0 kind, 1 .. 4 numbers
+   Table_Preview  : constant := 15; --  index 0: the staged order (hs_order_preview)
+   --  (Table_Crew and the gang's team fields read the gang's first crew.)
 
    --  Block fields
    F_GX : constant := 0;  F_GY : constant := 1;  F_District : constant := 2;
@@ -143,7 +160,7 @@ package Hood.Host_ABI is
    F_P_Team : constant := 8;  F_P_Building : constant := 9;  F_P_X : constant := 10;
    F_P_Y : constant := 11;  F_P_Walking : constant := 12;  F_P_Status : constant := 13;
    F_P_Hostility : constant := 14;  F_P_Fear : constant := 15;
-   F_P_Name_Length : constant := 16;
+   F_P_Name_Length : constant := 16;  F_P_Order : constant := 17;
    F_P_Skill : constant := 20;    --  + Skill'Pos, half stars
    F_P_Opinion : constant := 40;  --  + gang 1 .. 4
    F_G_Colour : constant := 0;  F_G_Surname : constant := 1;  F_G_Player : constant := 2;
@@ -156,10 +173,40 @@ package Hood.Host_ABI is
    F_G_Wages : constant := 17;  F_G_Eliminated : constant := 18;
    F_G_Heritage : constant := 19;
    F_G_Offered : constant := 20;  --  + gang 1 .. 4, Stance'Pos
+   F_G_Crew_Total : constant := 30;  F_G_Purchases : constant := 31;
+   F_G_Protection : constant := 32;  F_G_Last_Purchases : constant := 33;
+   F_G_Last_Protection : constant := 34;  F_G_Committed : constant := 35;
    F_Pr_Owner_Gang : constant := 0;  F_Pr_Owner_Person : constant := 1;
    F_Pr_Manager : constant := 2;  F_Pr_Protect_Gang : constant := 3;
    F_Pr_Protect_Weekly : constant := 4;  F_Pr_Front_Of : constant := 5;
    F_Pr_Hides : constant := 6;  F_Pr_HQ : constant := 7;
+   F_Pr_Protect_Base : constant := 8;  F_Pr_Collected : constant := 9;
+   --  Crew fields
+   F_C_Id : constant := 0;  F_C_Gang : constant := 1;  F_C_Lieutenant : constant := 2;
+   F_C_Count : constant := 3;  F_C_Pistols : constant := 4;  F_C_Coupes : constant := 5;
+   F_C_Order_Count : constant := 6;  F_C_Time_Used : constant := 7;
+   F_C_Name_First : constant := 8;  F_C_Men : constant := 9;  F_C_Members : constant := 10;
+   F_C_Member : constant := 20;  --  + 1 .. 9
+   F_C_Order : constant := 40;   --  + 1 .. 24, order slots
+   --  Order fields
+   F_O_Id : constant := 0;  F_O_Gang : constant := 1;  F_O_Crew : constant := 2;
+   F_O_Kind : constant := 3;  F_O_State : constant := 4;  F_O_Manpower : constant := 5;
+   F_O_Repeat : constant := 6;  F_O_Amount : constant := 7;  F_O_Level : constant := 8;
+   F_O_Business : constant := 9;  F_O_Front : constant := 10;  F_O_PX : constant := 11;
+   F_O_PY : constant := 12;  F_O_Has_Point : constant := 13;  F_O_Targets : constant := 14;
+   F_O_Blocks : constant := 15;  F_O_Assigned : constant := 16;  F_O_Cursor : constant := 17;
+   F_O_Completed : constant := 18;  F_O_Estimate : constant := 19;  F_O_Worked : constant := 20;
+   F_O_Started : constant := 21;  F_O_Finished : constant := 22;  F_O_Crew_Size : constant := 23;
+   F_O_Results : constant := 24;  F_O_Cost : constant := 25;
+   F_O_Fail : constant := 30;     --  + 0 kind, 1 .. 4 numbers
+   F_O_Waiting : constant := 35;  --  + 0 .. 4
+   F_O_Miss : constant := 40;     --  + 0 .. 4
+   F_O_Has_Time : constant := 45; --  preview: 1 when the crew has the time
+   F_O_Staffing : constant := 46; --  preview: why it cannot be staffed, + 0 .. 3
+   F_O_Target : constant := 100;  --  + 0 .. 63
+   F_O_Block : constant := 200;   --  + 0 .. 15
+   F_O_Person : constant := 220;  --  + 0 .. 9
+   F_O_Result : constant := 300;  --  + 5 (k - 1) + 0 .. 4
 
    function City_Get (Table, Index, Field : Integer_32) return Integer_32
      with Export, Convention => C, External_Name => "hs_get";
@@ -185,7 +232,9 @@ package Hood.Host_ABI is
      with Export, Convention => C, External_Name => "hs_name_char";
 
    --  Item 4: the people hashes (Hood.Population): 1 people, 2 positions,
-   --  3 opinions, 4 names; 0 before a city.
+   --  3 opinions, 4 names; item 5: 5 orders (FNV-1a over the used order
+   --  slots: slot, number, kind, state, sites, done, results; proposed);
+   --  0 before a city.
    function Population_Hash (Which : Integer_32) return Unsigned_32
      with Export, Convention => C, External_Name => "hs_population_hash";
 
@@ -199,6 +248,37 @@ package Hood.Host_ABI is
      with Export, Convention => C, External_Name => "hs_tick";
    procedure Finish_Week
      with Export, Convention => C, External_Name => "hs_finish_week";
+
+   --  Item 5: orders and crew commands. An order is staged
+   --  (hs_order_begin, then hs_order_add for each site, block, point or
+   --  option), then previewed or issued; the reply's kind is returned and
+   --  hs_reply reads its numbers (Hood.Population.Commands).
+   procedure Order_Begin (Crew, Kind, Manpower : Integer_32)
+     with Export, Convention => C, External_Name => "hs_order_begin";
+   Add_Building : constant := 1;  Add_Block : constant := 2;  Add_Point : constant := 3;
+   Add_Amount : constant := 4;  Add_Level : constant := 5;  Add_Business : constant := 6;
+   Add_Front : constant := 7;  Add_Repeat : constant := 8;
+   procedure Order_Add (What, A, B : Integer_32)
+     with Export, Convention => C, External_Name => "hs_order_add";
+   function Order_Preview return Integer_32
+     with Export, Convention => C, External_Name => "hs_order_preview";
+   --  1 when the staged order could be drafted (Table_Preview), else 0.
+   function Order_Issue return Integer_32
+     with Export, Convention => C, External_Name => "hs_order_issue";
+   Cmd_Cancel : constant := 1;  Cmd_Set_Pay : constant := 2;  Cmd_Sack : constant := 3;
+   Cmd_Promote : constant := 4;  Cmd_Demote : constant := 5;  Cmd_Move_To_Crew : constant := 6;
+   Cmd_Move_To_Pool : constant := 7;  Cmd_Repeat : constant := 8;
+   function Command (Cmd, A, B : Integer_32) return Integer_32
+     with Export, Convention => C, External_Name => "hs_command";
+   --  Cancel (order slot), Set_Pay (person, pay), Sack (person), Promote
+   --  (person), Demote (crew slot), Move_To_Crew (person, crew slot),
+   --  Move_To_Pool (person), Repeat (last week's index: given again as it
+   --  was). Returns the reply kind.
+   Reply_Kept_Count : constant := 5;  Reply_Slot : constant := 6;
+   Reply_Kept : constant := 10;  --  + 0 .. 63
+   function Reply_Get (Field : Integer_32) return Integer_32
+     with Export, Convention => C, External_Name => "hs_reply";
+   --  0 kind, 1 .. 4 its numbers, then the kept sites and the new slot.
 
    function Draw_Ptr (Layer : Integer_32) return Unsigned_32
      with Export, Convention => C, External_Name => "hs_draw_ptr";

@@ -1,3 +1,4 @@
+with Hood.Population.Crews;
 package body Hood.Population.Setup is
 
    use Hood.Random;
@@ -224,6 +225,7 @@ package body Hood.Population.Setup is
          P.DX := X;
          P.DY := Y;
          P.Walking := False;
+         P.Order := No_Id;
       end;
    end Create;
 
@@ -401,6 +403,7 @@ package body Hood.Population.Setup is
          S.Extra (B).Protect_Gang := G;
          S.Extra (B).Protect_Weekly :=
            Integer_32 (Round_Half_Up (Long_Float'Max (60.0, Profit * 0.4)));
+         S.Extra (B).Protect_Base := S.Extra (B).Protect_Weekly;
       end Protect;
 
       procedure Join_Pool (G : Gang_Id; P : Integer_32) is
@@ -411,7 +414,7 @@ package body Hood.Population.Setup is
          end if;
       end Join_Pool;
 
-      Block, Front_Lot, Centre_Lot, Office, Front, Boss, L, Index, Count, Twin : Integer_32;
+      Block, Front_Lot, Centre_Lot, Office, Front, Boss, L, Index, Count, Twin, Crew : Integer_32;
       Hoods : array (1 .. 6) of Integer_32;
       Is_Female : Boolean;
       Heritage : Heritage_Id;
@@ -444,10 +447,12 @@ package body Hood.Population.Setup is
             Heritage => (if G = 1 then Player_Heritage
                          else Gang_Surname_Heritage (Names (Integer (G)))),
             Player => G = 1, Profile => -1,
-            Boss | Office | Front | Manager | Team | Lieutenant => No_Id,
-            Cash => 6_000, Crew_Count | Pool_Count | Site_Count | Wages => 0,
-            Crew | Pool => [others => No_Id], Sites => [others => No_Id],
-            Pistols => 2, Coupes => 1, Crew_Pistols => 1, Crew_Coupes => 1,
+            Boss | Office | Front | Manager => No_Id,
+            Cash => 6_000, Crew_Total | Pool_Count | Site_Count | Wages => 0,
+            Purchases | Protection | Last_Purchases | Last_Protection => 0,
+            Crews => [others => No_Id],
+            Pool => [others => No_Id], Sites => [others => No_Id],
+            Pistols => 2, Coupes => 1,
             Offered | Known => [others => Peace], Eliminated => False);
       end loop;
 
@@ -567,8 +572,10 @@ package body Hood.Population.Setup is
             exit when Office = No_Id;
             S.Next_Id := S.Next_Id + 1;  --  the office takes the next number
             S.Extra (Office) := (Owner_Gang => G, Owner_Person | Manager | Hides => No_Id,
-                                 Protect_Gang => 0, Protect_Weekly => 0,
+                                 Protect_Gang => 0, Protect_Weekly | Protect_Base => 0,
+                                 Collected_Week => 0,
                                  Front_Of => Front, Is_HQ => True);
+            S.Building_Count := C.Building_Count;
             S.Extra (Front).Owner_Gang := G;
             S.Extra (Front).Hides := Office;
             Count_Trading (S, C);
@@ -616,16 +623,12 @@ package body Hood.Population.Setup is
                   Hoods (J + 1) := V;
                end;
             end loop;
-            Gang.Lieutenant := Hoods (2);
-            S.People (Hoods (2)).Kind := R_Lieutenant;
+            Hood.Population.Crews.New_Crew (S, G, Hoods (2), Crew);
             S.People (Hoods (2)).Demand := Pay_Demand (S.People (Hoods (2)), R_Lieutenant);
             S.People (Hoods (2)).Pay := S.People (Hoods (2)).Demand;
-            Gang.Team := S.Next_Id;
-            S.Next_Id := S.Next_Id + 1;
-            S.People (Hoods (2)).Team := Gang.Team;
-            Gang.Crew_Count := 1;
-            Gang.Crew (1) := Hoods (3);
-            S.People (Hoods (3)).Team := Gang.Team;
+            S.Crews (Crew).Pistols := 1;
+            S.Crews (Crew).Coupes := 1;
+            Hood.Population.Crews.Add_Member (S, Crew, Hoods (3));
             for K in 4 .. 6 loop
                Join_Pool (G, Hoods (K));
             end loop;
@@ -730,9 +733,11 @@ package body Hood.Population.Setup is
             end Quote;
          begin
             Quote (S.Gangs (G).Manager);
-            Quote (S.Gangs (G).Lieutenant);
-            for K in 1 .. Integer (S.Gangs (G).Crew_Count) loop
-               Quote (S.Gangs (G).Crew (K));
+            for J in 1 .. Integer (S.Gangs (G).Crew_Total) loop
+               Quote (S.Crews (S.Gangs (G).Crews (J)).Lieutenant);
+               for K in 1 .. Integer (S.Crews (S.Gangs (G).Crews (J)).Count) loop
+                  Quote (S.Crews (S.Gangs (G).Crews (J)).Members (K));
+               end loop;
             end loop;
             for K in 1 .. Integer (S.Gangs (G).Pool_Count) loop
                Quote (S.Gangs (G).Pool (K));
@@ -777,10 +782,23 @@ package body Hood.Population.Setup is
       S.Game_Over := False;
       S.Draws_This_Week := 0;
       for K in Integer_32 range 0 .. C.Building_Count - 1 loop
-         S.Extra (K) := (Owner_Gang | Protect_Gang => 0, Protect_Weekly => 0,
+         S.Extra (K) := (Owner_Gang | Protect_Gang => 0,
+                         Protect_Weekly | Protect_Base | Collected_Week => 0,
                          Owner_Person | Manager | Front_Of | Hides => No_Id,
                          Is_HQ => False);
       end loop;
+      S.Building_Count := C.Building_Count;
+      for K in S.Crews'Range loop
+         S.Crews (K).Gang := 0;
+         S.Crews (K).Count := 0;
+         S.Crews (K).Order_Count := 0;
+      end loop;
+      for K in S.Orders'Range loop
+         S.Orders (K).Gang := 0;
+      end loop;
+      S.Last_Count := 0;
+      S.Message_Count := 0;
+      S.City_Changed := False;
       Count_Trading (S, C);
       Streets := 0;
       Civics := 0;

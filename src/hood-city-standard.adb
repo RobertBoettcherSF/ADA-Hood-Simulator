@@ -132,6 +132,8 @@ package body Hood.City.Standard is
       if P.Overflow then
          C.Status := Status_Full;
       end if;
+      C.Avenue_Cols := P.Avenue_Cols;
+      C.Avenue_Rows := P.Avenue_Rows;
 
       --  Blocks (citygen.ts:267-279).
       for GY in Integer_32 range 0 .. Integer_32 (P.H) - 1 loop

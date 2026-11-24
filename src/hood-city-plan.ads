@@ -116,6 +116,7 @@ private package Hood.City.Plan with Preelaborate is
    Church_Count : Integer_32;
    Churches   : array (Integer_32 range 0 .. 3) of Point;
    Overflow   : Boolean;  --  Max_Firms was reached
+   Avenue_Cols, Avenue_Rows : Hood.City.Avenue_Lines;  --  item 5: street names
 
    procedure Run
      (Seed     : Unsigned_32;

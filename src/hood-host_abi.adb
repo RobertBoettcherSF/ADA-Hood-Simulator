@@ -2,6 +2,9 @@ with System.Storage_Elements;
 with Hood.City;
 with Hood.Grid;
 with Hood.Population;
+with Hood.Population.Commands;
+with Hood.Population.Crews;
+with Hood.Population.Orders;
 with Hood.Random;
 with Hood.Tables;
 with Hood.Trig;
@@ -86,6 +89,102 @@ package body Hood.Host_ABI is
       end loop;
    end Fill_Layers;
 
+   City_Version : Integer_32 := 0;
+
+   --  The lot layer again after a building or block changed (an order).
+   procedure Note_City is
+   begin
+      if World.People.City_Changed then
+         World.People.City_Changed := False;
+         City_Version := City_Version + 1;
+         Fill_Layers;
+      end if;
+   end Note_City;
+
+   function Player_Gang return Integer_32 is
+   begin
+      if Started then
+         for G in Hood.Population.Gang_Id loop
+            if World.People.Gangs (G).Player then
+               return G;
+            end if;
+         end loop;
+      end if;
+      return 0;
+   end Player_Gang;
+
+   Staged       : Hood.Population.Orders.Order_Input := Hood.Population.Orders.No_Input;
+   Preview      : Hood.Population.Order_Rec;
+   Have_Preview : Boolean := False;
+   Preview_Time : Boolean := False;
+   Preview_Why  : Hood.Population.Line_Rec := Hood.Population.No_Line;
+   Last_Reply   : Hood.Population.Commands.Reply := (Hood.Population.Commands.Y_None, 0, 0, 0, 0);
+   Last_Kept    : Hood.Population.Target_List := [others => -1];
+   Last_Kept_N  : Integer_32 := 0;
+   Last_Slot    : Integer_32 := -1;
+
+   function Line_Field (L : Hood.Population.Line_Rec; Field : Integer_32) return Integer_32 is
+     (case Field is
+         when 0 => Hood.Population.Line_Kind'Pos (L.Kind),
+         when 1 => L.A, when 2 => L.B, when 3 => L.C, when 4 => L.D,
+         when others => 0);
+
+   function Order_Field (O : Hood.Population.Order_Rec; Field : Integer_32; Is_Preview : Boolean)
+     return Integer_32
+   is
+      K : Integer_32;
+   begin
+      case Field is
+         when F_O_Id        => return O.Id;
+         when F_O_Gang      => return Integer_32 (O.Gang);
+         when F_O_Crew      => return O.Crew;
+         when F_O_Kind      => return Hood.Population.Order_Kind'Pos (O.Kind);
+         when F_O_State     => return Hood.Population.Order_State'Pos (O.State);
+         when F_O_Manpower  => return O.Manpower;
+         when F_O_Repeat    => return B2I (O.Repeat);
+         when F_O_Amount    => return O.Amount;
+         when F_O_Level     => return O.Level;
+         when F_O_Business  => return O.Business;
+         when F_O_Front     => return O.Front;
+         when F_O_PX        => return Integer_32 (O.PX);
+         when F_O_PY        => return Integer_32 (O.PY);
+         when F_O_Has_Point => return B2I (O.Has_Point);
+         when F_O_Targets   => return O.Target_Count;
+         when F_O_Blocks    => return O.Block_Count;
+         when F_O_Assigned  => return O.Assigned_Count;
+         when F_O_Cursor    => return O.Cursor;
+         when F_O_Completed => return O.Completed;
+         when F_O_Estimate  => return O.Estimate;
+         when F_O_Worked    => return O.Worked;
+         when F_O_Started   => return O.Started;
+         when F_O_Finished  => return O.Finished;
+         when F_O_Crew_Size => return O.Crew_Size;
+         when F_O_Results   => return O.Result_Count;
+         when F_O_Cost      =>
+            return (if O.Gang = 0 then 0 else Hood.Population.Orders.Order_Cost (World.People, World.City, O));
+         when F_O_Fail .. F_O_Fail + 4       => return Line_Field (O.Fail, Field - F_O_Fail);
+         when F_O_Waiting .. F_O_Waiting + 4 => return Line_Field (O.Waiting_For, Field - F_O_Waiting);
+         when F_O_Miss .. F_O_Miss + 4       => return Line_Field (O.Last_Miss, Field - F_O_Miss);
+         when F_O_Has_Time  => return (if Is_Preview then B2I (Preview_Time) else 0);
+         when F_O_Staffing .. F_O_Staffing + 3 =>
+            return (if Is_Preview then Line_Field (Preview_Why, Field - F_O_Staffing) else 0);
+         when F_O_Target .. F_O_Target + Hood.Population.Max_Targets - 1 =>
+            K := Field - F_O_Target + 1;
+            return (if K <= O.Target_Count then O.Targets (Integer (K)) else -1);
+         when F_O_Block .. F_O_Block + Hood.Population.Max_Order_Blocks - 1 =>
+            K := Field - F_O_Block + 1;
+            return (if K <= O.Block_Count then O.Blocks (Integer (K)) else -1);
+         when F_O_Person .. F_O_Person + 9 =>
+            K := Field - F_O_Person + 1;
+            return (if K <= O.Assigned_Count then O.Assigned (Integer (K)) else -1);
+         when F_O_Result .. F_O_Result + 5 * Hood.Population.Max_Results - 1 =>
+            K := (Field - F_O_Result) / 5 + 1;
+            return (if K <= O.Result_Count
+                    then Line_Field (O.Results (Integer (K)), (Field - F_O_Result) mod 5) else 0);
+         when others => return 0;
+      end case;
+   end Order_Field;
+
    procedure New_Game
      (City_Seed, Auto_Seed : Unsigned_32; Blocks_X, Blocks_Y : Integer_32) is
    begin
@@ -96,6 +195,9 @@ package body Hood.Host_ABI is
       Started := True;
       Fill_Layers;
       Fill_People;
+      World.People.City_Changed := False;
+      Have_Preview := False;
+      Staged := Hood.Population.Orders.No_Input;
    end New_Game;
 
    procedure Launch_Week is
@@ -111,6 +213,7 @@ package body Hood.Host_ABI is
       if Started then
          Hood.World.Run_Minutes (World, Clamp (Minutes, 0, Hood.Population.Minutes_Per_Week), Ran);
          Fill_People;
+         Note_City;
       end if;
       return Ran;
    end Tick;
@@ -120,6 +223,7 @@ package body Hood.Host_ABI is
       if Started then
          Hood.World.Finish_Week (World);
          Fill_People;
+         Note_City;
       end if;
    end Finish_Week;
 
@@ -133,6 +237,50 @@ package body Hood.Host_ABI is
       return Character'Pos (Hood.Population.Full_Name_Char (World.People.People (Person), Index));
    end Name_Char;
 
+   function Orders_Hash return Unsigned_32 is
+      H : Unsigned_32 := 2_166_136_261;
+      procedure Add (V : Integer_32) is
+         U : Unsigned_32 := Unsigned_32'Mod (V);
+      begin
+         for B in 1 .. 4 loop
+            H := (H xor (U and 255)) * 16_777_619;
+            U := Shift_Right (U, 8);
+         end loop;
+      end Add;
+      procedure Add_Line (L : Hood.Population.Line_Rec) is
+      begin
+         Add (Hood.Population.Line_Kind'Pos (L.Kind));
+         Add (L.A);
+         Add (L.B);
+         Add (L.C);
+         Add (L.D);
+      end Add_Line;
+   begin
+      for K in World.People.Orders'Range loop
+         declare
+            O : Hood.Population.Order_Rec renames World.People.Orders (K);
+         begin
+            if O.Gang /= 0 then
+               Add (K);
+               Add (O.Id);
+               Add (Hood.Population.Order_Kind'Pos (O.Kind));
+               Add (Hood.Population.Order_State'Pos (O.State));
+               Add (O.Target_Count);
+               for T in 1 .. Integer (O.Target_Count) loop
+                  Add (O.Targets (T));
+               end loop;
+               Add (O.Completed);
+               Add (O.Result_Count);
+               for R in 1 .. Integer (O.Result_Count) loop
+                  Add_Line (O.Results (R));
+               end loop;
+               Add_Line (O.Fail);
+            end if;
+         end;
+      end loop;
+      return H;
+   end Orders_Hash;
+
    function Population_Hash (Which : Integer_32) return Unsigned_32 is
    begin
       if not Started or else World.City.Status /= Hood.City.Status_Ok then
@@ -143,6 +291,7 @@ package body Hood.Host_ABI is
          when 2 => return Hood.Population.Position_Hash (World.People);
          when 3 => return Hood.Population.Opinion_Hash (World.People);
          when 4 => return Hood.Population.Name_Hash (World.People);
+         when 5 => return Orders_Hash;
          when others => return 0;
       end case;
    end Population_Hash;
@@ -188,6 +337,20 @@ package body Hood.Host_ABI is
          when Count_Built_Class .. Count_Built_Class + 7 =>
             return C.Built_Class (Hood.Tables.Building_Class'Val (What - Count_Built_Class));
          when Count_Built_Types => return C.Built_Types;
+         when Count_Orders =>
+            for O of World.People.Orders loop
+               N := N + B2I (O.Gang /= 0);
+            end loop;
+         when Count_Last        => return World.People.Last_Count;
+         when Count_Messages    => return World.People.Message_Count;
+         when Count_City_Version => return City_Version;
+         when Count_Crews =>
+            for R of World.People.Crews loop
+               N := N + B2I (R.Gang /= 0);
+            end loop;
+         when Count_Player_Gang => return Player_Gang;
+         when Count_Avenue_Col .. Count_Avenue_Col + 3 => return C.Avenue_Cols (What - Count_Avenue_Col);
+         when Count_Avenue_Row .. Count_Avenue_Row + 3 => return C.Avenue_Rows (What - Count_Avenue_Row);
          when Count_Walking =>
             for I in 0 .. World.People.Count - 1 loop
                N := N + B2I (World.People.People (I).Walking);
@@ -332,6 +495,7 @@ package body Hood.Host_ABI is
                   when F_P_Fear        =>
                      return (if G = 0 then -1 else Hood.Population.Fear_Of (P, G));
                   when F_P_Name_Length => return Hood.Population.Full_Name_Length (P);
+                  when F_P_Order       => return P.Order;
                   when F_P_Skill .. F_P_Skill + 10 =>
                      return Integer_32 (P.Skills (Hood.Tables.Skill'Val (Field - F_P_Skill)));
                   when F_P_Opinion + 1 .. F_P_Opinion + 4 =>
@@ -345,9 +509,21 @@ package body Hood.Host_ABI is
             end if;
             declare
                G : Hood.Population.Gang_Rec renames World.People.Gangs (Index);
+               First : constant Integer_32 := Hood.Population.Crews.First_Crew (World.People, Index);
+               function Crew_Field (F : Integer_32) return Integer_32 is
+                 (if First < 0 then (if F = F_G_Crew_Count or else F = F_G_Crew_Pistols
+                                         or else F = F_G_Crew_Coupes then 0 else -1)
+                  else (case F is
+                           when F_G_Team => World.People.Crews (First).Id,
+                           when F_G_Lieutenant => World.People.Crews (First).Lieutenant,
+                           when F_G_Crew_Count => World.People.Crews (First).Count,
+                           when F_G_Crew_Pistols => World.People.Crews (First).Pistols,
+                           when others => World.People.Crews (First).Coupes));
             begin
                if Table = Table_Crew then
-                  return (if Field in 1 .. G.Crew_Count then G.Crew (Integer (Field)) else -1);
+                  return (if First < 0 then -1
+                          elsif Field in 1 .. World.People.Crews (First).Count
+                          then World.People.Crews (First).Members (Integer (Field)) else -1);
                elsif Table = Table_Pool then
                   return (if Field in 1 .. G.Pool_Count then G.Pool (Integer (Field)) else -1);
                end if;
@@ -361,14 +537,18 @@ package body Hood.Host_ABI is
                   when F_G_Office      => return G.Office;
                   when F_G_Front       => return G.Front;
                   when F_G_Manager     => return G.Manager;
-                  when F_G_Team        => return G.Team;
-                  when F_G_Lieutenant  => return G.Lieutenant;
-                  when F_G_Crew_Count  => return G.Crew_Count;
+                  when F_G_Team | F_G_Lieutenant | F_G_Crew_Count => return Crew_Field (Field);
                   when F_G_Pool_Count  => return G.Pool_Count;
                   when F_G_Pistols     => return G.Pistols;
                   when F_G_Coupes      => return G.Coupes;
-                  when F_G_Crew_Pistols => return G.Crew_Pistols;
-                  when F_G_Crew_Coupes => return G.Crew_Coupes;
+                  when F_G_Crew_Pistols | F_G_Crew_Coupes => return Crew_Field (Field);
+                  when F_G_Crew_Total  => return G.Crew_Total;
+                  when F_G_Purchases   => return G.Purchases;
+                  when F_G_Protection  => return G.Protection;
+                  when F_G_Last_Purchases => return G.Last_Purchases;
+                  when F_G_Last_Protection => return G.Last_Protection;
+                  when F_G_Committed   =>
+                     return Hood.Population.Orders.Committed_Cash (World.People, C, Index, -1);
                   when F_G_Wages       => return G.Wages;
                   when F_G_Eliminated  => return B2I (G.Eliminated);
                   when F_G_Heritage    => return Integer_32 (G.Heritage);
@@ -393,9 +573,70 @@ package body Hood.Host_ABI is
                   when F_Pr_Front_Of       => return E.Front_Of;
                   when F_Pr_Hides          => return E.Hides;
                   when F_Pr_HQ             => return B2I (E.Is_HQ);
+                  when F_Pr_Protect_Base   => return E.Protect_Base;
+                  when F_Pr_Collected      => return E.Collected_Week;
                   when others              => return 0;
                end case;
             end;
+         when Table_Crews =>
+            if Index not in World.People.Crews'Range then
+               return 0;
+            end if;
+            declare
+               R : Hood.Population.Crew_Rec renames World.People.Crews (Index);
+            begin
+               case Field is
+                  when F_C_Id          => return R.Id;
+                  when F_C_Gang        => return Integer_32 (R.Gang);
+                  when F_C_Lieutenant  => return R.Lieutenant;
+                  when F_C_Count       => return R.Count;
+                  when F_C_Pistols     => return R.Pistols;
+                  when F_C_Coupes      => return R.Coupes;
+                  when F_C_Order_Count => return R.Order_Count;
+                  when F_C_Time_Used   => return R.Time_Used;
+                  when F_C_Name_First  => return R.Name_First;
+                  when F_C_Men         =>
+                     return (if R.Gang = 0 then 0 else Hood.Population.Orders.Crew_Men (World.People, C, Index));
+                  when F_C_Members     =>
+                     return (if R.Gang = 0 then 0 else Hood.Population.Orders.Members_Count (World.People, Index));
+                  when F_C_Member + 1 .. F_C_Member + Hood.Population.Max_Crew_Members =>
+                     return (if Field - F_C_Member <= R.Count then R.Members (Integer (Field - F_C_Member)) else -1);
+                  when F_C_Order + 1 .. F_C_Order + Hood.Population.Max_Crew_Orders =>
+                     return (if Field - F_C_Order <= R.Order_Count then R.Orders (Integer (Field - F_C_Order))
+                             else -1);
+                  when others => return 0;
+               end case;
+            end;
+         when Table_Gang_Crews =>
+            if Index not in Hood.Population.Gang_Id then
+               return 0;
+            end if;
+            declare
+               G : Hood.Population.Gang_Rec renames World.People.Gangs (Index);
+            begin
+               return (if Field = 0 then G.Crew_Total
+                       elsif Field in 1 .. G.Crew_Total then G.Crews (Integer (Field)) else -1);
+            end;
+         when Table_Order =>
+            if Index not in World.People.Orders'Range then
+               return 0;
+            end if;
+            return Order_Field (World.People.Orders (Index), Field, False);
+         when Table_Last =>
+            if Index not in 0 .. World.People.Last_Count - 1 then
+               return 0;
+            end if;
+            return Order_Field (World.People.Last_Week (Index), Field, False);
+         when Table_Preview =>
+            if Index /= 0 or else not Have_Preview then
+               return 0;
+            end if;
+            return Order_Field (Preview, Field, True);
+         when Table_Message =>
+            if Index not in 1 .. World.People.Message_Count then
+               return 0;
+            end if;
+            return Line_Field (World.People.Messages (Integer (Index)), Field);
          when Table_HQ =>
             if Index not in 1 .. C.HQ_Count then
                return 0;
@@ -412,6 +653,148 @@ package body Hood.Host_ABI is
             return 0;
       end case;
    end City_Get;
+
+   procedure Order_Begin (Crew, Kind, Manpower : Integer_32) is
+   begin
+      Staged := Hood.Population.Orders.No_Input;
+      Staged.Crew := Crew;
+      Staged.Kind := Hood.Population.Order_Kind'Val
+        (Clamp (Kind, 0, Hood.Population.Order_Kind'Pos (Hood.Population.Order_Kind'Last)));
+      Staged.Manpower := Manpower;
+      Have_Preview := False;
+   end Order_Begin;
+
+   procedure Order_Add (What, A, B : Integer_32) is
+   begin
+      case What is
+         when Add_Building =>
+            if Staged.Picked_Count < Hood.Population.Max_Targets then
+               Staged.Picked_Count := Staged.Picked_Count + 1;
+               Staged.Picked (Integer (Staged.Picked_Count)) := A;
+            end if;
+         when Add_Block =>
+            if Staged.Block_Count < Hood.Population.Max_Order_Blocks then
+               Staged.Block_Count := Staged.Block_Count + 1;
+               Staged.Blocks (Integer (Staged.Block_Count)) := A;
+            end if;
+         when Add_Point =>
+            Staged.PX := Hood.Units.Units (A);
+            Staged.PY := Hood.Units.Units (B);
+            Staged.Has_Point := True;
+         when Add_Amount   => Staged.Amount := A;
+         when Add_Level    => Staged.Level := A;
+         when Add_Business => Staged.Business := A;
+         when Add_Front    => Staged.Front := A;
+         when Add_Repeat   => Staged.Repeat := A /= 0;
+         when others       => null;
+      end case;
+   end Order_Add;
+
+   function Staged_Ok return Boolean is
+     (Started and then Player_Gang /= 0 and then Staged.Crew in World.People.Crews'Range
+      and then Integer_32 (World.People.Crews (Staged.Crew).Gang) = Player_Gang
+      and then Staged.Picked_Count >= 0
+      and then (for all K in 1 .. Integer (Staged.Picked_Count) =>
+                  Staged.Picked (K) in 0 .. World.City.Building_Count - 1)
+      and then (for all K in 1 .. Integer (Staged.Block_Count) =>
+                  Staged.Blocks (K) in 0 .. World.City.Block_Count - 1)
+      and then (Staged.Front = -1 or else Staged.Front in 0 .. World.City.Building_Count - 1));
+
+   function Order_Preview return Integer_32 is
+   begin
+      Have_Preview := False;
+      if not Staged_Ok then
+         return 0;
+      end if;
+      Hood.Population.Orders.Draft
+        (World.People, World.City, Player_Gang, Staged, -1, Preview);
+      Preview_Time := Hood.Population.Orders.Has_Time (World.People, World.City, Staged.Crew, Preview, -1);
+      Preview_Why := Hood.Population.Orders.Staffing_Reason
+        (World.People, World.City, Staged.Crew, Staged.Kind, Integer_32'Max (1, Staged.Manpower));
+      Have_Preview := True;
+      return 1;
+   end Order_Preview;
+
+   function Order_Issue return Integer_32 is
+      use Hood.Population.Commands;
+   begin
+      Last_Kept_N := 0;
+      Last_Slot := -1;
+      if not Started or else Player_Gang = 0 then
+         Last_Reply := (Y_No_Crew, 0, 0, 0, 0);
+      elsif not Staged_Ok then
+         Last_Reply := (if Staged.Crew in World.People.Crews'Range
+                          and then Integer_32 (World.People.Crews (Staged.Crew).Gang) = Player_Gang
+                        then (Y_No_Site, 0, 0, 0, 0) else (Y_No_Crew, 0, 0, 0, 0));
+      else
+         Issue (World.People, World.City, Player_Gang, Staged, Last_Reply, Last_Kept, Last_Kept_N, Last_Slot);
+      end if;
+      Have_Preview := False;
+      return Reply_Kind'Pos (Last_Reply.Kind);
+   end Order_Issue;
+
+   function Command (Cmd, A, B : Integer_32) return Integer_32 is
+      use Hood.Population.Commands;
+      G : constant Integer_32 := Player_Gang;
+   begin
+      Last_Kept_N := 0;
+      Last_Slot := -1;
+      if G = 0 then
+         Last_Reply := (Y_No_Person, 0, 0, 0, 0);
+         return Reply_Kind'Pos (Last_Reply.Kind);
+      end if;
+      case Cmd is
+         when Cmd_Cancel       => Cancel (World.People, World.City, G, A, Last_Reply);
+         when Cmd_Set_Pay      => Set_Pay (World.People, G, A, B, Last_Reply);
+         when Cmd_Sack         => Sack (World.People, G, A, Last_Reply);
+         when Cmd_Promote      => Promote (World.People, World.City, G, A, Last_Reply);
+         when Cmd_Demote       => Demote (World.People, G, A, Last_Reply);
+         when Cmd_Move_To_Crew => Move_To_Crew (World.People, World.City, G, A, B, Last_Reply);
+         when Cmd_Move_To_Pool => Move_To_Pool (World.People, World.City, G, A, Last_Reply);
+         when Cmd_Repeat =>
+            if A not in 0 .. World.People.Last_Count - 1 then
+               Last_Reply := (Y_No_Order, 0, 0, 0, 0);
+            else
+               declare
+                  O : Hood.Population.Order_Rec renames World.People.Last_Week (A);
+               begin
+                  Order_Begin (O.Crew, Hood.Population.Order_Kind'Pos (O.Kind), O.Manpower);
+                  Staged.Picked_Count := O.Target_Count;
+                  Staged.Picked := O.Targets;
+                  Staged.Block_Count := O.Block_Count;
+                  Staged.Blocks := O.Blocks;
+                  Staged.PX := O.PX;
+                  Staged.PY := O.PY;
+                  Staged.Has_Point := O.Has_Point;
+                  Staged.Amount := O.Amount;
+                  Staged.Level := O.Level;
+                  Staged.Business := O.Business;
+                  Staged.Front := O.Front;
+                  Staged.Repeat := O.Repeat;
+                  return Order_Issue;
+               end;
+            end if;
+         when others => Last_Reply := (Y_None, 0, 0, 0, 0);
+      end case;
+      Fill_People;
+      return Reply_Kind'Pos (Last_Reply.Kind);
+   end Command;
+
+   function Reply_Get (Field : Integer_32) return Integer_32 is
+   begin
+      case Field is
+         when 0 => return Hood.Population.Commands.Reply_Kind'Pos (Last_Reply.Kind);
+         when 1 => return Last_Reply.A;
+         when 2 => return Last_Reply.B;
+         when 3 => return Last_Reply.C;
+         when 4 => return Last_Reply.D;
+         when Reply_Kept_Count => return Last_Kept_N;
+         when Reply_Slot => return Last_Slot;
+         when Reply_Kept .. Reply_Kept + Hood.Population.Max_Targets - 1 =>
+            return (if Field - Reply_Kept < Last_Kept_N then Last_Kept (Integer (Field - Reply_Kept + 1)) else -1);
+         when others => return 0;
+      end case;
+   end Reply_Get;
 
    function Draw_Ptr (Layer : Integer_32) return Unsigned_32 is
       use System.Storage_Elements;

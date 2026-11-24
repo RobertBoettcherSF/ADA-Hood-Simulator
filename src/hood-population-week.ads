@@ -22,7 +22,7 @@ package Hood.Population.Week with Preelaborate is
    --  Succession, End_Conditions and Next_Week; the others are slots kept
    --  for the item that brings them (DESIGN 8).
    type Settlement_Stage is
-     (Orders_And_Jobs,     --  item 5
+     (Orders_And_Jobs,     --  item 5: unfinished orders
       Economy,             --  item 4: wages, loyalty, desertion; income item 8
       Taxes,               --  item 8
       Audits,              --  item 8
@@ -41,13 +41,13 @@ package Hood.Population.Week with Preelaborate is
       Next_Week,           --  item 4: week counter, recruits; the rest items 5-8
       Rival_Planning);     --  item 9
 
-   procedure Launch (S : in out Population_State)
+   procedure Launch (S : in out Population_State; C : Hood.City.City_State)
      with Pre => S.Phase = Planning and then not S.Game_Over;
 
    --  One minute of the week.
    procedure Tick
      (S    : in out Population_State;
-      C    : Hood.City.City_State;
+      C    : in out Hood.City.City_State;
       Main : in out Hood.Random.Mulberry)
      with Pre => S.Phase = Week_Running
                  and then S.Minute < Minutes_Per_Week;
@@ -63,7 +63,7 @@ package Hood.Population.Week with Preelaborate is
    --  The rest of the week and its end.
    procedure Finish
      (S    : in out Population_State;
-      C    : Hood.City.City_State;
+      C    : in out Hood.City.City_State;
       Main : in out Hood.Random.Mulberry)
      with Pre => S.Phase = Week_Running;
 

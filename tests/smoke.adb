@@ -9,6 +9,8 @@ with Ada.Text_IO;
 with Interfaces;
 with Hood.Grid;
 with Hood.Population;
+with Hood.Population.Commands;
+with Hood.Tables;
 with Hood.Host_ABI;
 with Hood.Random;
 with Hood.Trig;
@@ -618,6 +620,310 @@ procedure Smoke is
       New_Game (1932, 1932, 44, 35);
    end People_Checks;
 
+
+   --  Item 5: the scripted four weeks of the private 1.2.91 run (seed 1932,
+   --  Standard city). Numbers here; the texts in tests/order-check.mjs.
+   procedure Order_Checks is
+      use Hood.Population;
+      use Hood.Population.Commands;
+      G, Crew, Lt, Office : Integer_32;
+      T0 : Ada.Calendar.Time;
+      use type Ada.Calendar.Time;
+
+      function Name (P : Integer_32) return String is
+         L : constant Integer_32 := City_Get (Table_Person, P, F_P_Name_Length);
+         S : String (1 .. Integer (Integer_32'Max (0, L)));
+      begin
+         for K in S'Range loop
+            S (K) := Character'Val (Name_Char (P, Integer_32 (K)));
+         end loop;
+         return S;
+      end Name;
+
+      --  1.2.91 numbers its live buildings in order; the Ada city keeps the
+      --  ones replaced by landmarks, so the n-th live one.
+      function Site (Rank : Integer_32) return Integer_32 is
+         N : Integer_32 := -1;
+      begin
+         for B in Integer_32 range 0 .. Hood.Population.Max_Orders * 64 loop
+            if City_Get (Table_Building, B, F_B_Removed) = 0 then
+               N := N + 1;
+               if N = Rank then
+                  return B;
+               end if;
+            end if;
+         end loop;
+         return -1;
+      end Site;
+
+      function Kind_Of (K : Order_Kind) return Integer_32 is (Order_Kind'Pos (K));
+      function LK (K : Line_Kind) return Integer_32 is (Line_Kind'Pos (K));
+      function YK (K : Reply_Kind) return Integer_32 is (Reply_Kind'Pos (K));
+
+      --  The newest order slot of a kind (this week).
+      function Slot_Of (K : Order_Kind) return Integer_32 is
+         Best : Integer_32 := -1;
+      begin
+         for S in Integer_32 range 0 .. Max_Orders - 1 loop
+            if City_Get (Table_Order, S, F_O_Gang) = G and then City_Get (Table_Order, S, F_O_Kind) = Kind_Of (K)
+              and then (Best < 0 or else City_Get (Table_Order, S, F_O_Id) > City_Get (Table_Order, Best, F_O_Id))
+            then
+               Best := S;
+            end if;
+         end loop;
+         return Best;
+      end Slot_Of;
+
+      function Last_Of (K : Order_Kind) return Integer_32 is
+      begin
+         for I in 0 .. City_Count (Count_Last) - 1 loop
+            if City_Get (Table_Last, I, F_O_Gang) = G and then City_Get (Table_Last, I, F_O_Kind) = Kind_Of (K) then
+               return I;
+            end if;
+         end loop;
+         return -1;
+      end Last_Of;
+
+      function Result (I, K, F : Integer_32) return Integer_32 is
+        (City_Get (Table_Last, I, F_O_Result + 5 * (K - 1) + F));
+
+      procedure Issue_It (Kind : Order_Kind; Men : Integer_32; Label : String;
+                          Est : Integer_32; Want : Reply_Kind := Y_Accepted)
+      is
+         pragma Unreferenced (Kind, Men);
+         Ok_Preview : constant Integer_32 := Order_Preview;
+         E : constant Integer_32 := City_Get (Table_Preview, 0, F_O_Estimate);
+         Got : Integer_32;
+      begin
+         Got := Order_Issue;
+         Put_Line ("  order " & Label & ": reply" & Got'Image & " (" & Reply_Get (1)'Image & Reply_Get (2)'Image
+                   & ") estimate" & E'Image & (if Est > 0 then " (1.2.91 preview" & Est'Image & ")" else ""));
+         Check (Ok_Preview = 1 and then Got = YK (Want),
+                "orders: " & Label & " gives reply " & Reply_Kind'Image (Want));
+         if Est > 0 then
+            Check (E = Est, "orders: " & Label & " estimate" & E'Image & " = 1.2.91's preview" & Est'Image);
+         end if;
+      end Issue_It;
+
+      procedure Week_Run (N : Integer; Ref_Draws : Integer_32; Cash : Integer_32) is
+      begin
+         T0 := Ada.Calendar.Clock;
+         Finish_Week;
+         Put_Line ("  week" & N'Image & ": cash" & City_Get (Table_Gang, G, F_G_Cash)'Image & " wages"
+                   & City_Get (Table_Gang, G, F_G_Wages)'Image & " walking and order draws="
+                   & Image (City_Count (Count_Draws_Week)) & " (1.2.91" & Ref_Draws'Image & ", "
+                   & Percent (City_Count (Count_Draws_Week), Ref_Draws) & ") ran in"
+                   & Integer'Image (Integer (1000.0 * (Ada.Calendar.Clock - T0))) & " ms");
+         Check (City_Get (Table_Gang, G, F_G_Cash) = Cash,
+                "orders week" & N'Image & ": cash" & Cash'Image & " (1.2.91 less business income, item 8)");
+         Check (Within_20 (City_Count (Count_Draws_Week), Ref_Draws),
+                "orders week" & N'Image & ": draws within 20 % of 1.2.91");
+      end Week_Run;
+
+      procedure Done_Near (K : Order_Kind; Ref : Integer_32; Label : String) is
+         I : constant Integer_32 := Last_Of (K);
+         F : constant Integer_32 := City_Get (Table_Last, I, F_O_Finished);
+      begin
+         Put_Line ("    " & Label & " done at minute" & F'Image & " (1.2.91 with cars" & Ref'Image & ", "
+                   & Percent (F, Ref) & ")");
+         Check (I >= 0 and then City_Get (Table_Last, I, F_O_State) = Order_State'Pos (Done),
+                "orders: " & Label & " done");
+      end Done_Near;
+
+      I : Integer_32;
+      Pool1, Pool2 : Integer_32;
+   begin
+      New_Game (1932, 1932, 40, 32);
+      G := City_Count (Count_Player_Gang);
+      Crew := City_Get (Table_Gang_Crews, G, 1);
+      Lt := City_Get (Table_Crews, Crew, F_C_Lieutenant);
+      Office := City_Get (Table_Gang, G, F_G_Office);
+      Put_Line ("orders: gang" & G'Image & " crew" & City_Get (Table_Crews, Crew, F_C_Id)'Image & " lt " & Name (Lt)
+                & " man " & Name (City_Get (Table_Crews, Crew, F_C_Member + 1)) & " office" & Office'Image);
+      Check (G = 1 and then City_Get (Table_Gang, G, F_G_Cash) = 6000
+             and then City_Get (Table_Crews, Crew, F_C_Id) = 17620 and then Name (Lt) = "Luigi Romano"
+             and then Name (City_Get (Table_Crews, Crew, F_C_Member + 1)) = "Sal Rinaldi"
+             and then Office = Site (4576) and then City_Get (Table_Building, Office, F_B_Block) = 413,
+             "orders: gang 1, cash 6000, crew 17620 of Luigi Romano and Sal Rinaldi, office 4576 in block 413");
+      Check (City_Get (Table_Premises, Site (1407), F_Pr_Protect_Gang) = G and then City_Get (Table_Premises, Site (1407), F_Pr_Protect_Weekly) = 152
+             and then City_Get (Table_Premises, Site (1578), F_Pr_Protect_Gang) = G and then City_Get (Table_Premises, Site (1578), F_Pr_Protect_Weekly) = 152,
+             "orders: sites 1407 and 1578 pay $152 protection");
+
+      --  Week 1
+      Order_Begin (Crew, Kind_Of (O_Collect), 1);
+      Order_Add (Add_Building, Site (1407), 0);
+      Order_Add (Add_Building, Site (1578), 0);
+      Issue_It (O_Collect, 1, "collect 1407 1578", 312);
+      I := Slot_Of (O_Collect);
+      Check (City_Get (Table_Order, I, F_O_Target) = Site (1578) and then City_Get (Table_Order, I, F_O_Target + 1) = Site (1407),
+             "orders: the collect route goes 1578 then 1407 (as 1.2.91)");
+      Order_Begin (Crew, Kind_Of (O_Buy), 1);
+      Order_Add (Add_Building, Site (1411), 0);
+      Check (Order_Preview = 1 and then City_Get (Table_Preview, 0, F_O_Cost) = 160, "orders: empty land 1411 costs $160");
+      Issue_It (O_Buy, 1, "buy 1411", 359);
+      Order_Begin (Crew, Kind_Of (O_Explore), 1);
+      Order_Add (Add_Block, 413, 0);
+      Issue_It (O_Explore, 1, "explore block 413", 340);
+      I := Slot_Of (O_Explore);
+      Check (City_Get (Table_Order, I, F_O_Targets) = 5 and then City_Get (Table_Order, I, F_O_Target) = Site (1583)
+             and then City_Get (Table_Order, I, F_O_Target + 4) = Site (4576), "orders: explore covers 1583 .. 1586 and 4576");
+      Order_Begin (Crew, Kind_Of (O_Recruit), 1);
+      Order_Add (Add_Block, 413, 0);
+      Issue_It (O_Recruit, 1, "recruit block 413", 0, Y_Nothing_There);
+      Order_Begin (Crew, Kind_Of (O_Clear_Streets), 1);
+      Order_Add (Add_Block, 413, 0);
+      Issue_It (O_Clear_Streets, 1, "clear streets block 413", 0, Y_Streets);
+      Order_Begin (Crew, Kind_Of (O_Explore), 3);
+      Order_Add (Add_Block, 413, 0);
+      Issue_It (O_Explore, 3, "explore with 3 men", 0, Y_Only_People);
+      Check (Reply_Get (1) = Lt and then Reply_Get (2) = 2, "orders: Luigi Romano has only 2 people");
+      Launch_Week;
+      Check (City_Get (Table_Order, Slot_Of (O_Collect), F_O_State) = Order_State'Pos (Travelling)
+             and then Name (City_Get (Table_Order, Slot_Of (O_Collect), F_O_Person)) = "Sal Rinaldi"
+             and then Name (City_Get (Table_Order, Slot_Of (O_Buy), F_O_Person)) = "Luigi Romano"
+             and then City_Get (Table_Order, Slot_Of (O_Explore), F_O_State) = Order_State'Pos (Queued),
+             "orders week 1: collect to Sal Rinaldi, buy to Luigi Romano, explore queued (as 1.2.91)");
+      Week_Run (1, 254_050, 5308);
+      Check (City_Get (Table_Gang, G, F_G_Wages) = 836, "orders week 1: wages 836");
+      Done_Near (O_Buy, 498, "buy");
+      Done_Near (O_Collect, 552, "collect");
+      Done_Near (O_Explore, 1321, "explore");
+      I := Last_Of (O_Collect);
+      Check (City_Get (Table_Last, I, F_O_Results) = 2 and then Result (I, 1, 0) = LK (L_Collected)
+             and then Result (I, 1, 1) = Site (1578) and then Result (I, 1, 2) = 152 and then Result (I, 2, 1) = Site (1407),
+             "orders week 1: collected $152 from 1578 then 1407");
+      I := Last_Of (O_Buy);
+      Check (Result (I, 1, 0) = LK (L_Bought) and then Result (I, 1, 1) = Site (1411) and then Result (I, 1, 2) = 160
+             and then City_Get (Table_Premises, Site (1411), F_Pr_Owner_Gang) = G, "orders week 1: bought 1411 for $160");
+      I := Last_Of (O_Explore);
+      Check (City_Get (Table_Last, I, F_O_Results) = 5 and then Result (I, 1, 0) = LK (L_Looked_Over)
+             and then Result (I, 1, 2) = G and then Result (I, 2, 2) = 0 and then Result (I, 2, 3) = 0
+             and then Result (I, 5, 1) = Site (4576) and then Result (I, 5, 2) = G,
+             "orders week 1: looked over five sites (owned by you, paying nobody x3, owned by you)");
+      Check (City_Get (Table_Gang, G, F_G_Last_Protection) = 304 and then City_Get (Table_Gang, G, F_G_Last_Purchases) = 160,
+             "orders week 1: protection 304, purchases 160");
+
+      --  Week 2
+      Order_Begin (Crew, Kind_Of (O_Adjust), 1);
+      Order_Add (Add_Building, Site (1407), 0);
+      Order_Add (Add_Level, 150, 0);
+      Issue_It (O_Adjust, 1, "adjust 1407 to 150 %", 142);
+      Order_Begin (Crew, Kind_Of (O_Set_Up), 1);
+      Order_Add (Add_Building, Site (1583), 0);
+      Order_Add (Add_Business, Hood.Tables.T_Clothing_Bank, 0);
+      Issue_It (O_Set_Up, 1, "set up a clothing bank at 1583", 538);
+      Check (Command (Cmd_Cancel, Slot_Of (O_Set_Up), 0) = YK (Y_Cancelled), "orders: the set-up is cancelled");
+      Order_Begin (Crew, Kind_Of (O_Clean_Up), 1);
+      Order_Add (Add_Block, 413, 0);
+      Issue_It (O_Clean_Up, 1, "clean up block 413", 338);
+      Order_Begin (Crew, Kind_Of (O_Donate), 1);
+      Order_Add (Add_Building, Site (1406), 0);
+      Order_Add (Add_Amount, 200, 0);
+      Issue_It (O_Donate, 1, "donate $200 to 1406", 186);
+      Launch_Week;
+      Week_Run (2, 229_972, 4022);
+      Done_Near (O_Adjust, 255, "adjust");
+      Done_Near (O_Clean_Up, 666, "clean up");
+      Done_Near (O_Donate, 681, "donate");
+      I := Last_Of (O_Adjust);
+      Check (Result (I, 1, 0) = LK (L_Protection_Set) and then Result (I, 1, 2) = 228
+             and then City_Get (Table_Premises, Site (1407), F_Pr_Protect_Weekly) = 228, "orders week 2: protection at 1407 set to $228");
+      I := Last_Of (O_Clean_Up);
+      Check (City_Get (Table_Last, I, F_O_Results) = 5 and then Result (I, 1, 0) = LK (L_Cleaned_Up),
+             "orders week 2: cleaned up round five sites");
+      I := Last_Of (O_Donate);
+      Check (Result (I, 1, 0) = LK (L_Donated) and then Result (I, 1, 1) = Site (1406) and then Result (I, 1, 2) = 200,
+             "orders week 2: donated $200 to 1406");
+      Check (City_Get (Table_Gang, G, F_G_Last_Purchases) = 450, "orders week 2: purchases 450");
+
+      --  Week 3
+      Order_Begin (Crew, Kind_Of (O_Run), 1);
+      Order_Add (Add_Building, Site (1583), 0);
+      Issue_It (O_Run, 1, "run 1583", 176);
+      Order_Begin (Crew, Kind_Of (O_Go_To), 1);
+      Order_Add (Add_Point, City_Get (Table_Lot, City_Get (Table_Building, Office, F_B_Lot), F_Lot_X)
+                 + City_Get (Table_Lot, City_Get (Table_Building, Office, F_B_Lot), F_Lot_W) / 2,
+                 City_Get (Table_Lot, City_Get (Table_Building, Office, F_B_Lot), F_Lot_Y)
+                 + City_Get (Table_Lot, City_Get (Table_Building, Office, F_B_Lot), F_Lot_H) / 2);
+      Issue_It (O_Go_To, 1, "go to the office", 1200);
+      Launch_Week;
+      Week_Run (3, 228_697, 3186);
+      Done_Near (O_Run, 176, "run");
+      I := Last_Of (O_Run);
+      Check (Result (I, 1, 0) = LK (L_New_Management) and then Result (I, 1, 1) = Site (1583)
+             and then Name (City_Get (Table_Premises, Site (1583), F_Pr_Manager)) = "Sal Rinaldi"
+             and then City_Get (Table_Crews, Crew, F_C_Count) = 1
+             and then Name (City_Get (Table_Crews, Crew, F_C_Member + 1)) = "Gino Costa",
+             "orders week 3: Sal Rinaldi runs 1583, Gino Costa joins the crew");
+      I := Last_Of (O_Go_To);
+      Put_Line ("    go to: held position" & Result (I, 1, 2)'Image & " min (1.2.91 2376)");
+      Check (Result (I, 1, 0) = LK (L_Held) and then Within_20 (Result (I, 1, 2), 2376),
+             "orders week 3: held position within 20 % of 39h 36m");
+
+      --  Week 4
+      Pool1 := City_Get (Table_Pool, G, 1);
+      Pool2 := City_Get (Table_Pool, G, 2);
+      Check (Command (Cmd_Move_To_Crew, Pool1, Crew) = YK (Y_Joined) and then Name (Pool1) = "Vito Ferrante"
+             and then Command (Cmd_Move_To_Crew, Pool2, Crew) = YK (Y_Joined) and then Name (Pool2) = "Carmela Romano",
+             "orders: Vito Ferrante and Carmela Romano joined Luigi's Crew");
+      Order_Begin (Crew, Kind_Of (O_Patrol), 1);
+      Order_Add (Add_Block, 413, 0);
+      Issue_It (O_Patrol, 1, "patrol block 413", 600);
+      Order_Begin (Crew, Kind_Of (O_Guard), 1);
+      Order_Add (Add_Building, Site (1583), 0);
+      Issue_It (O_Guard, 1, "guard 1583", 600);
+      Order_Begin (Crew, Kind_Of (O_Recruit), 1);
+      Order_Add (Add_Block, 411, 0);
+      Issue_It (O_Recruit, 1, "recruit block 411", 213);
+      Check (City_Get (Table_Order, Slot_Of (O_Recruit), F_O_Target) = Site (1570), "orders: recruit goes to the gym 1570");
+      Put_Line ("  orders hash with the week 4 orders given: " & Image (Population_Hash (5)));
+      Launch_Week;
+      Check (Name (City_Get (Table_Order, Slot_Of (O_Patrol), F_O_Person)) = "Luigi Romano"
+             and then Name (City_Get (Table_Order, Slot_Of (O_Guard), F_O_Person)) = "Gino Costa"
+             and then Name (City_Get (Table_Order, Slot_Of (O_Recruit), F_O_Person)) = "Vito Ferrante",
+             "orders week 4: patrol to Luigi Romano, guard to Gino Costa, recruit to Vito Ferrante (as 1.2.91)");
+      Week_Run (4, 231_961, 2266);
+      Done_Near (O_Recruit, 294, "recruit");
+      I := Last_Of (O_Patrol);
+      Put_Line ("    patrol: " & Result (I, 1, 2)'Image & " block(s) for" & Result (I, 1, 3)'Image & " min (1.2.91 1, 2344)");
+      Check (Result (I, 1, 0) = LK (L_Patrolled) and then Result (I, 1, 2) = 1 and then Within_20 (Result (I, 1, 3), 2344),
+             "orders week 4: patrolled 1 block, within 20 % of 39h 4m");
+      I := Last_Of (O_Guard);
+      Put_Line ("    guard:" & Result (I, 1, 2)'Image & " min (1.2.91 2399)");
+      Check (Result (I, 1, 0) = LK (L_Stood_Guard) and then Result (I, 1, 1) = Site (1583) and then Within_20 (Result (I, 1, 2), 2399),
+             "orders week 4: stood guard at 1583, within 20 % of 39h 59m");
+      I := Last_Of (O_Recruit);
+      Check (Result (I, 1, 0) = LK (L_Signed_On) and then Result (I, 1, 2) = 1
+             and then City_Get (Table_Gang, G, F_G_Pool_Count) = 2 and then City_Get (Table_Crews, Crew, F_C_Count) = 3,
+             "orders week 4: 1 hood signed on to the pool; pool 2, crew 3");
+      Check (City_Get (Table_Gang, G, F_G_Wages) = 920, "orders week 4: wages 920");
+      --  Commands
+      Check (Command (Cmd_Promote, Lt, 0) = YK (Y_Choose_Hood), "orders: a lieutenant cannot be promoted");
+      Check (Command (Cmd_Promote, Pool1, 0) = YK (Y_Promoted) and then City_Get (Table_Gang, G, F_G_Crew_Total) = 2
+             and then City_Get (Table_Person, Pool1, F_P_Role) = Hood.Tables.Role'Pos (Hood.Tables.R_Lieutenant),
+             "orders: Vito Ferrante now runs his own crew");
+      Check (Command (Cmd_Move_To_Crew, Pool2, City_Get (Table_Gang_Crews, G, 2)) = YK (Y_Joined)
+             and then Command (Cmd_Move_To_Crew, Pool2, City_Get (Table_Gang_Crews, G, 2)) = YK (Y_Already_In),
+             "orders: Carmela Romano moves to the new crew, then is already in it");
+      Check (Command (Cmd_Demote, City_Get (Table_Gang_Crews, G, 2), 0) = YK (Y_Broken_Up)
+             and then City_Get (Table_Gang, G, F_G_Crew_Total) = 1
+             and then City_Get (Table_Person, Pool1, F_P_Role) = Hood.Tables.Role'Pos (Hood.Tables.R_Hood),
+             "orders: the crew has been broken up; Vito Ferrante is a hood again");
+      Check (Command (Cmd_Move_To_Pool, Lt, 0) = YK (Y_Choose_Crew_Hood)
+             and then Command (Cmd_Move_To_Pool, Pool2, 0) = YK (Y_Done), "orders: move to the pool");
+      declare
+         Before : constant Integer_32 := City_Get (Table_Person, Pool2, F_P_Loyalty);
+      begin
+         Check (Command (Cmd_Set_Pay, Pool2, City_Get (Table_Person, Pool2, F_P_Pay) - 10) = YK (Y_Done)
+                and then City_Get (Table_Person, Pool2, F_P_Loyalty) = Integer_32'Max (0, Before - 6 * 255),
+                "orders: a pay cut costs 6 % loyalty");
+      end;
+      Check (Command (Cmd_Sack, Pool2, 0) = YK (Y_Back_On_Street) and then City_Get (Table_Person, Pool2, F_P_Gang) = 0,
+             "orders: Carmela Romano is back on the street");
+      Check (Command (Cmd_Cancel, -5, 0) = YK (Y_No_Order), "orders: no such order");
+      New_Game (1932, 1932, 44, 35);
+   end Order_Checks;
+
    procedure World_Checks is
       Small : Hood.World.World_State;
       First : Unsigned_32;
@@ -649,6 +955,7 @@ begin
    World_Checks;
    City_Checks;
    People_Checks;
+   Order_Checks;
    Random_Checks;
    Number_Checks;
    Trig_Checks;

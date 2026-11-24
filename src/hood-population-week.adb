@@ -1,3 +1,5 @@
+with Hood.Population.Crews;
+with Hood.Population.Orders;
 with Hood.Population.Setup;
 
 package body Hood.Population.Week is
@@ -149,8 +151,8 @@ package body Hood.Population.Week is
       Go   : Boolean;
       Arrived : Boolean;
    begin
-      if S.People (I).Status /= Active then
-         return;
+      if S.People (I).Status /= Active or else S.People (I).Order /= No_Id then
+         return;  --  item 5: one on an order is moved by it
       end if;
       --  An idle hood or lieutenant waits inside his gang's office. 1.2.91
       --  first checks he stands within 24 m of its door; at the start every
@@ -160,7 +162,20 @@ package body Hood.Population.Week is
         and then S.People (I).Building = No_Id
         and then S.Gangs (S.People (I).Gang).Office /= No_Id
       then
-         Go_Inside (S, C, I, S.Gangs (S.People (I).Gang).Office);
+         --  Item 5: one back from an order far from the office walks home
+         --  first (the door is the lot's centre, proposed).
+         declare
+            Office : constant Integer_32 := S.Gangs (S.People (I).Gang).Office;
+            L      : constant Integer_32 := C.Buildings (Office).Lot;
+            DX     : constant Integer_64 := Integer_64 (C.Lots (L).Center_X - S.People (I).X);
+            DY     : constant Integer_64 := Integer_64 (C.Lots (L).Center_Y - S.People (I).Y);
+         begin
+            if DX * DX + DY * DY < Integer_64 (24 * Hood.Units.Scale) ** 2 then
+               Go_Inside (S, C, I, Office);
+            else
+               Hood.Population.Orders.Send_Home (S, C, I);
+            end if;
+         end;
          return;
       end if;
       if S.People (I).Building /= No_Id
@@ -241,16 +256,18 @@ package body Hood.Population.Week is
    --  The week
    ---------------------------------------------------------------------
 
-   procedure Launch (S : in out Population_State) is
+   procedure Launch (S : in out Population_State; C : Hood.City.City_State) is
    begin
       S.Phase := Week_Running;
       S.Minute := 0;
       S.Draws_This_Week := 0;
+      S.Message_Count := 0;
+      Hood.Population.Orders.Begin_Week (S, C);
    end Launch;
 
    procedure Tick
      (S    : in out Population_State;
-      C    : Hood.City.City_State;
+      C    : in out Hood.City.City_State;
       Main : in out Hood.Random.Mulberry) is
    begin
       if Order_Count /= S.Count
@@ -262,6 +279,7 @@ package body Hood.Population.Week is
       for K in Integer_32 range 0 .. S.Count - 1 loop
          Ambient (S, C, Main, Order (K));
       end loop;
+      Hood.Population.Orders.Tick (S, C, Main);
       if S.Week = 1 and then S.Minute = 1 then
          S.Rng_After_Minute_1 := Hood.Random.State (Main);
       end if;
@@ -271,29 +289,17 @@ package body Hood.Population.Week is
    --  Members
    ---------------------------------------------------------------------
 
-   procedure Remove (List : in out Member_List; Count : in out Integer_32;
-                     Person : Integer_32) is
-      N : Integer_32 := 0;
-   begin
-      for K in 1 .. Integer (Count) loop
-         if List (K) /= Person then
-            N := N + 1;
-            List (Integer (N)) := List (K);
-         end if;
-      end loop;
-      Count := N;
-   end Remove;
-
-   --  The gang's men who draw wages, in 1.2.91's gangMembers order: the
-   --  boss, the lieutenant and his crew, the pool, then the managers.
-   type Member_Set is array (1 .. 2 * Max_Pool + 3) of Integer_32;
+   --  The gang's men who draw wages, in 1.2.91's gangMembers order: each
+   --  crew's lieutenant and men, the pool, then the managers of the gang's
+   --  premises in building order (world.ts:236-256; the boss draws none).
+   type Member_Set is array (1 .. Max_Crews * 10 + Max_Pool + 64) of Integer_32;
 
    procedure Members (S : Population_State; G : Gang_Id;
                       List : out Member_Set; Count : out Integer) is
       Gang : Gang_Rec renames S.Gangs (G);
       procedure Add (P : Integer_32) is
       begin
-         if P /= No_Id then
+         if P /= No_Id and then S.People (P).Status /= Dead and then Count < List'Last then
             Count := Count + 1;
             List (Count) := P;
          end if;
@@ -301,38 +307,30 @@ package body Hood.Population.Week is
    begin
       List := [others => No_Id];
       Count := 0;
-      Add (Gang.Lieutenant);
-      for K in 1 .. Integer (Gang.Crew_Count) loop
-         Add (Gang.Crew (K));
+      for K in 1 .. Integer (Gang.Crew_Total) loop
+         declare
+            Crew : Crew_Rec renames S.Crews (Gang.Crews (K));
+         begin
+            Add (Crew.Lieutenant);
+            for J in 1 .. Integer (Crew.Count) loop
+               Add (Crew.Members (J));
+            end loop;
+         end;
       end loop;
       for K in 1 .. Integer (Gang.Pool_Count) loop
          Add (Gang.Pool (K));
       end loop;
-      Add (Gang.Manager);
-   end Members;
-
-   --  A crew broken up: its men and its kit go back to the gang.
-   procedure Disband (S : in out Population_State; G : Gang_Id) is
-      Gang : Gang_Rec renames S.Gangs (G);
-   begin
-      for K in 1 .. Integer (Gang.Crew_Count) loop
-         if Gang.Pool_Count < Max_Pool then
-            Gang.Pool_Count := Gang.Pool_Count + 1;
-            Gang.Pool (Integer (Gang.Pool_Count)) := Gang.Crew (K);
+      for B in Integer_32 range 0 .. S.Building_Count - 1 loop
+         if S.Extra (B).Owner_Gang = G and then S.Extra (B).Manager /= No_Id then
+            Add (S.Extra (B).Manager);
          end if;
-         S.People (Gang.Crew (K)).Team := No_Id;
       end loop;
-      Gang.Crew_Count := 0;
-      Gang.Pistols := Gang.Pistols + Gang.Crew_Pistols;
-      Gang.Coupes := Gang.Coupes + Gang.Crew_Coupes;
-      Gang.Crew_Pistols := 0;
-      Gang.Crew_Coupes := 0;
-      Gang.Lieutenant := No_Id;
-   end Disband;
+   end Members;
 
    procedure Defect (S : in out Population_State; Person : Integer_32) is
       P : Person_Rec renames S.People (Person);
       G : constant Gang_Ref := P.Gang;
+      K : Integer_32;
    begin
       if G = 0 then
          return;
@@ -345,9 +343,8 @@ package body Hood.Population.Week is
       if P.Kind = R_Lieutenant then
          P.Kind := R_Hood;
       end if;
+      Hood.Population.Crews.Leave_Everything (S, G, Person);
       P.Team := No_Id;
-      Remove (S.Gangs (G).Crew, S.Gangs (G).Crew_Count, Person);
-      Remove (S.Gangs (G).Pool, S.Gangs (G).Pool_Count, Person);
       if P.Building /= No_Id then
          if S.Extra (P.Building).Manager = Person then
             S.Extra (P.Building).Manager := No_Id;
@@ -357,9 +354,15 @@ package body Hood.Population.Week is
       if S.Gangs (G).Manager = Person then
          S.Gangs (G).Manager := No_Id;
       end if;
-      if S.Gangs (G).Lieutenant = Person then
-         Disband (S, G);
-      end if;
+      --  A lieutenant walking out sends his crew back to the pool.
+      K := 1;
+      while K <= S.Gangs (G).Crew_Total loop
+         if S.Crews (S.Gangs (G).Crews (Integer (K))).Lieutenant = Person then
+            Hood.Population.Crews.Disband (S, S.Gangs (G).Crews (Integer (K)), False);
+         else
+            K := K + 1;
+         end if;
+      end loop;
    end Defect;
 
    procedure Shift_Hostility (P : in out Person_Rec; G : Gang_Id; By : Integer_32) is
@@ -476,11 +479,12 @@ package body Hood.Population.Week is
             if Heir = No_Id then
                S.Gangs (G).Eliminated := True;
             else
-               if S.Gangs (G).Lieutenant = Heir then
-                  Disband (S, G);
-               end if;
-               Remove (S.Gangs (G).Crew, S.Gangs (G).Crew_Count, Heir);
-               Remove (S.Gangs (G).Pool, S.Gangs (G).Pool_Count, Heir);
+               for K in reverse 1 .. Integer (S.Gangs (G).Crew_Total) loop
+                  if S.Crews (S.Gangs (G).Crews (K)).Lieutenant = Heir then
+                     Hood.Population.Crews.Disband (S, S.Gangs (G).Crews (K), False);
+                  end if;
+               end loop;
+               Hood.Population.Crews.Leave_Everything (S, G, Heir);
                if S.Gangs (G).Manager = Heir then
                   S.Gangs (G).Manager := No_Id;
                end if;
@@ -505,6 +509,8 @@ package body Hood.Population.Week is
    begin
       for Stage in Settlement_Stage loop
          case Stage is
+            when Orders_And_Jobs =>
+               Hood.Population.Orders.Fail_Unfinished (S, C);
             when Economy =>
                Pay_Wages (S);
             when Succession =>
@@ -521,6 +527,13 @@ package body Hood.Population.Week is
                S.Week := S.Week + 1;
                Hood.Population.Setup.Top_Up (S, C, Main);
                S.Minute := 0;
+               for G in Gang_Id loop
+                  S.Gangs (G).Last_Purchases := S.Gangs (G).Purchases;
+                  S.Gangs (G).Last_Protection := S.Gangs (G).Protection;
+                  S.Gangs (G).Purchases := 0;
+                  S.Gangs (G).Protection := 0;
+               end loop;
+               Hood.Population.Orders.Rollover (S, C);
             when others =>
                null;  --  kept for the item that brings it
          end case;
@@ -530,7 +543,7 @@ package body Hood.Population.Week is
 
    procedure Finish
      (S    : in out Population_State;
-      C    : Hood.City.City_State;
+      C    : in out Hood.City.City_State;
       Main : in out Hood.Random.Mulberry) is
    begin
       while S.Minute < Minutes_Per_Week loop

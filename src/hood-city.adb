@@ -56,6 +56,8 @@ package body Hood.City is
       C.HQ := [others => (Block | Front | Front_As | FX | FY => No_Id)];
       C.City_Hash := 0;
       C.Structure_Hash := 0;
+      C.Avenue_Cols := [others => -1];
+      C.Avenue_Rows := [others => -1];
       --  citygen.ts:408: the industrial edge is drawn first on both paths.
       Hood.Random.Int (Main, 0, 3, C.Industrial_Edge);
       if C.Standard then

@@ -39,7 +39,7 @@ package body Hood.World is
       use type Hood.Population.Phase_Kind;
    begin
       if Ready (W) and then W.People.Phase = Hood.Population.Planning then
-         Hood.Population.Week.Launch (W.People);
+         Hood.Population.Week.Launch (W.People, W.City);
          Sync (W);
       end if;
    end Launch_Week;

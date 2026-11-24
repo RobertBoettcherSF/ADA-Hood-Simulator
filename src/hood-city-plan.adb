@@ -45,7 +45,8 @@ package body Hood.City.Plan is
    River_Min, River_Max : Integer_32;
    Has_River, Has_Rail  : Boolean;
    Rail_Col : Integer_32;
-   Cols, Rows : array (Integer_32 range 0 .. 3) of Integer_32;
+   Cols : Hood.City.Avenue_Lines renames Avenue_Cols;
+   Rows : Hood.City.Avenue_Lines renames Avenue_Rows;
    CX, CY   : Integer_32;
    Stores   : array (Integer_32 range 0 .. 5) of Point;
    Store_Count : Integer_32;
