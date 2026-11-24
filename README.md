@@ -8,7 +8,7 @@ A browser strategy game set in Saint Volstead, 1932: run a gang, take the city b
 
 ## Status
 
-Design approved: [docs/DESIGN.md](docs/DESIGN.md). Built so far (see [docs/HOW_WE_GOT_HERE.md](docs/HOW_WE_GOT_HERE.md)): step 1, the skeleton page (stamp, four languages, Sound off, Debug / F9 report, crash test with the Ada file and line); step 2, random numbers identical to 1.2.91, whole-number positions, table trigonometry, the 220 × 175 grid and the world hash. Step 3, city generation identical to 1.2.91 (Small, Standard and Large), shown in a placeholder street view and a city plan, with a building card. Step 4, the people set up as in 1.2.91, walking in the street view, Launch week / Finish week with the clock, and the week-end wages, loyalty and desertion, with a Gangs panel and a person card. Each step ends with a link to test in the browser.
+Design approved: [docs/DESIGN.md](docs/DESIGN.md). Built so far (see [docs/HOW_WE_GOT_HERE.md](docs/HOW_WE_GOT_HERE.md)): step 1, the skeleton page (stamp, four languages, Sound off, Debug / F9 report, crash test with the Ada file and line); step 2, random numbers identical to 1.2.91, whole-number positions, table trigonometry, the 220 × 175 grid and the world hash. Step 3, city generation identical to 1.2.91 (Small, Standard and Large), shown in a placeholder street view and a city plan, with a building card. Step 4, the people set up as in 1.2.91, walking in the street view, Launch week / Finish week with the clock, and the week-end wages, loyalty and desertion, with a Gangs panel and a person card. Step 5, crews and the peaceful orders with the crew commands: a Crews and orders panel, a job card that picks sites in the street or on the plan and shows the estimate, markers over order sites, last week's orders and this week's messages, and a start menu on the title page. Each step ends with a link to test in the browser.
 
 ## Build
 
@@ -40,4 +40,5 @@ The browser build is checked in Node against the same lines:
 ```sh
 obj/native/smoke > /tmp/smoke.txt
 node tests/wasm-check.mjs /tmp/smoke.txt   # exits non-zero unless every city line matches
+node tests/order-check.mjs                 # step 5: the scripted four weeks against 1.2.91 (needs web/node_modules)
 ```

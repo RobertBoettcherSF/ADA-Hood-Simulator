@@ -132,6 +132,7 @@ Positions between ticks: 1.2.91 interpolates with `subMinute` (`src/sim/sim.ts:1
 - The IndexedDB database keeps the same internal name and object store `saves` as the TypeScript build (`src/app/save.ts:40-42`), so existing browser storage and save-slot UI behaviour do not change. The name is internal and never shown.
 - A TypeScript (1.2.x JSON) save is not loadable in the Ada build (the formats differ); the slot list shows it as "made with the TypeScript build". **Proposed.**
 - Auto's learned state (1.2.91 `BEGIN AUTO TEST LEARNED STATE` block) is saved in its own small buffer.
+- **Unassigned:** saves have no item in section 8 yet. Until one is chosen, the start menu (item 5) shows Load game greyed with no step, and Continue resumes only the game in the current browser session.
 
 ---
 
@@ -428,6 +429,12 @@ Order table (`src/sim/constants.ts:198-490`):
 - Ada: one `Hood.Commands` unit; `Hood.Rivals` and `Hood.Auto` may call only this unit to change the world.
 - Crew time and staffing: `src/sim/crewTime.ts:14-86`, `src/sim/orderStaffing.ts:6-32`.
 - Player-visible: last week's orders with their results (`LieutenantsTab.tsx:545`), messages during the week.
+- **Step 5 outcome (v0.5.0):** crews, the thirteen peaceful orders and the crew commands (set pay, sack, promote, break up, move to a crew or the pool, cancel, give again) run in Ada (`Hood.Population.Orders`, `Hood.Population.Commands`). Refusals and lines are numbered; the page writes them in four languages, the English word for word as 1.2.91. Checked against the private 1.2.91 run of seed 1932 Standard (four scripted weeks, `tests/smoke.adb` and `tests/order-check.mjs`, also Debug → Run order check):
+  - exact: every preview estimate (312, 359, 340, 142, 538, 338, 186, 176, 1,200, 600, 600, 213 minutes), every reply and refusal text, who gets which order at launch, every result line (place names included), cash 5,308 / 4,022 / 3,186 / 2,266 (1.2.91's less business income, item 8), wages 836 / 836 / 836 / 920, prices, protection 152 → 228, recruits to the pool;
+  - within ±20 %: random draws per week (+11 % to +15 %), held position, patrol and guard minutes;
+  - not within ±20 %, information only: the minute each order finishes (Ada on foot along an L path, 30–60 % sooner than 1.2.91 with cars and pavement routes; item 6).
+  - Not modelled yet (**proposed**): attitudes and opinion shifts from orders, goodwill, news, heat, patrol reassurance, the seller's attitude on a purchase, the guard list; Clear the Streets is always refused (no bribes before item 7); recruit signs on hoods only; no preferred hood; the Waiting state is unused; doors are lot centres; estimates on foot. A crew holds at most 24 orders and the city 512 (**proposed**, new refusal "That crew cannot take more orders this week."). Set pay and sack apply to the player's own men. Lot facings outside the Standard city are **unproven** for place names.
+- **Start menu (v0.5.0):** the title page has 1.2.91's menu, written fresh: Continue previous game and New game are live (Continue resumes the game of this browser session; New game starts seed 1932 Standard as before); Hall of Fame and Leaderboard are greyed with step 8; Load game greyed with no step (saves unassigned, 2.5); Tutorials greyed as not planned (1.1); How to play and Credits greyed with no step yet.
 
 ### 6.5 Movement and transport
 
@@ -505,7 +512,7 @@ Each item: numbered plan → Robert's Go → build fully (not a stub) → GET-ve
 | 2 | **Basics, RNG and the grid** (6.1, 3.4): world record, whole-number positions and tables, mulberry32, state hash, the x/y grid (~1,200). | For seed 1932: the first 20 RNG values (same as 1.2.91's RNG and the native smoke) and the state hash; a grid overlay test pattern. |
 | 3 | **City generation in the placeholder street view** (6.2): the 1.2.91 Three.js view with code-drawn placeholders reads the Ada draw buffers (~4,000 Ada + host glue). | New game (seed, Small/Standard/Large): the city in the street view with placeholder buildings; camera controls as in 1.2.91; a count panel (blocks, lots, buildings by class, people by role) close to 1.2.91 for 1932; caps (3.2) confirmed from these counts. |
 | 4 | **People and the weekly loop** (6.3, 5.1–5.3 without orders) (~3,000). | Walkers in the street view; Launch week / Finish week; clock and week counter; settlement runs; recruits appear; week log panel. |
-| 5 | **Orders and commands** (6.4, 5.4): crews panel and the peaceful orders (buy, set up, run, collect, adjust, explore, recruit, goTo, guard, patrol, donate, clean up, clear streets) (~6,000). | A human gives orders, watches men travel and work, reads last week's results and messages; estimates before giving an order. |
+| 5 | **Orders and commands** (6.4, 5.4): crews panel and the peaceful orders (buy, set up, run, collect, adjust, explore, recruit, goTo, guard, patrol, donate, clean up, clear streets) (~6,000); the start menu on the title page (6.4). Saves stay unassigned (2.5). | A human gives orders, watches men travel and work, reads last week's results and messages; estimates before giving an order. The start menu: New game and Continue live, the rest greyed. |
 | 6 | **Movement and transport** (6.5): routes, cars, traffic, trams (~5,000). | Traffic; crews board cars when quicker; give-way at crossings; buy a car and see it used. |
 | 7 | **Combat, police and FBI** (6.6) and the violent and minor orders (~8,000). | Hits, kidnaps, bombings; street fights with hit and death effects; arrests, trials, the Lawyer tab; FBI news. |
 | 8 | **Economy, politics, news, score** (6.7) (~6,000). | Finances match the week's takings; buy and run businesses; weekly newspaper; elections; score. A human can play a long sandbox game. |
